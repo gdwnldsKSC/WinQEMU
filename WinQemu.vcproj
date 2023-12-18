@@ -4515,6 +4515,42 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="target-alpha"
+				>
+				<File
+					RelativePath=".\qemu\target-alpha\cpu.h"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\exec.h"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\helper.c"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\helper.h"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\machine.c"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\op_helper.c"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\STATUS"
+					>
+				</File>
+				<File
+					RelativePath=".\qemu\target-alpha\translate.c"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"
