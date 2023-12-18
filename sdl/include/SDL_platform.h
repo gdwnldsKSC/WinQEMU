@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,10 @@
 #undef __BEOS__
 #define __BEOS__	1
 #endif
+#if defined(__HAIKU__)
+#undef __HAIKU__
+#define __HAIKU__ 1
+#endif
 #if defined(bsdi) || defined(__bsdi) || defined(__bsdi__)
 #undef __BSDI__
 #define __BSDI__	1
@@ -44,6 +48,10 @@
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 #undef __FREEBSD__
 #define __FREEBSD__	1
+#endif
+#if defined(__HAIKU__)
+#undef __HAIKU__
+#define __HAIKU__	1
 #endif
 #if defined(hpux) || defined(__hpux) || defined(__hpux__)
 #undef __HPUX__

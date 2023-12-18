@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -280,7 +280,7 @@ static int read_fbmodes_line(FILE*f, char* line, int length)
 	/* find a relevant line */
 	do
 	{
-		if (fgets(line,length,f)<=0)
+		if (!fgets(line,length,f))
 			return 0;
 		c=line;
 		while(((*c=='\t')||(*c==' '))&&(*c!=0))

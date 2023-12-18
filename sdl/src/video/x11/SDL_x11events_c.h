@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,3 @@
 extern void X11_InitOSKeymap(_THIS);
 extern void X11_PumpEvents(_THIS);
 extern void X11_SetKeyboardState(Display *display, const char *key_vec);
-
-extern void X11_SaveScreenSaver(Display *display, int *saved_timeout, BOOL *dpms);
-extern void X11_DisableScreenSaver(_THIS, Display *display);
-extern void X11_RestoreScreenSaver(_THIS, Display *display, int saved_timeout, BOOL dpms);

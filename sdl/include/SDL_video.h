@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -460,14 +460,16 @@ extern DECLSPEC Uint32 SDLCALL SDL_MapRGBA
 /*
  * Maps a pixel value into the RGB components for a given pixel format
  */
-extern DECLSPEC void SDLCALL SDL_GetRGB(Uint32 pixel, SDL_PixelFormat *fmt,
+extern DECLSPEC void SDLCALL SDL_GetRGB(Uint32 pixel,
+				const SDL_PixelFormat * const fmt,
 				Uint8 *r, Uint8 *g, Uint8 *b);
 
 /*
  * Maps a pixel value into the RGBA components for a given pixel format
  */
-extern DECLSPEC void SDLCALL SDL_GetRGBA(Uint32 pixel, SDL_PixelFormat *fmt,
-				 Uint8 *r, Uint8 *g, Uint8 *b, Uint8 *a);
+extern DECLSPEC void SDLCALL SDL_GetRGBA(Uint32 pixel,
+				const SDL_PixelFormat * const fmt,
+				Uint8 *r, Uint8 *g, Uint8 *b, Uint8 *a);
 
 /*
  * Allocate and free an RGB surface (must be called after SDL_SetVideoMode)

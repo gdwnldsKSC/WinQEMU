@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,7 @@
 #include "../SDL_pixels_c.h"
 #include "../../events/SDL_sysevents.h"
 #include "../../events/SDL_events_c.h"
+#include "SDL_gapidibvideo.h"
 #include "SDL_dibvideo.h"
 #include "../wincommon/SDL_syswm_c.h"
 #include "../wincommon/SDL_sysmouse_c.h"
@@ -41,6 +42,26 @@
 #include "../wincommon/SDL_wingl_c.h"
 
 #ifdef _WIN32_WCE
+
+#ifndef DM_DISPLAYORIENTATION
+#define DM_DISPLAYORIENTATION 0x00800000L
+#endif
+#ifndef DM_DISPLAYQUERYORIENTATION 
+#define DM_DISPLAYQUERYORIENTATION 0x01000000L
+#endif
+#ifndef DMDO_0
+#define DMDO_0      0
+#endif
+#ifndef DMDO_90
+#define DMDO_90     1
+#endif
+#ifndef DMDO_180
+#define DMDO_180    2
+#endif
+#ifndef DMDO_270
+#define DMDO_270    4
+#endif
+
 #define NO_GETDIBITS
 #define NO_GAMMA_SUPPORT
   #if _WIN32_WCE < 420
@@ -108,6 +129,9 @@ static void DIB_DeleteDevice(SDL_VideoDevice *device)
 {
 	if ( device ) {
 		if ( device->hidden ) {
+			if ( device->hidden->dibInfo ) {
+				SDL_free( device->hidden->dibInfo );
+			}
 			SDL_free(device->hidden);
 		}
 		if ( device->gl_data ) {
@@ -127,6 +151,16 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
 		SDL_memset(device, 0, (sizeof *device));
 		device->hidden = (struct SDL_PrivateVideoData *)
 				SDL_malloc((sizeof *device->hidden));
+		if(device->hidden){
+			SDL_memset(device->hidden, 0, (sizeof *device->hidden));
+			device->hidden->dibInfo = (DibInfo *)SDL_malloc((sizeof(DibInfo)));
+			if(device->hidden->dibInfo == NULL)
+			{
+				SDL_free(device->hidden);
+				device->hidden = NULL;
+			}
+		}
+		
 		device->gl_data = (struct SDL_PrivateGLData *)
 				SDL_malloc((sizeof *device->gl_data));
 	}
@@ -136,7 +170,7 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
 		DIB_DeleteDevice(device);
 		return(NULL);
 	}
-	SDL_memset(device->hidden, 0, (sizeof *device->hidden));
+	SDL_memset(device->hidden->dibInfo, 0, (sizeof *device->hidden->dibInfo));
 	SDL_memset(device->gl_data, 0, (sizeof *device->gl_data));
 
 	/* Set the function pointers */
@@ -327,6 +361,8 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	this->hidden->supportRotation = ChangeDisplaySettingsEx(NULL, &settings, NULL, CDS_TEST, NULL) == DISP_CHANGE_SUCCESSFUL;
 #endif
 	/* Query for the desktop resolution */
+	SDL_desktop_mode.dmSize = sizeof(SDL_desktop_mode);
+	SDL_desktop_mode.dmDriverExtra = 0;
 	EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &SDL_desktop_mode);
 	this->info.current_w = SDL_desktop_mode.dmPelsWidth;
 	this->info.current_h = SDL_desktop_mode.dmPelsHeight;
@@ -376,7 +412,15 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 
 	/* Allow environment override of screensaver disable. */
 	env = SDL_getenv("SDL_VIDEO_ALLOW_SCREENSAVER");
-	this->hidden->allow_screensaver = ( (env && SDL_atoi(env)) ? 1 : 0 );
+	if ( env ) {
+		allow_screensaver = SDL_atoi(env);
+	} else {
+#ifdef SDL_VIDEO_DISABLE_SCREENSAVER
+		allow_screensaver = 0;
+#else
+		allow_screensaver = 1;
+#endif
+	}
 
 	/* We're done! */
 	return(0);
@@ -483,6 +527,36 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	RECT bounds;
 	int x, y;
 	Uint32 Rmask, Gmask, Bmask;
+
+	/*
+	 * Special case for OpenGL windows...since the app needs to call
+	 *  SDL_SetVideoMode() in response to resize events to continue to
+	 *  function, but WGL handles the GL context details behind the scenes,
+	 *  there's no sense in tearing the context down just to rebuild it
+	 *  to what it already was...tearing it down sacrifices your GL state
+	 *  and uploaded textures. So if we're requesting the same video mode
+	 *  attributes and the width/height matches the physical window, just
+	 *  return immediately.
+	 */
+	if ( (SDL_Window != NULL) &&
+	     (current != NULL) &&
+	     (current->flags == flags) &&
+	     (current->format->BitsPerPixel == bpp) &&
+	     ((flags & SDL_FULLSCREEN) == 0) ) {  /* probably not safe for fs */
+		int curwidth, curheight;
+		RECT size;
+
+		/* Get the current position of our window */
+		GetClientRect(SDL_Window, &size);
+
+		curwidth = (size.right - size.left);
+		curheight = (size.bottom - size.top);
+		if ((width == curwidth) && (height == curheight)) {
+			current->w = width;
+			current->h = height;
+			return current;  /* we're already good to go. */
+		}
+	}
 
 	prev_flags = current->flags;
 
@@ -686,7 +760,7 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 				video->flags |= SDL_RESIZABLE;
 			}
 		}
-#if WS_MAXIMIZE
+#if WS_MAXIMIZE && !defined(_WIN32_WCE)
 		if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
 #endif
 	}
@@ -764,8 +838,10 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 		if ( screen_pal && (flags & (SDL_FULLSCREEN|SDL_HWPALETTE)) ) {
 			grab_palette = TRUE;
 		}
-		/* BitBlt() maps colors for us */
-		video->flags |= SDL_HWPALETTE;
+		if ( screen_pal ) {
+			/* BitBlt() maps colors for us */
+			video->flags |= SDL_HWPALETTE;
+		}
 	}
 #ifndef _WIN32_WCE
 	/* Resize the window */
@@ -946,7 +1022,7 @@ int DIB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 			entry->peBlue  = colors[i].b;
 			entry->peFlags = PC_NOCOLLAPSE;
 		}
-#ifdef SYSPAL_NOSTATIC
+#if defined(SYSPAL_NOSTATIC) && !defined(_WIN32_WCE)
 		/* Check to make sure black and white are in position */
 		if ( GetSystemPaletteUse(hdc) != SYSPAL_NOSTATIC256 ) {
 			moved_entries += CheckPaletteEntry(screen_logpal, 0, 0x00, 0x00, 0x00);
@@ -1167,7 +1243,7 @@ void DIB_VideoQuit(_THIS)
 /* Exported for the windows message loop only */
 static void DIB_GrabStaticColors(HWND window)
 {
-#ifdef SYSPAL_NOSTATIC
+#if defined(SYSPAL_NOSTATIC) && !defined(_WIN32_WCE)
 	HDC hdc;
 
 	hdc = GetDC(window);
@@ -1180,7 +1256,7 @@ static void DIB_GrabStaticColors(HWND window)
 }
 static void DIB_ReleaseStaticColors(HWND window)
 {
-#ifdef SYSPAL_NOSTATIC
+#if defined(SYSPAL_NOSTATIC) && !defined(_WIN32_WCE)
 	HDC hdc;
 
 	hdc = GetDC(window);

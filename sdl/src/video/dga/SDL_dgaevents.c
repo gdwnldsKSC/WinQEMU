@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -137,9 +137,21 @@ void DGA_PumpEvents(_THIS)
 {
 	/* Keep processing pending events */
 	LOCK_DISPLAY();
+
+	/* Update activity every five seconds to prevent screensaver. --ryan. */
+	if (!allow_screensaver) {
+		static Uint32 screensaverTicks;
+		Uint32 nowTicks = SDL_GetTicks();
+		if ((nowTicks - screensaverTicks) > 5000) {
+			XResetScreenSaver(DGA_Display);
+			screensaverTicks = nowTicks;
+		}
+	}
+
 	while ( X11_Pending(DGA_Display) ) {
 		DGA_DispatchEvent(this);
 	}
+
 	UNLOCK_DISPLAY();
 }
 

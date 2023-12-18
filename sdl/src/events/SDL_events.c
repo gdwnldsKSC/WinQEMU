@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -191,9 +191,11 @@ static void SDL_StopEventThread(void)
 		SDL_WaitThread(SDL_EventThread, NULL);
 		SDL_EventThread = NULL;
 		SDL_DestroyMutex(SDL_EventLock.lock);
+		SDL_EventLock.lock = NULL;
 	}
 #ifndef IPOD
 	SDL_DestroyMutex(SDL_EventQ.lock);
+	SDL_EventQ.lock = NULL;
 #endif
 }
 

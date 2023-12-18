@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,7 +45,7 @@ typedef struct SDL_RWops {
 	 */
 	int (SDLCALL *seek)(struct SDL_RWops *context, int offset, int whence);
 
-	/* Read up to 'num' objects each of size 'objsize' from the data
+	/* Read up to 'maxnum' objects each of size 'size' from the data
 	   source to the area pointed at by 'ptr'.
 	   Returns the number of objects read, or -1 if the read failed.
 	 */

@@ -1,0 +1,6 @@
+Install Instructions for pxwc:
+==============================
+
+You need the wgcc package to build and install pxwc. Download wgcc and
+read the INSTALL file there, as it describes how pxwc is installed too.
+

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -45,10 +45,12 @@ static unsigned char gemdos_currentkeyboard[ATARIBIOS_MAXKEYS];
 static unsigned char gemdos_previouskeyboard[ATARIBIOS_MAXKEYS];
 static SDL_bool use_dev_mouse = SDL_FALSE;
 
+#ifndef DEV_BUSY
 enum {
 	DEV_BUSY=0,
 	DEV_READY
 };
+#endif
 
 static void UpdateSpecialKeys(int special_keys_state);
 

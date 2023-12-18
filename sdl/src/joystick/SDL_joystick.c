@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -112,64 +112,67 @@ SDL_Joystick *SDL_JoystickOpen(int device_index)
 
 	/* Create and initialize the joystick */
 	joystick = (SDL_Joystick *)SDL_malloc((sizeof *joystick));
-	if ( joystick != NULL ) {
-		SDL_memset(joystick, 0, (sizeof *joystick));
-		joystick->index = device_index;
-		if ( SDL_SYS_JoystickOpen(joystick) < 0 ) {
-			SDL_free(joystick);
-			joystick = NULL;
-		} else {
-			if ( joystick->naxes > 0 ) {
-				joystick->axes = (Sint16 *)SDL_malloc
-					(joystick->naxes*sizeof(Sint16));
-			}
-			if ( joystick->nhats > 0 ) {
-				joystick->hats = (Uint8 *)SDL_malloc
-					(joystick->nhats*sizeof(Uint8));
-			}
-			if ( joystick->nballs > 0 ) {
-				joystick->balls = (struct balldelta *)SDL_malloc
-				  (joystick->nballs*sizeof(*joystick->balls));
-			}
-			if ( joystick->nbuttons > 0 ) {
-				joystick->buttons = (Uint8 *)SDL_malloc
-					(joystick->nbuttons*sizeof(Uint8));
-			}
-			if ( ((joystick->naxes > 0) && !joystick->axes)
-			  || ((joystick->nhats > 0) && !joystick->hats)
-			  || ((joystick->nballs > 0) && !joystick->balls)
-			  || ((joystick->nbuttons > 0) && !joystick->buttons)) {
-				SDL_OutOfMemory();
-				SDL_JoystickClose(joystick);
-				joystick = NULL;
-			}
-			if ( joystick->axes ) {
-				SDL_memset(joystick->axes, 0,
-					joystick->naxes*sizeof(Sint16));
-			}
-			if ( joystick->hats ) {
-				SDL_memset(joystick->hats, 0,
-					joystick->nhats*sizeof(Uint8));
-			}
-			if ( joystick->balls ) {
-				SDL_memset(joystick->balls, 0,
-				  joystick->nballs*sizeof(*joystick->balls));
-			}
-			if ( joystick->buttons ) {
-				SDL_memset(joystick->buttons, 0,
-					joystick->nbuttons*sizeof(Uint8));
-			}
-		}
+	if ( !joystick ) {
+		return(NULL);
 	}
-	if ( joystick ) {
-		/* Add joystick to list */
-		++joystick->ref_count;
-		SDL_Lock_EventThread();
-		for ( i=0; SDL_joysticks[i]; ++i )
-			/* Skip to next joystick */;
-		SDL_joysticks[i] = joystick;
-		SDL_Unlock_EventThread();
+
+	SDL_memset(joystick, 0, (sizeof *joystick));
+	joystick->index = device_index;
+	if ( SDL_SYS_JoystickOpen(joystick) < 0 ) {
+		SDL_free(joystick);
+		return(NULL);
 	}
+
+	if ( joystick->naxes > 0 ) {
+		joystick->axes = (Sint16 *)SDL_malloc
+			(joystick->naxes*sizeof(Sint16));
+	}
+	if ( joystick->nhats > 0 ) {
+		joystick->hats = (Uint8 *)SDL_malloc
+			(joystick->nhats*sizeof(Uint8));
+	}
+	if ( joystick->nballs > 0 ) {
+		joystick->balls = (struct balldelta *)SDL_malloc
+			(joystick->nballs*sizeof(*joystick->balls));
+	}
+	if ( joystick->nbuttons > 0 ) {
+		joystick->buttons = (Uint8 *)SDL_malloc
+			(joystick->nbuttons*sizeof(Uint8));
+	}
+	if ( ((joystick->naxes > 0) && !joystick->axes)
+	  || ((joystick->nhats > 0) && !joystick->hats)
+	  || ((joystick->nballs > 0) && !joystick->balls)
+	  || ((joystick->nbuttons > 0) && !joystick->buttons)) {
+		SDL_OutOfMemory();
+		SDL_JoystickClose(joystick);
+		return(NULL);
+	}
+
+	if ( joystick->axes ) {
+		SDL_memset(joystick->axes, 0,
+			joystick->naxes*sizeof(Sint16));
+	}
+	if ( joystick->hats ) {
+		SDL_memset(joystick->hats, 0,
+			joystick->nhats*sizeof(Uint8));
+	}
+	if ( joystick->balls ) {
+		SDL_memset(joystick->balls, 0,
+			joystick->nballs*sizeof(*joystick->balls));
+	}
+	if ( joystick->buttons ) {
+		SDL_memset(joystick->buttons, 0,
+			joystick->nbuttons*sizeof(Uint8));
+	}
+
+	/* Add joystick to list */
+	++joystick->ref_count;
+	SDL_Lock_EventThread();
+	for ( i=0; SDL_joysticks[i]; ++i )
+		/* Skip to next joystick */ ;
+	SDL_joysticks[i] = joystick;
+	SDL_Unlock_EventThread();
+
 	return(joystick);
 }
 

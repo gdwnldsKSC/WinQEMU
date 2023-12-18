@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@
 #include "SDL_mouse.h"
 #include "SDL_mutex.h"
 #include "../SDL_sysvideo.h"
+#include "../windib/SDL_gapidibvideo.h"
 
 /* From gx.h, since it's not really C compliant */
 
@@ -100,13 +101,6 @@ struct GapiFunc
 #define GX_NORMALKEYS   0x02
 #define GX_LANDSCAPEKEYS        0x03
 
-typedef enum
-{
-	SDL_ORIENTATION_UP,
-	SDL_ORIENTATION_DOWN,
-	SDL_ORIENTATION_LEFT,
-	SDL_ORIENTATION_RIGHT
-} SDL_ScreenOrientation;
 
 /* GAPI video mode */
 typedef enum {
@@ -117,36 +111,41 @@ typedef enum {
 	GAPI_PALETTE
 } GAPIVideoMode; 
 
-/* Hidden "this" pointer for the video functions */
-#define _THIS	SDL_VideoDevice *this
-
 typedef unsigned short PIXEL;
 
 /* Private display data 
    begin with DIB private structure to allow DIB events code sharing
 */
-struct SDL_PrivateVideoData {
-    HBITMAP screen_bmp;
-    HPALETTE screen_pal;
+struct GapiInfo {
+	/* Rotation which has to be applied to the key (arrow keys) and mouse events measured in quarters of a circle
+	 * counter clockwise */
+	int coordinateTransform; 
+	char hiresFix; /* using hires mode without defining hires resource */
+	int invert; //TODO this is only written but never read, so it should be removed
 
 #define NUM_MODELISTS	4		/* 8, 16, 24, and 32 bits-per-pixel */
-    int SDL_nummodes[NUM_MODELISTS];
-    SDL_Rect **SDL_modelist[NUM_MODELISTS];
-	enum SDL_ScreenOrientation userOrientation;
-	int invert;
-	char hiresFix; // using hires mode without defining hires resource
+	int SDL_nummodes[NUM_MODELISTS];
+	SDL_Rect **SDL_modelist[NUM_MODELISTS];
+	
+
+	// The orientation of the video mode user wants to get
+	// Probably restricted to UP and RIGHT
+	SDL_ScreenOrientation userOrientation;
 // --------------
 	int useGXOpenDisplay; /* use GXOpenDispplay */
-    int w, h;
-	enum SDL_ScreenOrientation gapiOrientation;
+	int alreadyGXOpened;
+	int w, h;
+	// The orientation of GAPI framebuffer.
+	// Never changes on the same device.
+	SDL_ScreenOrientation gapiOrientation;
 
-    void *buffer; // may be 8, 16, 24, 32 bpp
+	void *buffer; // may be 8, 16, 24, 32 bpp
 	PIXEL *videoMem;
 	BOOL needUpdate;
 	struct GXKeyList keyList;
 	struct GapiFunc gxFunc;
 	struct GXDisplayProperties gxProperties;
-	enum GAPIVideoMode videoMode;
+	GAPIVideoMode videoMode;
 	int colorscale;
 	int dstLineStep;  // in bytes
 	int dstPixelStep; // in bytes
@@ -156,7 +155,5 @@ struct SDL_PrivateVideoData {
 };
 
 
-#define gapiBuffer this->hidden->buffer
-#define gapi this->hidden
 
 #endif /* _SDL_gapivideo_h */

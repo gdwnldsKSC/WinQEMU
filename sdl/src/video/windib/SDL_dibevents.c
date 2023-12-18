@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -30,8 +30,16 @@
 #include "../../events/SDL_sysevents.h"
 #include "../../events/SDL_events_c.h"
 #include "../wincommon/SDL_lowvideo.h"
-#include "SDL_dibvideo.h"
+#include "SDL_gapidibvideo.h"
 #include "SDL_vkeys.h"
+
+#ifdef SDL_VIDEO_DRIVER_GAPI
+#include "../gapi/SDL_gapivideo.h"
+#endif
+
+#ifdef SDL_VIDEO_DRIVER_WINDIB
+#include "SDL_dibvideo.h"
+#endif
 
 #ifndef WM_APP
 #define WM_APP	0x8000
@@ -44,6 +52,7 @@
 /* The translation table from a Microsoft VK keysym to a SDL keysym */
 static SDLKey VK_keymap[SDLK_LAST];
 static SDL_keysym *TranslateKey(WPARAM vkey, UINT scancode, SDL_keysym *keysym, int pressed);
+static SDLKey Arrows_keymap[4];
 
 /* Masks for processing the windows KEYDOWN and KEYUP messages */
 #define REPEATED_KEYMASK	(1<<30)
@@ -59,22 +68,21 @@ static SDL_keysym *TranslateKey(WPARAM vkey, UINT scancode, SDL_keysym *keysym, 
 static WNDPROCTYPE userWindowProc = NULL;
 
 
-#ifdef _WIN32_WCE
+#ifdef SDL_VIDEO_DRIVER_GAPI
 
-WPARAM rotateKey(WPARAM key,SDL_ScreenOrientation direction) 
+WPARAM rotateKey(WPARAM key,int direction) 
 {
-	if (direction != SDL_ORIENTATION_LEFT)
-		return key;
-
+	if(direction ==0 ) return key;
+	
 	switch (key) {
 		case 0x26: /* up */
-			return 0x27;
+			return Arrows_keymap[(2 + direction) % 4];
 		case 0x27: /* right */
-			return 0x28;
+			return Arrows_keymap[(1 + direction) % 4];
 		case 0x28: /* down */
-			return 0x25;
+			return Arrows_keymap[direction % 4];
 		case 0x25: /* left */
-			return 0x26;
+			return Arrows_keymap[(3 + direction) % 4];
 	}
 
 	return key;
@@ -93,14 +101,15 @@ LRESULT DIB_HandleMessage(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case WM_KEYDOWN: {
 			SDL_keysym keysym;
 
-#ifdef _WIN32_WCE
-			// Drop GAPI artefacts
-			if (wParam == 0x84 || wParam == 0x5B)
-				return 0;
+#ifdef SDL_VIDEO_DRIVER_GAPI
+			if(this->hidden->gapiInfo)
+			{
+				// Drop GAPI artefacts
+				if (wParam == 0x84 || wParam == 0x5B)
+					return 0;
 
-			// Rotate key if necessary
-			if (this->hidden->orientation != SDL_ORIENTATION_UP)
-				wParam = rotateKey(wParam, this->hidden->orientation);	
+				wParam = rotateKey(wParam, this->hidden->gapiInfo->coordinateTransform);
+			}
 #endif 
 			/* Ignore repeated keys */
 			if ( lParam&REPEATED_KEYMASK ) {
@@ -167,14 +176,15 @@ LRESULT DIB_HandleMessage(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 		case WM_KEYUP: {
 			SDL_keysym keysym;
 
-#ifdef _WIN32_WCE
-			// Drop GAPI artifacts
-			if (wParam == 0x84 || wParam == 0x5B)
-				return 0;
-
-			// Rotate key if necessary
-			if (this->hidden->orientation != SDL_ORIENTATION_UP)
-				wParam = rotateKey(wParam, this->hidden->orientation);	
+#ifdef SDL_VIDEO_DRIVER_GAPI
+			if(this->hidden->gapiInfo)
+			{
+				// Drop GAPI artifacts
+				if (wParam == 0x84 || wParam == 0x5B)
+					return 0;
+	
+				wParam = rotateKey(wParam, this->hidden->gapiInfo->coordinateTransform);
+			}
 #endif
 
 			switch (wParam) {
@@ -222,12 +232,11 @@ LRESULT DIB_HandleMessage(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 				TranslateKey(wParam,HIWORD(lParam),&keysym,0));
 		}
 		return(0);
-
 #if defined(SC_SCREENSAVE) && defined(SC_MONITORPOWER)
 		case WM_SYSCOMMAND: {
 			const DWORD val = (DWORD) (wParam & 0xFFF0);
 			if ((val == SC_SCREENSAVE) || (val == SC_MONITORPOWER)) {
-				if (!this->hidden->allow_screensaver) {
+				if (this->hidden->dibInfo && !allow_screensaver) {
 					/* Note that this doesn't stop anything on Vista
 					   if the screensaver has a password. */
 					return(0);
@@ -262,6 +271,36 @@ LRESULT DIB_HandleMessage(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	return(DefWindowProc(hwnd, msg, wParam, lParam));
 }
 
+static void DIB_GenerateMouseMotionEvent(void)
+{
+	extern int mouse_relative;
+	extern int posted;
+
+	POINT mouse;
+	GetCursorPos( &mouse );
+
+	if ( mouse_relative ) {
+		POINT center;
+		center.x = (SDL_VideoSurface->w/2);
+		center.y = (SDL_VideoSurface->h/2);
+		ClientToScreen(SDL_Window, &center);
+
+		mouse.x -= (Sint16)center.x;
+		mouse.y -= (Sint16)center.y;
+		if ( mouse.x || mouse.y ) {
+			SetCursorPos(center.x, center.y);
+			posted = SDL_PrivateMouseMotion(0, 1, mouse.x, mouse.y);
+		}
+	} else if ( SDL_GetAppState() & SDL_APPMOUSEFOCUS ) {
+		ScreenToClient(SDL_Window, &mouse);
+#ifdef _WIN32_WCE
+		if (SDL_VideoSurface)
+			GapiTransform(this->hidden->userOrientation, this->hidden->hiresFix, &mouse.x, &mouse.y);
+#endif
+		posted = SDL_PrivateMouseMotion(0, 0, mouse.x, mouse.y);
+	}
+}
+
 void DIB_PumpEvents(_THIS)
 {
 	MSG msg;
@@ -270,6 +309,10 @@ void DIB_PumpEvents(_THIS)
 		if ( GetMessage(&msg, NULL, 0, 0) > 0 ) {
 			DispatchMessage(&msg);
 		}
+	}
+
+	if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
+		DIB_GenerateMouseMotionEvent( );
 	}
 }
 
@@ -430,6 +473,11 @@ void DIB_InitOSKeymap(_THIS)
 	VK_keymap[VK_SNAPSHOT] = SDLK_PRINT;
 	VK_keymap[VK_CANCEL] = SDLK_BREAK;
 	VK_keymap[VK_APPS] = SDLK_MENU;
+
+	Arrows_keymap[3] = 0x25;
+	Arrows_keymap[2] = 0x26;
+	Arrows_keymap[1] = 0x27;
+	Arrows_keymap[0] = 0x28;
 }
 
 #define EXTKEYPAD(keypad) ((scancode & 0x100)?(mvke):(keypad))
@@ -485,28 +533,36 @@ static SDL_keysym *TranslateKey(WPARAM vkey, UINT scancode, SDL_keysym *keysym, 
 	keysym->scancode = (unsigned char) scancode;
 	keysym->mod = KMOD_NONE;
 	keysym->unicode = 0;
-	if ( pressed && SDL_TranslateUNICODE ) {
-#ifdef NO_GETKEYBOARDSTATE
-		/* Uh oh, better hope the vkey is close enough.. */
-		keysym->unicode = vkey;
-#else
-		BYTE	keystate[256];
-		Uint16	wchars[2];
-
-		GetKeyboardState(keystate);
-		if (SDL_ToUnicode((UINT)vkey, scancode, keystate, wchars, sizeof(wchars)/sizeof(wchars[0]), 0) == 1)
-		{
-			keysym->unicode = wchars[0];
-		}
-#endif /* NO_GETKEYBOARDSTATE */
-	}
-
+	
 	if ((vkey == VK_RETURN) && (scancode & 0x100)) {
 		/* No VK_ code for the keypad enter key */
 		keysym->sym = SDLK_KP_ENTER;
 	}
 	else {
 		keysym->sym = VK_keymap[SDL_MapVirtualKey(scancode, vkey)];
+	}
+
+	if ( pressed && SDL_TranslateUNICODE ) {
+#ifdef NO_GETKEYBOARDSTATE
+		/* Uh oh, better hope the vkey is close enough.. */
+		if((keysym->sym == vkey) || (vkey > 0x7f))
+		keysym->unicode = vkey;
+#else
+		BYTE	keystate[256];
+		Uint16	wchars[2];
+
+		GetKeyboardState(keystate);
+		/* Numlock isn't taken into account in ToUnicode,
+		 * so we handle it as a special case here */
+		if ((keystate[VK_NUMLOCK] & 1) && vkey >= VK_NUMPAD0 && vkey <= VK_NUMPAD9)
+		{
+			keysym->unicode = vkey - VK_NUMPAD0 + '0';
+		}
+		else if (SDL_ToUnicode((UINT)vkey, scancode, keystate, wchars, sizeof(wchars)/sizeof(wchars[0]), 0) > 0)
+		{
+			keysym->unicode = wchars[0];
+		}
+#endif /* NO_GETKEYBOARDSTATE */
 	}
 
 #if 0

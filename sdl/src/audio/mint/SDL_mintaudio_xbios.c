@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2004 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -86,9 +86,9 @@ static int Audio_Available(void)
 	SDL_MintAudio_mint_present = SDL_FALSE;
 
 	/* We can't use XBIOS in interrupt with Magic, don't know about thread */
-	if (Getcookie(C_MagX, &dummy) == C_FOUND) {
+	/*if (Getcookie(C_MagX, &dummy) == C_FOUND) {
 		return(0);
-	}
+	}*/
 
 	/* Check if user asked a different audio driver */
 	if ((envr) && (SDL_strcmp(envr, MINT_AUDIO_DRIVER_NAME)!=0)) {

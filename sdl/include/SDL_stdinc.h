@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -331,6 +331,7 @@ do {							\
 	__asm__ __volatile__ (				\
 		"std\n\t"				\
 		"rep ; movsl\n\t"			\
+		"cld\n\t"				\
 		: "=&c" (u0), "=&D" (u1), "=&S" (u2)	\
 		: "0" (n >> 2),				\
 		  "1" (dstp+(n-4)), "2" (srcp+(n-4))	\

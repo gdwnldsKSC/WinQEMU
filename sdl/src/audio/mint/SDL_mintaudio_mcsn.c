@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2004 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -272,7 +272,7 @@ static int Mint_CheckAudio(_THIS, SDL_AudioSpec *spec)
 			break;
 	}
 
-#if 1
+#if 0
 	for (i=0; i<MINTAUDIO_freqcount; i++) {
 		DEBUG_PRINT((DEBUG_NAME "freq %d: %lu Hz, clock %lu, prediv %d\n",
 			i, MINTAUDIO_frequencies[i].frequency, MINTAUDIO_frequencies[i].masterclock,

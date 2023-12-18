@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -344,6 +344,7 @@ void SDL_SYS_JoystickClose(SDL_Joystick *joystick)
 	if (joystick->hwdata != NULL) {
 		/* free system specific hardware data */
 		SDL_free(joystick->hwdata);
+		joystick->hwdata = NULL;
 	}
 }
 
@@ -354,6 +355,7 @@ void SDL_SYS_JoystickQuit(void)
 	for (i = 0; i < MAX_JOYSTICKS; i++) {
 		if ( SYS_JoystickName[i] != NULL ) {
 			SDL_free(SYS_JoystickName[i]);
+			SYS_JoystickName[i] = NULL;
 		}
 	}
 }

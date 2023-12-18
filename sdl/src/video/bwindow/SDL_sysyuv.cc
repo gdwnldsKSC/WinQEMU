@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -94,7 +94,7 @@ BBitmap * BE_GetOverlayBitmap(BRect bounds, color_space cs) {
 
 // See <GraphicsDefs.h> [btw: Cb=U, Cr=V]
 // See also http://www.fourcc.org/indexyuv.htm
-enum color_space convert_color_space(Uint32 format) {
+color_space convert_color_space(Uint32 format) {
 	switch (format) {
 	case SDL_YV12_OVERLAY:
 		return B_YUV9;

@@ -1,0 +1,44 @@
+LIBNAME('pxwc')
+INSTALLDIR_H('pxwc')
+
+acm4 = """
+AC_DEFUN([PXWC_INTERIX_VERSION],
+[
+
+AC_MSG_CHECKING([Interix Version])
+
+pxwc_host=`uname -s`
+pxwc_host_version=`uname -r`
+
+case "$pxwc_host" in
+interix | Interix)
+	case "$pxwc_host_version" in
+	3*)
+		AC_DEFINE([INTERIX_VERSION], [3], [Interix Version])
+		AC_MSG_RESULT([3])
+		;;
+	5*)
+		AC_DEFINE([INTERIX_VERSION], [5], [Interix Version])
+		AC_MSG_RESULT([5])
+		;;
+	*)
+		AC_MSG_RESULT([Unknown])
+		AC_MSG_WARN([Unkown interix version, please report this!])
+		;;
+	esac
+	;;
+*)
+	AC_MSG_RESULT([Not on interix!])
+	AC_MSG_WARN([This platform may not be supported!])
+	;;
+esac
+
+])
+
+"""
+
+ACINCLUDE_M4(lines=[acm4])
+
+CONFIGURE_AC(
+    lines=['PXWC_INTERIX_VERSION'],
+	order=AC_PROGRAMS)

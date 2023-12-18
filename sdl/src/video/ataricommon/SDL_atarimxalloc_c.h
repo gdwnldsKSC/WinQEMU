@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,10 +33,12 @@
 /*--- Defines ---*/
 
 /* Mxalloc parameters */
+#ifndef MX_STRAM
 #define MX_STRAM 0
 #define MX_TTRAM 1
 #define MX_PREFSTRAM 2
 #define MX_PREFTTRAM 3
+#endif
 
 /*--- Functions ---*/
 

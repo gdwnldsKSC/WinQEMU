@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2006 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -440,6 +440,7 @@ SDL_AudioSpec * SDL_LoadWAV_RW (SDL_RWops *src, int freesrc,
 	do {
 		if ( chunk.data != NULL ) {
 			SDL_free(chunk.data);
+			chunk.data = NULL;
 		}
 		lenread = ReadChunk(src, &chunk);
 		if ( lenread < 0 ) {
@@ -522,6 +523,7 @@ SDL_AudioSpec * SDL_LoadWAV_RW (SDL_RWops *src, int freesrc,
 	do {
 		if ( *audio_buf != NULL ) {
 			SDL_free(*audio_buf);
+			*audio_buf = NULL;
 		}
 		lenread = ReadChunk(src, &chunk);
 		if ( lenread < 0 ) {
@@ -591,6 +593,7 @@ static int ReadChunk(SDL_RWops *src, Chunk *chunk)
 	if ( SDL_RWread(src, chunk->data, chunk->length, 1) != 1 ) {
 		SDL_Error(SDL_EFREAD);
 		SDL_free(chunk->data);
+		chunk->data = NULL;
 		return(-1);
 	}
 	return(chunk->length);

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997-2004 Sam Lantinga
+    Copyright (C) 1997-2009 Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -27,7 +27,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+
+/* Apparently some X11 systems can't include this multiple times... */
+#ifndef SDL_INCLUDED_XLIBINT_H
+#define SDL_INCLUDED_XLIBINT_H 1
 #include <X11/Xlibint.h>
+#endif
+
 #include <X11/Xproto.h>
 
 #include "../Xext/extensions/Xext.h"
