@@ -5,10 +5,6 @@
 	Name="WinQemu"
 	ProjectGUID="{043CD6CD-5932-4FFE-A2E5-173B7682D109}"
 	RootNamespace="WinQemu"
-	SccProjectName="SAK"
-	SccAuxPath="SAK"
-	SccLocalPath="SAK"
-	SccProvider="SAK"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>

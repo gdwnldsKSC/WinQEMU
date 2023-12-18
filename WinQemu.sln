@@ -153,15 +153,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sys", "sys", "{F839259D-F9D
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(SourceCodeControl) = preSolution
-		SccNumberOfProjects = 3
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = WinQemu.vcproj
-		SccLocalPath1 = .
-		SccProjectUniqueName2 = WinQemuTest\\WinQemuTest.vcproj
-		SccLocalPath2 = .
-		SccProjectFilePathRelativizedFromConnection2 = WinQemuTest\\
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
