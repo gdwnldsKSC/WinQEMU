@@ -1,4 +1,8 @@
-﻿========================================================================
+﻿Including SDL 1.2.14 as it appears timeperiod appropriate for the included 
+compiled libraries in the tree to enable clean building. 
+
+
+========================================================================
     动态链接库：WinQemu 项目概述
 ========================================================================
 
