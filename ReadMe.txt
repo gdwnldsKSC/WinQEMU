@@ -1,41 +1,22 @@
-﻿Including SDL 1.2.14 as it appears timeperiod appropriate for the included 
-compiled libraries in the tree to enable clean building. 
+﻿Including SDL 1.2.14 (with some later patches after this release tag up to April 2009)
+as it appears timeperiod appropriate for the included compiled libraries in the tree 
+to enable clean building. 
 
+Fixed some include path things
 
-========================================================================
-    动态链接库：WinQemu 项目概述
-========================================================================
+WinQemu buils the dll, WinQemuTest builds the exe to actually use it
 
-应用程序向导已为您创建了此 WinQemu DLL。
+Hardcoded to use D:\Images\ for files.
 
-本文件概要介绍组成 WinQemu 应用程序的
-的每个文件的内容。
+Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
+but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.
 
+QEMU BIOS - build: 05/08/09
+VGABIOS - "current-cvs 17 Dec 2008"
 
-WinQemu.vcproj
-    这是使用应用程序向导生成的 VC++ 项目的主项目文件，
-    其中包含生成该文件的 Visual C++ 的版本信息，以及有关使用应用程序向导选择的平台、配置和项目功能的信息。
+Working startup commandline:
 
-WinQemu.cpp
-    这是主 DLL 源文件。
+winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs
 
-	此 DLL 在创建时不导出任何符号。因此，在生成此 DLL 时
-	将不会产生 .lib 文件。如果希望此项目
-	成为其他某个项目的项目依赖项，则需要
-	添加代码以从 DLL 导出某些符号，
-	以便产生一个导出库，或者，也可以在项目“属性页”对话框中的
-	“链接器”文件夹中，将“常规”属性页上的
-	“忽略输入库”属性设置为“是”。
-
-/////////////////////////////////////////////////////////////////////////////
-其他标准文件：
-
-StdAfx.h, StdAfx.cpp
-    这些文件用于生成名为 WinQemu.pch 的预编译头 (PCH) 文件和名为 StdAfx.obj 的预编译类型文件。
-
-/////////////////////////////////////////////////////////////////////////////
-其他注释：
-
-应用程序向导使用“TODO:”注释来指示应添加或自定义的源代码部分。
-
-/////////////////////////////////////////////////////////////////////////////
+Currently VS2008. TESTFILES build was created via fully updated
+VS2008 9.0.30729.1 SP on Windows 11 26010.1010
