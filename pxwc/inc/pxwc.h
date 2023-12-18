@@ -122,8 +122,8 @@ extern __CRTDLL int __cdecl _stricmp(const char*, const char*);
 extern __CRTDLL int __cdecl _strnicmp(const char*, const char*, size_t len);
 extern __CRTDLL int __cdecl _getpid();
 extern __CRTDLL void __cdecl _sleep(unsigned long);
-extern __CRTDLL __declspec(noreturn) void   __cdecl abort(void);
-extern __CRTDLL __declspec(noreturn) void   __cdecl exit(int);
+// extern __CRTDLL __declspec(noreturn) void   __cdecl abort(void);
+// extern __CRTDLL __declspec(noreturn) void   __cdecl exit(int);
 
 static PXWC_INLINE int strcasecmp(const char*a, const char*b)				{ return _stricmp(a, b); }
 static PXWC_INLINE int strncasecmp(const char*a, const char*b, size_t c)	{ return _strnicmp(a, b, c); }

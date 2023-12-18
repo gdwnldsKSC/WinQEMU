@@ -53,7 +53,7 @@
 #include <zlib.h>
 
 #ifdef _MSC_VER
-#include "..\pxwc\src\pxwc.h"
+#include "..\pxwc\inc\pxwc.h"
 #endif
 
 

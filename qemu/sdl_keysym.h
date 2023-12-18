@@ -10,7 +10,7 @@
 #ifndef __qemu_sdl_keysym_h__
 #define __qemu_sdl_keysym_h__
 
-#include <SDL\SDL_keysym.h>
+#include <SDL\include\SDL_keysym.h>
 
 typedef struct {
 	const char* name;

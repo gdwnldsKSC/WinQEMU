@@ -19,27 +19,38 @@
     Sam Lantinga
     slouken@libsdl.org
 */
+#include "SDL_config.h"
 
-#ifndef _SDL_config_h
-#define _SDL_config_h
+#ifndef _SDL_gapidibvideo_h
+#define _SDL_gapidibvideo_h
 
-#include "SDL_platform.h"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
-/* Add any platform that doesn't build using the configure system */
-#if defined(__DREAMCAST__)
-#include "SDL_config_dreamcast.h"
-#elif defined(__MACOS__)
-#include "SDL_config_macos.h"
-#elif defined(__MACOSX__)
-#include "SDL_config_macosx.h"
-#elif defined(__SYMBIAN32__)
-#include "SDL_config_symbian.h"  /* must be before win32! */
-#elif defined(__WIN32__)
-#include "SDL_config_win32.h"
-#elif defined(__OS2__)
-#include "SDL_config_os2.h"
-#else
-#include "SDL_config_minimal.h"
-#endif /* platform config */
+/* Hidden "this" pointer for the video functions */
+#define _THIS	SDL_VideoDevice *this
 
-#endif /* _SDL_config_h */
+/* typedef these to be able to define pointers, but still force everybody who
+ * wants to access them to include the corresponding header */
+typedef struct GapiInfo GapiInfo;
+typedef struct DibInfo DibInfo;
+
+/* for PDA */
+typedef enum
+{
+	SDL_ORIENTATION_UP,
+	SDL_ORIENTATION_DOWN,
+	SDL_ORIENTATION_LEFT,
+	SDL_ORIENTATION_RIGHT
+} SDL_ScreenOrientation;
+
+/* Private display data shared by gapi and windib*/
+struct SDL_PrivateVideoData {
+	int supportRotation; /* for Pocket PC devices */
+	DWORD origRotation; /* for Pocket PC devices */
+	
+	GapiInfo* gapiInfo;
+	DibInfo* dibInfo;
+};
+
+#endif
