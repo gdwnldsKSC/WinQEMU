@@ -1,8 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemu", "WinQemu.vcproj", "{043CD6CD-5932-4FFE-A2E5-173B7682D109}"
-EndProject
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fmod api 3.75", "fmod api 3.75", "{4304281E-647D-4320-A861-DCE566D5F8E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{8D7DDB59-8569-4C30-B6C3-57BE3DCB816B}"
@@ -80,8 +78,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Release", "Release", "{DC94
 		bin\Release\SDL.dll = bin\Release\SDL.dll
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemuTest", "WinQemuTest\WinQemuTest.vcproj", "{37B9A41C-2460-44D8-BA57-955D25D76A4F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pxwc", "pxwc", "{5C04660C-396B-4908-9866-3FE95CB355E5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "inc", "inc", "{C450D1D4-96C2-400E-9780-C91B811BC8B3}"
@@ -151,6 +147,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sys", "sys", "{F839259D-F9D
 		pxwc\inc\sys\time.h = pxwc\inc\sys\time.h
 		pxwc\inc\sys\types.h = pxwc\inc\sys\types.h
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemu", "WinQemu.vcxproj", "{043CD6CD-5932-4FFE-A2E5-173B7682D109}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemuTest", "WinQemuTest\WinQemuTest.vcxproj", "{37B9A41C-2460-44D8-BA57-955D25D76A4F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
