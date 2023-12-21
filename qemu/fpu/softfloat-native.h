@@ -10,12 +10,13 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
- 
-#ifdef _MSC_VER
-#include <mathex.h>
-#else
+
+// keeping this here to make sure backported code is tracked properly, but VS2013+ does not need mathex.h anymore!
+//#ifdef _MSC_VER
+//#include <mathex.h>
+//#else
 #include <math.h>
-#endif
+//#endif
 
 #if (defined(_BSD) && !defined(__APPLE__)) || defined(HOST_SOLARIS)
 #include <ieeefp.h>

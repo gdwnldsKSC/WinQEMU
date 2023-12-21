@@ -4132,7 +4132,11 @@ void helper_fprem1(void)
 		ST0 = 0.0 / 0.0; /* NaN */
 #else
 	CPU86_LDouble temp, temp1;
-	if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (fx80_to_longdouble (&ST1) == 0.0)) {
+	temp1 = ST(1);
+	long double ldST1 = fx80_to_longdouble(&temp1);
+    temp = ST0;
+	long double ldST0 = fx80_to_longdouble(&temp);
+	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
 		ST0 = fx80_from_longdouble (NAN);
 #endif
 		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
@@ -4227,7 +4231,11 @@ void helper_fprem(void)
 		ST0 = 0.0 / 0.0; /* NaN */
 #else
 	CPU86_LDouble temp, temp1;
-	if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (fx80_to_longdouble (&ST1) == 0.0)) {
+	temp1 = ST(1);
+	long double ldST1 = fx80_to_longdouble(&temp1);
+	temp = ST0;
+	long double ldST0 = fx80_to_longdouble(&temp);
+	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
 		ST0 = fx80_from_longdouble (NAN);
 #endif
 		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
