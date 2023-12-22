@@ -1080,15 +1080,6 @@
     <ClCompile Include="qemu\slirp\udp.c">
       <Filter>qemu\slirp</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\target-alpha\helper.c">
-      <Filter>qemu\target-alpha</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\target-alpha\op_helper.c">
-      <Filter>qemu\target-alpha</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\target-alpha\translate.c">
-      <Filter>qemu\target-alpha</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\target-i386\helper.c">
       <Filter>qemu\target-i386</Filter>
     </ClCompile>
@@ -1103,6 +1094,15 @@
     </ClCompile>
     <ClCompile Include="qemu\target-i386\translate.c">
       <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\helper.c">
+      <Filter>qemu\target-alpha</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\op_helper.c">
+      <Filter>qemu\target-alpha</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\translate.c">
+      <Filter>qemu\target-alpha</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1628,15 +1628,6 @@
     <ClInclude Include="qemu\slirp\udp.h">
       <Filter>qemu\slirp</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\target-alpha\cpu.h">
-      <Filter>qemu\target-alpha</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\target-alpha\exec.h">
-      <Filter>qemu\target-alpha</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\target-alpha\helper.h">
-      <Filter>qemu\target-alpha</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\target-i386\cpu.h">
       <Filter>qemu\target-i386</Filter>
     </ClInclude>
@@ -1657,6 +1648,15 @@
     </ClInclude>
     <ClInclude Include="qemu\target-i386\svm.h">
       <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-alpha\cpu.h">
+      <Filter>qemu\target-alpha</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-alpha\exec.h">
+      <Filter>qemu\target-alpha</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-alpha\helper.h">
+      <Filter>qemu\target-alpha</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

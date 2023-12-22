@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fmod api 3.75", "fmod api 3.75", "{4304281E-647D-4320-A861-DCE566D5F8E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{8D7DDB59-8569-4C30-B6C3-57BE3DCB816B}"
@@ -155,15 +157,20 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Debug-alpha|Win32 = Debug-alpha|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Debug|Win32.ActiveCfg = Debug|Win32
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Debug|Win32.Build.0 = Debug|Win32
+		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Debug-alpha|Win32.ActiveCfg = Debug-alpha|Win32
+		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Debug-alpha|Win32.Build.0 = Debug-alpha|Win32
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Release|Win32.ActiveCfg = Release|Win32
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109}.Release|Win32.Build.0 = Release|Win32
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Debug|Win32.ActiveCfg = Debug|Win32
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Debug|Win32.Build.0 = Debug|Win32
+		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Debug-alpha|Win32.ActiveCfg = Debug-alpha|Win32
+		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Debug-alpha|Win32.Build.0 = Debug-alpha|Win32
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Release|Win32.ActiveCfg = Release|Win32
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
