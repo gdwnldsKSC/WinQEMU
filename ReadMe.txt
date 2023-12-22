@@ -18,5 +18,5 @@ Working startup commandline:
 
 winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs
 
-Currently VS2008. TESTFILES build was created via fully updated
-VS2008 9.0.30729.1 SP on Windows 11 26010.1010
+Currently VS2013! TESTFILES build was created via fully updated
+VS2013 12.0.40629.00 Update 5 on Windows 11 26016.1012

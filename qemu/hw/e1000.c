@@ -99,7 +99,6 @@ enum {
 typedef struct E1000State_st {
     PCIDevice dev;
     VLANClientState *vc;
-    NICInfo *nd;
     int mmio_index;
 
     uint32_t mac_reg[0x8000];
@@ -1105,6 +1104,14 @@ e1000_mmio_map(PCIDevice *pci_dev, int region_num,
                                      excluded_regs[i] - 4);
 }
 
+static void
+e1000_cleanup(VLANClientState *vc)
+{
+	E1000State *d = vc->opaque;
+
+	unregister_savevm("e1000", d);
+}
+
 static int
 pci_e1000_uninit(PCIDevice *dev)
 {
@@ -1197,6 +1204,9 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     d = (E1000State *)pci_register_device(bus, "e1000",
                 sizeof(E1000State), devfn, NULL, NULL);
 
+	if (!d)
+		return NULL;
+
     pci_conf = d->dev.config;
     memset(pci_conf, 0, 256);
 
@@ -1219,7 +1229,6 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     pci_register_io_region((PCIDevice *)d, 1, IOPORT_SIZE,
                            PCI_ADDRESS_SPACE_IO, ioport_map);
 
-    d->nd = nd;
     memmove(d->eeprom_data, e1000_eeprom_template,
         sizeof e1000_eeprom_template);
     for (i = 0; i < 3; i++)
@@ -1237,10 +1246,11 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     memset(&d->tx, 0, sizeof d->tx);
 
     d->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 e1000_receive, e1000_can_receive, d);
+                                 e1000_receive, e1000_can_receive, 
+								 e1000_cleanup, d);
     d->vc->link_status_changed = e1000_set_link_status;
 
-    qemu_format_nic_info_str(d->vc, d->nd->macaddr);
+    qemu_format_nic_info_str(d->vc, nd->macaddr);
 
     register_savevm(info_str, -1, 2, nic_save, nic_load, d);
     d->dev.unregister = pci_e1000_uninit;
