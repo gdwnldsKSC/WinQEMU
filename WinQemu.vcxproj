@@ -55,7 +55,7 @@
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalIncludeDirectories>.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;WIN32_AIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;TARGET_ALPHA;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;WIN32_AIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -65,6 +65,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <DisableSpecificWarnings>4005;4013;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;SDL.lib;zlib.lib;dsound.lib;dxguid.lib;fmodvc.lib;Iphlpapi.lib;WinMM.Lib;pxwc.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -114,6 +115,22 @@
       </PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="qemu\target-alpha\helper.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\op_helper.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\translate.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\helper.c" />
+    <ClCompile Include="qemu\target-i386\kvm.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\machine.c" />
+    <ClCompile Include="qemu\target-i386\op_helper.c" />
+    <ClCompile Include="qemu\target-i386\translate.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -831,16 +848,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\target-i386\helper.c" />
-    <ClCompile Include="qemu\target-i386\kvm.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\target-i386\machine.c" />
-    <ClCompile Include="qemu\target-i386\op_helper.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="qemu\target-i386\translate.c" />
     <ClCompile Include="qemu\tcg\tcg-runtime.c" />
     <ClCompile Include="qemu\tcg\tcg.c" />
     <ClCompile Include="qemu\tcg\i386\tcg-target.c">
@@ -868,6 +875,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h" />
+    <ClInclude Include="qemu\target-alpha\cpu.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="qemu\target-alpha\exec.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="qemu\target-alpha\helper.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\cpu.h" />
+    <ClInclude Include="qemu\target-i386\exec.h" />
+    <ClInclude Include="qemu\target-i386\helper.h" />
+    <ClInclude Include="qemu\target-i386\helper_template.h" />
+    <ClInclude Include="qemu\target-i386\ops_sse.h" />
+    <ClInclude Include="qemu\target-i386\ops_sse_header.h" />
+    <ClInclude Include="qemu\target-i386\svm.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="qemu\a.out.h" />
@@ -1016,13 +1039,6 @@
     <ClInclude Include="qemu\hw\virtio-console.h" />
     <ClInclude Include="qemu\hw\virtio-net.h" />
     <ClInclude Include="qemu\hw\virtio.h" />
-    <ClInclude Include="qemu\target-i386\cpu.h" />
-    <ClInclude Include="qemu\target-i386\exec.h" />
-    <ClInclude Include="qemu\target-i386\helper.h" />
-    <ClInclude Include="qemu\target-i386\helper_template.h" />
-    <ClInclude Include="qemu\target-i386\ops_sse.h" />
-    <ClInclude Include="qemu\target-i386\ops_sse_header.h" />
-    <ClInclude Include="qemu\target-i386\svm.h" />
     <ClInclude Include="qemu\tcg\tcg-op.h" />
     <ClInclude Include="qemu\tcg\tcg-opc.h" />
     <ClInclude Include="qemu\tcg\tcg.h" />
@@ -1051,6 +1067,11 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="qemu\target-alpha\STATUS">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

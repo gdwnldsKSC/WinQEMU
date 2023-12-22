@@ -68,7 +68,7 @@ typedef uint32_t target_ulong;
 #elif TARGET_LONG_SIZE == 8
 typedef int64_t target_long;
 typedef uint64_t target_ulong;
-#define TARGET_FMT_lx "%016" PRIx64
+#define TARGET_FMT_lx "%016I64x" //fixme, direct substitution in use instead of "%016" PRIx64 due to current env limitations. 
 #define TARGET_FMT_ld "%" PRId64
 #define TARGET_FMT_lu "%" PRIu64
 #else
@@ -132,7 +132,7 @@ typedef struct CPUTLBEntry {
        use the corresponding iotlb value.  */
 #if TARGET_PHYS_ADDR_BITS == 64
     /* on i386 Linux make sure it is aligned */
-    target_phys_addr_t addend __attribute__((aligned(8)));
+    __declspec(align(8)) target_phys_addr_t addend;
 #else
     target_phys_addr_t addend;
 #endif
