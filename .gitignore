@@ -11,3 +11,5 @@
 *.vcproj.*.user
 # Ignore debug build files
 Debug/
+WinQemu.VC.db
+WinQemu.VC.VC.opendb
