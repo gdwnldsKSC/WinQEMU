@@ -5534,6 +5534,7 @@ again:
 	cpu_exec_init_all(tb_size * 1024 * 1024);
 
 	bdrv_init();
+	dma_helper_init();
 
 	/* we always create the cdrom drive, even if no disk is there */
 

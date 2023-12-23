@@ -619,7 +619,7 @@ static uint32_t gpe_readb(void *opaque, uint32_t addr)
     }
 
 #if defined(DEBUG)
-    printf("gpe read %lx == %lx\n", addr, val);
+    printf("gpe read %x == %x\n", addr, val);
 #endif
     return val;
 }
@@ -661,7 +661,7 @@ static void gpe_writeb(void *opaque, uint32_t addr, uint32_t val)
    }
 
 #if defined(DEBUG)
-    printf("gpe write %lx <== %d\n", addr, val);
+    printf("gpe write %x <== %d\n", addr, val);
 #endif
 }
 
@@ -681,7 +681,7 @@ static uint32_t pcihotplug_read(void *opaque, uint32_t addr)
     }
 
 #if defined(DEBUG)
-    printf("pcihotplug read %lx == %lx\n", addr, val);
+    printf("pcihotplug read %x == %x\n", addr, val);
 #endif
     return val;
 }
@@ -699,14 +699,14 @@ static void pcihotplug_write(void *opaque, uint32_t addr, uint32_t val)
    }
 
 #if defined(DEBUG)
-    printf("pcihotplug write %lx <== %d\n", addr, val);
+    printf("pcihotplug write %x <== %d\n", addr, val);
 #endif
 }
 
 static uint32_t pciej_read(void *opaque, uint32_t addr)
 {
 #if defined(DEBUG)
-    printf("pciej read %lx == %lx\n", addr, opaque);
+    printf("pciej read %x == %x\n", addr, opaque);
 #endif
     return 0;
 }
@@ -720,7 +720,7 @@ static void pciej_write(void *opaque, uint32_t addr, uint32_t val)
 #endif
 
 #if defined(DEBUG)
-    printf("pciej write %lx <== %d\n", addr, val);
+    printf("pciej write %x <== %d\n", addr, val);
 #endif
 }
 
