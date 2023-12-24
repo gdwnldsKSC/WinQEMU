@@ -331,6 +331,7 @@ enum {
     EXCP_RESET            = 0x0000,
     EXCP_MCHK             = 0x0020,
     EXCP_ARITH            = 0x0060,
+	EXCP_GEN_ARITH        = 2,
     EXCP_HW_INTERRUPT     = 0x00E0,
     EXCP_DFAULT           = 0x01E0,
     EXCP_DTB_MISS_PAL     = 0x09E0,

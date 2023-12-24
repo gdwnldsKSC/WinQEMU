@@ -51,6 +51,7 @@ struct DisasContext {
 #if !defined (CONFIG_USER_ONLY)
     int pal_mode;
 #endif
+	CPUAlphaState *env;
     uint32_t amask;
 };
 
@@ -685,7 +686,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         /* CALL_PAL */
         if (palcode >= 0x80 && palcode < 0xC0) {
             /* Unprivileged PAL call */
-            gen_excp(ctx, EXCP_CALL_PAL + ((palcode & 0x1F) << 6), 0);
+            gen_excp(ctx, EXCP_CALL_PAL + ((palcode & 0x3F) << 6), 0);
 #if !defined (CONFIG_USER_ONLY)
         } else if (palcode < 0x40) {
             /* Privileged PAL code */
@@ -1175,7 +1176,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         case 0x6C:
             /* IMPLVER */
             if (rc != 31)
-                gen_helper_load_implver(cpu_ir[rc]);
+                tcg_gen_movi_i64(cpu_ir[rc], ctx->env->implver);
             break;
         default:
             goto invalid_opc;
@@ -2347,6 +2348,7 @@ static always_inline void gen_intermediate_code_internal (CPUState *env,
     gen_opc_end = gen_opc_buf + OPC_MAX_SIZE;
     ctx.pc = pc_start;
     ctx.amask = env->amask;
+	ctx.env = env;
 #if defined (CONFIG_USER_ONLY)
     ctx.mem_idx = 0;
 #else
