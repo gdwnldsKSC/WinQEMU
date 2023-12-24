@@ -286,15 +286,6 @@ static void do_info_uuid(void)
             qemu_uuid[15]);
 }
 
-static void do_info_block(void)
-{
-    bdrv_info();
-}
-
-static void do_info_blockstats(void)
-{
-    bdrv_info_stats();
-}
 
 /* get the current CPU defined by the user */
 static int mon_set_cpu(int cpu_index)
@@ -1610,9 +1601,9 @@ const term_cmd_t info_cmds[] = {
       "", "show the network state" },
     { "chardev", "", qemu_chr_info,
       "", "show the character devices" },
-    { "block", "", do_info_block,
+    { "block", "", bdrv_info,
       "", "show the block devices" },
-    { "blockstats", "", do_info_blockstats,
+    { "blockstats", "", bdrv_info_stats,
       "", "show block device statistics" },
     { "registers", "", do_info_registers,
       "", "show the cpu registers" },

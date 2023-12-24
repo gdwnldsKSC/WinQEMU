@@ -1374,7 +1374,7 @@ static int raw_media_changed(BlockDriverState *bs)
 
 static int raw_eject(BlockDriverState *bs, int eject_flag)
 {
-	return -ENOTSUP;
+	return NULL;
 }
 
 static int raw_set_locked(BlockDriverState *bs, int locked)
