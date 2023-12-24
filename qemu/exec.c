@@ -58,7 +58,7 @@
 //#define DEBUG_TB_INVALIDATE
 //#define DEBUG_FLUSH
 //#define DEBUG_TLB
-//#define DEBUG_UNASSIGNED
+#define DEBUG_UNASSIGNED
 
 /* make various TB consistency checks */
 //#define DEBUG_TB_CHECK
@@ -2435,7 +2435,7 @@ void qemu_ram_free(ram_addr_t addr)
 static uint32_t unassigned_mem_readb(void *opaque, target_phys_addr_t addr)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
+    printf("Unassigned mem readb " TARGET_FMT_plx "\n", addr);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 0, 0, 0, 1);
@@ -2446,7 +2446,7 @@ static uint32_t unassigned_mem_readb(void *opaque, target_phys_addr_t addr)
 static uint32_t unassigned_mem_readw(void *opaque, target_phys_addr_t addr)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
+    printf("Unassigned mem readw " TARGET_FMT_plx "\n", addr);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 0, 0, 0, 2);
@@ -2457,7 +2457,7 @@ static uint32_t unassigned_mem_readw(void *opaque, target_phys_addr_t addr)
 static uint32_t unassigned_mem_readl(void *opaque, target_phys_addr_t addr)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
+    printf("Unassigned mem readl " TARGET_FMT_plx "\n", addr);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 0, 0, 0, 4);
@@ -2468,7 +2468,8 @@ static uint32_t unassigned_mem_readl(void *opaque, target_phys_addr_t addr)
 static void unassigned_mem_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
+    printf("Unassigned mem writeb " TARGET_FMT_plx " = 0x%x\n", addr, val);
+	qemu_log("Unassigned mem writeb " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 1, 0, 0, 1);
@@ -2478,7 +2479,8 @@ static void unassigned_mem_writeb(void *opaque, target_phys_addr_t addr, uint32_
 static void unassigned_mem_writew(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
+    printf("Unassigned mem writew " TARGET_FMT_plx " = 0x%x\n", addr, val);
+	qemu_log("Unassigned mem writew " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 1, 0, 0, 2);
@@ -2488,7 +2490,8 @@ static void unassigned_mem_writew(void *opaque, target_phys_addr_t addr, uint32_
 static void unassigned_mem_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
 #ifdef DEBUG_UNASSIGNED
-    printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
+    printf("Unassigned mem writel " TARGET_FMT_plx " = 0x%x\n", addr, val);
+	qemu_log("Unassigned mem writel " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
 #if defined(TARGET_SPARC)
     do_unassigned_access(addr, 1, 0, 0, 4);

@@ -33,12 +33,12 @@
 #define GEN_HELPER 1
 #include "helper.h"
 
-/* #define DO_SINGLE_STEP */
+//#define DO_SINGLE_STEP 
 #define ALPHA_DEBUG_DISAS
-/* #define DO_TB_FLUSH */
+//#define DO_TB_FLUSH 
 
 
-#ifdef ALPHA_DEBUG_DISAS
+#ifdef defined(ALPHA_DEBUG_DISAS) && 0
 #  define LOG_DISAS(...) qemu_log(__VA_ARGS__)
 #else
 #  define LOG_DISAS(...) do { } while (0)
@@ -1720,12 +1720,6 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
             break;
         case 0xE800:
             /* ECB */
-            /* XXX: TODO: evict tb cache at address rb */
-#if 0
-            ret = 2;
-#else
-            goto invalid_opc;
-#endif
             break;
         case 0xF000:
             /* RS */
@@ -2402,10 +2396,10 @@ static always_inline void gen_intermediate_code_internal (CPUState *env,
         ret = translate_one(ctxp, insn);
         if (ret != 0)
             break;
-        /* if we reach a page boundary or are single stepping, stop
-         * generation
-         */
+        /* if we reach a page boundary, or translation is too long
+           or are single stepping, stop generation.  */
         if (((ctx.pc & (TARGET_PAGE_SIZE - 1)) == 0) ||
+			gen_opc_ptr >= gen_opc_end ||
             num_insns >= max_insns) {
             break;
         }

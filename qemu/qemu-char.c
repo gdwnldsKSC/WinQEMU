@@ -2136,7 +2136,7 @@ CharDriverState *qemu_chr_open(const char *label, const char *filename, void (*i
         chr = qemu_chr_open_udp(p);
     } else
     if (strstart(filename, "mon:", &p)) {
-        chr = qemu_chr_open(label, p, NULL);
+        chr = qemu_chr_open("mux", p, NULL);
         if (chr) {
             chr = qemu_chr_open_mux(chr);
             monitor_init(chr, !nographic);

@@ -21,6 +21,8 @@ winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images
 Currently VS2013! TESTFILES build was created via fully updated
 VS2013 12.0.40629.00 Update 5 on Windows 11 26016.1012
 
+Adding alpha bits now. 
+
 version 0.10.3:
   - fix AIO cancellations (Avi Kivity)
   - fix live migration error path on incoming
