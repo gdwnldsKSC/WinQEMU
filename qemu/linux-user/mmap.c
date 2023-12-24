@@ -27,12 +27,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#if 0
 #include <linux/mman.h>
 #include <linux/unistd.h>
-#else
-#include <asm/unistd.h>
-#endif
 
 #include "qemu.h"
 #include "qemu-common.h"

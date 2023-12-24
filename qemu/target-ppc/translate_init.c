@@ -448,6 +448,23 @@ static void spr_write_pir (void *opaque, int sprn, int gprn)
 }
 #endif
 
+/* SPE specific registers */
+static void spr_read_spefscr (void *opaque, int gprn, int sprn)
+{
+    TCGv_i32 t0 = tcg_temp_new_i32();
+    tcg_gen_ld_i32(t0, cpu_env, offsetof(CPUState, spe_fscr));
+    tcg_gen_extu_i32_tl(cpu_gpr[gprn], t0);
+    tcg_temp_free_i32(t0);
+}
+
+static void spr_write_spefscr (void *opaque, int sprn, int gprn)
+{
+    TCGv_i32 t0 = tcg_temp_new_i32();
+    tcg_gen_trunc_tl_i32(t0, cpu_gpr[gprn]);
+    tcg_gen_st_i32(t0, cpu_env, offsetof(CPUState, spe_fscr));
+    tcg_temp_free_i32(t0);
+}
+
 #if !defined(CONFIG_USER_ONLY)
 /* Callback used to write the exception vector base */
 static void spr_write_excp_prefix (void *opaque, int sprn, int gprn)
@@ -457,6 +474,7 @@ static void spr_write_excp_prefix (void *opaque, int sprn, int gprn)
     tcg_gen_and_tl(t0, t0, cpu_gpr[gprn]);
     tcg_gen_st_tl(t0, cpu_env, offsetof(CPUState, excp_prefix));
     gen_store_spr(sprn, t0);
+    tcg_temp_free(t0);
 }
 
 static void spr_write_excp_vector (void *opaque, int sprn, int gprn)
@@ -2565,7 +2583,6 @@ static void gen_spr_8xx (CPUPPCState *env)
  * HSRR1   => SPR 315 (Power 2.04 hypv)
  * LPCR    => SPR 316 (970)
  * LPIDR   => SPR 317 (970)
- * SPEFSCR => SPR 512 (Power 2.04 emb)
  * EPR     => SPR 702 (Power 2.04 emb)
  * perf    => 768-783 (Power 2.04)
  * perf    => 784-799 (Power 2.04)
@@ -4021,8 +4038,8 @@ static void init_proc_e200 (CPUPPCState *env)
     gen_spr_BookE(env, 0x000000070000FFFFULL);
     /* XXX : not implemented */
     spr_register(env, SPR_BOOKE_SPEFSCR, "SPEFSCR",
-                 SPR_NOACCESS, SPR_NOACCESS,
-                 &spr_read_generic, &spr_write_generic,
+                 &spr_read_spefscr, &spr_write_spefscr,
+                 &spr_read_spefscr, &spr_write_spefscr,
                  0x00000000);
     /* Memory management */
     gen_spr_BookE_FSL(env, 0x0000005D);
@@ -4210,8 +4227,8 @@ static void init_proc_e500 (CPUPPCState *env)
                  0x00000000);
     /* XXX : not implemented */
     spr_register(env, SPR_BOOKE_SPEFSCR, "SPEFSCR",
-                 SPR_NOACCESS, SPR_NOACCESS,
-                 &spr_read_generic, &spr_write_generic,
+                 &spr_read_spefscr, &spr_write_spefscr,
+                 &spr_read_spefscr, &spr_write_spefscr,
                  0x00000000);
     /* Memory management */
 #if !defined(CONFIG_USER_ONLY)
@@ -6043,8 +6060,20 @@ static void init_proc_970FX (CPUPPCState *env)
                  SPR_NOACCESS, SPR_NOACCESS,
                  &spr_read_hior, &spr_write_hior,
                  0x00000000);
+    spr_register(env, SPR_CTRL, "SPR_CTRL",
+                 SPR_NOACCESS, SPR_NOACCESS,
+                 &spr_read_generic, &spr_write_generic,
+                 0x00000000);
+    spr_register(env, SPR_UCTRL, "SPR_UCTRL",
+                 SPR_NOACCESS, SPR_NOACCESS,
+                 &spr_read_generic, &spr_write_generic,
+                 0x00000000);
+    spr_register(env, SPR_VRSAVE, "SPR_VRSAVE",
+                 &spr_read_generic, &spr_write_generic,
+                 &spr_read_generic, &spr_write_generic,
+                 0x00000000);
 #if !defined(CONFIG_USER_ONLY)
-    env->slb_nr = 32;
+    env->slb_nr = 64;
 #endif
     init_excp_970(env);
     env->dcache_line_size = 128;
@@ -9367,11 +9396,11 @@ static int gdb_get_avr_reg(CPUState *env, uint8_t *mem_buf, int n)
 #endif
         return 16;
     }
-    if (n == 33) {
+    if (n == 32) {
         stl_p(mem_buf, env->vscr);
         return 4;
     }
-    if (n == 34) {
+    if (n == 33) {
         stl_p(mem_buf, (uint32_t)env->spr[SPR_VRSAVE]);
         return 4;
     }
@@ -9390,11 +9419,11 @@ static int gdb_set_avr_reg(CPUState *env, uint8_t *mem_buf, int n)
 #endif
         return 16;
     }
-    if (n == 33) {
+    if (n == 32) {
         env->vscr = ldl_p(mem_buf);
         return 4;
     }
-    if (n == 34) {
+    if (n == 33) {
         env->spr[SPR_VRSAVE] = (target_ulong)ldl_p(mem_buf);
         return 4;
     }
@@ -9411,13 +9440,12 @@ static int gdb_get_spe_reg(CPUState *env, uint8_t *mem_buf, int n)
 #endif
         return 4;
     }
-    if (n == 33) {
+    if (n == 32) {
         stq_p(mem_buf, env->spe_acc);
         return 8;
     }
-    if (n == 34) {
-        /* SPEFSCR not implemented */
-        memset(mem_buf, 0, 4);
+    if (n == 33) {
+        stl_p(mem_buf, env->spe_fscr);
         return 4;
     }
     return 0;
@@ -9435,12 +9463,12 @@ static int gdb_set_spe_reg(CPUState *env, uint8_t *mem_buf, int n)
 #endif
         return 4;
     }
-    if (n == 33) {
+    if (n == 32) {
         env->spe_acc = ldq_p(mem_buf);
         return 8;
     }
-    if (n == 34) {
-        /* SPEFSCR not implemented */
+    if (n == 33) {
+        env->spe_fscr = ldl_p(mem_buf);
         return 4;
     }
     return 0;
