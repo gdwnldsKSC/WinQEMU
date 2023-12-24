@@ -23,6 +23,7 @@
  */
 #include "qemu-common.h"
 #include "net.h"
+#include "monitor.h"
 #include "console.h"
 #include "sysemu.h"
 #include "qemu-timer.h"
@@ -60,12 +61,16 @@
 #include <dirent.h>
 #include <netdb.h>
 #include <sys/select.h>
-#ifdef _BSD
+#ifdef HOST_BSD
 #include <sys/stat.h>
 #ifdef __FreeBSD__
 #include <libutil.h>
 #include <dev/ppbus/ppi.h>
 #include <dev/ppbus/ppbconf.h>
+#elif defined(__DragonFly__)
+#include <libutil.h>
+#include <dev/misc/ppi/ppi.h>
+#include <bus/ppbus/ppbconf.h>
 #else
 #include <util.h>
 #endif
@@ -309,6 +314,12 @@ static void mux_print_help(CharDriverState *chr)
     }
 }
 
+static void mux_chr_send_event(MuxDriver *d, int mux_nr, int event)
+{
+    if (d->chr_event[mux_nr])
+        d->chr_event[mux_nr](d->ext_opaque[mux_nr], event);
+}
+
 static int mux_proc_byte(CharDriverState *chr, MuxDriver *d, int ch)
 {
     if (d->term_got_escape) {
@@ -340,9 +351,11 @@ static int mux_proc_byte(CharDriverState *chr, MuxDriver *d, int ch)
             break;
         case 'c':
             /* Switch to the next registered device */
+            mux_chr_send_event(d, chr->focus, CHR_EVENT_MUX_OUT);
             chr->focus++;
             if (chr->focus >= d->mux_cnt)
                 chr->focus = 0;
+            mux_chr_send_event(d, chr->focus, CHR_EVENT_MUX_IN);
             break;
        case 't':
            term_timestamps = !term_timestamps;
@@ -412,8 +425,7 @@ static void mux_chr_event(void *opaque, int event)
 
     /* Send the event to all registered listeners */
     for (i = 0; i < d->mux_cnt; i++)
-        if (d->chr_event[i])
-            d->chr_event[i](d->ext_opaque[i], event);
+        mux_chr_send_event(d, i, event);
 }
 
 static void mux_chr_update_read_handler(CharDriverState *chr)
@@ -471,7 +483,7 @@ int send_all(int fd, const void *buf, int len1)
         } else if (ret == 0) {
             break;
         } else {
-            (char*)buf += ret;
+            (char *)buf += ret;
             len -= ret;
         }
     }
@@ -798,7 +810,7 @@ void cfmakeraw (struct termios *termios_p)
 #endif
 
 #if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) \
-    || defined(__NetBSD__) || defined(__OpenBSD__)
+    || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 
 typedef struct {
     int fd;
@@ -928,7 +940,7 @@ static CharDriverState *qemu_chr_open_pty(void)
     PtyCharDriver *s;
     struct termios tty;
     int slave_fd, len;
-#if defined(__OpenBSD__)
+#if defined(__OpenBSD__) || defined(__DragonFly__)
     char pty_name[PATH_MAX];
 #define q_ptsname(x) pty_name
 #else
@@ -1274,7 +1286,7 @@ static CharDriverState *qemu_chr_open_pp(const char *filename)
 }
 #endif /* __linux__ */
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__DragonFly__)
 static int pp_ioctl(CharDriverState *chr, int cmd, void *arg)
 {
     int fd = (int)chr->opaque;
@@ -2136,10 +2148,10 @@ CharDriverState *qemu_chr_open(const char *label, const char *filename, void (*i
         chr = qemu_chr_open_udp(p);
     } else
     if (strstart(filename, "mon:", &p)) {
-        chr = qemu_chr_open("mux", p, NULL);
+        chr = qemu_chr_open(label, p, NULL);
         if (chr) {
             chr = qemu_chr_open_mux(chr);
-            monitor_init(chr, !nographic);
+            monitor_init(chr, MONITOR_USE_READLINE);
         } else {
             printf("Unable to open driver: %s\n", p);
         }
@@ -2162,13 +2174,13 @@ CharDriverState *qemu_chr_open(const char *label, const char *filename, void (*i
     if (strstart(filename, "/dev/parport", NULL)) {
         chr = qemu_chr_open_pp(filename);
     } else
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
     if (strstart(filename, "/dev/ppi", NULL)) {
         chr = qemu_chr_open_pp(filename);
     } else
 #endif
 #if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) \
-    || defined(__NetBSD__) || defined(__OpenBSD__)
+    || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
     if (strstart(filename, "/dev/", NULL)) {
         chr = qemu_chr_open_tty(filename);
     } else
@@ -2216,11 +2228,11 @@ void qemu_chr_close(CharDriverState *chr)
     qemu_free(chr);
 }
 
-void qemu_chr_info(void)
+void qemu_chr_info(Monitor *mon)
 {
     CharDriverState *chr;
 
     TAILQ_FOREACH(chr, &chardevs, next) {
-        term_printf("%s: filename=%s\n", chr->label, chr->filename);
+        monitor_printf(mon, "%s: filename=%s\n", chr->label, chr->filename);
     }
 }

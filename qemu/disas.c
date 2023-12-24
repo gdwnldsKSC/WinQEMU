@@ -388,15 +388,15 @@ void monitor_disas(CPUState *env,
     print_insn = print_insn_little_mips;
 #endif
 #else
-    term_printf("0x" TARGET_FMT_lx
+    monitor_printf("0x" TARGET_FMT_lx
 		": Asm output not supported on this arch\n", pc);
     return;
 #endif
 
     for(i = 0; i < nb_insn; i++) {
-	term_printf("0x" TARGET_FMT_lx ":  ", pc);
+	monitor_printf("0x" TARGET_FMT_lx ":  ", pc);
 	count = print_insn(pc, &disasm_info);
-	term_printf("\n");
+	monitor_printf("\n");
 	if (count < 0)
 	    break;
         pc += count;

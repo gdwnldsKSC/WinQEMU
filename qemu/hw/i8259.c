@@ -521,7 +521,7 @@ void pic_info(void)
 
     for(i=0;i<2;i++) {
         s = &isa_pic->pics[i];
-        term_printf("pic%d: irr=%02x imr=%02x isr=%02x hprio=%d irq_base=%02x rr_sel=%d elcr=%02x fnm=%d\n",
+        monitor_printf("pic%d: irr=%02x imr=%02x isr=%02x hprio=%d irq_base=%02x rr_sel=%d elcr=%02x fnm=%d\n",
                     i, s->irr, s->imr, s->isr, s->priority_add,
                     s->irq_base, s->read_reg_select, s->elcr,
                     s->special_fully_nested_mode);
@@ -531,16 +531,16 @@ void pic_info(void)
 void irq_info(void)
 {
 #ifndef DEBUG_IRQ_COUNT
-    term_printf("irq statistic code not compiled.\n");
+    monitor_printf("irq statistic code not compiled.\n");
 #else
     int i;
     int64_t count;
 
-    term_printf("IRQ statistics:\n");
+    monitor_printf("IRQ statistics:\n");
     for (i = 0; i < 16; i++) {
         count = irq_count[i];
         if (count > 0)
-            term_printf("%2d: %" PRId64 "\n", i, count);
+            monitor_printf("%2d: %" PRId64 "\n", i, count);
     }
 #endif
 }

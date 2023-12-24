@@ -70,10 +70,10 @@ void do_migrate(int detach, const char *uri)
         s = exec_start_outgoing_migration(p, max_throttle, detach);
 #endif
     else
-        term_printf("unknown migration protocol: %s\n", uri);
+        monitor_printf("unknown migration protocol: %s\n", uri);
 
     if (s == NULL)
-        term_printf("migration failed\n");
+        monitor_printf("migration failed\n");
     else {
         if (current_migration)
             current_migration->release(current_migration);
@@ -115,19 +115,19 @@ void do_info_migrate(void)
     MigrationState *s = current_migration;
     
     if (s) {
-        term_printf("Migration status: ");
+        monitor_printf("Migration status: ");
         switch (s->get_status(s)) {
         case MIG_STATE_ACTIVE:
-            term_printf("active\n");
+            monitor_printf("active\n");
             break;
         case MIG_STATE_COMPLETED:
-            term_printf("completed\n");
+            monitor_printf("completed\n");
             break;
         case MIG_STATE_ERROR:
-            term_printf("failed\n");
+            monitor_printf("failed\n");
             break;
         case MIG_STATE_CANCELLED:
-            term_printf("cancelled\n");
+            monitor_printf("cancelled\n");
             break;
         }
     }

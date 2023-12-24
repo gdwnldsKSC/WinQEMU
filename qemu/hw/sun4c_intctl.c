@@ -94,22 +94,22 @@ void sun4c_pic_info(void *opaque)
 {
     Sun4c_INTCTLState *s = opaque;
 
-    term_printf("master: pending 0x%2.2x, enabled 0x%2.2x\n", s->pending,
+    monitor_printf("master: pending 0x%2.2x, enabled 0x%2.2x\n", s->pending,
                 s->reg);
 }
 
 void sun4c_irq_info(void *opaque)
 {
 #ifndef DEBUG_IRQ_COUNT
-    term_printf("irq statistic code not compiled.\n");
+    monitor_printf("irq statistic code not compiled.\n");
 #else
     Sun4c_INTCTLState *s = opaque;
     int64_t count;
 
-    term_printf("IRQ statistics:\n");
+    monitor_printf("IRQ statistics:\n");
     count = s->irq_count[i];
     if (count > 0)
-        term_printf("%2d: %" PRId64 "\n", i, count);
+        monitor_printf("%2d: %" PRId64 "\n", i, count);
 #endif
 }
 

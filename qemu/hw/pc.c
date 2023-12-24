@@ -226,13 +226,13 @@ static int pc_boot_set(void *opaque, const char *boot_device)
 
     nbds = strlen(boot_device);
     if (nbds > PC_MAX_BOOT_DEVICES) {
-        term_printf("Too many boot devices for PC\n");
+        monitor_printf("Too many boot devices for PC\n");
         return(1);
     }
     for (i = 0; i < nbds; i++) {
         bds[i] = boot_device2nibble(boot_device[i]);
         if (bds[i] == 0) {
-            term_printf("Invalid boot device for PC: '%c'\n",
+            monitor_printf("Invalid boot device for PC: '%c'\n",
                     boot_device[i]);
             return(1);
         }

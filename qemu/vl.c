@@ -670,14 +670,14 @@ void do_info_mice(void)
 	int index = 0;
 
 	if (!qemu_put_mouse_event_head) {
-		term_printf("No mouse devices connected\n");
+		monitor_printf("No mouse devices connected\n");
 		return;
 	}
 
-	term_printf("Mouse devices available:\n");
+	monitor_printf("Mouse devices available:\n");
 	cursor = qemu_put_mouse_event_head;
 	while (cursor != NULL) {
-		term_printf("%c Mouse #%d: %s\n",
+		monitor_printf("%c Mouse #%d: %s\n",
 			(cursor == qemu_put_mouse_event_current ? '*' : ' '),
 			index, cursor->qemu_put_mouse_event_name);
 		index++;
@@ -691,7 +691,7 @@ void do_mouse_set(int index)
 	int i = 0;
 
 	if (!qemu_put_mouse_event_head) {
-		term_printf("No mouse devices connected\n");
+		monitor_printf("No mouse devices connected\n");
 		return;
 	}
 
@@ -704,7 +704,7 @@ void do_mouse_set(int index)
 	if (cursor != NULL)
 		qemu_put_mouse_event_current = cursor;
 	else
-		term_printf("Mouse at given index not found\n");
+		monitor_printf("Mouse at given index not found\n");
 }
 
 /* compute with 96 bit intermediate result: (a*b)/c */
@@ -2810,7 +2810,7 @@ void usb_info(void)
 	const char *speed_str;
 
 	if (!usb_enabled) {
-		term_printf("USB support not enabled\n");
+		monitor_printf("USB support not enabled\n");
 		return;
 	}
 
@@ -2832,7 +2832,7 @@ default:
 	speed_str = "?";
 	break;
 		}
-		term_printf("  Device %d.%d, Speed %s Mb/s, Product %s\n",
+		monitor_printf("  Device %d.%d, Speed %s Mb/s, Product %s\n",
 			0, dev->addr, speed_str, dev->devname);
 	}
 }
@@ -2871,10 +2871,10 @@ void pcmcia_info(void)
 {
 	struct pcmcia_socket_entry_s *iter;
 	if (!pcmcia_sockets)
-		term_printf("No PCMCIA sockets\n");
+		monitor_printf("No PCMCIA sockets\n");
 
 	for (iter = pcmcia_sockets; iter; iter = iter->next)
-		term_printf("%s: %s\n", iter->socket->slot_string,
+		monitor_printf("%s: %s\n", iter->socket->slot_string,
 		iter->socket->attached ? iter->socket->card_string :
 		"Empty");
 }

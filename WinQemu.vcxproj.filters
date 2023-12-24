@@ -1104,6 +1104,9 @@
     <ClCompile Include="qemu\target-alpha\translate.c">
       <Filter>qemu\target-alpha</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\acl.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1657,6 +1660,9 @@
     </ClInclude>
     <ClInclude Include="qemu\target-alpha\helper.h">
       <Filter>qemu\target-alpha</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\acl.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -570,17 +570,17 @@ static void usb_info_device(int bus_num, int addr, int class_id,
         break;
     }
 
-    term_printf("  Device %d.%d, speed %s Mb/s\n",
+    monitor_printf("  Device %d.%d, speed %s Mb/s\n",
                 bus_num, addr, speed_str);
     class_str = usb_class_str(class_id);
     if (class_str)
-        term_printf("    %s:", class_str);
+        monitor_printf("    %s:", class_str);
     else
-        term_printf("    Class %02x:", class_id);
-    term_printf(" USB device %04x:%04x", vendor_id, product_id);
+        monitor_printf("    Class %02x:", class_id);
+    monitor_printf(" USB device %04x:%04x", vendor_id, product_id);
     if (product_name[0] != '\0')
-        term_printf(", %s", product_name);
-    term_printf("\n");
+        monitor_printf(", %s", product_name);
+    monitor_printf("\n");
 }
 
 static int usb_host_info_device(void *opaque, int bus_num, int addr,

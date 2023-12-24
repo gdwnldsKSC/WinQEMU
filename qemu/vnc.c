@@ -179,16 +179,16 @@ static DisplayChangeListener *dcl;
 void do_info_vnc(void)
 {
     if (vnc_display == NULL || vnc_display->display == NULL)
-	term_printf("VNC server disabled\n");
+	monitor_printf("VNC server disabled\n");
     else {
-	term_printf("VNC server active on: ");
+	monitor_printf("VNC server active on: ");
 	term_print_filename(vnc_display->display);
-	term_printf("\n");
+	monitor_printf("\n");
 
 	if (vnc_display->clients == NULL)
-	    term_printf("No client connected\n");
+	    monitor_printf("No client connected\n");
 	else
-	    term_printf("Client connected\n");
+	    monitor_printf("Client connected\n");
     }
 }
 

@@ -249,27 +249,27 @@ void slavio_pic_info(void *opaque)
     int i;
 
     for (i = 0; i < MAX_CPUS; i++) {
-        term_printf("per-cpu %d: pending 0x%08x\n", i,
+        monitor_printf("per-cpu %d: pending 0x%08x\n", i,
                     s->slaves[i]->intreg_pending);
     }
-    term_printf("master: pending 0x%08x, disabled 0x%08x\n",
+    monitor_printf("master: pending 0x%08x, disabled 0x%08x\n",
                 s->intregm_pending, s->intregm_disabled);
 }
 
 void slavio_irq_info(void *opaque)
 {
 #ifndef DEBUG_IRQ_COUNT
-    term_printf("irq statistic code not compiled.\n");
+    monitor_printf("irq statistic code not compiled.\n");
 #else
     SLAVIO_INTCTLState *s = opaque;
     int i;
     int64_t count;
 
-    term_printf("IRQ statistics:\n");
+    monitor_printf("IRQ statistics:\n");
     for (i = 0; i < 32; i++) {
         count = s->irq_count[i];
         if (count > 0)
-            term_printf("%2d: %" PRId64 "\n", i, count);
+            monitor_printf("%2d: %" PRId64 "\n", i, count);
     }
 #endif
 }

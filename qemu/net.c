@@ -1841,7 +1841,7 @@ static int net_host_check_device(const char *device)
 void net_host_device_add(const char *device, const char *opts)
 {
     if (!net_host_check_device(device)) {
-        term_printf("invalid host network device %s\n", device);
+        monitor_printf("invalid host network device %s\n", device);
         return;
     }
     net_client_init(device, opts);
@@ -1859,7 +1859,7 @@ void net_host_device_remove(int vlan_id, const char *device)
             break;
 
     if (!vc) {
-        term_printf("can't find device %s\n", device);
+        monitor_printf("can't find device %s\n", device);
         return;
     }
     qemu_del_vlan_client(vc);
@@ -1891,9 +1891,9 @@ void do_info_network(void)
     VLANClientState *vc;
 
     for(vlan = first_vlan; vlan != NULL; vlan = vlan->next) {
-        term_printf("VLAN %d devices:\n", vlan->id);
+        monitor_printf("VLAN %d devices:\n", vlan->id);
         for(vc = vlan->first_client; vc != NULL; vc = vc->next)
-            term_printf("  %s: %s\n", vc->name, vc->info_str);
+            monitor_printf("  %s: %s\n", vc->name, vc->info_str);
     }
 }
 
@@ -1909,7 +1909,7 @@ int do_set_link(const char *name, const char *up_or_down)
 done:
 
     if (!vc) {
-        term_printf("could not find network device '%s'", name);
+        monitor_printf("could not find network device '%s'", name);
         return 0;
     }
 
@@ -1918,7 +1918,7 @@ done:
     else if (strcmp(up_or_down, "down") == 0)
         vc->link_down = 1;
     else
-        term_printf("invalid link status '%s'; only 'up' or 'down' valid\n",
+        monitor_printf("invalid link status '%s'; only 'up' or 'down' valid\n",
                     up_or_down);
 
     if (vc->link_status_changed)
