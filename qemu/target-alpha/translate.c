@@ -1170,9 +1170,9 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
 				case IMPLVER_21164:
 				case IMPLVER_21264:
 				case IMPLVER_21364:
-					tcg_gen_andi_i64(cpu_ir[rc], cpu_ir[rc],
-						             ~(uint64_t)ctx->amask);
+					tcg_gen_andi_i64(cpu_ir[rc], cpu_ir[rc], ~(uint64_t)ctx->amask);
 					break;
+				}
             }
             break;
         case 0x64:
