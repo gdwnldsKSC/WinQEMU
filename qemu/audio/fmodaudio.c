@@ -222,11 +222,11 @@ static int fmod_lock_sample (
         fmod_unlock_sample (sample, *p1, *p2, *blen1, *blen2);
 
 #ifndef _MSC_VER
-      *p1 = NULL - 1;
-       *p2 = NULL - 1;
+		*p1 = NULL - 1;
+		*p2 = NULL - 1;
 #else
-        *p1 = (char*)NULL - 1;
-        *p2 = (char*)NULL - 1;
+		*p1 = (char*)NULL - 1;
+		*p2 = (char*)NULL - 1;
 #endif
 
         *blen1 = ~0U;
