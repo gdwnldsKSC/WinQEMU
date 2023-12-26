@@ -320,98 +320,98 @@ static x86_def_t x86_defs[] = {
 		6,
 		14,
 		8,
-			/* The original CPU also implements these features:
-			CPUID_DTS, CPUID_ACPI, CPUID_SS, CPUID_HT,
-			CPUID_TM, CPUID_PBE */
+		/* The original CPU also implements these features:
+		CPUID_DTS, CPUID_ACPI, CPUID_SS, CPUID_HT,
+		CPUID_TM, CPUID_PBE */
 		PPRO_FEATURES | CPUID_VME |
-			CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA,
-			/* The original CPU also implements these ext features:
-			CPUID_EXT_VMX, CPUID_EXT_EST, CPUID_EXT_TM2, CPUID_EXT_XTPR,
-			CPUID_EXT_PDCM */
+		CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA,
+		/* The original CPU also implements these ext features:
+		CPUID_EXT_VMX, CPUID_EXT_EST, CPUID_EXT_TM2, CPUID_EXT_XTPR,
+		CPUID_EXT_PDCM */
 		CPUID_EXT_SSE3 | CPUID_EXT_MONITOR,
 		CPUID_EXT2_NX,
 		0,
 		0x80000008,
 		"Genuine Intel(R) CPU           T2600  @ 2.16GHz",
-		},
-		{
-			"486",
-			0,
-			0, 0, 0,
-			4,
-			0,
-			0,
-			I486_FEATURES, 0, 0, 0,
-			0,
-		},
-		{
-			"pentium",
-			1,
-			0, 0, 0,
-			5,
-			4,
-			3,
-			PENTIUM_FEATURES,0, 0, 0,
-			0,
-			},
-			{
-				"pentium2",
-				2,
-				0, 0, 0,
-				6,
-				5,
-				2,
-				PENTIUM2_FEATURES,0, 0, 0,
-				0,
-			},
-			{
-				"pentium3",
-				2,
-				0, 0, 0,
-				6,
-				7,
-				3,
-				PENTIUM3_FEATURES,0, 0, 0,
-				0,
-				},
-				{
-					"athlon",
-					2,
-					0x68747541, /* "Auth" */
-					0x69746e65, /* "enti" */
-					0x444d4163, /* "cAMD" */
-					6,
-					2,
-					3,
-					PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR | CPUID_MCA,
-					(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
-					0, 0,
-					0x80000008,
-						/* XXX: put another string ? */
-					"QEMU Virtual CPU version " QEMU_VERSION,
-				},
-				{
-					"n270",
-						/* original is on level 10 */
-					5,
-					0, 0, 0,
-					6,
-					28,
-					2,
-					PPRO_FEATURES |
-						CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA | CPUID_VME,
-						/* Missing: CPUID_DTS | CPUID_ACPI | CPUID_SS |
-						* CPUID_HT | CPUID_TM | CPUID_PBE */
-						/* Some CPUs got no CPUID_SEP */
-					CPUID_EXT_MONITOR |
-						CPUID_EXT_SSE3 /* PNI */ | CPUID_EXT_SSSE3,
-						/* Missing: CPUID_EXT_DSCPL | CPUID_EXT_EST |
-						* CPUID_EXT_TM2 | CPUID_EXT_XTPR */
-					(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_NX,
-					0, /* Missing: .ext3_features = CPUID_EXT3_LAHF_LM */
-					0x8000000A,
-					"Intel(R) Atom(TM) CPU N270   @ 1.60GHz",
-					},
+	},
+	{
+		"486",
+		0,
+		0, 0, 0,
+		4,
+		0,
+		0,
+		I486_FEATURES, 0, 0, 0,
+		0,
+	},
+	{
+		"pentium",
+		1,
+		0, 0, 0,
+		5,
+		4,
+		3,
+		PENTIUM_FEATURES, 0, 0, 0,
+		0,
+	},
+	{
+		"pentium2",
+		2,
+		0, 0, 0,
+		6,
+		5,
+		2,
+		PENTIUM2_FEATURES, 0, 0, 0,
+		0,
+	},
+	{
+		"pentium3",
+		2,
+		0, 0, 0,
+		6,
+		7,
+		3,
+		PENTIUM3_FEATURES, 0, 0, 0,
+		0,
+	},
+	{
+		"athlon",
+		2,
+		0x68747541, /* "Auth" */
+		0x69746e65, /* "enti" */
+		0x444d4163, /* "cAMD" */
+		6,
+		2,
+		3,
+		PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR | CPUID_MCA,
+		(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+		0, 0,
+		0x80000008,
+		/* XXX: put another string ? */
+		"QEMU Virtual CPU version " QEMU_VERSION,
+	},
+	{
+		"n270",
+		/* original is on level 10 */
+		5,
+		0, 0, 0,
+		6,
+		28,
+		2,
+		PPRO_FEATURES |
+		CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA | CPUID_VME,
+		/* Missing: CPUID_DTS | CPUID_ACPI | CPUID_SS |
+		* CPUID_HT | CPUID_TM | CPUID_PBE */
+		/* Some CPUs got no CPUID_SEP */
+		CPUID_EXT_MONITOR |
+		CPUID_EXT_SSE3 /* PNI */ | CPUID_EXT_SSSE3,
+		/* Missing: CPUID_EXT_DSCPL | CPUID_EXT_EST |
+		* CPUID_EXT_TM2 | CPUID_EXT_XTPR */
+		(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_NX,
+		0, /* Missing: .ext3_features = CPUID_EXT3_LAHF_LM */
+		0x8000000A,
+		"Intel(R) Atom(TM) CPU N270   @ 1.60GHz",
+	},
 #endif
 };
 
@@ -714,8 +714,8 @@ void cpu_dump_state(CPUState *env, FILE *f,
 #endif
 
 #ifndef _MSC_VER
-    if (kvm_enabled())
-        kvm_arch_get_registers(env);
+	if (kvm_enabled())
+		kvm_arch_get_registers(env);
 #endif
 
     eflags = env->eflags;
@@ -887,6 +887,13 @@ void cpu_dump_state(CPUState *env, FILE *f,
         for(i=0;i<8;i++) {
 #if defined(USE_X86LDOUBLE)
 #ifndef _MSC_VER
+            union {
+                long double d;
+                struct {
+                    uint64_t lower;
+                    uint16_t upper;
+                } l;
+            } tmp;
             tmp.d = env->fpregs[i].d;
 #else
 			tmp.d = fx80_to_longdouble (&env->fpregs[i].d);

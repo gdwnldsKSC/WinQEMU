@@ -43,7 +43,7 @@
 #ifndef _MSC_VER
 register struct CPUX86State *env asm(AREG0);
 #else
-struct CPUX86State *env asm(AREG0);	// NOTIFY
+struct CPUX86State *env asm(AREG0);     // NOTIFY
 #endif
 
 #include "qemu-common.h"
@@ -302,6 +302,7 @@ static inline void load_eflags(int eflags, int update_mask)
         (eflags & update_mask) | 0x2;
 }
 
+
 #ifdef _MSC_VER  // BUGBUG
 #define reg_EAX
 #define reg_ECX
@@ -313,7 +314,7 @@ static inline void load_eflags(int eflags, int update_mask)
 #define reg_EDI
 #endif
 
-static __forceinline void env_to_regs(void)
+static inline void env_to_regs(void)
 {
 #ifdef reg_EAX
     EAX = env->regs[R_EAX];

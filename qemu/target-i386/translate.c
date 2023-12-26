@@ -3224,28 +3224,28 @@ static struct sse_op_helper_s sse_op_table6[256] = {
 };
 
 static struct sse_op_helper_s sse_op_table7[256] = {
-    [0x08] = SSE41_OP(roundps),
-    [0x09] = SSE41_OP(roundpd),
-    [0x0a] = SSE41_OP(roundss),
-    [0x0b] = SSE41_OP(roundsd),
-    [0x0c] = SSE41_OP(blendps),
-    [0x0d] = SSE41_OP(blendpd),
-    [0x0e] = SSE41_OP(pblendw),
-    [0x0f] = SSSE3_OP(palignr),
-    [0x14] = SSE41_SPECIAL, /* pextrb */
-    [0x15] = SSE41_SPECIAL, /* pextrw */
-    [0x16] = SSE41_SPECIAL, /* pextrd/pextrq */
-    [0x17] = SSE41_SPECIAL, /* extractps */
-    [0x20] = SSE41_SPECIAL, /* pinsrb */
-    [0x21] = SSE41_SPECIAL, /* insertps */
-    [0x22] = SSE41_SPECIAL, /* pinsrd/pinsrq */
-    [0x40] = SSE41_OP(dpps),
-    [0x41] = SSE41_OP(dppd),
-    [0x42] = SSE41_OP(mpsadbw),
-    [0x60] = SSE42_OP(pcmpestrm),
-    [0x61] = SSE42_OP(pcmpestri),
-    [0x62] = SSE42_OP(pcmpistrm),
-    [0x63] = SSE42_OP(pcmpistri),
+	[0x08] = SSE41_OP(roundps),
+	[0x09] = SSE41_OP(roundpd),
+	[0x0a] = SSE41_OP(roundss),
+	[0x0b] = SSE41_OP(roundsd),
+	[0x0c] = SSE41_OP(blendps),
+	[0x0d] = SSE41_OP(blendpd),
+	[0x0e] = SSE41_OP(pblendw),
+	[0x0f] = SSSE3_OP(palignr),
+	[0x14] = SSE41_SPECIAL, /* pextrb */
+	[0x15] = SSE41_SPECIAL, /* pextrw */
+	[0x16] = SSE41_SPECIAL, /* pextrd/pextrq */
+	[0x17] = SSE41_SPECIAL, /* extractps */
+	[0x20] = SSE41_SPECIAL, /* pinsrb */
+	[0x21] = SSE41_SPECIAL, /* insertps */
+	[0x22] = SSE41_SPECIAL, /* pinsrd/pinsrq */
+	[0x40] = SSE41_OP(dpps),
+	[0x41] = SSE41_OP(dppd),
+	[0x42] = SSE41_OP(mpsadbw),
+	[0x60] = SSE42_OP(pcmpestrm),
+	[0x61] = SSE42_OP(pcmpestri),
+	[0x62] = SSE42_OP(pcmpistrm),
+	[0x63] = SSE42_OP(pcmpistri),
 };
 #else
 
@@ -5836,46 +5836,46 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
             gen_lea_modrm(s, modrm, &reg_addr, &offset_addr);
             switch(op) {
 #ifndef _MSC_VER
-            case 0x00 ... 0x07: /* fxxxs */
-            case 0x10 ... 0x17: /* fixxxl */
-            case 0x20 ... 0x27: /* fxxxl */
-            case 0x30 ... 0x37: /* fixxx */
+			case 0x00 ... 0x07: /* fxxxs */
+			case 0x10 ... 0x17: /* fixxxl */
+			case 0x20 ... 0x27: /* fxxxl */
+			case 0x30 ... 0x37: /* fixxx */
 #else
-	case 0x00:
-	case 0x01:
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
+			case 0x00:
+			case 0x01:
+			case 0x02:
+			case 0x03:
+			case 0x04:
+			case 0x05:
+			case 0x06:
+			case 0x07:
 
-	case 0x10:
-	case 0x11:
-	case 0x12:
-	case 0x13:
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
+			case 0x10:
+			case 0x11:
+			case 0x12:
+			case 0x13:
+			case 0x14:
+			case 0x15:
+			case 0x16:
+			case 0x17:
 
-	case 0x20:
-	case 0x21:
-	case 0x22:
-	case 0x23:
-	case 0x24:
-	case 0x25:
-	case 0x26:
-	case 0x27:
+			case 0x20:
+			case 0x21:
+			case 0x22:
+			case 0x23:
+			case 0x24:
+			case 0x25:
+			case 0x26:
+			case 0x27:
 
-	case 0x30:
-	case 0x31:
-	case 0x32:
-	case 0x33:
-	case 0x34:
-	case 0x35:
-	case 0x36:
-	case 0x37:
+			case 0x30:
+			case 0x31:
+			case 0x32:
+			case 0x33:
+			case 0x34:
+			case 0x35:
+			case 0x36:
+			case 0x37:
 #endif
                 {
                     int op1;
@@ -5916,9 +5916,9 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
             case 0x0a: /* fsts */
             case 0x0b: /* fstps */
 #ifndef _MSC_VER
-            case 0x18 ... 0x1b: /* fildl, fisttpl, fistl, fistpl */
-            case 0x28 ... 0x2b: /* fldl, fisttpll, fstl, fstpl */
-            case 0x38 ... 0x3b: /* filds, fisttps, fists, fistps */
+			case 0x18 ... 0x1b: /* fildl, fisttpl, fistl, fistpl */
+			case 0x28 ... 0x2b: /* fldl, fisttpll, fstl, fstpl */
+			case 0x38 ... 0x3b: /* filds, fisttps, fists, fistps */
 #else
 			case 0x18:
 			case 0x19:
@@ -6234,9 +6234,9 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
                 }
                 break;
 #ifndef _MSC_VER
-            case 0x00: case 0x01: case 0x04 ... 0x07: /* fxxx st, sti */
-            case 0x20: case 0x21: case 0x24 ... 0x27: /* fxxx sti, st */
-            case 0x30: case 0x31: case 0x34 ... 0x37: /* fxxxp sti, st */
+			case 0x00: case 0x01: case 0x04 ... 0x07: /* fxxx st, sti */
+			case 0x20: case 0x21: case 0x24 ... 0x27: /* fxxx sti, st */
+			case 0x30: case 0x31: case 0x34 ... 0x37: /* fxxxp sti, st */
 #else
 			case 0x00:
 			case 0x01:
@@ -7307,26 +7307,16 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
 #ifdef TARGET_X86_64
         if (dflag == 2) {
             gen_op_mov_TN_reg(OT_QUAD, 0, reg);
-            tcg_gen_bswap_i64(cpu_T[0], cpu_T[0]);
+            tcg_gen_bswap64_i64(cpu_T[0], cpu_T[0]);
             gen_op_mov_reg_T0(OT_QUAD, reg);
         } else
-        {
-            TCGv_i32 tmp0;
-            gen_op_mov_TN_reg(OT_LONG, 0, reg);
-            
-            tmp0 = tcg_temp_new_i32();
-            tcg_gen_trunc_i64_i32(tmp0, cpu_T[0]);
-            tcg_gen_bswap_i32(tmp0, tmp0);
-            tcg_gen_extu_i32_i64(cpu_T[0], tmp0);
-            gen_op_mov_reg_T0(OT_LONG, reg);
-        }
-#else
-        {
-            gen_op_mov_TN_reg(OT_LONG, 0, reg);
-            tcg_gen_bswap_i32(cpu_T[0], cpu_T[0]);
-            gen_op_mov_reg_T0(OT_LONG, reg);
-        }
 #endif
+        {
+            gen_op_mov_TN_reg(OT_LONG, 0, reg);
+            tcg_gen_ext32u_tl(cpu_T[0], cpu_T[0]);
+            tcg_gen_bswap32_tl(cpu_T[0], cpu_T[0]);
+            gen_op_mov_reg_T0(OT_LONG, reg);
+        }
         break;
     case 0xd6: /* salc */
         if (CODE64(s))
@@ -8154,7 +8144,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
 	case 0x10f:
 #endif
         /* 3DNow! instructions, ignore prefixes */
-        s->prefix &= ~(PREFIX_REPZ | PREFIX_REPNZ | PREFIX_DATA); // NOTIFY, should there be a break???
+		s->prefix &= ~(PREFIX_REPZ | PREFIX_REPNZ | PREFIX_DATA); // NOTIFY, should there be a break???
 #ifndef _MSC_VER
     case 0x110 ... 0x117:
     case 0x128 ... 0x12f:
@@ -8344,7 +8334,6 @@ static inline void gen_intermediate_code_internal(CPUState *env,
     target_ulong cs_base;
     int num_insns;
     int max_insns;
-	 int disas_flags = 0;
 
     /* generate intermediate code */
     pc_start = tb->pc;
@@ -8484,8 +8473,8 @@ static inline void gen_intermediate_code_internal(CPUState *env,
 
 #ifdef DEBUG_DISAS
     log_cpu_state_mask(CPU_LOG_TB_CPU, env, X86_DUMP_CCOP);
-
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
+        int disas_flags;
         qemu_log("----------------\n");
         qemu_log("IN: %s\n", lookup_symbol(pc_start));
 #ifdef TARGET_X86_64
