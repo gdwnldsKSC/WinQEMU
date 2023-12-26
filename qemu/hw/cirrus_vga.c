@@ -61,8 +61,6 @@
  *
  ***************************************/
 
-#define qemu_MIN(a,b) ((a) < (b) ? (a) : (b))
-
 // ID
 #define CIRRUS_ID_CLGD5422  (0x23<<2)
 #define CIRRUS_ID_CLGD5426  (0x24<<2)
@@ -184,10 +182,6 @@
 #define CIRRUS_MMIO_BRESENHAM_DIRECTION 0x38	// byte
 #define CIRRUS_MMIO_LINEDRAW_MODE     0x39	// byte
 #define CIRRUS_MMIO_BLTSTATUS         0x40	// byte
-
-// PCI 0x02: device
-#define PCI_DEVICE_CLGD5462           0x00d0
-#define PCI_DEVICE_CLGD5465           0x00d6
 
 // PCI 0x04: command(word), 0x06(word): status
 #define PCI_COMMAND_IOACCESS                0x0001
@@ -2258,7 +2252,7 @@ static void cirrus_cursor_invalidate(VGAState *s1)
     CirrusVGAState *s = (CirrusVGAState *)s1;
     int size;
 
-    if (!s->sr[0x12] & CIRRUS_CURSOR_SHOW) {
+    if (!(s->sr[0x12] & CIRRUS_CURSOR_SHOW)) {
         size = 0;
     } else {
         if (s->sr[0x12] & CIRRUS_CURSOR_LARGE)
@@ -2852,24 +2846,24 @@ static void vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 	    index = s->ar_index & 0x1f;
 	    switch (index) {
 #ifndef _MSC_VER
-	case 0x00 ... 0x0f:
+        case 0x00 ... 0x0f:
 #else
-	case 0x00:
-	case 0x01:
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x03:
+		case 0x04:
+		case 0x05:
+		case 0x06:
+		case 0x07:
+		case 0x08:
+		case 0x09:
+		case 0x0a:
+		case 0x0b:
+		case 0x0c:
+		case 0x0d:
+		case 0x0e:
+		case 0x0f:
 #endif
 		s->ar[index] = val & 0x3f;
 		break;
