@@ -1480,7 +1480,7 @@ void cpu_single_step(CPUState *env, int enabled)
 		if (kvm_enabled())
 			kvm_update_guest_debug(env, 0);
 #else
-		if (1);
+		if (0);
 #endif
 	
 	else {
