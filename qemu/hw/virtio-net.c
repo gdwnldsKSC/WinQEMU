@@ -11,16 +11,6 @@
  *
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "virtio.h"
 #include "net.h"
 #include "qemu-timer.h"
@@ -123,21 +113,6 @@ static uint32_t virtio_net_get_features(VirtIODevice *vdev)
     return features;
 }
 
-static uint32_t virtio_net_bad_features(VirtIODevice *vdev)
-{
-    uint32_t features = 0;
-
-    /* Linux kernel 2.6.25.  It understood MAC (as everyone must),
-     * but also these: */
-    features |= (1 << VIRTIO_NET_F_MAC);
-    features |= (1 << VIRTIO_NET_F_GUEST_CSUM);
-    features |= (1 << VIRTIO_NET_F_GUEST_TSO4);
-    features |= (1 << VIRTIO_NET_F_GUEST_TSO6);
-    features |= (1 << VIRTIO_NET_F_GUEST_ECN);
-
-    return features & virtio_net_get_features(vdev);
-}
-
 static void virtio_net_set_features(VirtIODevice *vdev, uint32_t features)
 {
     VirtIONet *n = to_virtio_net(vdev);
@@ -187,7 +162,7 @@ static int virtio_net_handle_mac(VirtIONet *n, uint8_t cmd,
         return VIRTIO_NET_ERR;
 
     if (mac_data.entries <= MAC_TABLE_ENTRIES) {
-        memcpy(n->mac_table.macs, (char*)elem->out_sg[1].iov_base + sizeof(mac_data),
+        memcpy(n->mac_table.macs, (char *)elem->out_sg[1].iov_base + sizeof(mac_data),
                mac_data.entries * ETH_ALEN);
         n->mac_table.in_use += mac_data.entries;
     } else {
@@ -204,7 +179,7 @@ static int virtio_net_handle_mac(VirtIONet *n, uint8_t cmd,
     if (mac_data.entries) {
         if (n->mac_table.in_use + mac_data.entries <= MAC_TABLE_ENTRIES) {
             memcpy(n->mac_table.macs + (n->mac_table.in_use * ETH_ALEN),
-                   (char*)elem->out_sg[2].iov_base + sizeof(mac_data),
+                   (char *)elem->out_sg[2].iov_base + sizeof(mac_data),
                    mac_data.entries * ETH_ALEN);
             n->mac_table.in_use += mac_data.entries;
         } else
@@ -259,7 +234,7 @@ static void virtio_net_handle_ctrl(VirtIODevice *vdev, VirtQueue *vq)
         }
 
         ctrl.class = ldub_p(elem.out_sg[0].iov_base);
-        ctrl.cmd = ldub_p((char*)elem.out_sg[0].iov_base + sizeof(ctrl.class));
+        ctrl.cmd = ldub_p((char *)elem.out_sg[0].iov_base + sizeof(ctrl.class));
 
         if (ctrl.class == VIRTIO_NET_CTRL_RX_MODE)
             status = virtio_net_handle_rx_mode(n, ctrl.cmd, &elem);
@@ -312,7 +287,7 @@ static int iov_fill(struct iovec *iov, int iovcnt, const void *buf, int count)
     offset = i = 0;
     while (offset < count && i < iovcnt) {
         int len = MIN(iov[i].iov_len, count - offset);
-        memcpy(iov[i].iov_base, (char*)buf + offset, len);
+        memcpy(iov[i].iov_base, (char *)buf + offset, len);
         offset += len;
         i++;
     }
@@ -332,8 +307,8 @@ static int receive_header(VirtIONet *n, struct iovec *iov, int iovcnt,
     /* We only ever receive a struct virtio_net_hdr from the tapfd,
      * but we may be passing along a larger header to the guest.
      */
-    (char*)iov[0].iov_base += hdr_len;
-    iov[0].iov_len  -= hdr_len;
+    (char *)iov[0].iov_base += hdr_len;
+    (char *)iov[0].iov_len  -= hdr_len;
 
     return offset;
 }
@@ -347,6 +322,11 @@ static int receive_filter(VirtIONet *n, const uint8_t *buf, int size)
 
     if (n->promisc)
         return 1;
+
+#ifdef TAP_VNET_HDR
+    if (tap_has_vnet_hdr(n->vc->vlan->first_client))
+        ptr += sizeof(struct virtio_net_hdr);
+#endif
 
     if (!memcmp(&ptr[12], vlan, sizeof(vlan))) {
         int vid = be16_to_cpup((uint16_t *)(ptr + 14)) & 0xfff;
@@ -580,21 +560,6 @@ static int virtio_net_load(QEMUFile *f, void *opaque, int version_id)
     return 0;
 }
 
-static void virtio_net_cleanup(VLANClientState *vc)
-{
-	VirtIONet *n = vc->opaque;
-
-	unregister_savevm("virtio-net", n);
-
-	qemu_free(n->mac_table.macs);
-	qemu_free(n->vlans);
-
-	qemu_del_timer(n->tx_timer);
-	qemu_free_timer(n->tx_timer);
-
-	virtio_cleanup(&n->vdev);
-}
-
 PCIDevice *virtio_net_init(PCIBus *bus, NICInfo *nd, int devfn)
 {
     VirtIONet *n;
@@ -615,7 +580,6 @@ PCIDevice *virtio_net_init(PCIBus *bus, NICInfo *nd, int devfn)
     n->vdev.set_config = virtio_net_set_config;
     n->vdev.get_features = virtio_net_get_features;
     n->vdev.set_features = virtio_net_set_features;
-    n->vdev.bad_features = virtio_net_bad_features;
     n->vdev.reset = virtio_net_reset;
     n->rx_vq = virtio_add_queue(&n->vdev, 256, virtio_net_handle_rx);
     n->tx_vq = virtio_add_queue(&n->vdev, 256, virtio_net_handle_tx);
@@ -623,9 +587,7 @@ PCIDevice *virtio_net_init(PCIBus *bus, NICInfo *nd, int devfn)
     memcpy(n->mac, nd->macaddr, ETH_ALEN);
     n->status = VIRTIO_NET_S_LINK_UP;
     n->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 virtio_net_receive,
-								 virtio_net_can_receive,
-								 virtio_net_cleanup, n);
+                                 virtio_net_receive, virtio_net_can_receive, n);
     n->vc->link_status_changed = virtio_net_set_link_status;
 
     qemu_format_nic_info_str(n->vc, n->mac);

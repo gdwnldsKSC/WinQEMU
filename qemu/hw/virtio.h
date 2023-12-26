@@ -32,8 +32,6 @@
 /* We notify when the ring is completely used, even if the guest is supressing
  * callbacks */
 #define VIRTIO_F_NOTIFY_ON_EMPTY        24
-/* A guest should never accept this.  It implies negotiation is broken. */
-#define VIRTIO_F_BAD_FEATURE		30
 
 /* from Linux's linux/virtio_ring.h */
 
@@ -84,7 +82,6 @@ struct VirtIODevice
     size_t config_len;
     void *config;
     uint32_t (*get_features)(VirtIODevice *vdev);
-    uint32_t (*bad_features)(VirtIODevice *vdev);
     void (*set_features)(VirtIODevice *vdev, uint32_t val);
     void (*get_config)(VirtIODevice *vdev, uint8_t *config);
     void (*set_config)(VirtIODevice *vdev, const uint8_t *config);
@@ -116,8 +113,6 @@ void virtio_notify(VirtIODevice *vdev, VirtQueue *vq);
 void virtio_save(VirtIODevice *vdev, QEMUFile *f);
 
 void virtio_load(VirtIODevice *vdev, QEMUFile *f);
-
-void virtio_cleanup(VirtIODevice *vdev);
 
 void virtio_notify_config(VirtIODevice *vdev);
 
