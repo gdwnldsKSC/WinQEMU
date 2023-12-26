@@ -74,9 +74,6 @@
 
 #define SMC_BITMAP_USE_THRESHOLD 10
 
-#define MMAP_AREA_START        0x00000000
-#define MMAP_AREA_END          0xa8000000
-
 #if defined(TARGET_SPARC64)
 #define TARGET_PHYS_ADDR_SPACE_BITS 41
 #elif defined(TARGET_SPARC)
@@ -195,7 +192,7 @@ static void io_mem_init(void);
 CPUWriteMemoryFunc *io_mem_write[IO_MEM_NB_ENTRIES][4];
 CPUReadMemoryFunc *io_mem_read[IO_MEM_NB_ENTRIES][4];
 void *io_mem_opaque[IO_MEM_NB_ENTRIES];
-char io_mem_used[IO_MEM_NB_ENTRIES];
+static char io_mem_used[IO_MEM_NB_ENTRIES];
 static int io_mem_watch;
 #endif
 
@@ -475,7 +472,7 @@ static void code_gen_alloc(unsigned long tb_size)
             exit(1);
         }
     }
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
     {
         int flags;
         void *addr = NULL;
@@ -544,7 +541,9 @@ static int cpu_common_load(QEMUFile *f, void *opaque, int version_id)
 
     qemu_get_be32s(f, &env->halted);
     qemu_get_be32s(f, &env->interrupt_request);
-    env->interrupt_request &= ~CPU_INTERRUPT_EXIT;
+    /* 0x01 was CPU_INTERRUPT_EXIT. This line can be removed when the
+       version_id is increased. */
+    env->interrupt_request &= ~0x01;
     tlb_flush(env, 1);
 
     return 0;
@@ -556,6 +555,9 @@ void cpu_exec_init(CPUState *env)
     CPUState **penv;
     int cpu_index;
 
+#if defined(CONFIG_USER_ONLY)
+    cpu_list_lock();
+#endif
     env->next_cpu = NULL;
     penv = &first_cpu;
     cpu_index = 0;
@@ -567,6 +569,9 @@ void cpu_exec_init(CPUState *env)
     TAILQ_INIT(&env->breakpoints);
     TAILQ_INIT(&env->watchpoints);
     *penv = env;
+#if defined(CONFIG_USER_ONLY)
+    cpu_list_unlock();
+#endif
 #if defined(CPU_SAVE_VERSION) && !defined(CONFIG_USER_ONLY)
     register_savevm("cpu_common", cpu_index, CPU_COMMON_SAVE_VERSION,
                     cpu_common_save, cpu_common_load, env);
@@ -1470,9 +1475,13 @@ void cpu_single_step(CPUState *env, int enabled)
 #if defined(TARGET_HAS_ICE)
     if (env->singlestep_enabled != enabled) {
         env->singlestep_enabled = enabled;
-        /* must flush all the translated code to avoid inconsistancies */
-        /* XXX: only flush what is necessary */
-        tb_flush(env);
+        if (kvm_enabled())
+            kvm_update_guest_debug(env, 0);
+        else {
+            /* must flush all the translated code to avoid inconsistancies */
+            /* XXX: only flush what is necessary */
+            tb_flush(env);
+        }
     }
 #endif
 }
@@ -1495,7 +1504,7 @@ void cpu_set_log(int log_flags)
         }
 #else
 #ifndef _MSC_VER
-		setvbuf(logfile, NULL, _IOLBF, 0);
+        setvbuf(logfile, NULL, _IOLBF, 0);
 #else
 		setvbuf(stdout, NULL, _IONBF, 0);
 #endif
@@ -1519,28 +1528,36 @@ void cpu_set_log_filename(const char *filename)
     cpu_set_log(loglevel);
 }
 
-/* mask must never be zero, except for A20 change call */
-void cpu_interrupt(CPUState *env, int mask)
+static void cpu_unlink_tb(CPUState *env)
 {
-#if !defined(USE_NPTL)
-    TranslationBlock *tb;
-    static spinlock_t interrupt_lock = SPIN_LOCK_UNLOCKED;
-#endif
-    int old_mask;
-
-    if (mask & CPU_INTERRUPT_EXIT) {
-        env->exit_request = 1;
-        mask &= ~CPU_INTERRUPT_EXIT;
-    }
-
-    old_mask = env->interrupt_request;
-    env->interrupt_request |= mask;
 #if defined(USE_NPTL)
     /* FIXME: TB unchaining isn't SMP safe.  For now just ignore the
        problem and hope the cpu will stop of its own accord.  For userspace
        emulation this often isn't actually as bad as it sounds.  Often
        signals are used primarily to interrupt blocking syscalls.  */
 #else
+    TranslationBlock *tb;
+    static spinlock_t interrupt_lock = SPIN_LOCK_UNLOCKED;
+
+    tb = env->current_tb;
+    /* if the cpu is currently executing code, we must unlink it and
+       all the potentially executing TB */
+    if (tb && !testandset(&interrupt_lock)) {
+        env->current_tb = NULL;
+        tb_reset_jump_recursive(tb);
+        resetlock(&interrupt_lock);
+    }
+#endif
+}
+
+/* mask must never be zero, except for A20 change call */
+void cpu_interrupt(CPUState *env, int mask)
+{
+    int old_mask;
+
+    old_mask = env->interrupt_request;
+    env->interrupt_request |= mask;
+
     if (use_icount) {
         env->icount_decr.u16.high = 0xffff;
 #ifndef CONFIG_USER_ONLY
@@ -1550,21 +1567,19 @@ void cpu_interrupt(CPUState *env, int mask)
         }
 #endif
     } else {
-        tb = env->current_tb;
-        /* if the cpu is currently executing code, we must unlink it and
-           all the potentially executing TB */
-        if (tb && !testandset(&interrupt_lock)) {
-            env->current_tb = NULL;
-            tb_reset_jump_recursive(tb);
-            resetlock(&interrupt_lock);
-        }
+        cpu_unlink_tb(env);
     }
-#endif
 }
 
 void cpu_reset_interrupt(CPUState *env, int mask)
 {
     env->interrupt_request &= ~mask;
+}
+
+void cpu_exit(CPUState *env)
+{
+    env->exit_request = 1;
+    cpu_unlink_tb(env);
 }
 
 const CPULogItem cpu_log_items[] = {
@@ -2421,10 +2436,6 @@ ram_addr_t qemu_ram_alloc(ram_addr_t size)
     }
     addr = phys_ram_alloc_offset;
     phys_ram_alloc_offset = TARGET_PAGE_ALIGN(phys_ram_alloc_offset + size);
-
-//	if (kvm_enabled())                                  // added to keep current with patches, breaks windows build because we exclude kvm-all
-//		kvm_setup_guest_memory(phys_ram_base + addr, size);
-
     return addr;
 }
 
@@ -2880,7 +2891,8 @@ static void io_mem_init(void)
 
 /* mem_read and mem_write are arrays of functions containing the
    function to access byte (index 0), word (index 1) and dword (index
-   2). Functions can be omitted with a NULL function pointer. 
+   2). Functions can be omitted with a NULL function pointer. The
+   registered functions may be modified dynamically later.
    If io_index is non zero, the corresponding io zone is
    modified. If it is zero, a new io zone is allocated. The return
    value can be used with cpu_register_physical_memory(). (-1) is
@@ -2924,6 +2936,15 @@ void cpu_unregister_io_memory(int io_table_address)
     io_mem_used[io_index] = 0;
 }
 
+CPUWriteMemoryFunc **cpu_get_io_memory_write(int io_index)
+{
+    return io_mem_write[io_index >> IO_MEM_SHIFT];
+}
+
+CPUReadMemoryFunc **cpu_get_io_memory_read(int io_index)
+{
+    return io_mem_read[io_index >> IO_MEM_SHIFT];
+}
 
 #endif /* !defined(CONFIG_USER_ONLY) */
 
@@ -3465,7 +3486,7 @@ void stq_phys(target_phys_addr_t addr, uint64_t val)
 
 #endif
 
-/* virtual memory access for debug */
+/* virtual memory access for debug (includes writing to ROM) */
 int cpu_memory_rw_debug(CPUState *env, target_ulong addr,
                         uint8_t *buf, int len, int is_write)
 {
@@ -3482,8 +3503,13 @@ int cpu_memory_rw_debug(CPUState *env, target_ulong addr,
         l = (page + TARGET_PAGE_SIZE) - addr;
         if (l > len)
             l = len;
-        cpu_physical_memory_rw(phys_addr + (addr & ~TARGET_PAGE_MASK),
-                               buf, l, is_write);
+        phys_addr += (addr & ~TARGET_PAGE_MASK);
+#if !defined(CONFIG_USER_ONLY)
+        if (is_write)
+            cpu_physical_memory_write_rom(phys_addr, buf, l);
+        else
+#endif
+            cpu_physical_memory_rw(phys_addr, buf, l, is_write);
         len -= l;
         buf += l;
         addr += l;
