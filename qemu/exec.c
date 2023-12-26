@@ -1473,11 +1473,17 @@ void cpu_breakpoint_remove_all(CPUState *env, int mask)
 void cpu_single_step(CPUState *env, int enabled)
 {
 #if defined(TARGET_HAS_ICE)
-    if (env->singlestep_enabled != enabled) {
-        env->singlestep_enabled = enabled;
-        if (kvm_enabled())
-            kvm_update_guest_debug(env, 0);
-        else {
+	if (env->singlestep_enabled != enabled) {
+		env->singlestep_enabled = enabled;
+		
+#ifndef _MSC_VER
+		if (kvm_enabled())
+			kvm_update_guest_debug(env, 0);
+#else
+		if (1);
+#endif
+	
+	else {
             /* must flush all the translated code to avoid inconsistancies */
             /* XXX: only flush what is necessary */
             tb_flush(env);
