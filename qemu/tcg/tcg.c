@@ -71,8 +71,8 @@ static void patch_reloc(uint8_t *code_ptr, int type,
                         tcg_target_long value, tcg_target_long addend);
 
 static TCGOpDef tcg_op_defs[] = {
-#define DEF(s,n,copy_size) {#s,0,0,n,n,0,copy_size },
-#define DEF2(s,iargs,oargs,cargs,flags) {#s,iargs,oargs,cargs,iargs+oargs+cargs,flags,0},
+#define DEF(s, n, copy_size) { #s, 0, 0, n, n, 0, copy_size },
+#define DEF2(s, iargs, oargs, cargs, flags) { #s, iargs, oargs, cargs, iargs + oargs + cargs, flags, 0 },
 #include "tcg-opc.h"
 #undef DEF
 #undef DEF2
@@ -170,7 +170,7 @@ void *tcg_malloc_internal(TCGContext *s, int size)
     
     if (size > TCG_POOL_CHUNK_SIZE) {
         /* big malloc: insert a new pool (XXX: could optimize) */
-        p = qemu_malloc(sizeof(TCGPool) + size); 
+        p = qemu_malloc(sizeof(TCGPool) + size);
         p->size = size;
         if (s->pool_current)
             s->pool_current->next = p;
@@ -1098,9 +1098,9 @@ static inline void tcg_la_bb_end(TCGContext *s, uint8_t *dead_temps)
 static void tcg_liveness_analysis(TCGContext *s)
 {
     int i, op_index, op, nb_args, nb_iargs, nb_oargs, arg, nb_ops;
-    TCGArg *args = NULL;
+    TCGArg *args;
     const TCGOpDef *def;
-    uint8_t *dead_temps = NULL;
+    uint8_t *dead_temps;
     unsigned int dead_iargs;
     
     gen_opc_ptr++; /* skip end */
