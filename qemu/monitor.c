@@ -43,6 +43,20 @@
 #include "kvm.h"
 #include "acl.h"
 
+#ifdef _MSC_VER
+#define S_IWUSR 00200
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+
+#endif
+
 //#define DEBUG
 //#define DEBUG_COMPLETION
 

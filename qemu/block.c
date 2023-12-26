@@ -319,11 +319,10 @@ static BlockDriver *find_image_format(const char *filename)
 #endif
 
     drv = find_protocol(filename);
-
 #ifndef _MSC_VER
-    /* no need to test disk image formats for vvfat */
-    if (drv == &bdrv_vvfat)
-        return drv;
+	/* no need to test disk image formats for vvfat */
+	if (drv == &bdrv_vvfat)
+		return drv;
 #endif
 
     ret = bdrv_file_open(&bs, filename, BDRV_O_RDONLY);

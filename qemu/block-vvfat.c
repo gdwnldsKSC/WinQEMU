@@ -40,7 +40,13 @@
 #include "block_int.h"
 
 #ifdef _MSC_VER
-
+#define S_IWUSR 00200
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
 #endif
@@ -97,7 +103,7 @@ typedef struct array_t {
 
 static inline void array_init(array_t* array,unsigned int item_size)
 {
-    array->pointer=0;
+    array->pointer = NULL;
     array->size=0;
     array->next=0;
     array->item_size=item_size;
@@ -148,7 +154,7 @@ static inline void* array_insert(array_t* array,unsigned int index,unsigned int 
 	int increment=count*array->item_size;
 	array->pointer=qemu_realloc(array->pointer,array->size+increment);
 	if(!array->pointer)
-	    return 0;
+            return NULL;
 	array->size+=increment;
     }
     memmove(array->pointer+(index+count)*array->item_size,
@@ -304,11 +310,12 @@ typedef struct direntry_t {
 #pragma pack (pop)
 #endif
 
+/* we don't need this?
 typedef struct {
 	uint8_t head;
 	uint8_t sector;
 	uint8_t cylinder;
-} mbr_chs_t;
+} mbr_chs_t; */
 /* this structure are used to transparently access the files */
 
 typedef struct mapping_t {
@@ -635,8 +642,8 @@ static inline direntry_t* create_short_and_long_name(BDRVVVFATState* s,
 	unsigned int directory_start, const char* filename, int is_dot)
 {
     int i,j,long_index=s->directory.next;
-    direntry_t* entry=0;
-    direntry_t* entry_long=0;
+    direntry_t* entry = NULL;
+    direntry_t* entry_long = NULL;
 
     if(is_dot) {
 	entry=array_get_next(&(s->directory));
@@ -727,7 +734,7 @@ static int read_directory(BDRVVVFATState* s, int mapping_index)
     int first_cluster = mapping->begin;
     int parent_index = mapping->info.dir.parent_mapping_index;
     mapping_t* parent_mapping = (mapping_t*)
-	(parent_index >= 0 ? array_get(&(s->mapping), parent_index) : 0);
+        (parent_index >= 0 ? array_get(&(s->mapping), parent_index) : NULL);
     int first_cluster_of_parent = parent_mapping ? parent_mapping->begin : -1;
 
     DIR* dir=opendir(dirname);
@@ -1156,10 +1163,10 @@ static inline mapping_t* find_mapping_for_cluster(BDRVVVFATState* s,int cluster_
     int index=find_mapping_for_cluster_aux(s,cluster_num,0,s->mapping.next);
     mapping_t* mapping;
     if(index>=s->mapping.next)
-	return 0;
+        return NULL;
     mapping=array_get(&(s->mapping),index);
     if(mapping->begin>cluster_num)
-	return 0;
+        return NULL;
     assert(mapping->begin<=cluster_num && mapping->end>cluster_num);
     return mapping;
 }

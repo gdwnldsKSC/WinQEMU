@@ -225,11 +225,7 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="qemu\block-vpc.c" />
-    <ClCompile Include="qemu\block-vvfat.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="qemu\block-vvfat.c" />
     <ClCompile Include="qemu\block.c" />
     <ClCompile Include="qemu\bt-host.c" />
     <ClCompile Include="qemu\bt-vhci.c" />
