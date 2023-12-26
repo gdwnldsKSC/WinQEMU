@@ -42,7 +42,7 @@
  *                                  Removed slirp.h dependency
  *                                  Added rx/tx buffer reset when enabling rx/tx operation
  */
-	
+        
 /*
  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
  * other than GPL is available it will apply instead, WinQEMU elects to use only the 
@@ -828,14 +828,6 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
     RTL8139State *s = opaque;
 
     uint32_t packet_header = 0;
-	int mcast_idx = 0;
-
-	int descriptor = 0;
-	target_phys_addr_t cplus_rx_ring_desc = 0;
-	 uint32_t val, rxdw0,rxdw1,rxbufLO,rxbufHI;
-	 uint32_t rx_space = 0;
-	target_phys_addr_t rx_addr = 0;
-	int avail = 0;
 
     uint8_t buf1[60];
     static const uint8_t broadcast_macaddr[6] =
@@ -895,7 +887,7 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
                 return;
             }
 
-            mcast_idx = compute_mcast_idx(buf);
+            int mcast_idx = compute_mcast_idx(buf);
 
             if (!(s->mult[mcast_idx >> 3] & (1 << (mcast_idx & 7))))
             {
@@ -976,14 +968,16 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
 /* w2 low  32bit of Rx buffer ptr */
 /* w3 high 32bit of Rx buffer ptr */
 
-        descriptor = s->currCPlusRxDesc;
-        
-		cplus_rx_ring_desc = rtl8139_addr64(s->RxRingAddrLO, s->RxRingAddrHI);
+        int descriptor = s->currCPlusRxDesc;
+        target_phys_addr_t cplus_rx_ring_desc;
+
+        cplus_rx_ring_desc = rtl8139_addr64(s->RxRingAddrLO, s->RxRingAddrHI);
         cplus_rx_ring_desc += 16 * descriptor;
 
         DEBUG_PRINT(("RTL8139: +++ C+ mode reading RX descriptor %d from host memory at %08x %08x = %016" PRIx64 "\n",
                descriptor, s->RxRingAddrHI, s->RxRingAddrLO, (uint64_t)cplus_rx_ring_desc));
 
+        uint32_t val, rxdw0,rxdw1,rxbufLO,rxbufHI;
 
         cpu_physical_memory_read(cplus_rx_ring_desc,    (uint8_t *)&val, 4);
         rxdw0 = le32_to_cpu(val);
@@ -1013,7 +1007,7 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
             return;
         }
 
-        rx_space = rxdw0 & CP_RX_BUFFER_SIZE_MASK;
+        uint32_t rx_space = rxdw0 & CP_RX_BUFFER_SIZE_MASK;
 
         /* TODO: scatter the packet over available receive ring descriptors space */
 
@@ -1033,7 +1027,7 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
             return;
         }
 
-        rx_addr = rtl8139_addr64(rxbufLO, rxbufHI);
+        target_phys_addr_t rx_addr = rtl8139_addr64(rxbufLO, rxbufHI);
 
         /* receive/copy to target memory */
         cpu_physical_memory_write( rx_addr, buf, size );
@@ -1123,7 +1117,7 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
         DEBUG_PRINT(("RTL8139: in ring Rx mode ================\n"));
 
         /* begin ring receiver mode */
-        avail = MOD2(s->RxBufferSize + s->RxBufPtr - s->RxBufAddr, s->RxBufferSize);
+        int avail = MOD2(s->RxBufferSize + s->RxBufPtr - s->RxBufAddr, s->RxBufferSize);
 
         /* if receiver buffer is empty then avail == 0 */
 
@@ -1143,7 +1137,7 @@ static void rtl8139_do_receive(void *opaque, const uint8_t *buf, int size, int d
         packet_header |= (((size+4) << 16) & 0xffff0000);
 
         /* write header */
-        val = cpu_to_le32(packet_header);
+        uint32_t val = cpu_to_le32(packet_header);
 
         rtl8139_write_buffer(s, (uint8_t *)&val, 4);
 
@@ -1486,13 +1480,12 @@ static int rtl8139_config_writeable(RTL8139State *s)
 
 static void rtl8139_BasicModeCtrl_write(RTL8139State *s, uint32_t val)
 {
-	uint32_t mask = 0x4cff;
     val &= 0xffff;
 
     DEBUG_PRINT(("RTL8139: BasicModeCtrl register write(w) val=0x%04x\n", val));
 
     /* mask unwriteable bits */
-    
+    uint32_t mask = 0x4cff;
 
     if (1 || !rtl8139_config_writeable(s))
     {
@@ -1539,9 +1532,6 @@ static uint32_t rtl8139_BasicModeStatus_read(RTL8139State *s)
 
 static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
 {
-	uint32_t opmode = 0;
-	uint32_t eeprom_val = 0;
-
     val &= 0xff;
 
     DEBUG_PRINT(("RTL8139: Cfg9346 write val=0x%02x\n", val));
@@ -1549,8 +1539,8 @@ static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
     /* mask unwriteable bits */
     val = SET_MASKED(val, 0x31, s->Cfg9346);
 
-    opmode = val & 0xc0;
-    eeprom_val = val & 0xf;
+    uint32_t opmode = val & 0xc0;
+    uint32_t eeprom_val = val & 0xf;
 
     if (opmode == 0x80) {
         /* eeprom access */
@@ -1726,11 +1716,9 @@ static void rtl8139_TxConfig_write(RTL8139State *s, uint32_t val)
 
 static void rtl8139_TxConfig_writeb(RTL8139State *s, uint32_t val)
 {
-	uint32_t tc = s->TxConfig;
-
     DEBUG_PRINT(("RTL8139C TxConfig via write(b) val=0x%02x\n", val));
 
-    
+    uint32_t tc = s->TxConfig;
     tc &= 0xFFFFFF00;
     tc |= (val & 0x000000FF);
     rtl8139_TxConfig_write(s, tc);
@@ -1790,10 +1778,6 @@ static void rtl8139_transfer_frame(RTL8139State *s, const uint8_t *buf, int size
 
 static int rtl8139_transmit_one(RTL8139State *s, int descriptor)
 {
-	int txsize = 0;
-	uint8_t txbuffer[0x2000];
-
-
     if (!rtl8139_transmitter_enabled(s))
     {
         DEBUG_PRINT(("RTL8139: +++ cannot transmit from descriptor %d: transmitter disabled\n",
@@ -1810,7 +1794,8 @@ static int rtl8139_transmit_one(RTL8139State *s, int descriptor)
 
     DEBUG_PRINT(("RTL8139: +++ transmitting from descriptor %d\n", descriptor));
 
-    txsize = s->TxStatus[descriptor] & 0x1fff;
+    int txsize = s->TxStatus[descriptor] & 0x1fff;
+    uint8_t txbuffer[0x2000];
 
     DEBUG_PRINT(("RTL8139: +++ transmit reading %d bytes from host memory at 0x%08x\n",
                  txsize, s->TxAddr[descriptor]));
@@ -1921,49 +1906,6 @@ static uint16_t ip_checksum(void *data, size_t len)
 
 static int rtl8139_cplus_transmit_one(RTL8139State *s)
 {
-	uint32_t val, txdw0,txdw1,txbufLO,txbufHI;
-	
-	int txsize = 0;
-	target_phys_addr_t tx_addr = 0;
-	
-	uint8_t *saved_buffer = 0;
-	int      saved_size = 0;
-	int      saved_buffer_len = 0;
-
-	int descriptor = 0;
-	target_phys_addr_t cplus_tx_ring_desc = 0;
-
-	int hlen = 0;
-	uint8_t  ip_protocol = 0;
-	uint16_t ip_data_len = 0;
-
-	uint8_t *eth_payload_data = 0;
-	size_t   eth_payload_len  = 0;
-
-	int proto = 0;
-	ip_header *ip = 0;
-
-	int tcp_send_offset = 0;
-	int send_count = 0;
-
-	uint8_t saved_ip_header[60];
-	uint8_t *data_to_checksum = 0;
-	tcp_header *p_tcp_hdr = 0;
-	int tcp_hlen = 0;
-	int tcp_data_len = 0;
-	int tcp_chunk_size = 0;
-	int is_last_frame = 0;
-	uint16_t chunk_size = 0;
-
-	int tcp_checksum = 0;
-	int tso_send_size = 0;
-
-    ip_pseudo_header *p_tcpip_hdr = NULL;
-
-	ip_pseudo_header *p_udpip_hdr= 0;
-	udp_header *p_udp_hdr = 0;
-	int udp_checksum = 0;
-	
     if (!rtl8139_transmitter_enabled(s))
     {
         DEBUG_PRINT(("RTL8139: +++ C+ mode: transmitter disabled\n"));
@@ -1976,9 +1918,9 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
         return 0 ;
     }
 
-    descriptor = s->currCPlusTxDesc;
+    int descriptor = s->currCPlusTxDesc;
 
-    cplus_tx_ring_desc =
+    target_phys_addr_t cplus_tx_ring_desc =
         rtl8139_addr64(s->TxAddr[0], s->TxAddr[1]);
 
     /* Normal priority ring */
@@ -1987,6 +1929,7 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
     DEBUG_PRINT(("RTL8139: +++ C+ mode reading TX descriptor %d from host memory at %08x0x%08x = 0x%8lx\n",
            descriptor, s->TxAddr[1], s->TxAddr[0], cplus_tx_ring_desc));
 
+    uint32_t val, txdw0,txdw1,txbufLO,txbufHI;
 
     cpu_physical_memory_read(cplus_tx_ring_desc,    (uint8_t *)&val, 4);
     txdw0 = le32_to_cpu(val);
@@ -2059,8 +2002,8 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
         s->cplus_txbuffer_offset = 0;
     }
 
-    txsize = txdw0 & CP_TX_BUFFER_SIZE_MASK;
-    tx_addr = rtl8139_addr64(txbufLO, txbufHI);
+    int txsize = txdw0 & CP_TX_BUFFER_SIZE_MASK;
+    target_phys_addr_t tx_addr = rtl8139_addr64(txbufLO, txbufHI);
 
     /* make sure we have enough space to assemble the packet */
     if (!s->cplus_txbuffer)
@@ -2136,9 +2079,9 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
 
         /* can transfer fully assembled packet */
 
-        saved_buffer  = s->cplus_txbuffer;
-        saved_size    = s->cplus_txbuffer_offset;
-        saved_buffer_len = s->cplus_txbuffer_len;
+        uint8_t *saved_buffer  = s->cplus_txbuffer;
+        int      saved_size    = s->cplus_txbuffer_offset;
+        int      saved_buffer_len = s->cplus_txbuffer_len;
 
         /* reset the card space to protect from recursive call */
         s->cplus_txbuffer = NULL;
@@ -2154,15 +2097,15 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
             #define ETH_MTU     1500
 
             /* ip packet header */
-            ip = 0;
-            hlen = 0;
-            ip_protocol = 0;
-            ip_data_len = 0;
+            ip_header *ip = 0;
+            int hlen = 0;
+            uint8_t  ip_protocol = 0;
+            uint16_t ip_data_len = 0;
 
-            eth_payload_data = 0;
-            eth_payload_len  = 0;
+            uint8_t *eth_payload_data = 0;
+            size_t   eth_payload_len  = 0;
 
-            proto = be16_to_cpu(*(uint16_t *)(saved_buffer + 12));
+            int proto = be16_to_cpu(*(uint16_t *)(saved_buffer + 12));
             if (proto == ETH_P_IP)
             {
                 DEBUG_PRINT(("RTL8139: +++ C+ mode has IP packet\n"));
@@ -2209,27 +2152,27 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     DEBUG_PRINT(("RTL8139: +++ C+ mode offloaded task TSO MTU=%d IP data %d frame data %d specified MSS=%d\n",
                                  ETH_MTU, ip_data_len, saved_size - ETH_HLEN, large_send_mss));
 
-                    tcp_send_offset = 0;
-                    send_count = 0;
+                    int tcp_send_offset = 0;
+                    int send_count = 0;
 
                     /* maximum IP header length is 60 bytes */
-                    saved_ip_header[60];
+                    uint8_t saved_ip_header[60];
 
                     /* save IP header template; data area is used in tcp checksum calculation */
                     memcpy(saved_ip_header, eth_payload_data, hlen);
 
                     /* a placeholder for checksum calculation routine in tcp case */
-                    data_to_checksum     = eth_payload_data + hlen - 12;
+                    uint8_t *data_to_checksum     = eth_payload_data + hlen - 12;
                     //                    size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
 
                     /* pointer to TCP header */
-                    p_tcp_hdr = (tcp_header*)(eth_payload_data + hlen);
+                    tcp_header *p_tcp_hdr = (tcp_header*)(eth_payload_data + hlen);
 
-                    tcp_hlen = TCP_HEADER_DATA_OFFSET(p_tcp_hdr);
+                    int tcp_hlen = TCP_HEADER_DATA_OFFSET(p_tcp_hdr);
 
                     /* ETH_MTU = ip header len + tcp header len + payload */
-                    tcp_data_len = ip_data_len - tcp_hlen;
-                    tcp_chunk_size = ETH_MTU - hlen - tcp_hlen;
+                    int tcp_data_len = ip_data_len - tcp_hlen;
+                    int tcp_chunk_size = ETH_MTU - hlen - tcp_hlen;
 
                     DEBUG_PRINT(("RTL8139: +++ C+ mode TSO IP data len %d TCP hlen %d TCP data len %d TCP chunk size %d\n",
                                  ip_data_len, tcp_hlen, tcp_data_len, tcp_chunk_size));
@@ -2237,11 +2180,11 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     /* note the cycle below overwrites IP header data,
                        but restores it from saved_ip_header before sending packet */
 
-                    is_last_frame = 0;
+                    int is_last_frame = 0;
 
                     for (tcp_send_offset = 0; tcp_send_offset < tcp_data_len; tcp_send_offset += tcp_chunk_size)
                     {
-                        chunk_size = tcp_chunk_size;
+                        uint16_t chunk_size = tcp_chunk_size;
 
                         /* check if this is the last frame */
                         if (tcp_send_offset + tcp_chunk_size >= tcp_data_len)
@@ -2270,14 +2213,14 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                         }
 
                         /* recalculate TCP checksum */
-                        p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
+                        ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
                         p_tcpip_hdr->zeros      = 0;
                         p_tcpip_hdr->ip_proto   = IP_PROTO_TCP;
                         p_tcpip_hdr->ip_payload = cpu_to_be16(tcp_hlen + chunk_size);
 
                         p_tcp_hdr->th_sum = 0;
 
-                        tcp_checksum = ip_checksum(data_to_checksum, tcp_hlen + chunk_size + 12);
+                        int tcp_checksum = ip_checksum(data_to_checksum, tcp_hlen + chunk_size + 12);
                         DEBUG_PRINT(("RTL8139: +++ C+ mode TSO TCP checksum %04x\n", tcp_checksum));
 
                         p_tcp_hdr->th_sum = tcp_checksum;
@@ -2295,7 +2238,7 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                         ip->ip_sum = ip_checksum(eth_payload_data, hlen);
                         DEBUG_PRINT(("RTL8139: +++ C+ mode TSO IP header len=%d checksum=%04x\n", hlen, ip->ip_sum));
 
-                        tso_send_size = ETH_HLEN + hlen + tcp_hlen + chunk_size;
+                        int tso_send_size = ETH_HLEN + hlen + tcp_hlen + chunk_size;
                         DEBUG_PRINT(("RTL8139: +++ C+ mode TSO transferring packet size %d\n", tso_send_size));
                         rtl8139_transfer_frame(s, saved_buffer, tso_send_size, 0);
 
@@ -2312,9 +2255,10 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     DEBUG_PRINT(("RTL8139: +++ C+ mode need TCP or UDP checksum\n"));
 
                     /* maximum IP header length is 60 bytes */
+                    uint8_t saved_ip_header[60];
                     memcpy(saved_ip_header, eth_payload_data, hlen);
 
-                    data_to_checksum     = eth_payload_data + hlen - 12;
+                    uint8_t *data_to_checksum     = eth_payload_data + hlen - 12;
                     //                    size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
 
                     /* add 4 TCP pseudoheader fields */
@@ -2325,16 +2269,16 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     {
                         DEBUG_PRINT(("RTL8139: +++ C+ mode calculating TCP checksum for packet with %d bytes data\n", ip_data_len));
 
-                        p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
+                        ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
                         p_tcpip_hdr->zeros      = 0;
                         p_tcpip_hdr->ip_proto   = IP_PROTO_TCP;
                         p_tcpip_hdr->ip_payload = cpu_to_be16(ip_data_len);
 
-                        p_tcp_hdr = (tcp_header *) (data_to_checksum+12);
+                        tcp_header* p_tcp_hdr = (tcp_header *) (data_to_checksum+12);
 
                         p_tcp_hdr->th_sum = 0;
 
-                        tcp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
+                        int tcp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
                         DEBUG_PRINT(("RTL8139: +++ C+ mode TCP checksum %04x\n", tcp_checksum));
 
                         p_tcp_hdr->th_sum = tcp_checksum;
@@ -2343,16 +2287,16 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     {
                         DEBUG_PRINT(("RTL8139: +++ C+ mode calculating UDP checksum for packet with %d bytes data\n", ip_data_len));
 
-                        p_udpip_hdr = (ip_pseudo_header *)data_to_checksum;
+                        ip_pseudo_header *p_udpip_hdr = (ip_pseudo_header *)data_to_checksum;
                         p_udpip_hdr->zeros      = 0;
                         p_udpip_hdr->ip_proto   = IP_PROTO_UDP;
                         p_udpip_hdr->ip_payload = cpu_to_be16(ip_data_len);
 
-                        p_udp_hdr = (udp_header *) (data_to_checksum+12);
+                        udp_header *p_udp_hdr = (udp_header *) (data_to_checksum+12);
 
                         p_udp_hdr->uh_sum = 0;
 
-                        udp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
+                        int udp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
                         DEBUG_PRINT(("RTL8139: +++ C+ mode UDP checksum %04x\n", udp_checksum));
 
                         p_udp_hdr->uh_sum = udp_checksum;
@@ -2611,7 +2555,7 @@ static uint32_t rtl8139_IntrMask_read(RTL8139State *s)
 
 static void rtl8139_IntrStatus_write(RTL8139State *s, uint32_t val)
 {
-    
+    DEBUG_PRINT(("RTL8139: IntrStatus write(w) val=0x%04x\n", val));
 
 #if 0
 
@@ -2679,8 +2623,9 @@ static void rtl8139_io_writeb(void *opaque, uint8_t addr, uint32_t val)
 
     switch (addr)
     {
+
 #ifndef _MSC_VER
-        case MAC0 ... MAC0+5:
+	case MAC0 ... MAC0+5:
 #else
 		case MAC0:
 		case MAC0 + 1:
@@ -2689,10 +2634,10 @@ static void rtl8139_io_writeb(void *opaque, uint8_t addr, uint32_t val)
 		case MAC0 + 4:
 		case MAC0 + 5:
 #endif
-            s->phys[addr - MAC0] = val;
+		s->phys[addr - MAC0] = val;
             break;
 #ifndef _MSC_VER
-        case MAC0+6 ... MAC0+7:
+	case MAC0+6 ... MAC0+7:
 #else
 		case MAC0 + 6:
 		case MAC0 + 7:
@@ -2859,8 +2804,10 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
         case RxConfig:
             rtl8139_RxConfig_write(s, val);
             break;
+
 #ifndef _MSC_VER
-        case TxStatus0 ... TxStatus0+4*4-1:
+
+		case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
 #else
 		case TxStatus0:
 		case TxStatus0 + 1:
@@ -2881,8 +2828,11 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
 #endif
             rtl8139_TxStatus_write(s, addr-TxStatus0, val);
             break;
+
+
 #ifndef _MSC_VER
-        case TxAddr0 ... TxAddr0+4*4-1:
+
+		case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
 #else
 		case TxAddr0:
 		case TxAddr0 + 1:
@@ -2901,7 +2851,7 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
 		case TxAddr0 + 14:
 		case TxAddr0 + 15:
 #endif
-            rtl8139_TxAddr_write(s, addr-TxAddr0, val);
+			rtl8139_TxAddr_write(s, addr-TxAddr0, val);
             break;
 
         case RxBuf:
@@ -2949,19 +2899,21 @@ static uint32_t rtl8139_io_readb(void *opaque, uint8_t addr)
     switch (addr)
     {
 #ifndef _MSC_VER
-		case MAC0 ... MAC0+5:
+	case MAC0 ... MAC0 + 5:
 #else
-		case MAC0:
-		case MAC0 + 1:
-		case MAC0 + 2:
-		case MAC0 + 3:
-		case MAC0 + 4:
-		case MAC0 + 5:
+	case MAC0:
+	case MAC0 + 1:
+	case MAC0 + 2:
+	case MAC0 + 3:
+	case MAC0 + 4:
+	case MAC0 + 5:
 #endif
+		
             ret = s->phys[addr - MAC0];
             break;
 #ifndef _MSC_VER
-		case MAC0+6 ... MAC0+7:
+        case MAC0+6 ... MAC0+7:
+	case MAC0+6 ... MAC0+7:
 #else
 		case MAC0 + 6:
 		case MAC0 + 7:
@@ -2969,7 +2921,7 @@ static uint32_t rtl8139_io_readb(void *opaque, uint8_t addr)
             ret = 0;
             break;
 #ifndef _MSC_VER
-		case MAR0 ... MAR0+7:
+		case MAR0 ... MAR0 + 7:
 #else
 		case MAR0:
 		case MAR0 + 1:
@@ -3138,8 +3090,10 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
             ret = rtl8139_RxConfig_read(s);
             break;
 
+
 #ifndef _MSC_VER
-		case TxStatus0 ... TxStatus0+4*4-1:
+
+		case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
 #else
 		case TxStatus0:
 		case TxStatus0 + 1:
@@ -3162,7 +3116,8 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
             break;
 
 #ifndef _MSC_VER
-		case TxAddr0 ... TxAddr0+4*4-1:
+
+		case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
 #else
 		case TxAddr0:
 		case TxAddr0 + 1:
@@ -3181,7 +3136,7 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
 		case TxAddr0 + 14:
 		case TxAddr0 + 15:
 #endif
-            ret = rtl8139_TxAddr_read(s, addr-TxAddr0);
+		    ret = rtl8139_TxAddr_read(s, addr-TxAddr0);
             break;
 
         case RxBuf:
@@ -3605,33 +3560,6 @@ static void rtl8139_timer(void *opaque)
 }
 #endif /* RTL8139_ONBOARD_TIMER */
 
-static void rtl8139_cleanup(VLANClientState *vc)
-{
-	RTL8139State *s = vc->opaque;
-
-	if (s->cplus_txbuffer) {
-		qemu_free(s->cplus_txbuffer);
-		s->cplus_txbuffer = NULL;
-	}
-
-#ifdef RTL8139_ONBOARD_TIMER
-	qemu_del_timer(s->timer);
-	qemu_free_timer(s->timer);
-#endif
-
-	unregister_savevm("rtl8139", s);
-}
-
-static int pci_rtl8139_uninit(PCIDevice *dev)
-{
-	PCIRTL8139State *d = (PCIRTL8139State *)dev;
-	RTL8139State *s = &d->rtl8139;
-
-	cpu_unregister_io_memory(s->rtl8139_mmio_io_addr);
-
-	return 0;
-}
-
 PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
 {
     PCIRTL8139State *d;
@@ -3642,12 +3570,7 @@ PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
                                               "RTL8139", sizeof(PCIRTL8139State),
                                               devfn,
                                               NULL, NULL);
-	if (!d)
-		return NULL;
-
-	d->dev.unregister = pci_rtl8139_uninit;
-    
-	pci_conf = d->dev.config;
+    pci_conf = d->dev.config;
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_REALTEK);
     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_REALTEK_8139);
     pci_conf[0x04] = 0x05; /* command = I/O space, Bus Master */
@@ -3673,8 +3596,7 @@ PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
     memcpy(s->macaddr, nd->macaddr, 6);
     rtl8139_reset(s);
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 rtl8139_receive, rtl8139_can_receive, 
-								 rtl8139_cleanup, s);
+                                 rtl8139_receive, rtl8139_can_receive, s);
 
     qemu_format_nic_info_str(s->vc, s->macaddr);
 

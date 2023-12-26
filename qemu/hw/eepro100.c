@@ -62,23 +62,6 @@
 
 /* Common declarations for all PCI devices. */
 
-#define PCI_VENDOR_ID           0x00    /* 16 bits */
-#define PCI_DEVICE_ID           0x02    /* 16 bits */
-#define PCI_COMMAND             0x04    /* 16 bits */
-#define PCI_STATUS              0x06    /* 16 bits */
-
-#define PCI_REVISION_ID         0x08    /* 8 bits  */
-#define PCI_CLASS_CODE          0x0b    /* 8 bits */
-#define PCI_SUBCLASS_CODE       0x0a    /* 8 bits */
-#define PCI_HEADER_TYPE         0x0e    /* 8 bits */
-
-#define PCI_BASE_ADDRESS_0      0x10    /* 32 bits */
-#define PCI_BASE_ADDRESS_1      0x14    /* 32 bits */
-#define PCI_BASE_ADDRESS_2      0x18    /* 32 bits */
-#define PCI_BASE_ADDRESS_3      0x1c    /* 32 bits */
-#define PCI_BASE_ADDRESS_4      0x20    /* 32 bits */
-#define PCI_BASE_ADDRESS_5      0x24    /* 32 bits */
-
 #define PCI_CONFIG_8(offset, value) \
     (pci_conf[offset] = (value))
 #define PCI_CONFIG_16(offset, value) \
@@ -450,7 +433,7 @@ static void pci_reset(EEPRO100State * s)
     /* PCI Vendor ID */
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_INTEL);
     /* PCI Device ID */
-    pci_config_set_device_id(pci_conf, 0x1209);
+    pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_INTEL_82551IT);
     /* PCI Command */
     PCI_CONFIG_16(PCI_COMMAND, 0x0000);
     /* PCI Status */
@@ -538,20 +521,18 @@ static void pci_reset(EEPRO100State * s)
 static void nic_selective_reset(EEPRO100State * s)
 {
     size_t i;
-	uint16_t sum = 0;
-	uint32_t val = BIT(21);
     uint16_t *eeprom_contents = eeprom93xx_data(s->eeprom);
     //~ eeprom93xx_reset(s->eeprom);
     memcpy(eeprom_contents, s->macaddr, 6);
     eeprom_contents[0xa] = 0x4000;
-    
+    uint16_t sum = 0;
     for (i = 0; i < EEPROM_SIZE - 1; i++) {
         sum += eeprom_contents[i];
     }
     eeprom_contents[EEPROM_SIZE - 1] = 0xbaba - sum;
 
     memset(s->mem, 0, sizeof(s->mem));
-    
+    uint32_t val = BIT(21);
     memcpy(&s->mem[SCBCtrlMDI], &val, sizeof(val));
 
     assert(sizeof(s->mdimem) == sizeof(eepro100_mdi_default));
@@ -561,8 +542,8 @@ static void nic_selective_reset(EEPRO100State * s)
 static void nic_reset(void *opaque)
 {
     EEPRO100State *s = (EEPRO100State *) opaque;
+    logout("%p\n", s);
     static int first;
-	logout("%p\n", s);
     if (!first) {
         first = 1;
     }
@@ -686,26 +667,6 @@ static void eepro100_cu_command(EEPRO100State * s, uint8_t val)
 {
     eepro100_tx_t tx;
     uint32_t cb_address;
-	uint16_t status;
-	uint16_t command;
-	
-	bool bit_el;
-	bool bit_s;
-	bool bit_i;
-	bool bit_nc;
-	//~ bool bit_sf;
-	uint16_t cmd;
-
-	uint32_t tbd_array;
-	uint16_t tcb_bytes;
-
-	uint8_t buf[MAX_ETH_FRAME_SIZE + 4];
-	uint16_t size;
-	uint32_t tbd_address;
-
-	uint32_t tx_buffer_address;
-	uint16_t tx_buffer_size;
-
     switch (val) {
     case CU_NOP:
         /* No operation. */
@@ -723,17 +684,17 @@ static void eepro100_cu_command(EEPRO100State * s, uint8_t val)
       next_command:
         cb_address = s->cu_base + s->cu_offset;
         cpu_physical_memory_read(cb_address, (uint8_t *) & tx, sizeof(tx));
-        status = le16_to_cpu(tx.status);
-        command = le16_to_cpu(tx.command);
+        uint16_t status = le16_to_cpu(tx.status);
+        uint16_t command = le16_to_cpu(tx.command);
         logout
             ("val=0x%02x (cu start), status=0x%04x, command=0x%04x, link=0x%08x\n",
              val, status, command, tx.link);
-        bit_el = ((command & 0x8000) != 0);
-        bit_s = ((command & 0x4000) != 0);
-        bit_i = ((command & 0x2000) != 0);
-        bit_nc = ((command & 0x0010) != 0);
+        bool bit_el = ((command & 0x8000) != 0);
+        bool bit_s = ((command & 0x4000) != 0);
+        bool bit_i = ((command & 0x2000) != 0);
+        bool bit_nc = ((command & 0x0010) != 0);
         //~ bool bit_sf = ((command & 0x0008) != 0);
-        cmd = command & 0x0007;
+        uint16_t cmd = command & 0x0007;
         s->cu_offset = le32_to_cpu(tx.link);
         switch (cmd) {
         case CmdNOp:
@@ -753,8 +714,8 @@ static void eepro100_cu_command(EEPRO100State * s, uint8_t val)
             break;
         case CmdTx:
             (void)0;
-            tbd_array = le32_to_cpu(tx.tx_desc_addr);
-            tcb_bytes = (le16_to_cpu(tx.tcb_bytes) & 0x3fff);
+            uint32_t tbd_array = le32_to_cpu(tx.tx_desc_addr);
+            uint16_t tcb_bytes = (le16_to_cpu(tx.tcb_bytes) & 0x3fff);
             logout
                 ("transmit, TBD array address 0x%08x, TCB byte count 0x%04x, TBD count %u\n",
                  tbd_array, tcb_bytes, tx.tbd_count);
@@ -767,13 +728,13 @@ static void eepro100_cu_command(EEPRO100State * s, uint8_t val)
                 logout
                     ("illegal values of TBD array address and TCB byte count!\n");
             }
-            buf[MAX_ETH_FRAME_SIZE + 4];
-            size = 0;
-            tbd_address = cb_address + 0x10;
+            uint8_t buf[MAX_ETH_FRAME_SIZE + 4];
+            uint16_t size = 0;
+            uint32_t tbd_address = cb_address + 0x10;
             assert(tcb_bytes <= sizeof(buf));
             while (size < tcb_bytes) {
-                tx_buffer_address = ldl_phys(tbd_address);
-                tx_buffer_size = lduw_phys(tbd_address + 4);
+                uint32_t tx_buffer_address = ldl_phys(tbd_address);
+                uint16_t tx_buffer_size = lduw_phys(tbd_address + 4);
                 //~ uint16_t tx_buffer_el = lduw_phys(tbd_address + 6);
                 tbd_address += 8;
                 logout
@@ -974,7 +935,7 @@ static uint16_t eepro100_read_eeprom(EEPRO100State * s)
 
 static void eepro100_write_eeprom(eeprom_t * eeprom, uint8_t val)
 {
-    
+    logout("write val=0x%02x\n", val);
 
     /* mask unwriteable bits */
     //~ val = SET_MASKED(val, 0x31, eeprom->value);
@@ -982,8 +943,6 @@ static void eepro100_write_eeprom(eeprom_t * eeprom, uint8_t val)
     int eecs = ((val & EEPROM_CS) != 0);
     int eesk = ((val & EEPROM_SK) != 0);
     int eedi = ((val & EEPROM_DI) != 0);
-
-	logout("write val=0x%02x\n", val);
     eeprom93xx_write(eeprom, eecs, eesk, eedi);
 }
 
@@ -1154,17 +1113,16 @@ static uint32_t eepro100_read_port(EEPRO100State * s)
 
 static void eepro100_write_port(EEPRO100State * s, uint32_t val)
 {
-   uint32_t address = (val & ~PORT_SELECTION_MASK);
-   uint8_t selection = (val & PORT_SELECTION_MASK);
-    eepro100_selftest_t data;
-
     val = le32_to_cpu(val);
+    uint32_t address = (val & ~PORT_SELECTION_MASK);
+    uint8_t selection = (val & PORT_SELECTION_MASK);
     switch (selection) {
     case PORT_SOFTWARE_RESET:
         nic_reset(s);
         break;
     case PORT_SELFTEST:
         logout("selftest address=0x%08x\n", address);
+        eepro100_selftest_t data;
         cpu_physical_memory_read(address, (uint8_t *) & data, sizeof(data));
         data.st_sign = 0xffffffff;
         data.st_result = 0;
@@ -1516,8 +1474,6 @@ static int nic_can_receive(void *opaque)
     //~ return !eepro100_buffer_full(s);
 }
 
-#define MIN_BUF_SIZE 60
-
 static void nic_receive(void *opaque, const uint8_t * buf, int size)
 {
     /* TODO:
@@ -1526,12 +1482,6 @@ static void nic_receive(void *opaque, const uint8_t * buf, int size)
      */
     EEPRO100State *s = opaque;
     uint16_t rfd_status = 0xa000;
-	int mcast_idx;
-
-	eepro100_rx_t rx;
-	uint16_t rfd_command;
-	uint16_t rfd_size;
-
     static const uint8_t broadcast_macaddr[6] =
         { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
@@ -1566,7 +1516,7 @@ static void nic_receive(void *opaque, const uint8_t * buf, int size)
         logout("%p received multicast, len=%d\n", s, size);
         /* TODO: check multicast all bit. */
         assert(!(s->configuration[21] & BIT(3)));
-        mcast_idx = compute_mcast_idx(buf);
+        int mcast_idx = compute_mcast_idx(buf);
         if (!(s->mult[mcast_idx >> 3] & (1 << (mcast_idx & 7)))) {
             return;
         }
@@ -1590,10 +1540,11 @@ static void nic_receive(void *opaque, const uint8_t * buf, int size)
     }
     //~ !!!
 //~ $3 = {status = 0x0, command = 0xc000, link = 0x2d220, rx_buf_addr = 0x207dc, count = 0x0, size = 0x5f8, packet = {0x0 <repeats 1518 times>}}
+    eepro100_rx_t rx;
     cpu_physical_memory_read(s->ru_base + s->ru_offset, (uint8_t *) & rx,
                              offsetof(eepro100_rx_t, packet));
-    rfd_command = le16_to_cpu(rx.command);
-    rfd_size = le16_to_cpu(rx.size);
+    uint16_t rfd_command = le16_to_cpu(rx.command);
+    uint16_t rfd_size = le16_to_cpu(rx.size);
     assert(size <= rfd_size);
     if (size < 64) {
         rfd_status |= 0x0080;
@@ -1791,40 +1742,17 @@ static void nic_save(QEMUFile * f, void *opaque)
     qemu_put_buffer(f, s->configuration, sizeof(s->configuration));
 }
 
-static void nic_cleanup(VLANClientState *vc)
-{
-	EEPRO100State *s = vc->opaque;
-
-	unregister_savevm(vc->model, s);
-
-	eeprom93xx_free(s->eeprom);
-}
-
-static int pci_nic_uninit(PCIDevice *dev)
-{
-	PCIEEPRO100State *d = (PCIEEPRO100State *)dev;
-	EEPRO100State *s = &d->eepro100;
-
-	cpu_unregister_io_memory(s->mmio_index);
-
-	return 0;
-}
-
-static PCIDevice *nic_init(PCIBus * bus, NICInfo * nd, uint32_t device)
+static PCIDevice *nic_init(PCIBus * bus, NICInfo * nd,
+                     const char *name, uint32_t device)
 {
     PCIEEPRO100State *d;
     EEPRO100State *s;
 
     logout("\n");
 
-    d = (PCIEEPRO100State *) pci_register_device(bus, nd->model,
+    d = (PCIEEPRO100State *) pci_register_device(bus, name,
                                                  sizeof(PCIEEPRO100State), -1,
                                                  NULL, NULL);
-
-	if (!d)
-		return NULL;
-
-	d->dev.unregister = pci_nic_uninit;
 
     s = &d->eepro100;
     s->device = device;
@@ -1855,30 +1783,30 @@ static PCIDevice *nic_init(PCIBus * bus, NICInfo * nd, uint32_t device)
     nic_reset(s);
 
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 nic_receive, nic_can_receive, 
-								 nic_cleanup, s);
+                                 nic_receive, nic_can_receive, s);
 
     qemu_format_nic_info_str(s->vc, s->macaddr);
 
     qemu_register_reset(nic_reset, s);
 
-    register_savevm(s->vc->model, -1, 3, nic_save, nic_load, s);
+    register_savevm(name, -1, 3, nic_save, nic_load, s);
     return (PCIDevice *)d;
 }
 
 PCIDevice *pci_i82551_init(PCIBus * bus, NICInfo * nd, int devfn)
 {
-	return nic_init(bus, nd, i82551);
+    return nic_init(bus, nd, "i82551", i82551);
+    //~ uint8_t *pci_conf = d->dev.config;
 }
 
 PCIDevice *pci_i82557b_init(PCIBus * bus, NICInfo * nd, int devfn)
 {
-	return nic_init(bus, nd, i82557B);
+    return nic_init(bus, nd, "i82557b", i82557B);
 }
 
 PCIDevice *pci_i82559er_init(PCIBus * bus, NICInfo * nd, int devfn)
 {
-    return nic_init(bus, nd, i82559ER);
+    return nic_init(bus, nd, "i82559er", i82559ER);
 }
 
 /* eof */
