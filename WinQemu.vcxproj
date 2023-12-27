@@ -164,6 +164,7 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
     <ClCompile Include="qemu\acl.c" />
+    <ClCompile Include="qemu\hw\framebuffer.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
