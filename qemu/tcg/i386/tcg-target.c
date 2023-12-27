@@ -1030,13 +1030,13 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_sar_i32:
         c = SHIFT_SAR;
         goto gen_shift32;
-    case INDEX_op_rotl_i32:
+    /* case INDEX_op_rotl_i32:
         c = SHIFT_ROL;
         goto gen_shift32;
     case INDEX_op_rotr_i32:
         c = SHIFT_ROR;
         goto gen_shift32;
-
+		*/
     case INDEX_op_add2_i32:
         if (const_args[4]) 
             tgen_arithi(s, ARITH_ADD, args[0], args[4]);
@@ -1063,7 +1063,7 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_brcond2_i32:
         tcg_out_brcond2(s, args, const_args);
         break;
-
+/*
     case INDEX_op_bswap16_i32:
         tcg_out8(s, 0x66);
         tcg_out_modrm(s, 0xc1, SHIFT_ROL, args[0]);
@@ -1079,14 +1079,15 @@ static inline void tcg_out_op(TCGContext *s, int opc,
 
     case INDEX_op_not_i32:
         tcg_out_modrm(s, 0xf7, 2, args[0]);
-        break;
+        break; 
 
     case INDEX_op_ext8s_i32:
         tcg_out_modrm(s, 0xbe | P_EXT, args[0], args[1]);
         break;
     case INDEX_op_ext16s_i32:
         tcg_out_modrm(s, 0xbf | P_EXT, args[0], args[1]);
-        break;
+        break; 
+*/
 
     case INDEX_op_qemu_ld8u:
         tcg_out_qemu_ld(s, args, 0);
