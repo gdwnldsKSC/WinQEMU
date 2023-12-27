@@ -1,4 +1,4 @@
-// WinQemuTest.cpp : 定义控制台应用程序的入口点。
+// WinQemuTest.cpp
 //
 
 #include "stdafx.h"
@@ -27,10 +27,6 @@ extern "C"
 };
 int _tmain(int argc, _TCHAR* argv[])
 {
-	//test1 (0, 1);
-	//test2 (0, 2);
-	//test3 (0, 3);
-
 	qemu_main(argc, argv, NULL);
 
 	return 0;

@@ -36,8 +36,8 @@
 #include "qemu-timer.h"
 #include "block_int.h"
 #include <assert.h>
+#include <windows.h>
 #include <winioctl.h>
-
 
 #define FTYPE_FILE 0
 #define FTYPE_CD     1
@@ -107,7 +107,7 @@ static int raw_open(BlockDriverState *bs, const char *filename, int flags)
         overlapped |= FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH;
     else if (!(flags & BDRV_O_CACHE_WB))
         overlapped |= FILE_FLAG_WRITE_THROUGH;
-    s->hfile = CreateFileA(filename, access_flags,
+    s->hfile = CreateFile(filename, access_flags,
                           FILE_SHARE_READ, NULL,
                           create_flags, overlapped, NULL);
     if (s->hfile == INVALID_HANDLE_VALUE) {
@@ -120,41 +120,45 @@ static int raw_open(BlockDriverState *bs, const char *filename, int flags)
     return 0;
 }
 
-static int raw_pread(BlockDriverState *bs, int64_t offset,
-                     uint8_t *buf, int count)
+static int raw_read(BlockDriverState *bs, int64_t sector_num,
+                    uint8_t *buf, int nb_sectors)
 {
     BDRVRawState *s = bs->opaque;
     OVERLAPPED ov;
     DWORD ret_count;
     int ret;
+    int64_t offset = sector_num * 512;
+    int count = nb_sectors * 512;
 
     memset(&ov, 0, sizeof(ov));
     ov.Offset = offset;
     ov.OffsetHigh = offset >> 32;
     ret = ReadFile(s->hfile, buf, count, &ret_count, &ov);
-    if (!ret) 
+    if (!ret)
         return ret_count;
-	if (ret_count == count)
-		ret_count = 0;
-	return ret_count;
+    if (ret_count == count)
+        ret_count = 0;
+    return ret_count;
 }
 
-static int raw_pwrite(BlockDriverState *bs, int64_t offset,
-                      const uint8_t *buf, int count)
+static int raw_write(BlockDriverState *bs, int64_t sector_num,
+                     const uint8_t *buf, int nb_sectors)
 {
     BDRVRawState *s = bs->opaque;
     OVERLAPPED ov;
     DWORD ret_count;
     int ret;
+    int64_t offset = sector_num * 512;
+    int count = nb_sectors * 512;
 
     memset(&ov, 0, sizeof(ov));
     ov.Offset = offset;
     ov.OffsetHigh = offset >> 32;
     ret = WriteFile(s->hfile, buf, count, &ret_count, &ov);
-	if (!ret)
-		return ret_count;
-	if (ret_count == count)
-		ret_count = 0;
+    if (!ret)
+        return ret_count;
+    if (ret_count == count)
+        ret_count = 0;
     return ret_count;
 }
 
@@ -200,7 +204,7 @@ static int64_t raw_getlength(BlockDriverState *bs)
             return -EIO;
         break;
     case FTYPE_CD:
-        if (!GetDiskFreeSpaceExA(s->drive_path, &available, &total, &total_free))
+        if (!GetDiskFreeSpaceEx(s->drive_path, &available, &total, &total_free))
             return -EIO;
         l.QuadPart = total.QuadPart;
         break;
@@ -247,19 +251,20 @@ BlockDriver bdrv_raw = {
     raw_create,
     raw_flush,
 
-    .bdrv_pread = raw_pread,
-    .bdrv_pwrite = raw_pwrite,
+    .bdrv_read = raw_read,
+    .bdrv_write = raw_write,
     .bdrv_truncate = raw_truncate,
     .bdrv_getlength = raw_getlength,
 };
+
 #else
 BlockDriver bdrv_raw = {
 	"raw",					//const char *format_name;
 	sizeof(BDRVRawState),	//int instance_size;
 	NULL,					//int (*bdrv_probe)(const uint8_t *buf, int buf_size, const char *filename);
 	raw_open,				//int (*bdrv_open)(BlockDriverState *bs, const char *filename, int flags);
-	NULL,				//int (*bdrv_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors);
-	NULL,				//int (*bdrv_write)(BlockDriverState *bs, int64_t sector_num,	const uint8_t *buf, int nb_sectors);
+	raw_read,				//int (*bdrv_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors);
+	raw_write,				//int (*bdrv_write)(BlockDriverState *bs, int64_t sector_num,	const uint8_t *buf, int nb_sectors);
 	raw_close,				//void (*bdrv_close)(BlockDriverState *bs);
 	raw_create,					//int (*bdrv_create)(const char *filename, int64_t total_sectors, const char *backing_file, int flags);
 	raw_flush,					//void (*bdrv_flush)(BlockDriverState *bs);
@@ -272,11 +277,11 @@ BlockDriver bdrv_raw = {
 	0,
 
 
-	NULL,					//const char *protocol_name;
-	raw_pread,					//int (*bdrv_pread)(BlockDriverState *bs, int64_t offset, uint8_t *buf, int count);
-	raw_pwrite,					//int (*bdrv_pwrite)(BlockDriverState *bs, int64_t offset, const uint8_t *buf, int count);
-	raw_truncate,					//int (*bdrv_truncate)(BlockDriverState *bs, int64_t offset);
-	raw_getlength,			//int64_t (*bdrv_getlength)(BlockDriverState *bs);
+	NULL,					//const char *protocol_name; --- some of the below is wrong, must_fix comments
+	raw_truncate,					//int (*bdrv_pread)(BlockDriverState *bs, int64_t offset, uint8_t *buf, int count);
+	raw_getlength,					//int (*bdrv_pwrite)(BlockDriverState *bs, int64_t offset, const uint8_t *buf, int count);
+	NULL,					//int (*bdrv_truncate)(BlockDriverState *bs, int64_t offset);
+	NULL,			//int64_t (*bdrv_getlength)(BlockDriverState *bs);
 	NULL,					//int (*bdrv_write_compressed)(BlockDriverState *bs, int64_t sector_num, const uint8_t *buf, int nb_sectors);
 
 	NULL,					//int (*bdrv_snapshot_create)(BlockDriverState *bs, QEMUSnapshotInfo *sn_info);
@@ -334,15 +339,10 @@ static int find_device_type(BlockDriverState *bs, const char *filename)
             return FTYPE_HARDDISK;
         snprintf(s->drive_path, sizeof(s->drive_path), "%c:\\", p[0]);
         type = GetDriveType(s->drive_path);
-        switch (type) {
-        case DRIVE_REMOVABLE:
-        case DRIVE_FIXED:
-            return FTYPE_HARDDISK;
-        case DRIVE_CDROM:
+        if (type == DRIVE_CDROM)
             return FTYPE_CD;
-        default:
+        else
             return FTYPE_FILE;
-        }
     } else {
         return FTYPE_FILE;
     }
@@ -378,7 +378,6 @@ static int hdev_open(BlockDriverState *bs, const char *filename, int flags)
     create_flags = OPEN_EXISTING;
 
     overlapped = FILE_ATTRIBUTE_NORMAL;
-
     if ((flags & BDRV_O_NOCACHE))
         overlapped |= FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH;
     else if (!(flags & BDRV_O_CACHE_WB))
@@ -433,19 +432,15 @@ static int raw_set_locked(BlockDriverState *bs, int locked)
 
 #ifndef _MSC_VER
 BlockDriver bdrv_host_device = {
-    "host_device",
-    sizeof(BDRVRawState),
-    NULL, /* no probe for protocols */
-    hdev_open,
-    NULL,
-    NULL,
-    raw_close,
-    NULL,
-    raw_flush,
+    .format_name	= "host_device",
+    .instance_size	= sizeof(BDRVRawState),
+    .bdrv_open		= hdev_open,
+    .bdrv_close		= raw_close,
+    .bdrv_flush		= raw_flush,
 
-    .bdrv_pread = raw_pread,
-    .bdrv_pwrite = raw_pwrite,
-    .bdrv_getlength = raw_getlength,
+    .bdrv_read		= raw_read,
+    .bdrv_write	        = raw_write,
+    .bdrv_getlength	= raw_getlength,
 };
 #else
 BlockDriver bdrv_host_device = {
@@ -453,8 +448,8 @@ BlockDriver bdrv_host_device = {
 	sizeof(BDRVRawState),	//int instance_size;
 	NULL,					//int (*bdrv_probe)(const uint8_t *buf, int buf_size, const char *filename);
 	hdev_open,				//int (*bdrv_open)(BlockDriverState *bs, const char *filename, int flags);
-	NULL,				//int (*bdrv_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors);
-	NULL,				//int (*bdrv_write)(BlockDriverState *bs, int64_t sector_num,	const uint8_t *buf, int nb_sectors);
+	raw_read,				//int (*bdrv_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors);
+	raw_write,				//int (*bdrv_write)(BlockDriverState *bs, int64_t sector_num,	const uint8_t *buf, int nb_sectors);
 	raw_close,				//void (*bdrv_close)(BlockDriverState *bs);
 	NULL,					//int (*bdrv_create)(const char *filename, int64_t total_sectors, const char *backing_file, int flags);
 	raw_flush,					//void (*bdrv_flush)(BlockDriverState *bs);
@@ -467,10 +462,10 @@ BlockDriver bdrv_host_device = {
 	0,
 
 	NULL,					//const char *protocol_name;
-	raw_pread,					//int (*bdrv_pread)(BlockDriverState *bs, int64_t offset, uint8_t *buf, int count);
-	raw_pwrite,					//int (*bdrv_pwrite)(BlockDriverState *bs, int64_t offset, const uint8_t *buf, int count);
+	NULL,					//int (*bdrv_pread)(BlockDriverState *bs, int64_t offset, uint8_t *buf, int count);
+	raw_getlength,					//int (*bdrv_pwrite)(BlockDriverState *bs, int64_t offset, const uint8_t *buf, int count);
 	NULL,					//int (*bdrv_truncate)(BlockDriverState *bs, int64_t offset);
-	raw_getlength,			//int64_t (*bdrv_getlength)(BlockDriverState *bs);
+	NULL,			//int64_t (*bdrv_getlength)(BlockDriverState *bs);
 	NULL,					//int (*bdrv_write_compressed)(BlockDriverState *bs, int64_t sector_num, const uint8_t *buf, int nb_sectors);
 
 	NULL,					//int (*bdrv_snapshot_create)(BlockDriverState *bs, QEMUSnapshotInfo *sn_info);
