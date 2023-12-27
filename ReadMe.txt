@@ -1,4 +1,7 @@
-﻿Current build is broken. Attempting to synchronize more thoroughly with upstream.
+﻿Build is fixed.
+
+All code that currently compiles and executes matches an upstream tree now, with 
+just MSVC customizations. 
 
 Including SDL 1.2.14 (with some later patches after this release tag up to April 2009)
 as it appears timeperiod appropriate for the included compiled libraries in the tree 
