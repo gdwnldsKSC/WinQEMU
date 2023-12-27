@@ -1,4 +1,6 @@
-﻿Including SDL 1.2.14 (with some later patches after this release tag up to April 2009)
+﻿Current build is broken. Attempting to synchronize more thoroughly with upstream.
+
+Including SDL 1.2.14 (with some later patches after this release tag up to April 2009)
 as it appears timeperiod appropriate for the included compiled libraries in the tree 
 to enable clean building. 
 
@@ -22,21 +24,3 @@ Currently VS2013! TESTFILES build was created via fully updated
 VS2013 12.0.40629.00 Update 5 on Windows 11 26016.1012
 
 Adding alpha bits now. 
-
-version 0.10.3:
-  - fix AIO cancellations (Avi Kivity)
-  - fix live migration error path on incoming
-  - avoid SEGV on pci hotplug failure (Chris Wright)
-  - fix serial option in -drive
-  - support DDIM for option roms (Glauber Costa)
-  - avoid fork/exec on pre-2.6.27 kernels with KVM (Jan Kiszka)
-  - block-vpc: don't silently create smaller images than requested (Kevin Wolf)
-  - Fix non-ACPI timer interrupt routing (Beth Kon)
-  - hpet: fix emulation of HPET_TN_SETVAL (Jan Kiszka)
-  - kvm: fix cpuid initialization (Jan Kiszka)
-  - qcow2: fix corruption on little endian hosts (Kevin Wolf)
-  - avoid leaing memory on hot unplug (Mark McLoughlin)
-  - fix savevm/migration after hot unplug (Mark McLoughlin)
-  - Fix keyboard mapping on newer Xords with non-default keymaps (balrog)
-  - Make PCI config status register read-only (Anthony Liguori)
-  - Fix crash on resolution change -> screen dump -> vga redraw (Avi Kivity)
