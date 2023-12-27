@@ -1226,24 +1226,24 @@ static uint32_t musb_readb(void *opaque, target_phys_addr_t addr)
         return 0x00;
 #else
 	default:
+	{
+		if (addr >= MUSB_HDRC_BUSCTL && addr <= (MUSB_HDRC_BUSCTL + 0x7f))
 		{
-			if (addr >= MUSB_HDRC_BUSCTL && addr <= (MUSB_HDRC_BUSCTL + 0x7f))
-			{
-				ep = (addr >> 3) & 0xf;
-				return musb_busctl_readb(s, ep, addr & 0x7);
-			}
-			else if (addr >= MUSB_HDRC_EP && addr <= (MUSB_HDRC_EP + 0xff))
-			{
-				ep = (addr >> 4) & 0xf;
-				return musb_ep_readb(s, ep, addr & 0xf);
-			}
-			else
-			{
-				printf("%s: unknown register at %02x\n", __FUNCTION__, (int) addr);
-				return 0x00;
-			}
-
+			ep = (addr >> 3) & 0xf;
+			return musb_busctl_readb(s, ep, addr & 0x7);
 		}
+		else if (addr >= MUSB_HDRC_EP && addr <= (MUSB_HDRC_EP + 0xff))
+		{
+			ep = (addr >> 4) & 0xf;
+			return musb_ep_readb(s, ep, addr & 0xf);
+		}
+		else
+		{
+			printf("%s: unknown register at %02x\n", __FUNCTION__, (int)addr);
+			return 0x00;
+		}
+
+	}
 
 #endif
     };
@@ -1348,23 +1348,23 @@ static void musb_writeb(void *opaque, target_phys_addr_t addr, uint32_t value)
         printf("%s: unknown register at %02x\n", __FUNCTION__, (int) addr);
 #else
 	default:
+	{
+		if (addr >= MUSB_HDRC_BUSCTL && addr <= (MUSB_HDRC_BUSCTL + 0x7f))
 		{
-			if (addr >= MUSB_HDRC_BUSCTL && addr <= (MUSB_HDRC_BUSCTL + 0x7f))
-			{
-				ep = (addr >> 3) & 0xf;
-				musb_busctl_writeb(s, ep, addr & 0x7, value);
-			}
-			else if (addr >= MUSB_HDRC_EP && addr <= (MUSB_HDRC_EP + 0xff))
-			{
-				ep = (addr >> 4) & 0xf;
-				musb_ep_writeb(s, ep, addr & 0xf, value);
-			}
-			else
-			{
-				printf("%s: unknown register at %02x\n", __FUNCTION__, (int) addr);
-			}
-
+			ep = (addr >> 3) & 0xf;
+			musb_busctl_writeb(s, ep, addr & 0x7, value);
 		}
+		else if (addr >= MUSB_HDRC_EP && addr <= (MUSB_HDRC_EP + 0xff))
+		{
+			ep = (addr >> 4) & 0xf;
+			musb_ep_writeb(s, ep, addr & 0xf, value);
+		}
+		else
+		{
+			printf("%s: unknown register at %02x\n", __FUNCTION__, (int)addr);
+		}
+
+	}
 
 #endif
     };
@@ -1437,7 +1437,7 @@ static uint32_t musb_readh(void *opaque, target_phys_addr_t addr)
     default:
         return musb_readb(s, addr) | (musb_readb(s, addr | 1) << 8);
 #else
-		default:
+				default:
 		{
 			if (addr >= MUSB_HDRC_BUSCTL && addr <= (MUSB_HDRC_BUSCTL + 0x7f))
 			{
@@ -1488,6 +1488,7 @@ static void musb_writeh(void *opaque, target_phys_addr_t addr, uint32_t value)
         s->ep[s->idx].buf[1] =
                 s->buf + ((value << 1) & (sizeof(s->buf) / 4 - 1));
         break;
+
 #ifndef _MSC_VER
     case MUSB_HDRC_EP_IDX ... (MUSB_HDRC_EP_IDX + 0xf):
 #else
@@ -1553,7 +1554,6 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
     struct musb_s *s = (struct musb_s *) opaque;
     struct musb_ep_s *ep;
     int epnum;
-
 #ifndef _MSC_VER
     switch (addr) {
     case MUSB_HDRC_FIFO ... (MUSB_HDRC_FIFO + 0x3f):
@@ -1577,7 +1577,7 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
         return 0x00000000;
     };
 #else
-	if(addr >= MUSB_HDRC_FIFO && addr <= (MUSB_HDRC_FIFO + 0x3f))
+	if (addr >= MUSB_HDRC_FIFO && addr <= (MUSB_HDRC_FIFO + 0x3f))
 	{
 		epnum = ((addr - MUSB_HDRC_FIFO) >> 2) & 0xf;
 		ep = s->ep + epnum;
@@ -1596,7 +1596,7 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
 	}
 	else
 	{
-		printf("%s: unknown register at %02x\n", __FUNCTION__, (int) addr);
+		printf("%s: unknown register at %02x\n", __FUNCTION__, (int)addr);
 		return 0x00000000;
 	};
 #endif
@@ -1640,7 +1640,7 @@ static void musb_writew(void *opaque, target_phys_addr_t addr, uint32_t value)
 			/* We have a FIFO overrun */
 			printf("%s: EP%i FIFO exceeded 64 bytes, stop feeding data\n",
 				__FUNCTION__, epnum);
-			
+
 			return;
 		}
 
@@ -1650,7 +1650,7 @@ static void musb_writew(void *opaque, target_phys_addr_t addr, uint32_t value)
 	}
 	else
 	{
-		printf("%s: unknown register at %02x\n", __FUNCTION__, (int) addr);
+		printf("%s: unknown register at %02x\n", __FUNCTION__, (int)addr);
 	};
 #endif
 }

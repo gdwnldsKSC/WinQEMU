@@ -487,7 +487,7 @@ static void usb_keyboard_event(void *opaque, int keycode)
             return;
         }
 #ifndef _MSC_VER
-    case 0xe8 ... 0xef:
+	case 0xe8 ... 0xef:
 #else
 	case 0xe8:
 	case 0xe9:

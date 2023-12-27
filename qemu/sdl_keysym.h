@@ -1,21 +1,5 @@
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-#ifndef __qemu_sdl_keysym_h__
-#define __qemu_sdl_keysym_h__
+#include "keymaps.h"
 
-#include <SDL\include\SDL_keysym.h>
-
-typedef struct {
-	const char* name;
-	int keysym;
-} name2keysym_t;
 static const name2keysym_t name2keysym[]={
 /* ascii */
     { "space",                0x020},
@@ -290,5 +274,3 @@ static const name2keysym_t name2keysym[]={
 
 {0,0},
 };
-
-#endif // __qemu_sdl_keysym_h__

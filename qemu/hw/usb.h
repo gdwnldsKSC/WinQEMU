@@ -244,7 +244,7 @@ USBDevice *usb_hub_init(int nb_ports);
 /* usb-linux.c */
 USBDevice *usb_host_device_open(const char *devname);
 int usb_host_device_close(const char *devname);
-void usb_host_info(void);
+void usb_host_info(Monitor *mon);
 
 /* usb-hid.c */
 USBDevice *usb_mouse_init(void);
@@ -253,7 +253,8 @@ USBDevice *usb_keyboard_init(void);
 void usb_hid_datain_cb(USBDevice *dev, void *opaque, void (*datain)(void *));
 
 /* usb-msd.c */
-USBDevice *usb_msd_init(const char *filename, BlockDriverState **pbs);
+USBDevice *usb_msd_init(const char *filename);
+BlockDriverState *usb_msd_get_bdrv(USBDevice *dev);
 
 /* usb-net.c */
 USBDevice *usb_net_init(NICInfo *nd);

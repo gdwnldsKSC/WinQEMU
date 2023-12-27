@@ -1041,16 +1041,16 @@ static const char * const usb_net_stringtable[] = {
 #else
 static const char * const usb_net_stringtable[] = {
 	NULL,
-	 "QEMU",
-	 "RNDIS/QEMU USB Network Device",
-	 "400102030405",
-	 "QEMU USB Net Data Interface",
-	 "QEMU USB Net Control Interface",
-	 "QEMU USB Net RNDIS Control Interface",
-	 "QEMU USB Net CDC",
-	 "QEMU USB Net Subset",
-	 "QEMU USB Net RNDIS",
-	 "1",
+	"QEMU",
+	"RNDIS/QEMU USB Network Device",
+	"400102030405",
+	"QEMU USB Net Data Interface",
+	"QEMU USB Net Control Interface",
+	"QEMU USB Net RNDIS Control Interface",
+	"QEMU USB Net CDC",
+	"QEMU USB Net Subset",
+	"QEMU USB Net RNDIS",
+	"1",
 };
 #endif
 
@@ -1441,14 +1441,6 @@ static int usbnet_can_receive(void *opaque)
     return !s->in_len;
 }
 
-static void usbnet_cleanup(VLANClientState *vc)
-{
-	USBNetState *s = vc->opaque;
-
-	rndis_clear_responsequeue(s);
-	qemu_free(s);
-}
-
 static void usb_net_handle_destroy(USBDevice *dev)
 {
     USBNetState *s = (USBNetState *) dev;
@@ -1486,9 +1478,7 @@ USBDevice *usb_net_init(NICInfo *nd)
     pstrcpy(s->dev.devname, sizeof(s->dev.devname),
                     "QEMU USB Network Interface");
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-								 usbnet_receive, 
-								 usbnet_can_receive, 
-								 usbnet_cleanup, s);
+                    usbnet_receive, usbnet_can_receive, s);
 
     qemu_format_nic_info_str(s->vc, s->mac);
 
