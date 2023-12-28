@@ -80,23 +80,23 @@
 #define VGA_MAX_HEIGHT 2048
 
 struct vga_precise_retrace {
-	int64_t ticks_per_char;
-	int64_t total_chars;
-	int htotal;
-	int hstart;
-	int hend;
-	int vstart;
-	int vend;
-	int freq;
+    int64_t ticks_per_char;
+    int64_t total_chars;
+    int htotal;
+    int hstart;
+    int hend;
+    int vstart;
+    int vend;
+    int freq;
 };
 
 union vga_retrace {
-	struct vga_precise_retrace precise;
+    struct vga_precise_retrace precise;
 };
 
 struct VGAState;
-typedef uint8_t(*vga_retrace_fn)(struct VGAState *s);
-typedef void(*vga_update_retrace_info_fn)(struct VGAState *s);
+typedef uint8_t (* vga_retrace_fn)(struct VGAState *s);
+typedef void (* vga_update_retrace_info_fn)(struct VGAState *s);
 
 #define VGA_STATE_COMMON                                                \
     uint8_t *vram_ptr;                                                  \
@@ -147,11 +147,8 @@ typedef void(*vga_update_retrace_info_fn)(struct VGAState *s);
     DisplayState *ds;                                                   \
     uint32_t font_offsets[2];                                           \
     int graphic_mode;                                                   \
-    int want_full_update;                                               \
     uint8_t shift_control;                                              \
     uint8_t double_scan;                                                \
-    uint8_t multi_run;                                                  \
-    uint8_t multi_scan;                                                 \
     uint32_t line_offset;                                               \
     uint32_t line_compare;                                              \
     uint32_t start_addr;                                                \
@@ -183,22 +180,21 @@ typedef void(*vga_update_retrace_info_fn)(struct VGAState *s);
 
 
 typedef struct VGAState {
-	VGA_STATE_COMMON
+    VGA_STATE_COMMON
 } VGAState;
 
 static inline int c6_to_8(int v)
 {
-	int b;
-	v &= 0x3f;
-	b = v & 1;
-	return (v << 2) | (b << 1) | b;
+    int b;
+    v &= 0x3f;
+    b = v & 1;
+    return (v << 2) | (b << 1) | b;
 }
 
 void vga_common_init(VGAState *s, uint8_t *vga_ram_base,
-	ram_addr_t vga_ram_offset, int vga_ram_size);
+                     ram_addr_t vga_ram_offset, int vga_ram_size);
 void vga_init(VGAState *s);
 void vga_reset(void *s);
-void vga_update_resolution(VGAState *s);
 
 void vga_dirty_log_start(VGAState *s);
 void vga_dirty_log_stop(VGAState *s);
@@ -209,17 +205,17 @@ void vga_invalidate_scanlines(VGAState *s, int y1, int y2);
 int ppm_save(const char *filename, struct DisplaySurface *ds);
 
 void vga_draw_cursor_line_8(uint8_t *d1, const uint8_t *src1,
-	int poffset, int w,
-	unsigned int color0, unsigned int color1,
-	unsigned int color_xor);
+                            int poffset, int w,
+                            unsigned int color0, unsigned int color1,
+                            unsigned int color_xor);
 void vga_draw_cursor_line_16(uint8_t *d1, const uint8_t *src1,
-	int poffset, int w,
-	unsigned int color0, unsigned int color1,
-	unsigned int color_xor);
+                             int poffset, int w,
+                             unsigned int color0, unsigned int color1,
+                             unsigned int color_xor);
 void vga_draw_cursor_line_32(uint8_t *d1, const uint8_t *src1,
-	int poffset, int w,
-	unsigned int color0, unsigned int color1,
-	unsigned int color_xor);
+                             int poffset, int w,
+                             unsigned int color0, unsigned int color1,
+                             unsigned int color_xor);
 
 extern const uint8_t sr_mask[8];
 extern const uint8_t gr_mask[16];
