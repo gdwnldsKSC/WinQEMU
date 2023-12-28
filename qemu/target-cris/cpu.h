@@ -15,7 +15,8 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
 #ifndef CPU_CRIS_H
 #define CPU_CRIS_H
@@ -66,6 +67,8 @@
 #define R_FLAG 0x100
 #define P_FLAG 0x80
 #define U_FLAG 0x40
+#define P_FLAG 0x80
+#define U_FLAG 0x40
 #define I_FLAG 0x20
 #define X_FLAG 0x10
 #define N_FLAG 0x08
@@ -91,6 +94,9 @@
 #define CC_LE  13
 #define CC_A   14
 #define CC_P   15
+
+/* Internal flags for the implementation.  */
+#define F_DELAYSLOT 1
 
 #define NB_MMU_MODES 2
 

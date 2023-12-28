@@ -15,7 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
 
 #include <stdio.h>
@@ -76,7 +77,7 @@ static void cris_shift_ccs(CPUState *env)
 int cpu_cris_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
                                int mmu_idx, int is_softmmu)
 {
-	struct cris_mmu_result res;
+	struct cris_mmu_result_t res;
 	int prot, miss;
 	int r = -1;
 	target_ulong phy;
@@ -190,7 +191,7 @@ void do_interrupt(CPUState *env)
 target_phys_addr_t cpu_get_phys_page_debug(CPUState * env, target_ulong addr)
 {
 	uint32_t phy = addr;
-	struct cris_mmu_result res;
+	struct cris_mmu_result_t res;
 	int miss;
 	miss = cris_mmu_translate(&res, env, addr, 0, 0);
 	if (!miss)

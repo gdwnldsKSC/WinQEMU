@@ -33,12 +33,12 @@
 #define GEN_HELPER 1
 #include "helper.h"
 
-//#define DO_SINGLE_STEP 
+/* #define DO_SINGLE_STEP */
 #define ALPHA_DEBUG_DISAS
-//#define DO_TB_FLUSH 
+/* #define DO_TB_FLUSH */
 
 
-#ifdef defined(ALPHA_DEBUG_DISAS) && 0
+#ifdef ALPHA_DEBUG_DISAS
 #  define LOG_DISAS(...) qemu_log(__VA_ARGS__)
 #else
 #  define LOG_DISAS(...) do { } while (0)
@@ -51,7 +51,6 @@ struct DisasContext {
 #if !defined (CONFIG_USER_ONLY)
     int pal_mode;
 #endif
-	CPUAlphaState *env;
     uint32_t amask;
 };
 
@@ -291,7 +290,7 @@ static always_inline void gen_store_mem (DisasContext *ctx,
 
 static always_inline void gen_bcond (DisasContext *ctx,
                                      TCGCond cond,
-                                     int ra, int32_t disp16, int mask)
+                                     int ra, int32_t disp, int mask)
 {
     int l1, l2;
 
@@ -314,7 +313,7 @@ static always_inline void gen_bcond (DisasContext *ctx,
     tcg_gen_movi_i64(cpu_pc, ctx->pc);
     tcg_gen_br(l2);
     gen_set_label(l1);
-    tcg_gen_movi_i64(cpu_pc, ctx->pc + (int64_t)(disp16 << 2));
+    tcg_gen_movi_i64(cpu_pc, ctx->pc + (int64_t)(disp << 2));
     gen_set_label(l2);
 }
 
@@ -686,14 +685,14 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         /* CALL_PAL */
         if (palcode >= 0x80 && palcode < 0xC0) {
             /* Unprivileged PAL call */
-            gen_excp(ctx, EXCP_CALL_PAL + ((palcode & 0x3F) << 6), 0);
+            gen_excp(ctx, EXCP_CALL_PAL + ((palcode & 0x1F) << 6), 0);
 #if !defined (CONFIG_USER_ONLY)
         } else if (palcode < 0x40) {
             /* Privileged PAL code */
             if (ctx->mem_idx & 1)
                 goto invalid_opc;
             else
-                gen_excp(ctx, EXCP_CALL_PALP + ((palcode & 0x1F) << 6), 0);
+                gen_excp(ctx, EXCP_CALL_PALP + ((palcode & 0x3F) << 6), 0);
 #endif
         } else {
             /* Invalid PAL call */
@@ -754,7 +753,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         /* LDWU */
         if (!(ctx->amask & AMASK_BWX))
             goto invalid_opc;
-        gen_load_mem(ctx, &tcg_gen_qemu_ld16u, ra, rb, disp16, 0, 1);
+        gen_load_mem(ctx, &tcg_gen_qemu_ld16u, ra, rb, disp16, 0, 0);
         break;
     case 0x0D:
         /* STW */
@@ -1159,20 +1158,10 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         case 0x61:
             /* AMASK */
             if (likely(rc != 31)) {
-				if (islit)
-					tcg_gen_movi_i64(cpu_ir[rc], lit);
-				else
-					tcg_gen_mov_i64(cpu_ir[rc], cpu_ir[rb]);
-				switch (ctx->env->implver) {
-				case IMPLVER_2106x:
-					/* EV4, EV45, LCA, LCA45 & EV5 */
-					break;
-				case IMPLVER_21164:
-				case IMPLVER_21264:
-				case IMPLVER_21364:
-					tcg_gen_andi_i64(cpu_ir[rc], cpu_ir[rc], ~(uint64_t)ctx->amask);
-					break;
-				}
+                if (islit)
+                    tcg_gen_movi_i64(cpu_ir[rc], helper_amask(lit));
+                else
+                    gen_helper_amask(cpu_ir[rc], cpu_ir[rb]);
             }
             break;
         case 0x64:
@@ -1186,7 +1175,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         case 0x6C:
             /* IMPLVER */
             if (rc != 31)
-                tcg_gen_movi_i64(cpu_ir[rc], ctx->env->implver);
+                gen_helper_load_implver(cpu_ir[rc]);
             break;
         default:
             goto invalid_opc;
@@ -1731,6 +1720,12 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
             break;
         case 0xE800:
             /* ECB */
+            /* XXX: TODO: evict tb cache at address rb */
+#if 0
+            ret = 2;
+#else
+            goto invalid_opc;
+#endif
             break;
         case 0xF000:
             /* RS */
@@ -1798,62 +1793,62 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
                 tcg_gen_movi_i64(addr, disp12);
             switch ((insn >> 12) & 0xF) {
             case 0x0:
-                /* Longword physical access */
+                /* Longword physical access (hw_ldl/p) */
                 gen_helper_ldl_raw(cpu_ir[ra], addr);
                 break;
             case 0x1:
-                /* Quadword physical access */
+                /* Quadword physical access (hw_ldq/p) */
                 gen_helper_ldq_raw(cpu_ir[ra], addr);
                 break;
             case 0x2:
-                /* Longword physical access with lock */
+                /* Longword physical access with lock (hw_ldl_l/p) */
                 gen_helper_ldl_l_raw(cpu_ir[ra], addr);
                 break;
             case 0x3:
-                /* Quadword physical access with lock */
+                /* Quadword physical access with lock (hw_ldq_l/p) */
                 gen_helper_ldq_l_raw(cpu_ir[ra], addr);
                 break;
             case 0x4:
-                /* Longword virtual PTE fetch */
-                gen_helper_ldl_kernel(cpu_ir[ra], addr);
+                /* Longword virtual PTE fetch (hw_ldl/v) */
+                tcg_gen_qemu_ld32s(cpu_ir[ra], addr, 0);
                 break;
             case 0x5:
-                /* Quadword virtual PTE fetch */
-                gen_helper_ldq_kernel(cpu_ir[ra], addr);
+                /* Quadword virtual PTE fetch (hw_ldq/v) */
+                tcg_gen_qemu_ld64(cpu_ir[ra], addr, 0);
                 break;
             case 0x6:
                 /* Incpu_ir[ra]id */
-                goto invalid_opc;  // changing this early, isn't fixed until $mysterious_future$
+                goto invalid_opc;
             case 0x7:
                 /* Incpu_ir[ra]id */
-                goto invalid_opc;  // changing this early, isn't fixed until $mysterious_future$
+                goto invalid_opc;
             case 0x8:
-                /* Longword virtual access */
+                /* Longword virtual access (hw_ldl) */
                 gen_helper_st_virt_to_phys(addr, addr);
                 gen_helper_ldl_raw(cpu_ir[ra], addr);
                 break;
             case 0x9:
-                /* Quadword virtual access */
+                /* Quadword virtual access (hw_ldq) */
                 gen_helper_st_virt_to_phys(addr, addr);
                 gen_helper_ldq_raw(cpu_ir[ra], addr);
                 break;
             case 0xA:
-                /* Longword virtual access with protection check */
-                tcg_gen_qemu_ld32s(cpu_ir[ra], addr, 0); // changing this early, isn't fixed until $mysterious_future$
+                /* Longword virtual access with protection check (hw_ldl/w) */
+                tcg_gen_qemu_ld32s(cpu_ir[ra], addr, 0);
                 break;
             case 0xB:
-                /* Quadword virtual access with protection check */
-                tcg_gen_qemu_ld64(cpu_ir[ra], addr, 0); // changing this early, isn't fixed until $mysterious_future$
+                /* Quadword virtual access with protection check (hw_ldq/w) */
+                tcg_gen_qemu_ld64(cpu_ir[ra], addr, 0);
                 break;
             case 0xC:
-                /* Longword virtual access with altenate access mode */
+                /* Longword virtual access with alt access mode (hw_ldl/a)*/
                 gen_helper_set_alt_mode();
                 gen_helper_st_virt_to_phys(addr, addr);
                 gen_helper_ldl_raw(cpu_ir[ra], addr);
                 gen_helper_restore_mode();
                 break;
             case 0xD:
-                /* Quadword virtual access with altenate access mode */
+                /* Quadword virtual access with alt access mode (hw_ldq/a) */
                 gen_helper_set_alt_mode();
                 gen_helper_st_virt_to_phys(addr, addr);
                 gen_helper_ldq_raw(cpu_ir[ra], addr);
@@ -1861,7 +1856,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
                 break;
             case 0xE:
                 /* Longword virtual access with alternate access mode and
-                 * protection checks
+                 * protection checks (hw_ldl/wa)
                  */
                 gen_helper_set_alt_mode();
                 gen_helper_ldl_data(cpu_ir[ra], addr);
@@ -1869,7 +1864,7 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
                 break;
             case 0xF:
                 /* Quadword virtual access with alternate access mode and
-                 * protection checks
+                 * protection checks (hw_ldq/wa)
                  */
                 gen_helper_set_alt_mode();
                 gen_helper_ldq_data(cpu_ir[ra], addr);
@@ -2191,11 +2186,10 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
                 /* Invalid */
                 goto invalid_opc;
             }
-            if (ra != 31)
+            if (ra == 31)
                 tcg_temp_free(val);
             tcg_temp_free(addr);
         }
-        ret = 2;
         break;
 #endif
     case 0x20:
@@ -2290,42 +2284,42 @@ static always_inline int translate_one (DisasContext *ctx, uint32_t insn)
         break;
     case 0x38:
         /* BLBC */
-        gen_bcond(ctx, TCG_COND_EQ, ra, disp16, 1);
+        gen_bcond(ctx, TCG_COND_EQ, ra, disp21, 1);
         ret = 1;
         break;
     case 0x39:
         /* BEQ */
-        gen_bcond(ctx, TCG_COND_EQ, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_EQ, ra, disp21, 0);
         ret = 1;
         break;
     case 0x3A:
         /* BLT */
-        gen_bcond(ctx, TCG_COND_LT, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_LT, ra, disp21, 0);
         ret = 1;
         break;
     case 0x3B:
         /* BLE */
-        gen_bcond(ctx, TCG_COND_LE, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_LE, ra, disp21, 0);
         ret = 1;
         break;
     case 0x3C:
         /* BLBS */
-        gen_bcond(ctx, TCG_COND_NE, ra, disp16, 1);
+        gen_bcond(ctx, TCG_COND_NE, ra, disp21, 1);
         ret = 1;
         break;
     case 0x3D:
         /* BNE */
-        gen_bcond(ctx, TCG_COND_NE, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_NE, ra, disp21, 0);
         ret = 1;
         break;
     case 0x3E:
         /* BGE */
-        gen_bcond(ctx, TCG_COND_GE, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_GE, ra, disp21, 0);
         ret = 1;
         break;
     case 0x3F:
         /* BGT */
-        gen_bcond(ctx, TCG_COND_GT, ra, disp16, 0);
+        gen_bcond(ctx, TCG_COND_GT, ra, disp21, 0);
         ret = 1;
         break;
     invalid_opc:
@@ -2358,7 +2352,6 @@ static always_inline void gen_intermediate_code_internal (CPUState *env,
     gen_opc_end = gen_opc_buf + OPC_MAX_SIZE;
     ctx.pc = pc_start;
     ctx.amask = env->amask;
-	ctx.env = env;
 #if defined (CONFIG_USER_ONLY)
     ctx.mem_idx = 0;
 #else
@@ -2386,10 +2379,10 @@ static always_inline void gen_intermediate_code_internal (CPUState *env,
                 lj++;
                 while (lj < j)
                     gen_opc_instr_start[lj++] = 0;
-                gen_opc_pc[lj] = ctx.pc;
-                gen_opc_instr_start[lj] = 1;
-                gen_opc_icount[lj] = num_insns;
             }
+            gen_opc_pc[lj] = ctx.pc;
+            gen_opc_instr_start[lj] = 1;
+            gen_opc_icount[lj] = num_insns;
         }
         if (num_insns + 1 == max_insns && (tb->cflags & CF_LAST_IO))
             gen_io_start();
@@ -2408,10 +2401,10 @@ static always_inline void gen_intermediate_code_internal (CPUState *env,
         ret = translate_one(ctxp, insn);
         if (ret != 0)
             break;
-        /* if we reach a page boundary, or translation is too long
-           or are single stepping, stop generation.  */
+        /* if we reach a page boundary or are single stepping, stop
+         * generation
+         */
         if (((ctx.pc & (TARGET_PAGE_SIZE - 1)) == 0) ||
-			gen_opc_ptr >= gen_opc_end ||
             num_insns >= max_insns) {
             break;
         }
