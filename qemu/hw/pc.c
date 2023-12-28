@@ -42,7 +42,7 @@
 #include "net.h"
 #include "smbus.h"
 #include "boards.h"
-#include "console.h"
+#include "monitor.h"
 #include "fw_cfg.h"
 #include "virtio-blk.h"
 #include "virtio-balloon.h"
@@ -64,9 +64,6 @@
 #define FW_CFG_ACPI_TABLES (FW_CFG_ARCH_LOCAL + 0)
 
 #define MAX_IDE_BUS 2
-
-extern uint8_t *acpi_tables;
-extern size_t acpi_tables_len;
 
 static fdctrl_t *floppy_controller;
 static RTCState *rtc_state;
@@ -219,6 +216,7 @@ static int boot_device2nibble(char boot_device)
  and used there as well */
 static int pc_boot_set(void *opaque, const char *boot_device)
 {
+    Monitor *mon = cur_mon;
 #define PC_MAX_BOOT_DEVICES 3
     RTCState *s = (RTCState *)opaque;
     int nbds, bds[3] = { 0, };
@@ -226,14 +224,14 @@ static int pc_boot_set(void *opaque, const char *boot_device)
 
     nbds = strlen(boot_device);
     if (nbds > PC_MAX_BOOT_DEVICES) {
-        monitor_printf("Too many boot devices for PC\n");
+        monitor_printf(mon, "Too many boot devices for PC\n");
         return(1);
     }
     for (i = 0; i < nbds; i++) {
         bds[i] = boot_device2nibble(boot_device[i]);
         if (bds[i] == 0) {
-            monitor_printf("Invalid boot device for PC: '%c'\n",
-                    boot_device[i]);
+            monitor_printf(mon, "Invalid boot device for PC: '%c'\n",
+                           boot_device[i]);
             return(1);
         }
     }
@@ -453,7 +451,8 @@ static void bochs_bios_init(void)
     fw_cfg = fw_cfg_init(BIOS_CFG_IOPORT, BIOS_CFG_IOPORT + 1, 0, 0);
     fw_cfg_add_i32(fw_cfg, FW_CFG_ID, 1);
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_ACPI_TABLES, acpi_tables, acpi_tables_len);
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_ACPI_TABLES, (uint8_t *)acpi_tables,
+                     acpi_tables_len);
 }
 
 /* Generate an initial boot sector which sets state and jump to
@@ -775,7 +774,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
 {
     char buf[1024];
     int ret, linux_boot, i;
-    ram_addr_t ram_addr, vga_ram_addr, bios_offset, vga_bios_offset;
+    ram_addr_t ram_addr, vga_ram_addr, bios_offset, vga_bios_offset, option_rom_start = 0;
     ram_addr_t below_4g_mem_size, above_4g_mem_size = 0;
     int bios_size, isa_bios_size, vga_bios_size;
     PCIBus *pci_bus;
@@ -786,6 +785,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
     int index;
     BlockDriverState *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
     BlockDriverState *fd[MAX_FD];
+    int using_vga = cirrus_vga_enabled || std_vga_enabled || vmsvga_enabled;
 
     if (ram_size >= 0xe0000000 ) {
         above_4g_mem_size = ram_size - 0xe0000000;
@@ -868,7 +868,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
         exit(1);
     }
 
-    if (cirrus_vga_enabled || std_vga_enabled || vmsvga_enabled) {
+    if (using_vga) {
         /* VGA BIOS load */
         if (cirrus_vga_enabled) {
             snprintf(buf, sizeof(buf), "%s/%s", bios_dir, VGABIOS_CIRRUS_FILENAME);
@@ -886,11 +886,20 @@ vga_bios_error:
             fprintf(stderr, "qemu: could not load VGA BIOS '%s'\n", buf);
             exit(1);
         }
+	/* Round up vga bios size to the next 2k boundary */
+	vga_bios_size = (vga_bios_size + 2047) & ~2047;
+	option_rom_start = 0xc0000 + vga_bios_size;
 
         /* setup basic memory access */
-        cpu_register_physical_memory(0xc0000, 0x10000,
+        cpu_register_physical_memory(0xc0000, vga_bios_size,
                                      vga_bios_offset | IO_MEM_ROM);
     }
+
+    /* No point in placing option roms before this address, since bochs bios
+     * will only start looking for it at 0xc8000 */
+    if (option_rom_start < 0xc8000)
+	    option_rom_start = 0xc8000;
+
 
     /* map the last 128KB of the BIOS in ISA space */
     isa_bios_size = bios_size;
@@ -904,14 +913,14 @@ vga_bios_error:
         ram_addr_t option_rom_offset;
         int size, offset;
 
-        offset = 0;
+        offset = option_rom_start;
         if (linux_boot) {
             option_rom_offset = qemu_ram_alloc(TARGET_PAGE_SIZE);
             load_linux(phys_ram_base + option_rom_offset,
                        kernel_filename, initrd_filename, kernel_cmdline);
-            cpu_register_physical_memory(0xd0000, TARGET_PAGE_SIZE,
-                                         option_rom_offset);
-            offset = TARGET_PAGE_SIZE;
+            cpu_register_physical_memory(option_rom_start, TARGET_PAGE_SIZE,
+                                         option_rom_offset | IO_MEM_ROM);
+            offset += TARGET_PAGE_SIZE;
         }
 
         for (i = 0; i < nb_option_roms; i++) {
@@ -921,18 +930,17 @@ vga_bios_error:
                         option_rom[i]);
                 exit(1);
             }
-            if (size > (0x10000 - offset))
+            if (size > (0xe0000  - offset))
                 goto option_rom_error;
             option_rom_offset = qemu_ram_alloc(size);
             ret = load_image(option_rom[i], phys_ram_base + option_rom_offset);
             if (ret != size) {
             option_rom_error:
-                fprintf(stderr, "Too many option ROMS\n");
+                fprintf(stderr, "Could not fit %soption roms in available space\n", using_vga ? "VGA bios and " : "");
                 exit(1);
             }
             size = (size + 4095) & ~4095;
-            cpu_register_physical_memory(0xd0000 + offset,
-                                         size, option_rom_offset | IO_MEM_ROM);
+            cpu_register_physical_memory(offset, size, option_rom_offset | IO_MEM_ROM);
             offset += size;
         }
     }

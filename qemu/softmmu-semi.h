@@ -22,7 +22,7 @@ static inline uint32_t softmmu_tget8(CPUState *env, uint32_t addr)
     return val;
 }
 
-#define get_user_u32(arg, p) { arg = softmmu_tget32(env, p) ; 0; }
+#define get_user_u32(arg, p) ({ arg = softmmu_tget32(env, p) ; 0; })
 #define get_user_u8(arg, p) ({ arg = softmmu_tget8(env, p) ; 0; })
 #define get_user_ual(arg, p) get_user_u32(arg, p)
 
@@ -31,7 +31,7 @@ static inline void softmmu_tput32(CPUState *env, uint32_t addr, uint32_t val)
     val = tswap32(val);
     cpu_memory_rw_debug(env, addr, (uint8_t *)&val, 4, 1);
 }
-#define put_user_u32(arg, p) do{ softmmu_tput32(env, p, arg) ; 0; }while (0)
+#define put_user_u32(arg, p) ({ softmmu_tput32(env, p, arg) ; 0; })
 #define put_user_ual(arg, p) put_user_u32(arg, p)
 
 static void *softmmu_lock_user(CPUState *env, uint32_t addr, uint32_t len,

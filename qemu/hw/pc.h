@@ -1,5 +1,8 @@
 #ifndef HW_PC_H
 #define HW_PC_H
+
+#include "qemu-common.h"
+
 /* PC-style peripherals (also used by other machines).  */
 
 /* serial.c */
@@ -34,12 +37,15 @@ void pic_set_alt_irq_func(PicState2 *s, SetIRQFunc *alt_irq_func,
 int pic_read_irq(PicState2 *s);
 void pic_update_irq(PicState2 *s);
 uint32_t pic_intack_read(PicState2 *s);
-void pic_info(void);
-void irq_info(void);
+void pic_info(Monitor *mon);
+void irq_info(Monitor *mon);
 
 /* APIC */
 typedef struct IOAPICState IOAPICState;
-
+void apic_deliver_irq(uint8_t dest, uint8_t dest_mode,
+                             uint8_t delivery_mode,
+                             uint8_t vector_num, uint8_t polarity,
+                             uint8_t trigger_mode);
 int apic_init(CPUState *env);
 int apic_accept_pic_intr(CPUState *env);
 void apic_deliver_pic_intr(CPUState *env, int level);
@@ -84,6 +90,7 @@ void i8042_mm_init(qemu_irq kbd_irq, qemu_irq mouse_irq,
 typedef struct RTCState RTCState;
 
 RTCState *rtc_init(int base, qemu_irq irq, int base_year);
+RTCState *rtc_init_sqw(int base, qemu_irq irq, qemu_irq sqw_irq, int base_year);
 RTCState *rtc_mm_init(target_phys_addr_t base, int it_shift, qemu_irq irq,
                       int base_year);
 void rtc_set_memory(RTCState *s, int addr, int val);
@@ -98,6 +105,9 @@ int ioport_get_a20(void);
 
 /* acpi.c */
 extern int acpi_enabled;
+extern char *acpi_tables;
+extern size_t acpi_tables_len;
+
 i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
                        qemu_irq sci_irq);
 void piix4_smbus_register_device(SMBusDevice *dev, uint8_t addr);
