@@ -1675,5 +1675,8 @@
     <None Include="qemu\target-alpha\STATUS">
       <Filter>qemu\target-alpha</Filter>
     </None>
+    <None Include="qemu\qemu-options.hx">
+      <Filter>qemu\inc</Filter>
+    </None>
   </ItemGroup>
 </Project>

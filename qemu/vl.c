@@ -247,6 +247,7 @@ int win2k_install_hack = 0;
 int rtc_td_hack = 0;
 #endif
 int usb_enabled = 0;
+int singlestep = 0;
 int smp_cpus = 1;
 const char *vnc_display;
 int acpi_enabled = 1;
@@ -3318,10 +3319,10 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
 	/* try transferring iterative blocks of memory */
 
 	if (stage == 3) {
-		cpu_physical_memory_set_dirty_tracking(0);
 
 		/* flush all remaining blocks regardless of rate limiting */
 		while (ram_save_block(f) != 0);
+		cpu_physical_memory_set_dirty_tracking(0);
 	}
 
 	qemu_put_be64(f, RAM_SAVE_FLAG_EOS);
@@ -4307,6 +4308,7 @@ enum {
 	QEMU_OPTION_parallel,
 	QEMU_OPTION_monitor,
 	QEMU_OPTION_pidfile,
+	QEMU_OPTION_singlestep,
 	QEMU_OPTION_S,
 	QEMU_OPTION_s,
 	QEMU_OPTION_p,
@@ -4427,6 +4429,7 @@ static const QEMUOption qemu_options[] = {
 	{ "parallel", HAS_ARG, QEMU_OPTION_parallel },
 	{ "monitor", HAS_ARG, QEMU_OPTION_monitor },
 	{ "pidfile", HAS_ARG, QEMU_OPTION_pidfile },
+	{ "singlestep", HAS_ARG, QEMU_OPTION_singlestep },
 	{ "S", 0, QEMU_OPTION_S },
 	{ "s", 0, QEMU_OPTION_s },
 	{ "p", HAS_ARG, QEMU_OPTION_p },
@@ -4710,8 +4713,7 @@ int __declspec(dllexport) qemu_main(int argc, char **argv, char **envp)
 #endif
 {
 #ifdef CONFIG_GDBSTUB
-	int use_gdbstub;
-	const char *gdbstub_port;
+	const char *gdbstub_dev = NULL;
 #endif
 	uint32_t boot_devices_bitmap = 0;
 	int i;
@@ -5134,10 +5136,10 @@ int __declspec(dllexport) qemu_main(int argc, char **argv, char **envp)
 			break;
 #ifdef CONFIG_GDBSTUB
 			case QEMU_OPTION_s:
-				use_gdbstub = 1;
+				gdbstub_dev = "tcp::" DEFAULT_GDBSTUB_PORT;
 				break;
-			case QEMU_OPTION_p:
-				gdbstub_port = optarg;
+			case QEMU_OPTION_gdb:
+				gdbstub_dev = optarg;
 				break;
 #endif
 			case QEMU_OPTION_L:
@@ -5145,6 +5147,9 @@ int __declspec(dllexport) qemu_main(int argc, char **argv, char **envp)
 				break;
 			case QEMU_OPTION_bios:
 				bios_name = optarg;
+				break;
+			case QEMU_OPTION_singlestep:
+				singlestep = 1;
 				break;
 			case QEMU_OPTION_S:
 				autostart = 0;
@@ -5870,13 +5875,10 @@ int __declspec(dllexport) qemu_main(int argc, char **argv, char **envp)
 	}
 
 #ifdef CONFIG_GDBSTUB
-	if (use_gdbstub) {
-		/* XXX: use standard host:port notation and modify options
-		   accordingly. */
-		if (gdbserver_start(gdbstub_port) < 0) {
-			fprintf(stderr, "qemu: could not open gdbstub device on port '%s'\n",
-				gdbstub_port);
-			exit(1);
+	if (gdbstub_dev && gdbserver_start(gdbstub_dev) < 0) {
+		fprintf(stderr, "qemu: could not open gdbserver on device '%s'\n",
+			gdbstub_dev);
+		exit(1);
 		}
 	}
 #endif

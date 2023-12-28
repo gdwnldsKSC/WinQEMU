@@ -2176,7 +2176,7 @@ fail:
 	qemu_free(sn->name);
 	qemu_free(l1_table);
 	return -1;
-	}
+}
 
 /* copy the snapshot 'snapshot_name' into the current disk image */
 static int qcow_snapshot_goto(BlockDriverState *bs,
@@ -2206,9 +2206,9 @@ static int qcow_snapshot_goto(BlockDriverState *bs,
 	if (bdrv_pwrite(s->hd, s->l1_table_offset,
 		s->l1_table, l1_size2) != l1_size2)
 		goto fail;
-	for(i = 0;i < s->l1_size; i++) {
+	for (i = 0; i < s->l1_size; i++) {
 		be64_to_cpus(&s->l1_table[i]);
-}
+	}
 
 	if (update_snapshot_refcount(bs, s->l1_table_offset, s->l1_size, 1) < 0)
 		goto fail;
@@ -2356,11 +2356,11 @@ static int64_t alloc_clusters_noref(BlockDriverState *bs, int64_t size)
 
 	nb_clusters = size_to_clusters(s, size);
 retry:
-	for(i = 0; i < nb_clusters; i++) {
+	for (i = 0; i < nb_clusters; i++) {
 		int64_t i = s->free_cluster_index++;
 		if (get_refcount(bs, i) != 0)
 			goto retry;
-}
+	}
 #ifdef DEBUG_ALLOC2
 	printf("alloc_clusters: size=%lld -> %lld\n",
 		size,
@@ -2443,13 +2443,14 @@ static int grow_refcount_table(BlockDriverState *bs, int min_size)
 	for (;;) {
 		if (refcount_table_clusters == 0) {
 			refcount_table_clusters = 1;
-		} else {
+		}
+		else {
 			refcount_table_clusters = (refcount_table_clusters * 3 + 1) / 2;
 		}
 		new_table_size = refcount_table_clusters << (s->cluster_bits - 3);
 		if (min_size <= new_table_size)
 			break;
-		}
+	}
 #ifdef DEBUG_ALLOC2
 	printf("grow_refcount_table from %d to %d\n",
 		s->refcount_table_size,
@@ -2488,7 +2489,7 @@ fail:
 	free_clusters(bs, table_offset, new_table_size2);
 	qemu_free(new_table);
 	return -EIO;
-	}
+}
 
 /* addend must be 1 or -1 */
 /* XXX: cache several refcount block clusters ? */
@@ -2571,7 +2572,7 @@ static void update_refcount(BlockDriverState *bs,
 		return;
 	start = offset & ~(s->cluster_size - 1);
 	last = (offset + length - 1) & ~(s->cluster_size - 1);
-	for(cluster_offset = start; cluster_offset <= last;
+	for (cluster_offset = start; cluster_offset <= last;
 		cluster_offset += s->cluster_size) {
 		update_cluster_refcount(bs, cluster_offset >> s->cluster_bits, addend);
 	}
@@ -2758,10 +2759,35 @@ static void dump_refcounts(BlockDriverState *bs)
 		while (k < nb_clusters && get_refcount(bs, k) == refcount)
 			k++;
 		printf("%lld: refcount=%d nb=%lld\n", k, refcount, k - k1);
-}
+	}
 }
 #endif
 #endif
+
+static int qcow_put_buffer(BlockDriverState *bs, const uint8_t *buf,
+	int64_t pos, int size)
+{
+	int growable = bs->growable;
+
+	bs->growable = 1;
+	bdrv_pwrite(bs, pos, buf, size);
+	bs->growable = growable;
+
+	return size;
+}
+
+static int qcow_get_buffer(BlockDriverState *bs, uint8_t *buf,
+	int64_t pos, int size)
+{
+	int growable = bs->growable;
+	int ret;
+
+	bs->growable = 1;
+	ret = bdrv_pread(bs, pos, buf, size);
+	bs->growable = growable;
+
+	return ret;
+}
 
 BlockDriver bdrv_qcow2 = {
 	.format_name = "qcow2",
@@ -2786,6 +2812,9 @@ BlockDriver bdrv_qcow2 = {
 	.bdrv_snapshot_delete = qcow_snapshot_delete,
 	.bdrv_snapshot_list = qcow_snapshot_list,
 	.bdrv_get_info = qcow_get_info,
+
+	.bdrv_put_buffer = qcow_put_buffer,
+	.bdrv_get_buffer = qcow_get_buffer,
 
 	.bdrv_create2 = qcow_create2,
 };

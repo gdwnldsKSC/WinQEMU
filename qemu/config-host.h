@@ -7,7 +7,7 @@
 #define CONFIG_STATIC 1
 #define CONFIG_SLIRP 1
 #define CONFIG_ADLIB 1
-#define QEMU_VERSION "0.10.0"
+#define QEMU_VERSION "0.10.2"
 #define CONFIG_UNAME_RELEASE ""
 
 #ifdef _MSC_VER
