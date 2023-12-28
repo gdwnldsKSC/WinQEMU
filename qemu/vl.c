@@ -4031,12 +4031,17 @@ static int main_loop(void)
 	return ret;
 }
 
+static void version(void)
+{
+	printf("QEMU PC emulator version " QEMU_VERSION QEMU_PKGVERSION ", Copyright (c) 2003-2008 Fabrice Bellard\n");
+}
+
 static void help(int exitcode)
 {
 	/* Please keep in synch with QEMU_OPTION_ enums, qemu_options[]
 	and qemu-doc.texi */
-	printf("QEMU PC emulator version " QEMU_VERSION ", Copyright (c) 2003-2008 Fabrice Bellard\n"
-		"usage: %s [options] [disk_image]\n"
+	version();
+	printf("usage: %s [options] [disk_image]\n"
 		"\n"
 		"'disk_image' is a raw hard image image for IDE hard disk 0\n"
 		"\n"
@@ -4260,6 +4265,7 @@ enum {
 	QEMU_OPTION_pflash,
 	QEMU_OPTION_boot,
 	QEMU_OPTION_snapshot,
+	QEMU_OPTION_version,
 	QEMU_OPTION_m,
 	QEMU_OPTION_k,
 	QEMU_OPTION_audio_help,
@@ -4368,6 +4374,7 @@ static const QEMUOption qemu_options[] = {
 	{ "pflash", HAS_ARG, QEMU_OPTION_pflash },
 	{ "boot", HAS_ARG, QEMU_OPTION_boot },
 	{ "snapshot", 0, QEMU_OPTION_snapshot },
+	{ "version", 0, QEMU_OPTION_version },
 	{ "m", HAS_ARG, QEMU_OPTION_m },
 	{ "k", HAS_ARG, QEMU_OPTION_k },
 #ifdef HAS_AUDIO
@@ -5084,6 +5091,10 @@ int __declspec(dllexport) qemu_main(int argc, char **argv, char **envp)
 #endif
 			case QEMU_OPTION_h:
 				help(0);
+				break;
+			case QEMU_OPTION_version:
+				version();
+				exit(0);
 				break;
 			case QEMU_OPTION_m: {
 				uint64_t value;
