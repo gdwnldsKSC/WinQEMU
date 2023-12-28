@@ -37,8 +37,9 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
- 
+
 #include "hw.h"
+#include "pc.h"
 #include "sh.h"
 #include "sysemu.h"
 #include "boards.h"
@@ -46,12 +47,12 @@
 #define BIOS_FILENAME "shix_bios.bin"
 #define BIOS_ADDRESS 0xA0000000
 
-void irq_info(void)
+void irq_info(Monitor *mon)
 {
     /* XXXXX */
 }
 
-void pic_info(void)
+void pic_info(Monitor *mon)
 {
     /* XXXXX */
 }
@@ -83,7 +84,7 @@ static void shix_init(ram_addr_t ram_size, int vga_ram_size,
     if (bios_name == NULL)
         bios_name = BIOS_FILENAME;
     printf("%s: load BIOS '%s'\n", __func__, bios_name);
-    ret = load_image(bios_name, phys_ram_base);
+    ret = load_image_targphys(bios_name, 0, 0x4000);
     if (ret < 0) {		/* Check bios size */
 	fprintf(stderr, "ret=%d\n", ret);
 	fprintf(stderr, "qemu: could not load SHIX bios '%s'\n",

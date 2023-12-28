@@ -452,6 +452,8 @@ static void icp_control_init(uint32_t base)
     cpu_register_physical_memory(base, 0x00800000, iomemtype);
     /* ??? Save/restore.  */
 }
+
+
 /* Board init.  */
 #ifndef _MSC_VER
 static struct arm_boot_info integrator_binfo = {
@@ -460,12 +462,15 @@ static struct arm_boot_info integrator_binfo = {
 };
 #else
 static struct arm_boot_info integrator_binfo = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	0,
 	NULL,
 	NULL,
-	NULL,
-	0x0,
 	0x113,
+	NULL,
 };
 #endif
 
@@ -475,7 +480,7 @@ static void integratorcp_init(ram_addr_t ram_size, int vga_ram_size,
                      const char *initrd_filename, const char *cpu_model)
 {
     CPUState *env;
-    uint32_t ram_offset;
+    ram_addr_t ram_offset;
     qemu_irq *pic;
     qemu_irq *cpu_pic;
     int sd;
@@ -537,5 +542,9 @@ QEMUMachine integratorcp_machine = {
 	"ARM Integrator/CP (ARM926EJ-S)",
 	integratorcp_init,
 	0x100000,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 };
 #endif
