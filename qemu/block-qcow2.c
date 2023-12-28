@@ -1444,13 +1444,13 @@ static QCowAIOCB *qcow_aio_setup(BlockDriverState *bs,
 	return acb;
 }
 
-static BlockDriverAIOCB *qcow_aio_read(BlockDriverState *bs,
-	int64_t sector_num, uint8_t *buf, int nb_sectors,
+static BlockDriverAIOCB *qcow_aio_readv(BlockDriverState *bs,
+	int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
 	BlockDriverCompletionFunc *cb, void *opaque)
 {
 	QCowAIOCB *acb;
 
-	acb = qcow_aio_setup(bs, sector_num, buf, nb_sectors, cb, opaque);
+	acb = qcow_aio_setup(bs, sector_num, qiov, nb_sectors, cb, opaque);
 	if (!acb)
 		return NULL;
 
@@ -1528,8 +1528,8 @@ static void qcow_aio_write_cb(void *opaque, int ret)
 		goto fail;
 }
 
-static BlockDriverAIOCB *qcow_aio_write(BlockDriverState *bs,
-	int64_t sector_num, const uint8_t *buf, int nb_sectors,
+static BlockDriverAIOCB *qcow_aio_writev(BlockDriverState *bs,
+	int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
 	BlockDriverCompletionFunc *cb, void *opaque)
 {
 	BDRVQcowState *s = bs->opaque;
@@ -1537,7 +1537,7 @@ static BlockDriverAIOCB *qcow_aio_write(BlockDriverState *bs,
 
 	s->cluster_cache_offset = -1; /* disable compressed cache */
 
-	acb = qcow_aio_setup(bs, sector_num, (uint8_t*)buf, nb_sectors, cb, opaque);
+	acb = qcow_aio_setup(bs, sector_num, qiov, nb_sectors, cb, opaque);
 	if (!acb)
 		return NULL;
 
@@ -2813,8 +2813,8 @@ BlockDriver bdrv_qcow2 = {
 	.bdrv_set_key = qcow_set_key,
 	.bdrv_make_empty = qcow_make_empty,
 
-	.bdrv_aio_read = qcow_aio_read,
-	.bdrv_aio_write = qcow_aio_write,
+	.bdrv_aio_readv = qcow_aio_readv,
+	.bdrv_aio_writev = qcow_aio_writev,
 	.bdrv_aio_cancel = qcow_aio_cancel,
 	.aiocb_size = sizeof(QCowAIOCB),
 	.bdrv_write_compressed = qcow_write_compressed,
