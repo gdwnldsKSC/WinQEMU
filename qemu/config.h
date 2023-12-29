@@ -2,8 +2,8 @@
 #include "config-host.h"
 
 #define CONFIG_QEMU_PREFIX "/usr/gnemul/qemu-i386"
-#define TARGET_ARCH "i386"
-#define TARGET_I386 1
+#define TARGET_ARCH "ALPHA"
+#define TARGET_ALPHA 1
 //#define TARGET_ARCH "alpha"
 //#define TARGET_ALPHA 1
 //#define USE_KQEMU 1 // TODO

@@ -23,6 +23,12 @@
 #include "softfloat.h"
 #include "helper.h"
 
+#if !defined(CONFIG_USER_ONLY)
+#include "softmmu_exec.h"
+#endif /* !defined(CONFIG_USER_ONLY) */
+
+extern uint64_t cpu_get_ticks(void);
+
 void helper_tb_flush (void)
 {
     tb_flush(env);
@@ -37,30 +43,24 @@ void helper_excp (int excp, int error)
     cpu_loop_exit();
 }
 
-uint64_t helper_amask (uint64_t arg)
-{
-    switch (env->implver) {
-    case IMPLVER_2106x:
-        /* EV4, EV45, LCA, LCA45 & EV5 */
-        break;
-    case IMPLVER_21164:
-    case IMPLVER_21264:
-    case IMPLVER_21364:
-        arg &= ~env->amask;
-        break;
-    }
-    return arg;
-}
-
 uint64_t helper_load_pcc (void)
 {
-    /* XXX: TODO */
+#ifdef CONFIG_USER_ONLY
+    /* FIXME */
     return 0;
-}
+#else
+    uint32_t res;
 
-uint64_t helper_load_implver (void)
-{
-    return env->implver;
+    switch (env->pal_emul) {
+    case PAL_21264:
+        res = env->a21264.cc_counter;
+        if (env->a21264.cc_ena)
+            res += (cpu_get_ticks() - env->a21264.cc_load_ticks) >> 3;
+        return res | env->a21264.cc_offset;
+    default:
+        cpu_abort(env,"load_ppc: bad pal emul\n");
+    }
+#endif
 }
 
 uint64_t helper_load_fpcr (void)
@@ -141,7 +141,7 @@ uint64_t helper_addqv (uint64_t op1, uint64_t op2)
     uint64_t tmp = op1;
     op1 += op2;
     if (unlikely((tmp ^ op2 ^ (-1ULL)) & (tmp ^ op1) & (1ULL << 63))) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
     return op1;
 }
@@ -151,29 +151,29 @@ uint64_t helper_addlv (uint64_t op1, uint64_t op2)
     uint64_t tmp = op1;
     op1 = (uint32_t)(op1 + op2);
     if (unlikely((tmp ^ op2 ^ (-1UL)) & (tmp ^ op1) & (1UL << 31))) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
     return op1;
 }
 
 uint64_t helper_subqv (uint64_t op1, uint64_t op2)
 {
-    uint64_t tmp = op1;
-    op1 -= op2;
-    if (unlikely(((~tmp) ^ op1 ^ (-1ULL)) & ((~tmp) ^ op2) & (1ULL << 63))) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+    uint64_t res;
+    res = op1 - op2;
+    if (unlikely((op1 ^ op2) & (res ^ op1) & (1ULL << 63))) {
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
-    return op1;
+    return res;
 }
 
 uint64_t helper_sublv (uint64_t op1, uint64_t op2)
 {
-    uint64_t tmp = op1;
-    op1 = (uint32_t)(op1 - op2);
-    if (unlikely(((~tmp) ^ op1 ^ (-1UL)) & ((~tmp) ^ op2) & (1UL << 31))) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+    uint32_t res;
+    res = op1 - op2;
+    if (unlikely((op1 ^ op2) & (res ^ op1) & (1UL << 31))) {
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
-    return op1;
+    return res;
 }
 
 uint64_t helper_mullv (uint64_t op1, uint64_t op2)
@@ -181,7 +181,7 @@ uint64_t helper_mullv (uint64_t op1, uint64_t op2)
     int64_t res = (int64_t)op1 * (int64_t)op2;
 
     if (unlikely((int32_t)res != res)) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
     return (int64_t)((int32_t)res);
 }
@@ -193,7 +193,7 @@ uint64_t helper_mulqv (uint64_t op1, uint64_t op2)
     muls64(&tl, &th, op1, op2);
     /* If th != 0 && th != -1, then we had an overflow */
     if (unlikely((th + 1) > 1)) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
     return tl;
 }
@@ -386,7 +386,7 @@ static always_inline float32 f_to_float32 (uint64_t a)
 
     if (unlikely(!exp && mant_sig)) {
         /* Reserved operands / Dirty zero */
-        helper_excp(EXCP_OPCDEC, 0);
+        helper_excp(EXCP_GEN_OPCDEC, 0);
     }
 
     if (exp < 3) {
@@ -513,7 +513,7 @@ static always_inline float64 g_to_float64 (uint64_t a)
 
     if (!exp && mant_sig) {
         /* Reserved operands / Dirty zero */
-        helper_excp(EXCP_OPCDEC, 0);
+        helper_excp(EXCP_GEN_OPCDEC, 0);
     }
 
     if (exp < 3) {
@@ -968,7 +968,7 @@ static always_inline uint64_t __helper_cvtql (uint64_t a, int s, int v)
     r |= ((uint64_t)(a & 0x7FFFFFFF)) << 29;
 
     if (v && (int64_t)((int32_t)r) != (int64_t)r) {
-        helper_excp(EXCP_ARITH, EXCP_ARITH_OVERFLOW);
+        helper_excp(EXCP_GEN_ARITH, EXCP_ARITH_OVERFLOW);
     }
     if (s) {
         /* TODO */
@@ -995,156 +995,225 @@ uint64_t helper_cvtqlsv (uint64_t a)
 #if !defined (CONFIG_USER_ONLY)
 void helper_hw_rei (void)
 {
-    env->pc = env->ipr[IPR_EXC_ADDR] & ~3;
-    env->ipr[IPR_EXC_ADDR] = env->ipr[IPR_EXC_ADDR] & 1;
+#if 0
+    /* FIXME: For 21064/21164 only ?  */
+    env->pc = env->any.ipr[IPR_EXC_ADDR] & ~3;
+    env->any.ipr[IPR_EXC_ADDR] = env->any.ipr[IPR_EXC_ADDR] & 1;
     /* XXX: re-enable interrupts and memory mapping */
+#else
+    cpu_abort(env, "hw_rei not implemented\n");
+#endif
 }
 
 void helper_hw_ret (uint64_t a)
 {
-    env->pc = a & ~3;
-    env->ipr[IPR_EXC_ADDR] = a & 1;
-    /* XXX: re-enable interrupts and memory mapping */
+    switch (env->pal_emul) {
+    case PAL_21264:
+        if (!(a & 1) && env->a21264.isum) {
+#if 0
+            qemu_log("pal mode ret interrupt ier=%016llx, isum=%016llx ir=%x\n",
+                     env->a21264.ier, env->a21264.isum,
+                     env->interrupt_request);
+#endif
+            /* Very fast interrupt delivery!  */
+            env->exc_addr = a;
+            env->pc = env->pal_base + EXCP_21264_INTERRUPT;
+            env->interrupt_request &= ~CPU_INTERRUPT_HARD;
+            break;
+        }
+        env->pc = a & ~3;
+        if (env->pal_mode != (a & 1)) {
+            env->pal_mode = a & 1;
+            if (!env->pal_mode)
+                env->mmu_code_index = env->mmu_data_index;
+            else
+                env->mmu_code_index = MMU_PAL_IDX;
+            if (env->a21264.sde1 && !(a & 1))
+                swap_shadow_21264(env);
+        }
+        break;
+    case PAL_NONE:
+        cpu_abort(env, "hw_ret: not supported by pal emulation\n");
+    }
 }
 
 uint64_t helper_mfpr (int iprn, uint64_t val)
 {
-    uint64_t tmp;
-
-    if (cpu_alpha_mfpr(env, iprn, &tmp) == 0)
-        val = tmp;
-
+    switch (env->pal_emul) {
+    case PAL_21264:
+      return cpu_alpha_mfpr_21264(env, iprn);
+      break;
+    case PAL_NONE:
+        cpu_abort(env, "hw_mfpr: not supported by pal emulation\n");
+    }
     return val;
 }
 
 void helper_mtpr (int iprn, uint64_t val)
 {
-    cpu_alpha_mtpr(env, iprn, val, NULL);
+    switch (env->pal_emul) {
+    case PAL_21264:
+      cpu_alpha_mtpr_21264(env, iprn, val);
+      return;
+    case PAL_NONE:
+        cpu_abort(env, "hw_mtpr: not supported by pal emulation\n");
+    }
 }
-
-void helper_set_alt_mode (void)
-{
-    env->saved_mode = env->ps & 0xC;
-    env->ps = (env->ps & ~0xC) | (env->ipr[IPR_ALT_MODE] & 0xC);
-}
-
-void helper_restore_mode (void)
-{
-    env->ps = (env->ps & ~0xC) | env->saved_mode;
-}
-
 #endif
 
 /*****************************************************************************/
 /* Softmmu support */
 #if !defined (CONFIG_USER_ONLY)
 
-/* XXX: the two following helpers are pure hacks.
- *      Hopefully, we emulate the PALcode, then we should never see
- *      HW_LD / HW_ST instructions.
- */
-uint64_t helper_ld_virt_to_phys (uint64_t virtaddr)
-{
-    uint64_t tlb_addr, physaddr;
-    int index, mmu_idx;
-    void *retaddr;
+struct hw_virt2phys_param {
+    unsigned char op;
+    unsigned char en_sh; /* KRE/KWE bit pos */
+    unsigned char fo_sh; /* FOR/FOW bit pos */
+};
 
-    mmu_idx = cpu_mmu_index(env);
-    index = (virtaddr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
- redo:
-    tlb_addr = env->tlb_table[mmu_idx][index].addr_read;
-    if ((virtaddr & TARGET_PAGE_MASK) ==
-        (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {
-        physaddr = virtaddr + env->tlb_table[mmu_idx][index].addend;
-    } else {
-        /* the page is not in the TLB : fill it */
-        retaddr = GETPC();
-        tlb_fill(virtaddr, 0, mmu_idx, retaddr);
-        goto redo;
+static uint64_t hw_virt2phys (uint64_t virtaddr, uint32_t v2p_flags,
+                              struct hw_virt2phys_param p)
+{
+    int mmu_idx;
+    struct alpha_pte pte;
+
+    mmu_idx = v2p_flags & ALPHA_HW_MMUIDX_MASK;
+    pte = cpu_alpha_mmu_v2p_21264(env, virtaddr, 0);
+    if (!(pte.fl & ALPHA_PTE_V)) {
+        if (v2p_flags & ALPHA_HW_V) {
+            /* Virtual pte access.  */
+            env->exception_index = env->a21264.iva_48 ?
+                EXCP_21264_DTBM_DOUBLE_4 : EXCP_21264_DTBM_DOUBLE_3;
+        } else {
+            env->exception_index = EXCP_21264_DTBM_SINGLE;
+            env->a21264.mm_stat = (p.op << 4)
+                | (pte.asn == PTE_ASN_BAD_VA ? 2 : 0);
+            env->a21264.va = virtaddr;
+        }
+        cpu_alpha_mmu_dfault_21264(env, virtaddr);
+        cpu_loop_exit();
     }
-    return physaddr;
-}
-
-uint64_t helper_st_virt_to_phys (uint64_t virtaddr)
-{
-    uint64_t tlb_addr, physaddr;
-    int index, mmu_idx;
-    void *retaddr;
-
-    mmu_idx = cpu_mmu_index(env);
-    index = (virtaddr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
- redo:
-    tlb_addr = env->tlb_table[mmu_idx][index].addr_write;
-    if ((virtaddr & TARGET_PAGE_MASK) ==
-        (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {
-        physaddr = virtaddr + env->tlb_table[mmu_idx][index].addend;
-    } else {
-        /* the page is not in the TLB : fill it */
-        retaddr = GETPC();
-        tlb_fill(virtaddr, 1, mmu_idx, retaddr);
-        goto redo;
+    if ((v2p_flags & ALPHA_HW_W)
+        && (!((pte.fl >> (mmu_idx + p.en_sh)) & 1)
+            || ((pte.fl >> p.fo_sh) & 1))) {
+        env->exception_index = EXCP_21264_DFAULT;
+        env->a21264.mm_stat = (p.op << 4)
+            | ((pte.fl >> (mmu_idx + p.en_sh)) & 1 ? 0 : 2)
+            | ((pte.fl >> p.fo_sh) & 1 ? 4 : 0);
+        env->a21264.va = virtaddr;
+        cpu_alpha_mmu_dfault_21264(env, virtaddr);
+        cpu_loop_exit();
     }
-    return physaddr;
+    return (((uint64_t)pte.pa) << 13) | (virtaddr & ~TARGET_PAGE_MASK);
 }
 
-void helper_ldl_raw(uint64_t t0, uint64_t t1)
+static const struct hw_virt2phys_param hw_ld_param = { 0x03, 8, 1 };
+
+#define HELPER_21264_hw_ldX(S)                                          \
+uint64_t helper_21264_hw_ld##S (uint64_t va, uint32_t v2p_flags)        \
+{                                                                       \
+    uint64_t tlb_addr, pa;                                              \
+    int index, mmu_idx;                                                 \
+                                                                        \
+    if (v2p_flags & ALPHA_HW_A)                                         \
+        mmu_idx = env->a21264.altmode;                                  \
+    else                                                                \
+        mmu_idx = v2p_flags & ALPHA_HW_MMUIDX_MASK;                     \
+    index = (va >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);              \
+    tlb_addr = env->tlb_table[mmu_idx][index].addr_read;                \
+    if ((va & TARGET_PAGE_MASK) ==                                      \
+        (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {           \
+        pa = va + env->tlb_table[mmu_idx][index].addend;                \
+        return ld##S##_raw((uint8_t *)pa);                              \
+    } else {                                                            \
+        pa = hw_virt2phys(va, v2p_flags | mmu_idx, hw_ld_param);        \
+        return ld##S##_phys(pa);                                        \
+    }                                                                   \
+}
+
+HELPER_21264_hw_ldX(q)
+HELPER_21264_hw_ldX(l)
+
+static const struct hw_virt2phys_param hw_st_param = { 0x07, 12, 2 };
+
+#define HELPER_21264_hw_stX(S)                                          \
+void helper_21264_hw_st##S(uint64_t va, uint64_t val,                   \
+                           uint32_t v2p_flags)                          \
+{                                                                       \
+    uint64_t tlb_addr, pa;                                              \
+    int index, mmu_idx;                                                 \
+                                                                        \
+    if (v2p_flags & ALPHA_HW_A)                                         \
+        mmu_idx = env->a21264.altmode;                                  \
+    else                                                                \
+        mmu_idx = v2p_flags & ALPHA_HW_MMUIDX_MASK;                     \
+    index = (va >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);              \
+    tlb_addr = env->tlb_table[mmu_idx][index].addr_write;               \
+    if ((va & TARGET_PAGE_MASK) ==                                      \
+        (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {           \
+        pa = va + env->tlb_table[mmu_idx][index].addend;                \
+        st##S##_raw((uint8_t *)pa, val);                                \
+    } else {                                                            \
+        pa = hw_virt2phys(va, v2p_flags | mmu_idx, hw_st_param);        \
+        st##S##_phys(pa, val);                                          \
+    }                                                                   \
+}
+
+HELPER_21264_hw_stX(q)
+HELPER_21264_hw_stX(l)
+
+uint64_t helper_ldl_phys(uint64_t addr)
 {
-    ldl_raw(t1, t0);
+    return ldl_phys(addr);
 }
 
-void helper_ldq_raw(uint64_t t0, uint64_t t1)
+uint64_t helper_ldq_phys(uint64_t addr)
 {
-    ldq_raw(t1, t0);
+    return ldq_phys(addr);
 }
 
-void helper_ldl_l_raw(uint64_t t0, uint64_t t1)
+uint64_t helper_ldl_l_phys(uint64_t addr)
 {
-    env->lock = t1;
-    ldl_raw(t1, t0);
+    env->lock = addr;
+    return ldl_phys(addr);
 }
 
-void helper_ldq_l_raw(uint64_t t0, uint64_t t1)
+uint64_t helper_ldq_l_phys(uint64_t addr)
 {
-    env->lock = t1;
-    ldl_raw(t1, t0);
+    env->lock = addr;
+    return ldl_raw(addr);
 }
 
-void helper_ldl_kernel(uint64_t t0, uint64_t t1)
+uint64_t helper_ldl_data(uint64_t addr)
 {
-    ldl_kernel(t1, t0);
+    /* FIXME: ldl_data won't work in case of fault  */
+    cpu_abort(env, "ldl_data not implemented\n");
+    return ldl_data(addr);
 }
 
-void helper_ldq_kernel(uint64_t t0, uint64_t t1)
+uint64_t helper_ldq_data(uint64_t addr)
 {
-    ldq_kernel(t1, t0);
+    /* FIXME: ldq_data won't work in case of fault  */
+    cpu_abort(env, "ldq_data not implemented\n");
+    return ldq_data(addr);
 }
 
-void helper_ldl_data(uint64_t t0, uint64_t t1)
+void helper_stl_phys(uint64_t val, uint64_t addr)
 {
-    ldl_data(t1, t0);
+    stl_phys(addr, val);
 }
 
-void helper_ldq_data(uint64_t t0, uint64_t t1)
+void helper_stq_phys(uint64_t val, uint64_t addr)
 {
-    ldq_data(t1, t0);
+    stq_phys(addr, val);
 }
 
-void helper_stl_raw(uint64_t t0, uint64_t t1)
-{
-    stl_raw(t1, t0);
-}
-
-void helper_stq_raw(uint64_t t0, uint64_t t1)
-{
-    stq_raw(t1, t0);
-}
-
-uint64_t helper_stl_c_raw(uint64_t t0, uint64_t t1)
+uint64_t helper_stl_c_phys(uint64_t val, uint64_t addr)
 {
     uint64_t ret;
 
-    if (t1 == env->lock) {
-        stl_raw(t1, t0);
+    if (addr == env->lock) {
+        stl_phys(addr, val);
         ret = 0;
     } else
         ret = 1;
@@ -1154,12 +1223,12 @@ uint64_t helper_stl_c_raw(uint64_t t0, uint64_t t1)
     return ret;
 }
 
-uint64_t helper_stq_c_raw(uint64_t t0, uint64_t t1)
+uint64_t helper_stq_c_phys(uint64_t val, uint64_t addr)
 {
     uint64_t ret;
 
-    if (t1 == env->lock) {
-        stq_raw(t1, t0);
+    if (addr == env->lock) {
+        stq_phys(addr, val);
         ret = 0;
     } else
         ret = 1;
@@ -1187,31 +1256,29 @@ uint64_t helper_stq_c_raw(uint64_t t0, uint64_t t1)
    NULL, it means that the function was called in C code (i.e. not
    from generated code or from helper.c) */
 /* XXX: fix it to restore all registers */
-void tlb_fill (target_ulong addr, int is_write, int mmu_idx, void *retaddr)
+void tlb_fill (target_ulong addr, int rwx, int mmu_idx, void *retaddr)
 {
-    TranslationBlock *tb;
     CPUState *saved_env;
-    unsigned long pc;
     int ret;
 
     /* XXX: hack to restore env in all cases, even if not called from
        generated code */
     saved_env = env;
     env = cpu_single_env;
-    ret = cpu_alpha_handle_mmu_fault(env, addr, is_write, mmu_idx, 1);
-    if (!likely(ret == 0)) {
-        if (likely(retaddr)) {
-            /* now we have a real cpu fault */
-            pc = (unsigned long)retaddr;
-            tb = tb_find_pc(pc);
-            if (likely(tb)) {
-                /* the PC is inside the translated code. It means that we have
-                   a virtual CPU fault */
-                cpu_restore_state(tb, env, pc, NULL);
-            }
+
+    if (rwx == 2 && mmu_idx == MMU_PAL_IDX)
+        cpu_alpha_mmu_fault_pal(env, addr);
+    else {
+        switch (env->pal_emul) {
+        case PAL_21264:
+            ret = cpu_alpha_mmu_fault_21264(env, addr, rwx, mmu_idx, retaddr);
+            if (!likely(ret == 0))
+                /* Exception index and error code are already set */
+                cpu_loop_exit();
+            break;
+        case PAL_NONE:
+            cpu_abort(env, "tlb_fill: not supported by pal emulation\n");
         }
-        /* Exception index and error code are already set */
-        cpu_loop_exit();
     }
     env = saved_env;
 }

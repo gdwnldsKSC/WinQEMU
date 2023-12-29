@@ -52,3 +52,9 @@ uint8_t ecc_digest(struct ecc_state_s *s, uint8_t sample);
 void ecc_reset(struct ecc_state_s *s);
 void ecc_put(QEMUFile *f, struct ecc_state_s *s);
 void ecc_get(QEMUFile *f, struct ecc_state_s *s);
+
+/* am29f016.c */
+typedef struct Am29f016State Am29f016State;
+Am29f016State *am29f016_init(BlockDriverState *bs);
+uint8_t am29f016_readb(Am29f016State *s, uint32_t addr);
+void am29f016_writeb(Am29f016State *s, uint32_t addr, uint8_t val);

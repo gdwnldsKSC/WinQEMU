@@ -70,6 +70,10 @@
 #define PCI_VENDOR_ID_CMD                0x1095
 #define PCI_DEVICE_ID_CMD_646            0x0646
 
+#define PCI_VENDOR_ID_AL				 0x10b9
+#define PCI_DEVICE_ID_AL_M1533			 0x1533
+#define PCI_DEVICE_ID_AL_M5229			 0x5229
+
 #define PCI_VENDOR_ID_REALTEK            0x10ec
 #define PCI_DEVICE_ID_REALTEK_8139       0x8139
 

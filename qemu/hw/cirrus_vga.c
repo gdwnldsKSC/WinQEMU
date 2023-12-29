@@ -3349,9 +3349,9 @@ static void cirrus_pci_lfb_map(PCIDevice *d, int region_num,
     vga_dirty_log_stop((VGAState *)s);
 
     /* XXX: add byte swapping apertures */
-    cpu_register_physical_memory(addr, s->vram_size,
+    cpu_register_physical_memory(pci_mem_base + addr, s->vram_size,
 				 s->cirrus_linear_io_addr);
-    cpu_register_physical_memory(addr + 0x1000000, 0x400000,
+    cpu_register_physical_memory(pci_mem_base + addr + 0x1000000, 0x400000,
 				 s->cirrus_linear_bitblt_io_addr);
 
     s->map_addr = s->map_end = 0;
@@ -3369,7 +3369,7 @@ static void cirrus_pci_mmio_map(PCIDevice *d, int region_num,
 {
     CirrusVGAState *s = &((PCICirrusVGAState *)d)->cirrus_vga;
 
-    cpu_register_physical_memory(addr, CIRRUS_PNPMMIO_SIZE,
+    cpu_register_physical_memory(pci_mem_base + addr, CIRRUS_PNPMMIO_SIZE,
 				 s->cirrus_mmio_io_addr);
 }
 

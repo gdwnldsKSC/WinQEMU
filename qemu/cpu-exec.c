@@ -644,8 +644,8 @@ int cpu_exec(CPUState *env1)
 					env = cpu_single_env;
 #define env cpu_single_env
 #endif
-
-#ifdef _MSC_VER
+					/*
+//#ifdef _MSC_VER
 					pGenCodeBuffer = &(code_gen_prologue[0]);
 
 					if ((env->eip == 0x9016ee30) || (env->eip == 0x9117a000))
@@ -663,9 +663,9 @@ int cpu_exec(CPUState *env1)
 						mov ebp, nEbpBackup;
 						mov next_tb, eax;
 					}
-#else
+//#else */
 					next_tb = tcg_qemu_tb_exec(tc_ptr);
-#endif
+//#endif
 					env->current_tb = NULL;
 					if ((next_tb & 3) == 2) {
 						/* Instruction counter expired.  */

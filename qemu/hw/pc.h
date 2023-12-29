@@ -169,6 +169,8 @@ void pci_piix3_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
                         qemu_irq *pic);
 void pci_piix4_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
                         qemu_irq *pic);
+void pci_m5229_ide_init(PCIBus *bus, BlockDriverState **hd_table,
+						int devfn, qemu_irq *irq);
 
 /* ne2000.c */
 

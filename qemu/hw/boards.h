@@ -128,4 +128,8 @@ extern QEMUMachine musicpal_machine;
 /* tosa.c */
 extern QEMUMachine tosapda_machine;
 
+/* es40.c */
+extern QEMUMachine es40_machine;
+extern QEMUMachine es40_rombuild_machine;
+
 #endif

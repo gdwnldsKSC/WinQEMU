@@ -1110,6 +1110,21 @@
     <ClCompile Include="qemu\hw\framebuffer.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\es40.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ali1543.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\21272.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-alpha\machine.c">
+      <Filter>qemu\target-alpha</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\am29f016.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1665,6 +1680,9 @@
       <Filter>qemu\target-alpha</Filter>
     </ClInclude>
     <ClInclude Include="qemu\acl.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\pci_ids.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>

@@ -193,7 +193,7 @@ void target_disas(FILE *out, target_ulong code, target_ulong size, int flags)
     disasm_info.mach = bfd_mach_sh4;
     print_insn = print_insn_sh;
 #elif defined(TARGET_ALPHA)
-    disasm_info.mach = bfd_mach_alpha;
+    disasm_info.mach = bfd_mach_alpha_ev6;
     print_insn = print_insn_alpha;
 #elif defined(TARGET_CRIS)
     disasm_info.mach = bfd_mach_cris_v32;
@@ -253,6 +253,7 @@ void disas(FILE *out, void *code, unsigned long size)
 #elif defined(_ARCH_PPC)
     print_insn = print_insn_ppc;
 #elif defined(__alpha__)
+	disasm_info.mach = bfd_mach_alpha_ev6;
     print_insn = print_insn_alpha;
 #elif defined(__sparc__)
     print_insn = print_insn_sparc;
@@ -365,6 +366,7 @@ void monitor_disas(Monitor *mon, CPUState *env,
 #elif defined(TARGET_ARM)
     print_insn = print_insn_arm;
 #elif defined(TARGET_ALPHA)
+	disasm_info.mach = bfd_mach_alpha_ev6;
     print_insn = print_insn_alpha;
 #elif defined(TARGET_SPARC)
     print_insn = print_insn_sparc;

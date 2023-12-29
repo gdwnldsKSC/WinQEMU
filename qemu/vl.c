@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 #include "libslirp.h"
 #endif
 
-//#define DEBUG_UNUSED_IOPORT
+#define DEBUG_UNUSED_IOPORT
 //#define DEBUG_IOPORT
 //#define DEBUG_NET
 //#define DEBUG_SLIRP
@@ -1646,9 +1646,11 @@ static int unix_start_timer(struct qemu_alarm_timer *t)
 	itv.it_value.tv_sec = 0;
 	itv.it_value.tv_usec = 10 * 1000;
 
+#if 1  /* TG */
 	err = setitimer(ITIMER_REAL, &itv, NULL);
 	if (err)
 		return -1;
+#endif
 
 	return 0;
 }

@@ -484,6 +484,7 @@ static inline int media_is_cd(IDEState *s)
 #define IDE_TYPE_PIIX3   0
 #define IDE_TYPE_CMD646  1
 #define IDE_TYPE_PIIX4   2
+#define IDE_TYPE_M5229   3
 
 /* CMD646 specific */
 #define MRDMODE		0x71
@@ -3498,6 +3499,69 @@ void pci_piix4_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
 
 	register_savevm("ide", 0, 2, pci_ide_save, pci_ide_load, d);
 }
+
+/* Ali M1453/M5229 PCI IDE controller */
+void pci_m5229_ide_init(PCIBus *bus, BlockDriverState **hd_table,
+	int devfn, qemu_irq *irq)
+{
+	PCIIDEState *d;
+	uint8_t *pci_conf;
+	int i;
+
+
+	d = (PCIIDEState *)pci_register_device(bus, "M5229 IDE",
+		sizeof(PCIIDEState),
+		devfn, NULL, NULL);
+	d->type = IDE_TYPE_M5229;
+	pci_conf = d->dev.config;
+	pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_AL);
+	pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_AL_M5229);
+
+	pci_conf[0x08] = 0xc1; // IDE controller revision
+	pci_conf[0x09] = 0xfa;
+
+	pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_IDE);
+	pci_conf[0x0e] = 0x00; // header_type
+	pci_conf[0x2c] = 0; // Subsystem
+	pci_conf[0x2d] = 0;
+	pci_conf[0x2e] = 0;
+	pci_conf[0x2f] = 0;
+
+	pci_register_io_region((PCIDevice *)d, 0, 0x8,
+		PCI_ADDRESS_SPACE_IO, ide_map);
+	pci_register_io_region((PCIDevice *)d, 1, 0x4,
+		PCI_ADDRESS_SPACE_IO, ide_map);
+	pci_register_io_region((PCIDevice *)d, 2, 0x8,
+		PCI_ADDRESS_SPACE_IO, ide_map);
+	pci_register_io_region((PCIDevice *)d, 3, 0x4,
+		PCI_ADDRESS_SPACE_IO, ide_map);
+	pci_register_io_region((PCIDevice *)d, 4, 0x10,
+		PCI_ADDRESS_SPACE_IO, bmdma_map);
+
+	pci_conf[0x3d] = 0x01; // interrupt on pin 1
+
+#if 0
+	pci_conf[0x04] = 0x01; // Enable IO decoding.
+	pci_default_write_config((PCIDevice *)d, 0x10, 0x1f1, 4);
+	pci_default_write_config((PCIDevice *)d, 0x14, 0x3f5, 4);
+	pci_default_write_config((PCIDevice *)d, 0x18, 0x171, 4);
+	pci_default_write_config((PCIDevice *)d, 0x1c, 0x375, 4);
+	pci_default_write_config((PCIDevice *)d, 0x20, 0xf001, 4);
+#endif
+
+	for (i = 0; i < 4; i++)
+		d->ide_if[i].pci_dev = (PCIDevice *)d;
+
+	ide_init2(&d->ide_if[0], hd_table[0], hd_table[1], irq[14]);
+	ide_init2(&d->ide_if[2], hd_table[2], hd_table[3], irq[15]);
+
+	/* Seems to be required.  Why ?  */
+	ide_init_ioport(&d->ide_if[0], 0x1f0, 0x3f6);
+	ide_init_ioport(&d->ide_if[2], 0x170, 0x376);
+
+	register_savevm("ide", 0, 2, pci_ide_save, pci_ide_load, d);
+}
+
 
 #if defined(TARGET_PPC)
 /***********************************************************/

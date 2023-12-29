@@ -22,11 +22,39 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "qemu.h"
 #include "cpu.h"
 #include "exec-all.h"
 
-#if !defined (CONFIG_USER_ONLY)
+typedef struct pal_handler_t pal_handler_t;
+struct pal_handler_t {
+    /* Reset */
+    void (*reset)(CPUAlphaState *env);
+    /* Uncorrectable hardware error */
+    void (*machine_check)(CPUAlphaState *env);
+    /* Arithmetic exception */
+    void (*arithmetic)(CPUAlphaState *env);
+    /* Interrupt / correctable hardware error */
+    void (*interrupt)(CPUAlphaState *env);
+    /* Data fault */
+    void (*dfault)(CPUAlphaState *env);
+    /* DTB miss pal */
+    void (*dtb_miss_pal)(CPUAlphaState *env);
+    /* DTB miss native */
+    void (*dtb_miss_native)(CPUAlphaState *env);
+    /* Unaligned access */
+    void (*unalign)(CPUAlphaState *env);
+    /* ITB miss */
+    void (*itb_miss)(CPUAlphaState *env);
+    /* Instruction stream access violation */
+    void (*itb_acv)(CPUAlphaState *env);
+    /* Reserved or privileged opcode */
+    void (*opcdec)(CPUAlphaState *env);
+    /* Floating point exception */
+    void (*fen)(CPUAlphaState *env);
+    /* Call pal instruction */
+    void (*call_pal)(CPUAlphaState *env, uint32_t palcode);
+};
+
 /* Shared handlers */
 static void pal_reset (CPUState *env);
 /* Console handlers */
@@ -86,10 +114,16 @@ static void do_swappal (CPUState *env, uint64_t palid)
 
     status = 0;
     switch (palid) {
+#ifndef _MSC_VER
     case 0 ... 2:
+#else
+	case 0:
+	case 1:
+	case 2:
+#endif
         pal_handler = &pal_handlers[palid];
         env->pal_handler = pal_handler;
-        env->ipr[IPR_PAL_BASE] = -1ULL;
+        env->pal_base = -1ULL;
         (*pal_handler->reset)(env);
         break;
     case 3 ... 255:
@@ -99,8 +133,8 @@ static void do_swappal (CPUState *env, uint64_t palid)
     default:
         /* We were given the entry point address */
         env->pal_handler = NULL;
-        env->ipr[IPR_PAL_BASE] = palid;
-        env->pc = env->ipr[IPR_PAL_BASE];
+        env->pal_base = palid;
+        env->pc = env->pal_base;
         cpu_loop_exit();
     }
 }
@@ -1049,48 +1083,5 @@ int cpu_ppc_handle_mmu_fault (CPUState *env, uint32_t address, int rw,
     }
 
     return ret;
-}
-#endif
-
-#else /* !defined (CONFIG_USER_ONLY) */
-void pal_init (CPUState *env)
-{
-}
-
-void call_pal (CPUState *env, int palcode)
-{
-    target_long ret;
-
-    qemu_log("%s: palcode %02x\n", __func__, palcode);
-    switch (palcode) {
-    case 0x83:
-        /* CALLSYS */
-        qemu_log("CALLSYS n " TARGET_FMT_ld "\n", env->ir[0]);
-        ret = do_syscall(env, env->ir[IR_V0], env->ir[IR_A0], env->ir[IR_A1],
-                         env->ir[IR_A2], env->ir[IR_A3], env->ir[IR_A4],
-                         env->ir[IR_A5]);
-        if (ret >= 0) {
-            env->ir[IR_A3] = 0;
-            env->ir[IR_V0] = ret;
-        } else {
-            env->ir[IR_A3] = 1;
-            env->ir[IR_V0] = -ret;
-        }
-        break;
-    case 0x9E:
-        /* RDUNIQUE */
-        env->ir[IR_V0] = env->unique;
-        qemu_log("RDUNIQUE: " TARGET_FMT_lx "\n", env->unique);
-        break;
-    case 0x9F:
-        /* WRUNIQUE */
-        env->unique = env->ir[IR_A0];
-        qemu_log("WRUNIQUE: " TARGET_FMT_lx "\n", env->unique);
-        break;
-    default:
-        qemu_log("%s: unhandled palcode %02x\n",
-                    __func__, palcode);
-        exit(1);
-    }
 }
 #endif

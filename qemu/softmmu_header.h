@@ -57,12 +57,12 @@
 
 #elif ACCESS_TYPE == (NB_MMU_MODES)
 
-#define CPU_MMU_INDEX (cpu_mmu_index(env))
+#define CPU_MMU_INDEX (cpu_mmu_index_data(env))
 #define MMUSUFFIX _mmu
 
 #elif ACCESS_TYPE == (NB_MMU_MODES + 1)
 
-#define CPU_MMU_INDEX (cpu_mmu_index(env))
+#define CPU_MMU_INDEX (cpu_mmu_index_code(env))
 #define MMUSUFFIX _cmmu
 
 #else

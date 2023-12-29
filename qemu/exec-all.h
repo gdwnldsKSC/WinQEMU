@@ -318,7 +318,7 @@ static inline target_ulong get_phys_addr_code(CPUState *env1, target_ulong addr)
     int mmu_idx, page_index, pd;
 
     page_index = (addr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
-    mmu_idx = cpu_mmu_index(env1);
+    mmu_idx = cpu_mmu_index_code(env1);
     if (unlikely(env1->tlb_table[mmu_idx][page_index].addr_code !=
                  (addr & TARGET_PAGE_MASK))) {
         ldub_code(addr);

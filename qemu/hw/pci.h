@@ -257,8 +257,23 @@ PCIBus *pci_apb_init(target_phys_addr_t special_base,
                      target_phys_addr_t mem_base,
                      qemu_irq *pic, PCIBus **bus2, PCIBus **bus3);
 
+/* 21272.c */
+typedef struct TyphoonState TyphoonState;
+TyphoonState *typhoon_21272_init(uint64_t *arr, qemu_irq **irqs,
+								 qemu_irq *intim_irq, void *cpu0);
+void typhoon_set_iack_handler(TyphoonState *c, int num,
+							  int(*handler)(void *), void *param);
+PCIBus *typhoon_get_pci_bus(TyphoonState *c, int num);
+
+/* ali1543.c */
+typedef struct ALI1543State ALI1543State;
+ALI1543State *ali1543_init(PCIBus *bus, int devfn, qemu_irq irq);
+qemu_irq ali1543_get_irq(ALI1543State *c, int n);
+
 /* sh_pci.c */
 PCIBus *sh_pci_register_bus(pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
                             qemu_irq *pic, int devfn_min, int nirq);
+
+
 
 #endif
