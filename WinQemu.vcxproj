@@ -290,7 +290,9 @@
     </ClCompile>
     <ClCompile Include="qemu\migration-tcp.c" />
     <ClCompile Include="qemu\migration.c" />
-    <ClCompile Include="qemu\mips-dis.c" />
+    <ClCompile Include="qemu\mips-dis.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\monitor.c" />
     <ClCompile Include="qemu\nbd.c" />
     <ClCompile Include="qemu\net-checksum.c" />
@@ -891,7 +893,9 @@
     <ClCompile Include="qemu\hw\sh_intc.c" />
     <ClCompile Include="qemu\hw\sh_pci.c" />
     <ClCompile Include="qemu\hw\sh_serial.c" />
-    <ClCompile Include="qemu\hw\sh_timer.c" />
+    <ClCompile Include="qemu\hw\sh_timer.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\shix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
@@ -912,8 +916,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\hw\soc_dma.c" />
-    <ClCompile Include="qemu\hw\sparc32_dma.c" />
+    <ClCompile Include="qemu\hw\soc_dma.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\sparc32_dma.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\spitz.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
@@ -1009,18 +1017,42 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\hw\unin_pci.c" />
-    <ClCompile Include="qemu\hw\usb-bt.c" />
-    <ClCompile Include="qemu\hw\usb-hid.c" />
-    <ClCompile Include="qemu\hw\usb-hub.c" />
-    <ClCompile Include="qemu\hw\usb-msd.c" />
-    <ClCompile Include="qemu\hw\usb-musb.c" />
-    <ClCompile Include="qemu\hw\usb-net.c" />
-    <ClCompile Include="qemu\hw\usb-ohci.c" />
-    <ClCompile Include="qemu\hw\usb-serial.c" />
-    <ClCompile Include="qemu\hw\usb-uhci.c" />
-    <ClCompile Include="qemu\hw\usb-wacom.c" />
-    <ClCompile Include="qemu\hw\usb.c" />
+    <ClCompile Include="qemu\hw\unin_pci.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-bt.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-hid.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-hub.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-msd.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-musb.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-net.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-ohci.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-serial.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-uhci.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-wacom.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\versatile_pci.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
@@ -1032,19 +1064,33 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\vga.c" />
-    <ClCompile Include="qemu\hw\virtio-balloon.c" />
-    <ClCompile Include="qemu\hw\virtio-blk.c" />
-    <ClCompile Include="qemu\hw\virtio-console.c" />
-    <ClCompile Include="qemu\hw\virtio-net.c" />
-    <ClCompile Include="qemu\hw\virtio.c" />
+    <ClCompile Include="qemu\hw\virtio-balloon.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-blk.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-console.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-net.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\vmmouse.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\vmport.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\hw\vmware_vga.c" />
-    <ClCompile Include="qemu\hw\wm8750.c" />
+    <ClCompile Include="qemu\hw\vmware_vga.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\wm8750.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\zaurus.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
