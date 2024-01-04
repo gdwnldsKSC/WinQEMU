@@ -18,6 +18,8 @@
 #include "pc.h"
 #include "isa.h"
 #include "pci.h"
+#include "block.h"
+#include "flash.h"
 
 /* Building the firmware for es40:
 
@@ -49,6 +51,8 @@
 
 /* For es40.  */
 #define BIOS_FILENAME "es40.rom"
+
+#define VGABIOS_CIRRUS_FILENAME "vgabios-cirrus.bin"
 
 static ram_addr_t ram_offset;
 
@@ -139,6 +143,43 @@ static CPUWriteMemoryFunc *tigbus_write[] = {
     &illegal_write,
     &illegal_write,
     &tigbus_writel,
+};
+
+/* Flash content (sectors):
+   TIG:   0
+   SRM:   1-14
+   EEROM: 15
+   SROM:  16-17
+   ARC:   18-30
+   ARC variables: 31 */
+static uint32_t flash_readl(void *opaque, target_phys_addr_t addr)
+{
+    /* Flash registers are mostly only 8 bits.  */
+    if (addr & 0x04)
+        return 0;
+
+    return am29f016_readb((Am29f016State *)opaque, addr >> 6);
+}
+
+static void flash_writel (void *opaque,
+                          target_phys_addr_t addr, uint32_t value)
+{
+    if (addr & 0x04)
+        return;
+
+    am29f016_writeb((Am29f016State *)opaque, addr >> 6, value);
+}
+
+static CPUReadMemoryFunc *flash_read[] = {
+    &illegal_read,
+    &illegal_read,
+    &flash_readl,
+};
+
+static CPUWriteMemoryFunc *flash_write[] = {
+    &illegal_write,
+    &illegal_write,
+    &flash_writel,
 };
 
 /* Dual Port Ram.
@@ -514,12 +555,14 @@ static void tigbus_reset (void *opaque)
     /* TigBusState *s = opaque; */
 }
 
-static void tigbus_init (uint64_t arr[])
+static void tigbus_init (uint64_t arr[], BlockDriverState *flash_bs)
 {
     TigBusState *s;
     int mem;
     int dpram_io;
+    int flash_io;
     DPRamState *dpram;
+    Am29f016State *flash;
     int i;
 
     s = qemu_mallocz(sizeof(TigBusState));
@@ -700,6 +743,11 @@ static void tigbus_init (uint64_t arr[])
     }
 #undef S
 
+    flash = am29f016_init(flash_bs);
+
+    flash_io = cpu_register_io_memory(0, flash_read, flash_write, flash);
+    cpu_register_physical_memory(0x80100000000ULL, 0x8000000, flash_io);
+
     tigbus_reset(s);
     qemu_register_reset(&tigbus_reset, s);
 }
@@ -866,6 +914,10 @@ static void es40_init(ram_addr_t ram_size, int vga_ram_size,
     ALI1543State *ali;
     PCIBus *hose0;
     uint64_t arr[4];
+    BlockDriverState *flash_bs = NULL;
+    int index;
+    ram_addr_t vga_ram_addr;
+    RTCState *rtc;
 
     if (!cpu_model)
         cpu_model = "21264";
@@ -881,6 +933,15 @@ static void es40_init(ram_addr_t ram_size, int vga_ram_size,
     ram_offset = qemu_ram_alloc(ram_size);
     cpu_register_physical_memory(0, ram_size, ram_offset);
 
+    /* allocate VGA RAM */
+    vga_ram_addr = qemu_ram_alloc(vga_ram_size);
+
+    index = drive_get_index(IF_PFLASH, 0, 0);
+    if (index != -1)
+        flash_bs = drives_table[index].bdrv;
+    else
+        flash_bs = NULL;
+
     /* SRM load */
     if (bios_name == NULL)
         bios_name = BIOS_FILENAME;
@@ -892,7 +953,7 @@ static void es40_init(ram_addr_t ram_size, int vga_ram_size,
 
     configure_mem_array(ram_size, arr);
     typhoon = typhoon_21272_init(arr, &cchip_irqs, &tim_irq, env);
-    tigbus_init(arr);
+    tigbus_init(arr, flash_bs);
 
     hose0 = typhoon_get_pci_bus(typhoon, 0);
 
@@ -901,7 +962,39 @@ static void es40_init(ram_addr_t ram_size, int vga_ram_size,
     typhoon_set_iack_handler(typhoon, 0,
                              (int (*)(void *))pic_read_irq, isa_pic);
 
-    rtc_init_sqw(0x70, ali1543_get_irq(ali, 8), tim_irq, 1980);
+    rtc = rtc_init_sqw(0x70, ali1543_get_irq(ali, 8), tim_irq, 1980);
+
+    i8042_init(ali1543_get_irq(ali, 1), ali1543_get_irq(ali, 12), 0x60);
+
+    if (cirrus_vga_enabled && !nographic) {
+        ram_addr_t vga_bios_offset;
+        int vga_bios_size, ret;
+
+        pci_cirrus_vga_init(hose0,
+                            phys_ram_base + vga_ram_addr,
+                            vga_ram_addr, vga_ram_size);
+        /* VGA BIOS load */
+        snprintf(buf, sizeof(buf), "%s/%s", bios_dir, VGABIOS_CIRRUS_FILENAME);
+        vga_bios_size = get_image_size(buf);
+        if (vga_bios_size <= 0 || vga_bios_size > 65536)
+            goto vga_bios_error;
+        vga_bios_offset = qemu_ram_alloc(65536);
+
+        ret = load_image(buf, phys_ram_base + vga_bios_offset);
+        if (ret != vga_bios_size) {
+vga_bios_error:
+            fprintf(stderr, "qemu: could not load VGA BIOS '%s'\n", buf);
+            exit(1);
+        }
+
+        /* setup basic memory access */
+        cpu_register_physical_memory(isa_mem_base + 0xc0000, 0x10000,
+                                     vga_bios_offset | IO_MEM_ROM);
+
+        rtc_set_memory(rtc, 0x17, 1);
+		rtc_set_memory(rtc, 0x3f, 0x1);
+		rtc_set_memory(rtc, 0x1a, 0x1);
+    }
 
     es40_cpu_reset(env);
 }
@@ -918,5 +1011,5 @@ QEMUMachine es40_machine = {
     .name = "es40",
     .desc = "Alpha es40",
     .init = es40_init,
-    .ram_require = 64 << 20
+    .ram_require = VGA_RAM_SIZE + (64 << 20)
 };
