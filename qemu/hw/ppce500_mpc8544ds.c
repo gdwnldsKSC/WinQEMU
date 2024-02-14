@@ -47,6 +47,7 @@
 #define MPC8544_PCI_IO             0xE1000000
 #define MPC8544_PCI_IOLEN          0x10000
 
+#ifdef HAVE_FDT
 static int mpc8544_copy_soc_cell(void *fdt, const char *node, const char *prop)
 {
     uint32_t cell;
@@ -68,6 +69,7 @@ static int mpc8544_copy_soc_cell(void *fdt, const char *node, const char *prop)
 out:
     return ret;
 }
+#endif
 
 static void *mpc8544_load_device_tree(void *addr,
                                      uint32_t ramsize,
@@ -180,7 +182,7 @@ static void mpc8544ds_init(ram_addr_t ram_size, int vga_ram_size,
     ram_size &= ~(RAM_SIZES_ALIGN - 1);
 
     /* Register Memory */
-    cpu_register_physical_memory(0, ram_size, 0);
+    cpu_register_physical_memory(0, ram_size, qemu_ram_alloc(ram_size));
 
     /* MPIC */
     irqs = qemu_mallocz(sizeof(qemu_irq) * OPENPIC_OUTPUT_NB);
@@ -245,7 +247,8 @@ static void mpc8544ds_init(ram_addr_t ram_size, int vga_ram_size,
 
     /* Load initrd. */
     if (initrd_filename) {
-        initrd_size = load_image(initrd_filename, phys_ram_base + initrd_base);
+        initrd_size = load_image_targphys(initrd_filename, initrd_base,
+                                          ram_size - initrd_base);
 
         if (initrd_size < 0) {
             fprintf(stderr, "qemu: could not load initial ram disk '%s'\n",

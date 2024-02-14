@@ -174,24 +174,9 @@ void DMA_register_channel (int nchan,
 {
 }
 
-static int nvram_boot_set(void *opaque, const char *boot_device)
+static int fw_cfg_boot_set(void *opaque, const char *boot_device)
 {
-    unsigned int i;
-    uint8_t image[sizeof(ohwcfg_v3_t)];
-    ohwcfg_v3_t *header = (ohwcfg_v3_t *)&image;
-    m48t59_t *nvram = (m48t59_t *)opaque;
-
-    for (i = 0; i < sizeof(image); i++)
-        image[i] = m48t59_read(nvram, i) & 0xff;
-
-    pstrcpy((char *)header->boot_devices, sizeof(header->boot_devices),
-            boot_device);
-    header->nboot_devices = strlen(boot_device) & 0xff;
-    header->crc = cpu_to_be16(OHW_compute_crc(header, 0x00, 0xF8));
-
-    for (i = 0; i < sizeof(image); i++)
-        m48t59_write(nvram, i, image[i]);
-
+    fw_cfg_add_i16(opaque, FW_CFG_BOOT_DEVICE, boot_device[0]);
     return 0;
 }
 
@@ -204,48 +189,11 @@ static void nvram_init(m48t59_t *nvram, uint8_t *macaddr, const char *cmdline,
     unsigned int i;
     uint32_t start, end;
     uint8_t image[0x1ff0];
-    ohwcfg_v3_t *header = (ohwcfg_v3_t *)&image;
-    struct sparc_arch_cfg *sparc_header;
     struct OpenBIOS_nvpart_v1 *part_header;
 
     memset(image, '\0', sizeof(image));
 
-    // Try to match PPC NVRAM
-    pstrcpy((char *)header->struct_ident, sizeof(header->struct_ident),
-            "QEMU_BIOS");
-    header->struct_version = cpu_to_be32(3); /* structure v3 */
-
-    header->nvram_size = cpu_to_be16(0x2000);
-    header->nvram_arch_ptr = cpu_to_be16(sizeof(ohwcfg_v3_t));
-    header->nvram_arch_size = cpu_to_be16(sizeof(struct sparc_arch_cfg));
-    pstrcpy((char *)header->arch, sizeof(header->arch), arch);
-    header->nb_cpus = smp_cpus & 0xff;
-    header->RAM0_base = 0;
-    header->RAM0_size = cpu_to_be64((uint64_t)RAM_size);
-    pstrcpy((char *)header->boot_devices, sizeof(header->boot_devices),
-            boot_devices);
-    header->nboot_devices = strlen(boot_devices) & 0xff;
-    header->kernel_image = cpu_to_be64((uint64_t)KERNEL_LOAD_ADDR);
-    header->kernel_size = cpu_to_be64((uint64_t)kernel_size);
-    if (cmdline) {
-        pstrcpy_targphys(CMDLINE_ADDR, TARGET_PAGE_SIZE, cmdline);
-        header->cmdline = cpu_to_be64((uint64_t)CMDLINE_ADDR);
-        header->cmdline_size = cpu_to_be64((uint64_t)strlen(cmdline));
-    }
-    // XXX add initrd_image, initrd_size
-    header->width = cpu_to_be16(width);
-    header->height = cpu_to_be16(height);
-    header->depth = cpu_to_be16(depth);
-    if (nographic)
-        header->graphic_flags = cpu_to_be16(OHW_GF_NOGRAPHICS);
-
-    header->crc = cpu_to_be16(OHW_compute_crc(header, 0x00, 0xF8));
-
-    // Architecture specific header
-    start = sizeof(ohwcfg_v3_t);
-    sparc_header = (struct sparc_arch_cfg *)&image[start];
-    sparc_header->valid = 0;
-    start += sizeof(struct sparc_arch_cfg);
+    start = 0;
 
     // OpenBIOS nvram variables
     // Variable partition
@@ -277,22 +225,20 @@ static void nvram_init(m48t59_t *nvram, uint8_t *macaddr, const char *cmdline,
 
     for (i = 0; i < sizeof(image); i++)
         m48t59_write(nvram, i, image[i]);
-
-    qemu_register_boot_set(nvram_boot_set, nvram);
 }
 
 static void *slavio_intctl;
 
-void pic_info(void)
+void pic_info(Monitor *mon)
 {
     if (slavio_intctl)
-        slavio_pic_info(slavio_intctl);
+        slavio_pic_info(mon, slavio_intctl);
 }
 
-void irq_info(void)
+void irq_info(Monitor *mon)
 {
     if (slavio_intctl)
-        slavio_irq_info(slavio_intctl);
+        slavio_irq_info(mon, slavio_intctl);
 }
 
 void cpu_check_irqs(CPUState *env)
@@ -436,7 +382,7 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
     qemu_irq *esp_reset, *le_reset;
     qemu_irq *fdc_tc;
     qemu_irq *cpu_halt;
-    ram_addr_t ram_offset, prom_offset, tcx_offset, idreg_offset;
+    ram_addr_t ram_offset, prom_offset, idreg_offset;
     unsigned long kernel_size;
     int ret;
     char buf[1024];
@@ -532,9 +478,8 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
         fprintf(stderr, "qemu: Unsupported depth: %d\n", graphic_depth);
         exit (1);
     }
-    tcx_offset = qemu_ram_alloc(hwdef->vram_size);
-    tcx_init(hwdef->tcx_base, phys_ram_base + tcx_offset, tcx_offset,
-             hwdef->vram_size, graphic_width, graphic_height, graphic_depth);
+    tcx_init(hwdef->tcx_base, hwdef->vram_size, graphic_width, graphic_height,
+             graphic_depth);
 
     lance_init(&nd_table[0], hwdef->le_base, ledma, *ledma_irq, le_reset);
 
@@ -604,6 +549,18 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
     fw_cfg_add_i16(fw_cfg, FW_CFG_MACHINE_ID, hwdef->machine_id);
     fw_cfg_add_i16(fw_cfg, FW_CFG_SUN4M_DEPTH, graphic_depth);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_ADDR, KERNEL_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_SIZE, kernel_size);
+    if (kernel_cmdline) {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, CMDLINE_ADDR);
+        pstrcpy_targphys(CMDLINE_ADDR, TARGET_PAGE_SIZE, kernel_cmdline);
+    } else {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, 0);
+    }
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_ADDR, INITRD_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_SIZE, 0); // not used
+    fw_cfg_add_i16(fw_cfg, FW_CFG_BOOT_DEVICE, boot_device[0]);
+    qemu_register_boot_set(fw_cfg_boot_set, fw_cfg);
 }
 
 enum {
@@ -1072,7 +1029,6 @@ QEMUMachine ss5_machine = {
     .desc = "Sun4m platform, SPARCstation 5",
     .init = ss5_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1081,7 +1037,6 @@ QEMUMachine ss10_machine = {
     .desc = "Sun4m platform, SPARCstation 10",
     .init = ss10_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
     .max_cpus = 4,
 };
@@ -1091,7 +1046,6 @@ QEMUMachine ss600mp_machine = {
     .desc = "Sun4m platform, SPARCserver 600MP",
     .init = ss600mp_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
     .max_cpus = 4,
 };
@@ -1101,7 +1055,6 @@ QEMUMachine ss20_machine = {
     .desc = "Sun4m platform, SPARCstation 20",
     .init = ss20_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
     .max_cpus = 4,
 };
@@ -1111,7 +1064,6 @@ QEMUMachine voyager_machine = {
     .desc = "Sun4m platform, SPARCstation Voyager",
     .init = vger_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1120,7 +1072,6 @@ QEMUMachine ss_lx_machine = {
     .desc = "Sun4m platform, SPARCstation LX",
     .init = ss_lx_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1129,7 +1080,6 @@ QEMUMachine ss4_machine = {
     .desc = "Sun4m platform, SPARCstation 4",
     .init = ss4_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1138,7 +1088,6 @@ QEMUMachine scls_machine = {
     .desc = "Sun4m platform, SPARCClassic",
     .init = scls_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1147,7 +1096,6 @@ QEMUMachine sbook_machine = {
     .desc = "Sun4m platform, SPARCbook",
     .init = sbook_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };
 
@@ -1234,7 +1182,7 @@ static void sun4d_hw_init(const struct sun4d_hwdef *hwdef, ram_addr_t RAM_size,
     qemu_irq *cpu_irqs[MAX_CPUS], *sbi_irq, *sbi_cpu_irq,
         *espdma_irq, *ledma_irq;
     qemu_irq *esp_reset, *le_reset;
-    ram_addr_t ram_offset, prom_offset, tcx_offset;
+    ram_addr_t ram_offset, prom_offset;
     unsigned long kernel_size;
     int ret;
     char buf[1024];
@@ -1315,9 +1263,8 @@ static void sun4d_hw_init(const struct sun4d_hwdef *hwdef, ram_addr_t RAM_size,
         fprintf(stderr, "qemu: Unsupported depth: %d\n", graphic_depth);
         exit (1);
     }
-    tcx_offset = qemu_ram_alloc(hwdef->vram_size);
-    tcx_init(hwdef->tcx_base, phys_ram_base + tcx_offset, tcx_offset,
-             hwdef->vram_size, graphic_width, graphic_height, graphic_depth);
+    tcx_init(hwdef->tcx_base, hwdef->vram_size, graphic_width, graphic_height,
+             graphic_depth);
 
     lance_init(&nd_table[0], hwdef->le_base, ledma, *ledma_irq, le_reset);
 
@@ -1362,6 +1309,19 @@ static void sun4d_hw_init(const struct sun4d_hwdef *hwdef, ram_addr_t RAM_size,
     fw_cfg_add_i32(fw_cfg, FW_CFG_ID, 1);
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
     fw_cfg_add_i16(fw_cfg, FW_CFG_MACHINE_ID, hwdef->machine_id);
+    fw_cfg_add_i16(fw_cfg, FW_CFG_SUN4M_DEPTH, graphic_depth);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_ADDR, KERNEL_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_SIZE, kernel_size);
+    if (kernel_cmdline) {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, CMDLINE_ADDR);
+        pstrcpy_targphys(CMDLINE_ADDR, TARGET_PAGE_SIZE, kernel_cmdline);
+    } else {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, 0);
+    }
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_ADDR, INITRD_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_SIZE, 0); // not used
+    fw_cfg_add_i16(fw_cfg, FW_CFG_BOOT_DEVICE, boot_device[0]);
+    qemu_register_boot_set(fw_cfg_boot_set, fw_cfg);
 }
 
 /* SPARCserver 1000 hardware initialisation */
@@ -1389,7 +1349,6 @@ QEMUMachine ss1000_machine = {
     .desc = "Sun4d platform, SPARCserver 1000",
     .init = ss1000_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
     .max_cpus = 8,
 };
@@ -1399,7 +1358,6 @@ QEMUMachine ss2000_machine = {
     .desc = "Sun4d platform, SPARCcenter 2000",
     .init = ss2000_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
     .max_cpus = 20,
 };
@@ -1449,7 +1407,7 @@ static void sun4c_hw_init(const struct sun4c_hwdef *hwdef, ram_addr_t RAM_size,
     qemu_irq *cpu_irqs, *slavio_irq, *espdma_irq, *ledma_irq;
     qemu_irq *esp_reset, *le_reset;
     qemu_irq *fdc_tc;
-    ram_addr_t ram_offset, prom_offset, tcx_offset;
+    ram_addr_t ram_offset, prom_offset;
     unsigned long kernel_size;
     int ret;
     char buf[1024];
@@ -1521,9 +1479,8 @@ static void sun4c_hw_init(const struct sun4c_hwdef *hwdef, ram_addr_t RAM_size,
         fprintf(stderr, "qemu: Unsupported depth: %d\n", graphic_depth);
         exit (1);
     }
-    tcx_offset = qemu_ram_alloc(hwdef->vram_size);
-    tcx_init(hwdef->tcx_base, phys_ram_base + tcx_offset, tcx_offset,
-             hwdef->vram_size, graphic_width, graphic_height, graphic_depth);
+    tcx_init(hwdef->tcx_base, hwdef->vram_size, graphic_width, graphic_height,
+             graphic_depth);
 
     lance_init(&nd_table[0], hwdef->le_base, ledma, *ledma_irq, le_reset);
 
@@ -1580,6 +1537,19 @@ static void sun4c_hw_init(const struct sun4c_hwdef *hwdef, ram_addr_t RAM_size,
     fw_cfg_add_i32(fw_cfg, FW_CFG_ID, 1);
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
     fw_cfg_add_i16(fw_cfg, FW_CFG_MACHINE_ID, hwdef->machine_id);
+    fw_cfg_add_i16(fw_cfg, FW_CFG_SUN4M_DEPTH, graphic_depth);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_ADDR, KERNEL_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_SIZE, kernel_size);
+    if (kernel_cmdline) {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, CMDLINE_ADDR);
+        pstrcpy_targphys(CMDLINE_ADDR, TARGET_PAGE_SIZE, kernel_cmdline);
+    } else {
+        fw_cfg_add_i32(fw_cfg, FW_CFG_KERNEL_CMDLINE, 0);
+    }
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_ADDR, INITRD_LOAD_ADDR);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_INITRD_SIZE, 0); // not used
+    fw_cfg_add_i16(fw_cfg, FW_CFG_BOOT_DEVICE, boot_device[0]);
+    qemu_register_boot_set(fw_cfg_boot_set, fw_cfg);
 }
 
 /* SPARCstation 2 hardware initialisation */
@@ -1597,6 +1567,5 @@ QEMUMachine ss2_machine = {
     .desc = "Sun4c platform, SPARCstation 2",
     .init = ss2_init,
     .ram_require = PROM_SIZE_MAX + TCX_SIZE,
-    .nodisk_ok = 1,
     .use_scsi = 1,
 };

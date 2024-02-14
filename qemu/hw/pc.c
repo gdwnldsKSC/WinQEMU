@@ -794,7 +794,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
 {
     char buf[1024];
     int ret, linux_boot, i;
-    ram_addr_t ram_addr, vga_ram_addr, bios_offset, option_rom_offset;
+    ram_addr_t ram_addr, bios_offset, option_rom_offset;
     ram_addr_t below_4g_mem_size, above_4g_mem_size = 0;
 	int bios_size, isa_bios_size, oprom_area_size;
     PCIBus *pci_bus;
@@ -868,9 +868,6 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
     }
 
 
-    /* allocate VGA RAM */
-    vga_ram_addr = qemu_ram_alloc(vga_ram_size);
-
     /* BIOS load */
     if (bios_name == NULL)
         bios_name = BIOS_FILENAME;
@@ -881,7 +878,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
         goto bios_error;
     }
     bios_offset = qemu_ram_alloc(bios_size);
-    ret = load_image(buf, phys_ram_base + bios_offset);
+    ret = load_image(buf, qemu_get_ram_ptr(bios_offset));
     if (ret != bios_size) {
     bios_error:
         fprintf(stderr, "qemu: could not load PC BIOS '%s'\n", buf);
@@ -952,26 +949,20 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
 
     if (cirrus_vga_enabled) {
         if (pci_enabled) {
-            pci_cirrus_vga_init(pci_bus,
-                                phys_ram_base + vga_ram_addr,
-                                vga_ram_addr, vga_ram_size);
+            pci_cirrus_vga_init(pci_bus, vga_ram_size);
         } else {
-            isa_cirrus_vga_init(phys_ram_base + vga_ram_addr,
-                                vga_ram_addr, vga_ram_size);
+            isa_cirrus_vga_init(vga_ram_size);
         }
     } else if (vmsvga_enabled) {
         if (pci_enabled)
-            pci_vmsvga_init(pci_bus, phys_ram_base + vga_ram_addr,
-                            vga_ram_addr, vga_ram_size);
+            pci_vmsvga_init(pci_bus, vga_ram_size);
         else
             fprintf(stderr, "%s: vmware_vga: no PCI bus\n", __FUNCTION__);
     } else if (std_vga_enabled) {
         if (pci_enabled) {
-            pci_vga_init(pci_bus, phys_ram_base + vga_ram_addr,
-                         vga_ram_addr, vga_ram_size, 0, 0);
+            pci_vga_init(pci_bus, vga_ram_size, 0, 0);
         } else {
-            isa_vga_init(phys_ram_base + vga_ram_addr,
-                         vga_ram_addr, vga_ram_size);
+            isa_vga_init(vga_ram_size);
         }
     }
 
