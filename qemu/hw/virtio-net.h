@@ -71,7 +71,12 @@ struct virtio_net_config
     uint8_t mac[6];
     /* See VIRTIO_NET_F_STATUS and VIRTIO_NET_S_* above */
     uint16_t status;
-} __attribute__((packed));
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

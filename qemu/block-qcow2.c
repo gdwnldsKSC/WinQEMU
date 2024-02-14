@@ -100,8 +100,11 @@ typedef struct {
 #define  QCOW_EXT_MAGIC_END 0
 #define  QCOW_EXT_MAGIC_BACKING_FORMAT 0xE2792ACA
 
-
+#ifndef _MSC_VER
 typedef struct __attribute__((packed)) QCowSnapshotHeader{
+#else
+typedef struct QCowSnapshotHeader{
+#endif
 	/* header is 8 byte aligned */
 	uint64_t l1_table_offset;
 

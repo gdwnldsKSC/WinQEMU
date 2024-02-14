@@ -777,7 +777,12 @@ struct partition {
 	uint8_t end_cyl;            /* end cylinder */
 	uint32_t start_sect;        /* starting sector counting from 0 */
 	uint32_t nr_sects;          /* nr of sectors in partition */
-} __attribute__((packed));
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 
 
 #ifdef _MSC_VER

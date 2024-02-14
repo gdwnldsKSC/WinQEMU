@@ -752,7 +752,7 @@ typedef struct {
 #ifndef _MSC_VER
 __attribute__ ((packed)) read_remote_version_cp;
 #else
-read_remote_verseion_cp;
+read_remote_version_cp;
 #endif
 #define READ_REMOTE_VERSION_CP_SIZE 2
 

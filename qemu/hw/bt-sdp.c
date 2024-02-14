@@ -31,6 +31,7 @@
 #include "qemu-common.h"
 #include "bt.h"
 
+typedef signed int ssize_t;
 
 struct bt_l2cap_sdp_state_s {
     struct bt_l2cap_conn_params_s *channel;

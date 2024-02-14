@@ -777,7 +777,12 @@ struct acpi_table_header
     uint32_t oem_revision;    /* OEM revision number */
     char asl_compiler_id [4]; /* ASL compiler vendor ID */
     uint32_t asl_compiler_revision; /* ASL compiler revision number */
-} __attribute__((packed));
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

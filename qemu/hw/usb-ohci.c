@@ -33,6 +33,8 @@
 #include "pci.h"
 #include "pxa.h"
 
+typedef signed int ssize_t; // VS2017 hack
+
 //#define DEBUG_OHCI
 /* Dump packet contents.  */
 //#define DEBUG_PACKET

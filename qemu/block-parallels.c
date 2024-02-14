@@ -57,7 +57,12 @@ struct parallels_header {
     uint32_t catalog_entries;
     uint32_t nb_sectors;
     char padding[24];
-} __attribute__((packed));
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

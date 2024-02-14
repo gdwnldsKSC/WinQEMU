@@ -93,7 +93,11 @@ struct vmsvga_state_s {
 #ifdef _MSC_VER
 #pragma pack (push, 1)
 #endif
+#ifndef _MSC_VER
         struct __attribute__((__packed__)) {
+#else
+		struct {
+#endif
             uint32_t min;
             uint32_t max;
             uint32_t next_cmd;

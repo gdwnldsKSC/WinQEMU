@@ -51,7 +51,12 @@ struct virtio_blk_config
     uint16_t cylinders;
     uint8_t heads;
     uint8_t sectors;
-} __attribute__((packed));
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

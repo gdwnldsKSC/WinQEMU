@@ -81,7 +81,12 @@ do { fprintf(stderr, "rc4030 ERROR: %s: " fmt, __func__ , __VA_ARGS__); } while 
 typedef struct dma_pagetable_entry {
     int32_t frame;
     int32_t owner;
-} __attribute__((packed)) dma_pagetable_entry;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) dma_pagetable_entry;
+#else
+dma_pagetable_entry;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)
