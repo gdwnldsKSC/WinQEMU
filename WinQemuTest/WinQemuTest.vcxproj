@@ -80,7 +80,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>WinQemu.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>..\Debug\$(ProjectName).exe</OutputFile>
+      <OutputFile>$(SolutionDir)$(Configuration)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>..\libs\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>

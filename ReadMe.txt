@@ -13,6 +13,18 @@ WinQemu buils the dll, WinQemuTest builds the exe to actually use it
 
 Hardcoded to use D:\Images\ for files.
 
+############
+2/13/24 - Build system now fixed to output directories being correct for debug builds. 
+To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
+WinQEMU\Debug folder (fmod.dll and SDL.dll). 
+
+Target debug/win32 is fixed up, anyway. 
+
+As well to D:\Images\ (currently hard coded) vgabios-cirrus.bin, small.ffs, and bios.bin 
+for a minimal x86 emulated system during debugging. This path can be modified in project
+WinQemu\qemu\inc\config-host.h
+############
+
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
 but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.
 

@@ -86,7 +86,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;SDL.lib;zlib.lib;dsound.lib;dxguid.lib;fmodvc.lib;Iphlpapi.lib;WinMM.Lib;pxwc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>bin\Debug\$(ProjectName).dll</OutputFile>
+      <OutputFile>$(SolutionDir)$(Configuration)\$(ProjectName).dll</OutputFile>
       <AdditionalLibraryDirectories>.\fmod api 3.75\api\lib;.\libs\Debug;.\libs\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -114,7 +114,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;SDL.lib;zlib.lib;dsound.lib;dxguid.lib;fmodvc.lib;Iphlpapi.lib;WinMM.Lib;pxwc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>bin\Debug\$(ProjectName).dll</OutputFile>
+      <OutputFile>$(SolutionDir)$(Configuration)\$(ProjectName).dll</OutputFile>
       <AdditionalLibraryDirectories>.\fmod api 3.75\api\lib;.\libs\Debug;.\libs\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
