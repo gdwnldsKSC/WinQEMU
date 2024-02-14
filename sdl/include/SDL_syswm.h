@@ -29,11 +29,7 @@
 #include "SDL_error.h"
 #include "SDL_version.h"
 
-#include "begin_code.h"
-/* Set up for C function definitions, even when using C++ */
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 /* Your application has access to a special type of event 'SDL_SYSWMEVENT',
    which contains window-manager specific information and arrives whenever
@@ -122,6 +118,12 @@ typedef struct SDL_SysWMinfo {
 #elif defined(SDL_VIDEO_DRIVER_WINDIB) || defined(SDL_VIDEO_DRIVER_DDRAW) || defined(SDL_VIDEO_DRIVER_GAPI)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+#include "begin_code.h" // manually moved in header to fix pack issue, newer windows SDKs expose this potential issue.
+/* Set up for C function definitions, even when using C++ */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* The windows custom event structure */
 struct SDL_SysWMmsg {

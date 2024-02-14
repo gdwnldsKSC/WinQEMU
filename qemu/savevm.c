@@ -53,7 +53,7 @@
 #include <zlib.h>
 
 #ifdef _MSC_VER
-#include "..\pxwc\inc\pxwc.h"
+#include "pxwc.h"
 #endif
 
 /* Needed early for HOST_BSD etc. */

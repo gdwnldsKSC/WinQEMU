@@ -40,10 +40,18 @@ struct l2cap_instance_s {
     struct bt_l2cap_device_s *dev;
     int role;
 
+#ifndef _MSC_VER
     uint8_t frame_in[65535 + L2CAP_HDR_SIZE] __attribute__ ((aligned (4)));
+#else
+	__declspec(align(4)) uint8_t frame_in[65535 + L2CAP_HDR_SIZE];
+#endif
     int frame_in_len;
 
+#ifndef _MSC_VER
     uint8_t frame_out[65535 + L2CAP_HDR_SIZE] __attribute__ ((aligned (4)));
+#else
+	__declspec(align(4)) uint8_t frame_out[65535 + L2CAP_HDR_SIZE];
+#endif
     int frame_out_len;
 
     /* Signalling channel timers.  They exist per-request but we can make

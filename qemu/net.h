@@ -5,6 +5,8 @@
 
 /* VLANs support */
 
+typedef signed int ssize_t; // VS2017 hack
+
 typedef ssize_t (IOReadvHandler)(void *, const struct iovec *, int);
 
 typedef struct VLANClientState VLANClientState;

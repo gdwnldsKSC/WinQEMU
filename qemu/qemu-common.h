@@ -158,8 +158,12 @@ void *get_mmap_addr(unsigned long size);
 
 /* Error handling.  */
 
+#ifdef _MSC_VER
+void QEMU_NORETURN hw_error(const char *fmt, ...);
+#else
 void QEMU_NORETURN hw_error(const char *fmt, ...)
     __attribute__ ((__format__ (__printf__, 1, 2)));
+#endif
 
 /* IO callbacks.  */
 typedef void IOReadHandler(void *opaque, const uint8_t *buf, int size);

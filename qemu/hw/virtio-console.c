@@ -16,6 +16,7 @@
 #include "virtio.h"
 #include "virtio-console.h"
 
+typedef signed int ssize_t; // VS2017 hack
 
 typedef struct VirtIOConsole
 {

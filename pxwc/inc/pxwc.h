@@ -133,8 +133,8 @@ static PXWC_INLINE void sleep(unsigned long a)								{ _sleep(a); }
 	} /* extern "C" {} */
 #endif
 
-#define snprintf		_snprintf
-#define vsnprintf		_vsnprintf
+//#define snprintf		_snprintf // we dont need this anymore VS2015
+//#define vsnprintf		_vsnprintf
 #define popen			_popen
 #define pclose			_pclose
 #define getpid			_getpid

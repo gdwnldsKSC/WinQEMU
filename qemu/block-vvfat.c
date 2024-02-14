@@ -252,7 +252,12 @@ typedef struct bootsector_t {
 	    uint8_t signature;
 	    uint32_t id;
 	    uint8_t volume_label[11];
-	} __attribute__((packed)) fat16;
+	} 
+#ifndef _MSC_VER
+		__attribute__((packed)) fat16;
+#else
+		fat16;
+#endif
 	struct {
 	    uint32_t sectors_per_fat;
 	    uint16_t flags;
@@ -261,12 +266,22 @@ typedef struct bootsector_t {
 	    uint16_t info_sector;
 	    uint16_t backup_boot_sector;
 	    uint16_t ignored;
-	} __attribute__((packed)) fat32;
+	} 
+#ifndef _MSC_VER
+	__attribute__((packed)) fat32;
+#else
+	fat32;
+#endif
     } u;
     uint8_t fat_type[8];
     uint8_t ignored[0x1c0];
     uint8_t magic[2];
-} __attribute__((packed)) bootsector_t;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) bootsector_t;
+#else
+bootsector_t;
+#endif
 
 typedef struct {
     uint8_t head;
@@ -281,7 +296,12 @@ typedef struct partition_t {
     mbr_chs_t end_CHS;
     uint32_t start_sector_long;
     uint32_t length_sector_long;
-} __attribute__((packed)) partition_t;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) partition_t;
+#else
+partition_t;
+#endif
 
 typedef struct mbr_t {
     uint8_t ignored[0x1b8];
@@ -289,7 +309,12 @@ typedef struct mbr_t {
     uint8_t ignored2[2];
     partition_t partition[4];
     uint8_t magic[2];
-} __attribute__((packed)) mbr_t;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) mbr_t;
+#else
+mbr_t;
+#endif
 
 typedef struct direntry_t {
     uint8_t name[8];
@@ -304,7 +329,12 @@ typedef struct direntry_t {
     uint16_t mdate;
     uint16_t begin;
     uint32_t size;
-} __attribute__((packed)) direntry_t;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) direntry_t;
+#else
+direntry_t;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

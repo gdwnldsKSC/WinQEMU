@@ -50,6 +50,8 @@
 
 #include <zlib.h>
 
+typedef signed int ssize_t; // VS2017 hack
+
 /* return the size or -1 if error */
 int get_image_size(const char *filename)
 {

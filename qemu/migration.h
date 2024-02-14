@@ -11,6 +11,8 @@
  *
  */
 
+typedef signed int ssize_t; // VS2017 hack 
+
 #ifndef QEMU_MIGRATION_H
 #define QEMU_MIGRATION_H
 

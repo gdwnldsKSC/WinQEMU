@@ -32,6 +32,8 @@
 
 #include "qemu_socket.h"
 
+typedef signed int ssize_t; // VS2017 hack
+
 //#define DEBUG_NBD
 
 #ifdef DEBUG_NBD

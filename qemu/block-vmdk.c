@@ -71,7 +71,12 @@ typedef struct {
     int64_t grain_offset;
     char filler[1];
     char check_bytes[4];
-} __attribute__((packed)) VMDK4Header;
+} 
+#ifndef _MSC_VER
+__attribute__((packed)) VMDK4Header;
+#else
+VMDK4Header;
+#endif
 
 #ifdef _MSC_VER
 #pragma pack (pop)

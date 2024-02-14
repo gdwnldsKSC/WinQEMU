@@ -19,6 +19,7 @@ extern int slirp_socket_port;
 extern u_int32_t slirp_socket_addr;
 extern char *slirp_socket_passwd;
 extern int ctty_closed;
+typedef signed int ssize_t;
 
 /*
  * Get the difference in 2 times from updtim()

@@ -16,5 +16,5 @@
 #define asm(X)
 
 #define private __private
-#define snprintf _snprintf
+//#define snprintf _snprintf // not needed MSVC2015
 #endif
