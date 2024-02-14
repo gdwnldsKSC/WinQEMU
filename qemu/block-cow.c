@@ -95,10 +95,10 @@ static int cow_open(BlockDriverState *bs, const char *filename, int flags)
 
     /* mmap the bitmap */
     s->cow_bitmap_size = ((bs->total_sectors + 7) >> 3) + sizeof(cow_header);
-    s->cow_bitmap_addr = mmap(get_mmap_addr(s->cow_bitmap_size),
-                              s->cow_bitmap_size,
-                              PROT_READ | PROT_WRITE,
-                              MAP_SHARED, s->fd, 0);
+    s->cow_bitmap_addr = (void *)mmap(get_mmap_addr(s->cow_bitmap_size),
+                                      s->cow_bitmap_size,
+                                      PROT_READ | PROT_WRITE,
+                                      MAP_SHARED, s->fd, 0);
     if (s->cow_bitmap_addr == MAP_FAILED)
         goto fail;
     s->cow_bitmap = s->cow_bitmap_addr + sizeof(cow_header);
@@ -197,7 +197,7 @@ static int cow_write(BlockDriverState *bs, int64_t sector_num,
 static void cow_close(BlockDriverState *bs)
 {
     BDRVCowState *s = bs->opaque;
-    munmap(s->cow_bitmap_addr, s->cow_bitmap_size);
+    munmap((void *)s->cow_bitmap_addr, s->cow_bitmap_size);
     close(s->fd);
 }
 
@@ -253,15 +253,15 @@ static void cow_flush(BlockDriverState *bs)
 }
 
 BlockDriver bdrv_cow = {
-    "cow",
-    sizeof(BDRVCowState),
-    cow_probe,
-    cow_open,
-    cow_read,
-    cow_write,
-    cow_close,
-    cow_create,
-    cow_flush,
-    cow_is_allocated,
+    .format_name	= "cow",
+    .instance_size	= sizeof(BDRVCowState),
+    .bdrv_probe		= cow_probe,
+    .bdrv_open		= cow_open,
+    .bdrv_read		= cow_read,
+    .bdrv_write		= cow_write,
+    .bdrv_close		= cow_close,
+    .bdrv_create	= cow_create,
+    .bdrv_flush		= cow_flush,
+    .bdrv_is_allocated	= cow_is_allocated,
 };
 #endif

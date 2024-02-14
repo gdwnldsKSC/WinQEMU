@@ -143,7 +143,7 @@
 #ifndef _MSC_VER
 struct __attribute__ ((__packed__)) vmcb_control_area {
 #else
-struct __declspec(align(1)) vmcb_control_area {
+struct __declspec(align(8)) vmcb_control_area {
 #endif
 	uint16_t intercept_cr_read;
 	uint16_t intercept_cr_write;
@@ -179,7 +179,7 @@ struct __declspec(align(1)) vmcb_control_area {
 #ifndef _MSC_VER
 	struct __attribute__ ((__packed__)) vmcb_seg {
 #else
-	struct __declspec(align(1)) vmcb_seg {
+	struct __declspec(align(8)) vmcb_seg {
 #endif
 	uint16_t selector;
 	uint16_t attrib;
@@ -190,7 +190,7 @@ struct __declspec(align(1)) vmcb_control_area {
 #ifndef _MSC_VER
 	struct __attribute__ ((__packed__)) vmcb_save_area {
 #else
-	struct __declspec(align(1)) vmcb_save_area {
+	struct __declspec(align(8)) vmcb_save_area {
 #endif
 	struct vmcb_seg es;
 	struct vmcb_seg cs;
@@ -239,7 +239,7 @@ struct __declspec(align(1)) vmcb_control_area {
 #ifndef _MSC_VER
 	struct __attribute__ ((__packed__)) vmcb {
 #else
-	struct __declspec(align(1)) vmcb {
+	struct __declspec(align(8)) vmcb {
 #endif
 	struct vmcb_control_area control;
 	struct vmcb_save_area save;

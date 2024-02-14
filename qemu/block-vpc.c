@@ -258,7 +258,7 @@ static inline int64_t get_sector_offset(BlockDriverState *bs,
     uint64_t bitmap_offset, block_offset;
     uint32_t pagetable_index, pageentry_index;
 #ifdef _MSC_VER
-	uint8_t *bitmap = NULL;
+    uint8_t *bitmap = NULL;
 #endif
 
     pagetable_index = offset / s->block_size;
@@ -279,8 +279,8 @@ static inline int64_t get_sector_offset(BlockDriverState *bs,
 #ifndef _MSC_VER
         uint8_t bitmap[s->bitmap_size];
 #else
-		bitmap = malloc(s->bitmap_size);
-		assert (bitmap);
+        bitmap = malloc(s->bitmap_size);
+        assert (bitmap);
 #endif
 
         s->last_bitmap_offset = bitmap_offset;
@@ -547,7 +547,7 @@ static int calculate_geometry(int64_t total_sectors, uint16_t* cyls,
     // However, we need this to avoid truncating images in qemu-img convert
     *cyls = (cyls_times_heads + *heads - 1) / *heads;
 
-	return 0;
+    return 0;
 }
 
 static int vpc_create(const char *filename, int64_t total_sectors,
@@ -571,8 +571,8 @@ static int vpc_create(const char *filename, int64_t total_sectors,
         return -EIO;
 
     // Calculate matching total_size and geometry
-	if (calculate_geometry(total_sectors, &cyls, &heads, &secs_per_cyl))
-		return -EFBIG;
+    if (calculate_geometry(total_sectors, &cyls, &heads, &secs_per_cyl))
+        return -EFBIG;
     total_sectors = (int64_t) cyls * heads * secs_per_cyl;
 
     // Prepare the Hard Disk Footer
@@ -661,12 +661,12 @@ static void vpc_close(BlockDriverState *bs)
 }
 
 BlockDriver bdrv_vpc = {
-    "vpc",
-    sizeof(BDRVVPCState),
-    vpc_probe,
-    vpc_open,
-    vpc_read,
-    vpc_write,
-    vpc_close,
-    vpc_create,
+    .format_name	= "vpc",
+    .instance_size	= sizeof(BDRVVPCState),
+    .bdrv_probe		= vpc_probe,
+    .bdrv_open		= vpc_open,
+    .bdrv_read		= vpc_read,
+    .bdrv_write		= vpc_write,
+    .bdrv_close		= vpc_close,
+    .bdrv_create	= vpc_create,
 };

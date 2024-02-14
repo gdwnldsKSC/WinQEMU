@@ -41,16 +41,12 @@
 
 #ifdef _MSC_VER
 #define S_IWUSR 00200
-#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
-#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #endif
 #if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
 #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
-#endif
-
 #endif
 
 #ifndef S_IWGRP
@@ -335,17 +331,9 @@ __attribute__((packed)) direntry_t;
 #else
 direntry_t;
 #endif
-
 #ifdef _MSC_VER
 #pragma pack (pop)
 #endif
-
-/* we don't need this?
-typedef struct {
-	uint8_t head;
-	uint8_t sector;
-	uint8_t cylinder;
-} mbr_chs_t; */
 /* this structure are used to transparently access the files */
 
 typedef struct mapping_t {
@@ -1846,7 +1834,7 @@ DLOG(fprintf(stderr, "read cluster %d (sector %d)\n", (int)cluster_num, (int)clu
 	}
 
 	for (i = 0; i < 0x10 * s->sectors_per_cluster; i++) {
-	    int cluster_count;
+	    int cluster_count = 0;
 
 DLOG(fprintf(stderr, "check direntry %d: \n", i); print_direntry(direntries + i));
 	    if (is_volume_label(direntries + i) || is_dot(direntries + i) ||
@@ -2872,41 +2860,16 @@ static void vvfat_close(BlockDriverState *bs)
         free(s->cluster_buffer);
 }
 
-#ifndef _MSC_VER
 BlockDriver bdrv_vvfat = {
-    "vvfat",
-    sizeof(BDRVVVFATState),
-    NULL, /* no probe for protocols */
-    vvfat_open,
-    vvfat_read,
-    vvfat_write,
-    vvfat_close,
-    NULL, /* ??? Not sure if we can do any meaningful flushing.  */
-    NULL,
-    vvfat_is_allocated,
-    .protocol_name = "fat",
+    .format_name	= "vvfat",
+    .instance_size	= sizeof(BDRVVVFATState),
+    .bdrv_open		= vvfat_open,
+    .bdrv_read		= vvfat_read,
+    .bdrv_write		= vvfat_write,
+    .bdrv_close		= vvfat_close,
+    .bdrv_is_allocated	= vvfat_is_allocated,
+    .protocol_name	= "fat",
 };
-#else
-BlockDriver bdrv_vvfat = {
-	"vvfat",
-	sizeof(BDRVVVFATState),
-	NULL, /* no probe for protocols */
-	vvfat_open,
-	vvfat_read,
-	vvfat_write,
-	vvfat_close,
-	NULL, /* ??? Not sure if we can do any meaningful flushing.  */
-	NULL,
-	vvfat_is_allocated,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"fat"
-};
-#endif
 
 #ifdef DEBUG
 static void checkpoint(void) {

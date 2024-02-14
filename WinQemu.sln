@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fmod api 3.75", "fmod api 3.75", "{4304281E-647D-4320-A861-DCE566D5F8E0}"
 EndProject
@@ -10,8 +10,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "inc", "inc", "{B17804C9-5EA3-419D-BE8C-7E739F8C2BDF}"
 	ProjectSection(SolutionItems) = preProject
 		fmod api 3.75\api\inc\fmod.h = fmod api 3.75\api\inc\fmod.h
-		fmod api 3.75\api\inc\fmod_errors.h = fmod api 3.75\api\inc\fmod_errors.h
 		fmod api 3.75\api\inc\fmoddyn.h = fmod api 3.75\api\inc\fmoddyn.h
+		fmod api 3.75\api\inc\fmod_errors.h = fmod api 3.75\api\inc\fmod_errors.h
 		fmod api 3.75\api\inc\wincompat.h = fmod api 3.75\api\inc\wincompat.h
 	EndProjectSection
 EndProject
@@ -153,6 +153,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemu", "WinQemu.vcxproj", "{043CD6CD-5932-4FFE-A2E5-173B7682D109}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemuTest", "WinQemuTest\WinQemuTest.vcxproj", "{37B9A41C-2460-44D8-BA57-955D25D76A4F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{043CD6CD-5932-4FFE-A2E5-173B7682D109} = {043CD6CD-5932-4FFE-A2E5-173B7682D109}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

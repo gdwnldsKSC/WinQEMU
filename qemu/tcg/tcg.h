@@ -21,31 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
-#ifndef _tcg_h__
+#ifndef _tcg_h__ // include guard, prevent multiple inclusions preventing redefinitions
 #define _tcg_h__
 
 
+#include "qemu-common.h"
 #include "tcg-target.h"
 
 #if TCG_TARGET_REG_BITS == 32
 typedef int32_t tcg_target_long;
 typedef uint32_t tcg_target_ulong;
-
-#define TCG_PRIlx "0x%08x"
-#define TCG_PRIld "%d"
-
+#define TCG_PRIlx PRIx32
+#define TCG_PRIld PRId32
 #elif TCG_TARGET_REG_BITS == 64
 typedef int64_t tcg_target_long;
 typedef uint64_t tcg_target_ulong;
@@ -104,9 +91,9 @@ typedef struct TCGPool {
     struct TCGPool *next;
     int size;
 #ifndef _MSC_VER
-	uint8_t data[0] __attribute__((aligned));
+    uint8_t data[0] __attribute__((aligned));
 #else
-	uint8_t data [1];
+    uint8_t data[]; // fancy C99 declaration instead of zero length array we can use in VS now!
 #endif
 } TCGPool;
 
@@ -150,7 +137,9 @@ typedef tcg_target_ulong TCGArg;
    are aliases for target_ulong and host pointer sized values respectively.
  */
 
-//#define DEBUG_TCGV 1
+#ifdef DEBUG_TCG
+#define DEBUG_TCGV 1
+#endif
 
 #ifdef DEBUG_TCGV
 
@@ -210,7 +199,7 @@ typedef int TCGv_i64;
 #define TCG_CALL_PURE           0x0010 
 /* A const function only reads its arguments and does not use TCG
    global variables. Hence a call to such a function does not
-   save TCG global variabes back to their canonical location. */
+   save TCG global variables back to their canonical location. */
 #define TCG_CALL_CONST          0x0020
 
 /* used to align parameters */
@@ -491,28 +480,12 @@ int64_t tcg_helper_rem_i64(int64_t arg1, int64_t arg2);
 uint64_t tcg_helper_divu_i64(uint64_t arg1, uint64_t arg2);
 uint64_t tcg_helper_remu_i64(uint64_t arg1, uint64_t arg2);
 
-#ifndef _MSC_VER
 extern uint8_t code_gen_prologue[];
-#else
-struct Dummy32ByteStruct
-{
-	uint8_t Dummy [32];
-};
-
-extern uint8_t code_gen_prologue[];
-
-#endif
-
 #if defined(_ARCH_PPC) && !defined(_ARCH_PPC64)
 #define tcg_qemu_tb_exec(tb_ptr) \
     ((long REGPARM __attribute__ ((longcall)) (*)(void *))code_gen_prologue)(tb_ptr)
 #else
-#ifndef _MSC_VER
 #define tcg_qemu_tb_exec(tb_ptr) ((long REGPARM (*)(void *))code_gen_prologue)(tb_ptr)
-#else
-#define tcg_qemu_tb_exec(tb_ptr) ((long (*)(void *))code_gen_prologue)(tb_ptr)
 #endif
 
-#endif
-
-#endif // _tcg_h__
+#endif // end include guard

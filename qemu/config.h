@@ -12,6 +12,8 @@
 
 #define FLOATX80
 
+//#define DEBUG_TCG 1 // TCG debug switch
+
 #ifdef _MSC_VER
 #define asm(X)
 
