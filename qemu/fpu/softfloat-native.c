@@ -14,6 +14,9 @@
 
 #include "softfloat.h"
 #include <math.h>
+#if defined(HOST_SOLARIS)
+#include <fenv.h>
+#endif
 
 void set_float_rounding_mode(int val STATUS_PARAM)
 {
