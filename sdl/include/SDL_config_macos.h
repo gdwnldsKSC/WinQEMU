@@ -30,7 +30,7 @@
 #include <MacTypes.h>
 
 typedef SInt8	int8_t;
-typedef UInt8	uint8_t;
+//typedef UInt8	uint8_t;
 typedef SInt16	int16_t;
 typedef UInt16	uint16_t;
 typedef SInt32	int32_t;
