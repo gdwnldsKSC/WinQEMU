@@ -22,6 +22,7 @@
 
 #include "qemu-common.h"
 #include "sysemu.h"
+#include "gdbstub.h"
 #include "kvm.h"
 
 /* KVM uses PAGE_SIZE in it's definition of COALESCED_MMIO_MAX */
@@ -56,6 +57,9 @@ struct KVMState
     int fd;
     int vmfd;
     int coalesced_mmio;
+#ifdef KVM_CAP_SET_GUEST_DEBUG
+    struct kvm_sw_breakpoint_head kvm_sw_breakpoints;
+#endif
 };
 
 static KVMState *kvm_state;
@@ -97,7 +101,7 @@ static int kvm_set_user_memory_region(KVMState *s, KVMSlot *slot)
     mem.slot = slot->slot;
     mem.guest_phys_addr = slot->start_addr;
     mem.memory_size = slot->memory_size;
-    mem.userspace_addr = (unsigned long)phys_ram_base + slot->phys_offset;
+    mem.userspace_addr = (unsigned long)qemu_get_ram_ptr(slot->phys_offset);
     mem.flags = slot->flags;
 
     return kvm_vm_ioctl(s, KVM_SET_USER_MEMORY_REGION, &mem);
@@ -291,6 +295,9 @@ int kvm_init(int smp_cpus)
 
     s = qemu_mallocz(sizeof(KVMState));
 
+#ifdef KVM_CAP_SET_GUEST_DEBUG
+    TAILQ_INIT(&s->kvm_sw_breakpoints);
+#endif
     for (i = 0; i < ARRAY_SIZE(s->slots); i++)
         s->slots[i].slot = i;
 
@@ -322,7 +329,7 @@ int kvm_init(int smp_cpus)
 
     /* initially, KVM allocated its own memory and we had to jump through
      * hooks to make phys_ram_base point to this.  Modern versions of KVM
-     * just use a user allocated buffer so we can use phys_ram_base
+     * just use a user allocated buffer so we can use regular pages
      * unmodified.  Make sure we have a sufficiently modern version of KVM.
      */
     ret = kvm_ioctl(s, KVM_CHECK_EXTENSION, KVM_CAP_USER_MEMORY);
@@ -504,6 +511,16 @@ int kvm_cpu_exec(CPUState *env)
             break;
         case KVM_EXIT_DEBUG:
             dprintf("kvm_exit_debug\n");
+#ifdef KVM_CAP_SET_GUEST_DEBUG
+            if (kvm_arch_debug(&run->debug.arch)) {
+                gdb_set_stop_cpu(env);
+                vm_stop(EXCP_DEBUG);
+                env->exception_index = EXCP_DEBUG;
+                return 0;
+            }
+            /* re-enter, this exception was guest-internal */
+            ret = 1;
+#endif /* KVM_CAP_SET_GUEST_DEBUG */
             break;
         default:
             dprintf("kvm_arch_handle_exit\n");
@@ -657,20 +674,158 @@ int kvm_has_sync_mmu(void)
     return 0;
 }
 
-void kvm_setup_guest_memory(void *start, size_t size)
+#ifdef KVM_CAP_SET_GUEST_DEBUG
+struct kvm_sw_breakpoint *kvm_find_sw_breakpoint(CPUState *env,
+                                                 target_ulong pc)
 {
-	if (!kvm_has_sync_mmu()) {
-#ifdef MADV_DONTFORK
-		int ret = madvise(start, size, MADV_DONTFORK);
+    struct kvm_sw_breakpoint *bp;
 
-		if (ret) {
-			perror("madvice");
-			exit(1);
-		}
-#else
-		fprintf(stderr,
-			"Need MADV_DONTFORK in absence of synchronous KVM MMU\n");
-		exit(1);
-#endif
-	}
+    TAILQ_FOREACH(bp, &env->kvm_state->kvm_sw_breakpoints, entry) {
+        if (bp->pc == pc)
+            return bp;
+    }
+    return NULL;
 }
+
+int kvm_sw_breakpoints_active(CPUState *env)
+{
+    return !TAILQ_EMPTY(&env->kvm_state->kvm_sw_breakpoints);
+}
+
+int kvm_update_guest_debug(CPUState *env, unsigned long reinject_trap)
+{
+    struct kvm_guest_debug dbg;
+
+    dbg.control = 0;
+    if (env->singlestep_enabled)
+        dbg.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+
+    kvm_arch_update_guest_debug(env, &dbg);
+    dbg.control |= reinject_trap;
+
+    return kvm_vcpu_ioctl(env, KVM_SET_GUEST_DEBUG, &dbg);
+}
+
+int kvm_insert_breakpoint(CPUState *current_env, target_ulong addr,
+                          target_ulong len, int type)
+{
+    struct kvm_sw_breakpoint *bp;
+    CPUState *env;
+    int err;
+
+    if (type == GDB_BREAKPOINT_SW) {
+        bp = kvm_find_sw_breakpoint(current_env, addr);
+        if (bp) {
+            bp->use_count++;
+            return 0;
+        }
+
+        bp = qemu_malloc(sizeof(struct kvm_sw_breakpoint));
+        if (!bp)
+            return -ENOMEM;
+
+        bp->pc = addr;
+        bp->use_count = 1;
+        err = kvm_arch_insert_sw_breakpoint(current_env, bp);
+        if (err) {
+            free(bp);
+            return err;
+        }
+
+        TAILQ_INSERT_HEAD(&current_env->kvm_state->kvm_sw_breakpoints,
+                          bp, entry);
+    } else {
+        err = kvm_arch_insert_hw_breakpoint(addr, len, type);
+        if (err)
+            return err;
+    }
+
+    for (env = first_cpu; env != NULL; env = env->next_cpu) {
+        err = kvm_update_guest_debug(env, 0);
+        if (err)
+            return err;
+    }
+    return 0;
+}
+
+int kvm_remove_breakpoint(CPUState *current_env, target_ulong addr,
+                          target_ulong len, int type)
+{
+    struct kvm_sw_breakpoint *bp;
+    CPUState *env;
+    int err;
+
+    if (type == GDB_BREAKPOINT_SW) {
+        bp = kvm_find_sw_breakpoint(current_env, addr);
+        if (!bp)
+            return -ENOENT;
+
+        if (bp->use_count > 1) {
+            bp->use_count--;
+            return 0;
+        }
+
+        err = kvm_arch_remove_sw_breakpoint(current_env, bp);
+        if (err)
+            return err;
+
+        TAILQ_REMOVE(&current_env->kvm_state->kvm_sw_breakpoints, bp, entry);
+        qemu_free(bp);
+    } else {
+        err = kvm_arch_remove_hw_breakpoint(addr, len, type);
+        if (err)
+            return err;
+    }
+
+    for (env = first_cpu; env != NULL; env = env->next_cpu) {
+        err = kvm_update_guest_debug(env, 0);
+        if (err)
+            return err;
+    }
+    return 0;
+}
+
+void kvm_remove_all_breakpoints(CPUState *current_env)
+{
+    struct kvm_sw_breakpoint *bp, *next;
+    KVMState *s = current_env->kvm_state;
+    CPUState *env;
+
+    TAILQ_FOREACH_SAFE(bp, &s->kvm_sw_breakpoints, entry, next) {
+        if (kvm_arch_remove_sw_breakpoint(current_env, bp) != 0) {
+            /* Try harder to find a CPU that currently sees the breakpoint. */
+            for (env = first_cpu; env != NULL; env = env->next_cpu) {
+                if (kvm_arch_remove_sw_breakpoint(env, bp) == 0)
+                    break;
+            }
+        }
+    }
+    kvm_arch_remove_all_hw_breakpoints();
+
+    for (env = first_cpu; env != NULL; env = env->next_cpu)
+        kvm_update_guest_debug(env, 0);
+}
+
+#else /* !KVM_CAP_SET_GUEST_DEBUG */
+
+int kvm_update_guest_debug(CPUState *env, unsigned long reinject_trap)
+{
+    return -EINVAL;
+}
+
+int kvm_insert_breakpoint(CPUState *current_env, target_ulong addr,
+                          target_ulong len, int type)
+{
+    return -EINVAL;
+}
+
+int kvm_remove_breakpoint(CPUState *current_env, target_ulong addr,
+                          target_ulong len, int type)
+{
+    return -EINVAL;
+}
+
+void kvm_remove_all_breakpoints(CPUState *current_env)
+{
+}
+#endif /* !KVM_CAP_SET_GUEST_DEBUG */
