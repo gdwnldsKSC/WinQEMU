@@ -354,7 +354,7 @@ static inline int can_do_io(CPUState *env)
 }
 #endif
 
-#ifdef USE_KQEMU
+#ifdef CONFIG_KQEMU
 #define KQEMU_MODIFY_PAGE_MASK (0xff & ~(VGA_DIRTY_FLAG | CODE_DIRTY_FLAG))
 
 #define MSR_QPI_COMMBASE 0xfabe0010
@@ -373,7 +373,7 @@ void kqemu_record_dump(void);
 extern uint32_t kqemu_comm_base;
 
 extern ram_addr_t kqemu_phys_ram_size;
-extern uint8_t* kqemu_phys_ram_base;
+extern uint8_t *kqemu_phys_ram_base;
 
 static inline int kqemu_is_ok(CPUState *env)
 {

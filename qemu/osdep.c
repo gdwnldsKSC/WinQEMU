@@ -37,9 +37,8 @@
 #include "sysemu.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#elif defined(_BSD)
+#elif defined(HOST_BSD)
 #include <stdlib.h>
 #else
 #include <malloc.h>
@@ -68,7 +67,7 @@ void qemu_vfree(void *ptr)
 
 #else
 
-#if defined(USE_KQEMU)
+#if defined(CONFIG_KQEMU)
 
 #ifdef __OpenBSD__
 #include <sys/param.h>
@@ -90,7 +89,7 @@ static void *kqemu_vmalloc(size_t size)
     void *ptr;
 
 /* no need (?) for a dummy file on OpenBSD/FreeBSD */
-#if defined(__OpenBSD__) || defined(__FreeBSD__)
+#if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DragonFly__)
     int map_anon = MAP_ANON;
 #else
     int map_anon = 0;
@@ -157,7 +156,7 @@ static void *kqemu_vmalloc(size_t size)
     }
     size = (size + 4095) & ~4095;
     ftruncate(phys_ram_fd, phys_ram_size + size);
-#endif /* !(__OpenBSD__ || __FreeBSD__) */
+#endif /* !(__OpenBSD__ || __FreeBSD__ || __DragonFly__) */
     ptr = mmap(NULL,
                size,
                PROT_WRITE | PROT_READ, map_anon | MAP_SHARED,
@@ -186,7 +185,7 @@ void *qemu_memalign(size_t alignment, size_t size)
     if (ret != 0)
         return NULL;
     return ptr;
-#elif defined(_BSD)
+#elif defined(HOST_BSD)
     return valloc(size);
 #else
     return memalign(alignment, size);
@@ -196,7 +195,7 @@ void *qemu_memalign(size_t alignment, size_t size)
 /* alloc shared memory pages */
 void *qemu_vmalloc(size_t size)
 {
-#if defined(USE_KQEMU)
+#if defined(CONFIG_KQEMU)
     if (kqemu_allowed)
         return kqemu_vmalloc(size);
 #endif
@@ -205,7 +204,7 @@ void *qemu_vmalloc(size_t size)
 
 void qemu_vfree(void *ptr)
 {
-#if defined(USE_KQEMU)
+#if defined(CONFIG_KQEMU)
     if (kqemu_allowed)
         kqemu_vfree(ptr);
 #endif

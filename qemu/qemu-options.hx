@@ -17,6 +17,13 @@ STEXI
 Display help and exit
 ETEXI
 
+DEF("version", 0, QEMU_OPTION_version,
+    "-version        display version information and exit\n")
+STEXI
+@item -version
+Display version information and exit
+ETEXI
+
 DEF("M", HAS_ARG, QEMU_OPTION_M,
     "-M machine      select emulated machine (-M ? for list)\n")
 STEXI
@@ -676,6 +683,27 @@ Add ACPI table with specified header fields and context from specified files.
 ETEXI
 
 #ifdef TARGET_I386
+DEF("smbios", HAS_ARG, QEMU_OPTION_smbios,
+    "-smbios file=binary\n"
+    "                Load SMBIOS entry from binary file\n"
+    "-smbios type=0[,vendor=str][,version=str][,date=str][,release=%%d.%%d]\n"
+    "                Specify SMBIOS type 0 fields\n"
+    "-smbios type=1[,manufacturer=str][,product=str][,version=str][,serial=str]\n"
+    "              [,uuid=uuid][,sku=str][,family=str]\n"
+    "                Specify SMBIOS type 1 fields\n")
+#endif
+STEXI
+@item -smbios file=@var{binary}
+Load SMBIOS entry from binary file.
+
+@item -smbios type=0[,vendor=@var{str}][,version=@var{str}][,date=@var{str}][,release=@var{%d.%d}]
+Specify SMBIOS type 0 fields
+
+@item -smbios type=1[,manufacturer=@var{str}][,product=@var{str}][,version=@var{str}][,serial=@var{str}][,uuid=@var{uuid}][,sku=@var{str}][,family=@var{str}]
+Specify SMBIOS type 1 fields
+ETEXI
+
+#ifdef TARGET_I386
 DEFHEADING()
 #endif
 STEXI
@@ -1276,7 +1304,7 @@ STEXI
 Set the filename for the BIOS.
 ETEXI
 
-#ifdef USE_KQEMU
+#ifdef CONFIG_KQEMU
 DEF("kernel-kqemu", 0, QEMU_OPTION_kernel_kqemu, \
     "-kernel-kqemu   enable KQEMU full virtualization (default is user mode only)\n")
 #endif
@@ -1285,7 +1313,7 @@ STEXI
 Enable KQEMU full virtualization (default is user mode only).
 ETEXI
 
-#ifdef USE_KQEMU
+#ifdef CONFIG_KQEMU
 DEF("no-kqemu", 0, QEMU_OPTION_no_kqemu, \
     "-no-kqemu       disable KQEMU kernel module usage\n")
 #endif
