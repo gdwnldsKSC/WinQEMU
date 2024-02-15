@@ -165,6 +165,7 @@
     </ClCompile>
     <ClCompile Include="qemu\acl.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1076,6 +1077,7 @@
   <ItemGroup>
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="qemu\acl.h" />
+    <ClInclude Include="qemu\hw\smbios.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClInclude>

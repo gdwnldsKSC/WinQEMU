@@ -97,8 +97,8 @@ struct Monitor {
 
 static LIST_HEAD(mon_list, Monitor) mon_list;
 
-static const mon_cmd_t mon_cmds[46];
-static const mon_cmd_t info_cmds[32];
+static const mon_cmd_t mon_cmds[48];
+static const mon_cmd_t info_cmds[33];
 
 Monitor *cur_mon = NULL;
 
@@ -1423,6 +1423,25 @@ static void do_info_kvm(Monitor *mon)
 #endif
 }
 
+static void do_info_numa(Monitor* mon)
+{
+    int i, j;
+    CPUState* env;
+
+    monitor_printf(mon, "%d nodes\n", nb_numa_nodes);
+    for (i = 0; i < nb_numa_nodes; i++) {
+        monitor_printf(mon, "node %d cpus:", i);
+        for (env = first_cpu; env != NULL; env = env->next_cpu) {
+            if (env->numa_node == i) {
+                monitor_printf(mon, " %d", env->cpu_index);
+            }
+        }
+        monitor_printf(mon, "\n");
+        monitor_printf(mon, "node %d size: %" PRId64 " MB\n", i,
+            node_mem[i] >> 20);
+    }
+}
+
 #ifdef CONFIG_PROFILER
 
 int64_t kqemu_time;
@@ -1744,10 +1763,14 @@ static const mon_cmd_t mon_cmds[] = {
                                         "add drive to PCI storage controller" },
     { "pci_add", "sss", pci_device_hot_add, "pci_addr=auto|[[<domain>:]<bus>:]<slot> nic|storage [[vlan=n][,macaddr=addr][,model=type]] [file=file][,if=type][,bus=nr]...", "hot-add PCI device" },
     { "pci_del", "s", pci_device_hot_remove, "pci_addr=[[<domain>:]<bus>:]<slot>", "hot remove PCI device" },
-    { "host_net_add", "ss", net_host_device_add,
-      "[tap,user,socket,vde] options", "add host VLAN client" },
+    #endif
+    { "host_net_add", "ss?", net_host_device_add,
+      "tap|user|socket|vde|dump [options]", "add host VLAN client" },
     { "host_net_remove", "is", net_host_device_remove,
       "vlan_id name", "remove host VLAN client" },
+#ifdef CONFIG_SLIRP
+    { "host_net_redir", "s", net_slirp_redir,
+      "[tcp|udp]:host-port:[guest-host]:guest-port", "redirect TCP or UDP connections from host to guest (requires -net user)" },
 #endif
     { "balloon", "i", do_balloon,
       "target", "request VM to change it's memory allocation (in MB)" },
@@ -1802,6 +1825,8 @@ static const mon_cmd_t info_cmds[] = {
       "", "show KQEMU information", },
     { "kvm", "", do_info_kvm,
       "", "show KVM information", },
+    { "numa", "", do_info_numa,
+      "", "show NUMA information", },
     { "usb", "", usb_info,
       "", "show guest USB devices", },
     { "usbhost", "", usb_host_info,

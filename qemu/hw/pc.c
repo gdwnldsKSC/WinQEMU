@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "pc.h"
 #include "fdc.h"
@@ -48,6 +37,7 @@
 #include "virtio-balloon.h"
 #include "virtio-console.h"
 #include "hpet_emul.h"
+#include "smbios.h"
 
 /* output Bochs bios info messages */
 //#define DEBUG_BIOS
@@ -62,6 +52,7 @@
 #define ACPI_DATA_SIZE       0x10000
 #define BIOS_CFG_IOPORT 0x510
 #define FW_CFG_ACPI_TABLES (FW_CFG_ARCH_LOCAL + 0)
+#define FW_CFG_SMBIOS_ENTRIES (FW_CFG_ARCH_LOCAL + 1)
 
 #define MAX_IDE_BUS 2
 
@@ -433,9 +424,15 @@ static void bochs_bios_write(void *opaque, uint32_t addr, uint32_t val)
     }
 }
 
+extern uint64_t node_cpumask[MAX_NODES];
+
 static void bochs_bios_init(void)
 {
     void *fw_cfg;
+    uint8_t *smbios_table;
+    size_t smbios_len;
+    uint64_t *numa_fw_cfg;
+    int i, j;
 
     register_ioport_write(0x400, 1, 2, bochs_bios_write, NULL);
     register_ioport_write(0x401, 1, 2, bochs_bios_write, NULL);
@@ -453,6 +450,31 @@ static void bochs_bios_init(void)
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
     fw_cfg_add_bytes(fw_cfg, FW_CFG_ACPI_TABLES, (uint8_t *)acpi_tables,
                      acpi_tables_len);
+
+    smbios_table = smbios_get_table(&smbios_len);
+    if (smbios_table)
+        fw_cfg_add_bytes(fw_cfg, FW_CFG_SMBIOS_ENTRIES,
+                         smbios_table, smbios_len);
+
+    /* allocate memory for the NUMA channel: one (64bit) word for the number
+     * of nodes, one word for each VCPU->node and one word for each node to
+     * hold the amount of memory.
+     */
+    numa_fw_cfg = qemu_mallocz((1 + smp_cpus + nb_numa_nodes) * 8);
+    numa_fw_cfg[0] = cpu_to_le64(nb_numa_nodes);
+    for (i = 0; i < smp_cpus; i++) {
+        for (j = 0; j < nb_numa_nodes; j++) {
+            if (node_cpumask[j] & (1 << i)) {
+                numa_fw_cfg[i + 1] = cpu_to_le64(j);
+                break;
+            }
+        }
+    }
+    for (i = 0; i < nb_numa_nodes; i++) {
+        numa_fw_cfg[smp_cpus + 1 + i] = cpu_to_le64(node_mem[i]);
+    }
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_NUMA, (uint8_t *)numa_fw_cfg,
+                     (1 + smp_cpus + nb_numa_nodes) * 8);
 }
 
 /* Generate an initial boot sector which sets state and jump to
@@ -766,23 +788,24 @@ static void pc_init_ne2k_isa(NICInfo *nd, qemu_irq *pic)
 }
 
 static int load_option_rom(const char *oprom, target_phys_addr_t start,
-	target_phys_addr_t end)
+                           target_phys_addr_t end)
 {
-	int size;
+        int size;
 
-	size = get_image_size(oprom);
-	if (size > 0 && start + size > end) {
-		fprintf(stderr, "Not enough space to load option rom '%s'\n",
-			oprom);
-		exit(1);
-	}
-	size = load_image_targphys(oprom, start, end - start);
-	if (size < 0){
-		fprintf(stderr, "Could not load option rom '%s'\n", oprom);
-		exit(1);
-	}
-	size = (size + 2047) & ~2047;
-	return size;
+        size = get_image_size(oprom);
+        if (size > 0 && start + size > end) {
+            fprintf(stderr, "Not enough space to load option rom '%s'\n",
+                    oprom);
+            exit(1);
+        }
+        size = load_image_targphys(oprom, start, end - start);
+        if (size < 0) {
+            fprintf(stderr, "Could not load option rom '%s'\n", oprom);
+            exit(1);
+        }
+        /* Round up optiom rom size to the next 2k boundary */
+        size = (size + 2047) & ~2047;
+        return size;
 }
 
 /* PC hardware initialisation */
@@ -796,7 +819,7 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
     int ret, linux_boot, i;
     ram_addr_t ram_addr, bios_offset, option_rom_offset;
     ram_addr_t below_4g_mem_size, above_4g_mem_size = 0;
-	int bios_size, isa_bios_size, oprom_area_size;
+    int bios_size, isa_bios_size, oprom_area_size;
     PCIBus *pci_bus;
     int piix3_devfn = -1;
     CPUState *env;
@@ -892,38 +915,39 @@ static void pc_init1(ram_addr_t ram_size, int vga_ram_size,
                                  isa_bios_size,
                                  (bios_offset + bios_size - isa_bios_size) | IO_MEM_ROM);
 
-	option_rom_offset = qemu_ram_alloc(0x20000);
-	oprom_area_size = 0;
-	cpu_register_physical_memory(0xc0000, 0x20000,
-		option_rom_offset | IO_MEM_ROM);
 
-	if (using_vga) {
-		/* VGA BIOS load */
-		if (cirrus_vga_enabled) {
-			snprintf(buf, sizeof(buf), "%s/%s", bios_dir,
-				VGABIOS_CIRRUS_FILENAME);
-		}
-		else {
-			snprintf(buf, sizeof(buf), "%s/%s", bios_dir, VGABIOS_FILENAME);
-		}
-		oprom_area_size = load_option_rom(buf, 0xc0000, 0xe0000);
+
+    option_rom_offset = qemu_ram_alloc(0x20000);
+    oprom_area_size = 0;
+    cpu_register_physical_memory(0xc0000, 0x20000,
+                                 option_rom_offset | IO_MEM_ROM);
+
+    if (using_vga) {
+        /* VGA BIOS load */
+        if (cirrus_vga_enabled) {
+            snprintf(buf, sizeof(buf), "%s/%s", bios_dir,
+                     VGABIOS_CIRRUS_FILENAME);
+        } else {
+            snprintf(buf, sizeof(buf), "%s/%s", bios_dir, VGABIOS_FILENAME);
+        }
+        oprom_area_size = load_option_rom(buf, 0xc0000, 0xe0000);
     }
-	/* Although video roms can grow larger than 0x8000, the area between
-	 * 0xc0000 - 0xc80000 is reserved for them. It means we won't be looking
-	 * for any other kind of option rom inside this area */
-	if (oprom_area_size < 0x8000)
-		oprom_area_size = 0x8000;
+    /* Although video roms can grow larger than 0x8000, the area between
+     * 0xc0000 - 0xc8000 is reserved for them. It means we won't be looking
+     * for any other kind of option rom inside this area */
+    if (oprom_area_size < 0x8000)
+        oprom_area_size = 0x8000;
 
-	if (linux_boot) {
-		load_linux(0xc0000 + oprom_area_size,
-			kernel_filename, initrd_filename, kernel_cmdline);
-		oprom_area_size += 2048;
-	}
+    if (linux_boot) {
+        load_linux(0xc0000 + oprom_area_size,
+                   kernel_filename, initrd_filename, kernel_cmdline);
+        oprom_area_size += 2048;
+    }
 
-	for (i = 0; i < nb_option_roms; i++) {
-		oprom_area_size += load_option_rom(option_rom[i],
-			0xc0000 + oprom_area_size, 0xe0000);
-	}
+    for (i = 0; i < nb_option_roms; i++) {
+        oprom_area_size += load_option_rom(option_rom[i],
+                                           0xc0000 + oprom_area_size, 0xe0000);
+    }
 
     /* map all the bios at the top of memory */
     cpu_register_physical_memory((uint32_t)(-bios_size),
@@ -1142,12 +1166,10 @@ void cmos_set_s3_resume(void)
         rtc_set_memory(rtc_state, 0xF, 0xFE);
 }
 
-#ifndef _MSC_VER
 QEMUMachine pc_machine = {
     .name = "pc",
     .desc = "Standard PC",
     .init = pc_init_pci,
-    .ram_require = VGA_RAM_SIZE + PC_MAX_BIOS_SIZE,
     .max_cpus = 255,
 };
 
@@ -1155,30 +1177,5 @@ QEMUMachine isapc_machine = {
     .name = "isapc",
     .desc = "ISA-only PC",
     .init = pc_init_isa,
-    .ram_require = VGA_RAM_SIZE + PC_MAX_BIOS_SIZE,
     .max_cpus = 1,
 };
-#else
-
-QEMUMachine pc_machine = {
-	"pc",
-	"Standard PC",
-	pc_init_pci,
-	VGA_RAM_SIZE + PC_MAX_BIOS_SIZE,
-	0,
-	0,
-	255,
-	NULL
-};
-
-QEMUMachine isapc_machine = {
-	"isapc",
-	"ISA-only PC",
-	pc_init_isa,
-	VGA_RAM_SIZE + PC_MAX_BIOS_SIZE,
-	0,
-	0,
-	1,
-	NULL
-};
-#endif

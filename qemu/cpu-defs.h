@@ -226,6 +226,7 @@ typedef int sig_atomic_t;
                                                                         \
     void *next_cpu; /* next CPU sharing TB cache */                     \
     int cpu_index; /* CPU index (informative) */                        \
+    int numa_node; /* NUMA node this CPU is belonging to */             \
     int running; /* Nonzero if cpu is currently running(usermode).  */  \
     /* user data */                                                     \
     void *opaque;                                                       \

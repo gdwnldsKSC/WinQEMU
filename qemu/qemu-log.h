@@ -28,7 +28,7 @@ extern int loglevel;
  */
 #define qemu_log(...) do {                 \
         if (logfile)                       \
-            fprintf(logfile, ##__VA_ARGS__); \
+            fprintf(logfile, ## __VA_ARGS__); \
     } while (0)
 
 /* vfprintf-like logging function
