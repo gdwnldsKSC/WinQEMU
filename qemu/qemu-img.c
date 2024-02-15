@@ -330,6 +330,67 @@ static int img_create(int argc, char **argv)
     return 0;
 }
 
+static int img_check(int argc, char** argv)
+{
+    int c, ret;
+    const char* filename, * fmt;
+    BlockDriver* drv;
+    BlockDriverState* bs;
+
+    fmt = NULL;
+    for (;;) {
+        c = getopt(argc, argv, "f:h");
+        if (c == -1)
+            break;
+        switch (c) {
+        case 'h':
+            help();
+            break;
+        case 'f':
+            fmt = optarg;
+            break;
+        }
+    }
+    if (optind >= argc)
+        help();
+    filename = argv[optind++];
+
+    bs = bdrv_new("");
+    if (!bs)
+        error("Not enough memory");
+    if (fmt) {
+        drv = bdrv_find_format(fmt);
+        if (!drv)
+            error("Unknown file format '%s'", fmt);
+    }
+    else {
+        drv = NULL;
+    }
+    if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
+        error("Could not open '%s'", filename);
+    }
+    ret = bdrv_check(bs);
+    switch (ret) {
+    case 0:
+        printf("No errors were found on the image.\n");
+        break;
+    case -ENOTSUP:
+        error("This image format does not support checks");
+        break;
+    default:
+        if (ret < 0) {
+            error("An error occurred during the check");
+        }
+        else {
+            printf("%d errors were found on the image.\n", ret);
+        }
+        break;
+    }
+
+    bdrv_delete(bs);
+    return 0;
+}
+
 static int img_commit(int argc, char **argv)
 {
     int c, ret;
@@ -907,6 +968,9 @@ int __declspec(dllexport)  qemu_image_main(int argc, char **argv)
     argc--; argv++;
     if (!strcmp(cmd, "create")) {
         img_create(argc, argv);
+    }
+    else if (!strcmp(cmd, "check")) {
+        img_check(argc, argv);
     } else if (!strcmp(cmd, "commit")) {
         img_commit(argc, argv);
     } else if (!strcmp(cmd, "convert")) {
