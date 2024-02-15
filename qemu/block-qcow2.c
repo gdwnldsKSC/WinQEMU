@@ -2605,10 +2605,12 @@ static void inc_refcounts(BlockDriverState *bs,
         cluster_offset += s->cluster_size) {
         k = cluster_offset >> s->cluster_bits;
         if (k < 0 || k >= refcount_table_size) {
-            printf("ERROR: invalid cluster offset=0x%llx\n", cluster_offset);
+            fprintf(stderr, "ERROR: invalid cluster offset=0x%n" PRIx64 "\n", 
+                cluster_offset);
         } else {
             if (++refcount_table[k] == 0) {
-                printf("ERROR: overflow cluster offset=0x%llx\n", cluster_offset);
+                fprintf(stderr, "ERROR: overflow cluster offset=0x" PRIx64
+                    "\n", cluster_offset);
             }
         }
     }
@@ -2645,8 +2647,8 @@ static int check_refcounts_l1(BlockDriverState *bs,
             if (check_copied) {
                 refcount = get_refcount(bs, (l2_offset & ~QCOW_OFLAG_COPIED) >> s->cluster_bits);
                 if ((refcount == 1) != ((l2_offset & QCOW_OFLAG_COPIED) != 0)) {
-                    printf("ERROR OFLAG_COPIED: l2_offset=%llx refcount=%d\n",
-                           l2_offset, refcount);
+                    fprintf(stderr, "ERROR OFLAG_COPIED: l2_offset=%" PRIx64
+                        " "refcount = % d\n", l2_offset, refcount);
                 }
             }
             l2_offset &= ~QCOW_OFLAG_COPIED;
@@ -2657,8 +2659,9 @@ static int check_refcounts_l1(BlockDriverState *bs,
                 if (offset != 0) {
                     if (offset & QCOW_OFLAG_COMPRESSED) {
                         if (offset & QCOW_OFLAG_COPIED) {
-                            printf("ERROR: cluster %lld: copied flag must never be set for compressed clusters\n",
-                                   offset >> s->cluster_bits);
+                            printf("ERROR: cluster %" PRId64 ": " 
+                                "copied flag must never be set for compressed "
+                                clusters\n", offset >> s->cluster_bits);
                             offset &= ~QCOW_OFLAG_COPIED;
                         }
                         nb_csectors = ((offset >> s->csize_shift) &
@@ -2671,8 +2674,8 @@ static int check_refcounts_l1(BlockDriverState *bs,
                         if (check_copied) {
                             refcount = get_refcount(bs, (offset & ~QCOW_OFLAG_COPIED) >> s->cluster_bits);
                             if ((refcount == 1) != ((offset & QCOW_OFLAG_COPIED) != 0)) {
-                                printf("ERROR OFLAG_COPIED: offset=%llx refcount=%d\n",
-                                       offset, refcount);
+                                printf("ERROR OFLAG_COPIED: offset=%"
+                                    PRIx64 " refcount = % d\n", offset, refcount);
                             }
                         }
                         offset &= ~QCOW_OFLAG_COPIED;
@@ -2692,7 +2695,7 @@ static int check_refcounts_l1(BlockDriverState *bs,
     qemu_free(l2_table);
     return 0;
  fail:
-    printf("ERROR: I/O error in check_refcounts_l1\n");
+    fprintf(stderr, "ERROR: I/O error in check_refcounts_l1\n");
     qemu_free(l1_table);
     qemu_free(l2_table);
     return -EIO;
@@ -2744,7 +2747,7 @@ static void check_refcounts(BlockDriverState *bs)
         refcount1 = get_refcount(bs, i);
         refcount2 = refcount_table[i];
         if (refcount1 != refcount2)
-            printf("ERROR cluster %d refcount=%d reference=%d\n",
+            fprintf(stderr, "ERROR cluster %d refcount=%d reference=%d\n",
                    i, refcount1, refcount2);
     }
 
