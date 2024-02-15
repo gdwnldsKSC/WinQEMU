@@ -2625,7 +2625,7 @@ static void rtl8139_io_writeb(void *opaque, uint8_t addr, uint32_t val)
     {
 
 #ifndef _MSC_VER
-	case MAC0 ... MAC0+5:
+        case MAC0 ... MAC0+5:
 #else
 		case MAC0:
 		case MAC0 + 1:
@@ -2634,10 +2634,10 @@ static void rtl8139_io_writeb(void *opaque, uint8_t addr, uint32_t val)
 		case MAC0 + 4:
 		case MAC0 + 5:
 #endif
-		s->phys[addr - MAC0] = val;
+            s->phys[addr - MAC0] = val;
             break;
 #ifndef _MSC_VER
-	case MAC0+6 ... MAC0+7:
+        case MAC0+6 ... MAC0+7:
 #else
 		case MAC0 + 6:
 		case MAC0 + 7:
@@ -2807,51 +2807,51 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
 
 #ifndef _MSC_VER
 
-		case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
+        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
 #else
-		case TxStatus0:
-		case TxStatus0 + 1:
-		case TxStatus0 + 2:
-		case TxStatus0 + 3:
-		case TxStatus0 + 4:
-		case TxStatus0 + 5:
-		case TxStatus0 + 6:
-		case TxStatus0 + 7:
-		case TxStatus0 + 8:
-		case TxStatus0 + 9:
-		case TxStatus0 + 10:
-		case TxStatus0 + 11:
-		case TxStatus0 + 12:
-		case TxStatus0 + 13:
-		case TxStatus0 + 14:
-		case TxStatus0 + 15:
+        case TxStatus0:
+        case TxStatus0 + 1:
+        case TxStatus0 + 2:
+        case TxStatus0 + 3:
+        case TxStatus0 + 4:
+        case TxStatus0 + 5:
+        case TxStatus0 + 6:
+        case TxStatus0 + 7:
+        case TxStatus0 + 8:
+        case TxStatus0 + 9:
+        case TxStatus0 + 10:
+        case TxStatus0 + 11:
+        case TxStatus0 + 12:
+        case TxStatus0 + 13:
+        case TxStatus0 + 14:
+        case TxStatus0 + 15:
 #endif
-            rtl8139_TxStatus_write(s, addr-TxStatus0, val);
+            rtl8139_TxStatus_write(s, addr - TxStatus0, val);
             break;
 
 
 #ifndef _MSC_VER
 
-		case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
+        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
 #else
-		case TxAddr0:
-		case TxAddr0 + 1:
-		case TxAddr0 + 2:
-		case TxAddr0 + 3:
-		case TxAddr0 + 4:
-		case TxAddr0 + 5:
-		case TxAddr0 + 6:
-		case TxAddr0 + 7:
-		case TxAddr0 + 8:
-		case TxAddr0 + 9:
-		case TxAddr0 + 10:
-		case TxAddr0 + 11:
-		case TxAddr0 + 12:
-		case TxAddr0 + 13:
-		case TxAddr0 + 14:
-		case TxAddr0 + 15:
+        case TxAddr0:
+        case TxAddr0 + 1:
+        case TxAddr0 + 2:
+        case TxAddr0 + 3:
+        case TxAddr0 + 4:
+        case TxAddr0 + 5:
+        case TxAddr0 + 6:
+        case TxAddr0 + 7:
+        case TxAddr0 + 8:
+        case TxAddr0 + 9:
+        case TxAddr0 + 10:
+        case TxAddr0 + 11:
+        case TxAddr0 + 12:
+        case TxAddr0 + 13:
+        case TxAddr0 + 14:
+        case TxAddr0 + 15:
 #endif
-			rtl8139_TxAddr_write(s, addr-TxAddr0, val);
+            rtl8139_TxAddr_write(s, addr - TxAddr0, val);
             break;
 
         case RxBuf:
@@ -3093,50 +3093,50 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
 
 #ifndef _MSC_VER
 
-		case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
+        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
 #else
-		case TxStatus0:
-		case TxStatus0 + 1:
-		case TxStatus0 + 2:
-		case TxStatus0 + 3:
-		case TxStatus0 + 4:
-		case TxStatus0 + 5:
-		case TxStatus0 + 6:
-		case TxStatus0 + 7:
-		case TxStatus0 + 8:
-		case TxStatus0 + 9:
-		case TxStatus0 + 10:
-		case TxStatus0 + 11:
-		case TxStatus0 + 12:
-		case TxStatus0 + 13:
-		case TxStatus0 + 14:
-		case TxStatus0 + 15:
+        case TxStatus0:
+        case TxStatus0 + 1:
+        case TxStatus0 + 2:
+        case TxStatus0 + 3:
+        case TxStatus0 + 4:
+        case TxStatus0 + 5:
+        case TxStatus0 + 6:
+        case TxStatus0 + 7:
+        case TxStatus0 + 8:
+        case TxStatus0 + 9:
+        case TxStatus0 + 10:
+        case TxStatus0 + 11:
+        case TxStatus0 + 12:
+        case TxStatus0 + 13:
+        case TxStatus0 + 14:
+        case TxStatus0 + 15:
 #endif
-            ret = rtl8139_TxStatus_read(s, addr-TxStatus0);
+            ret = rtl8139_TxStatus_read(s, addr - TxStatus0);
             break;
 
 #ifndef _MSC_VER
 
-		case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
+        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
 #else
-		case TxAddr0:
-		case TxAddr0 + 1:
-		case TxAddr0 + 2:
-		case TxAddr0 + 3:
-		case TxAddr0 + 4:
-		case TxAddr0 + 5:
-		case TxAddr0 + 6:
-		case TxAddr0 + 7:
-		case TxAddr0 + 8:
-		case TxAddr0 + 9:
-		case TxAddr0 + 10:
-		case TxAddr0 + 11:
-		case TxAddr0 + 12:
-		case TxAddr0 + 13:
-		case TxAddr0 + 14:
-		case TxAddr0 + 15:
+        case TxAddr0:
+        case TxAddr0 + 1:
+        case TxAddr0 + 2:
+        case TxAddr0 + 3:
+        case TxAddr0 + 4:
+        case TxAddr0 + 5:
+        case TxAddr0 + 6:
+        case TxAddr0 + 7:
+        case TxAddr0 + 8:
+        case TxAddr0 + 9:
+        case TxAddr0 + 10:
+        case TxAddr0 + 11:
+        case TxAddr0 + 12:
+        case TxAddr0 + 13:
+        case TxAddr0 + 14:
+        case TxAddr0 + 15:
 #endif
-		    ret = rtl8139_TxAddr_read(s, addr-TxAddr0);
+            ret = rtl8139_TxAddr_read(s, addr - TxAddr0);
             break;
 
         case RxBuf:
@@ -3560,6 +3560,33 @@ static void rtl8139_timer(void *opaque)
 }
 #endif /* RTL8139_ONBOARD_TIMER */
 
+static void rtl8139_cleanup(VLANClientState *vc)
+{
+    RTL8139State *s = vc->opaque;
+
+    if (s->cplus_txbuffer) {
+        qemu_free(s->cplus_txbuffer);
+        s->cplus_txbuffer = NULL;
+    }
+
+#ifdef RTL8139_ONBOARD_TIMER
+    qemu_del_timer(s->timer);
+    qemu_free_timer(s->timer);
+#endif
+
+    unregister_savevm("rtl8139", s);
+}
+
+static int pci_rtl8139_uninit(PCIDevice *dev)
+{
+    PCIRTL8139State *d = (PCIRTL8139State *)dev;
+    RTL8139State *s = &d->rtl8139;
+
+    cpu_unregister_io_memory(s->rtl8139_mmio_io_addr);
+
+    return 0;
+}
+
 PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
 {
     PCIRTL8139State *d;
@@ -3570,6 +3597,7 @@ PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
                                               "RTL8139", sizeof(PCIRTL8139State),
                                               devfn,
                                               NULL, NULL);
+    d->dev.unregister = pci_rtl8139_uninit;
     pci_conf = d->dev.config;
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_REALTEK);
     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_REALTEK_8139);
@@ -3596,7 +3624,8 @@ PCIDevice *pci_rtl8139_init(PCIBus *bus, NICInfo *nd, int devfn)
     memcpy(s->macaddr, nd->macaddr, 6);
     rtl8139_reset(s);
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 rtl8139_receive, rtl8139_can_receive, s);
+                                 rtl8139_receive, rtl8139_can_receive,
+                                 rtl8139_cleanup, s);
 
     qemu_format_nic_info_str(s->vc, s->macaddr);
 

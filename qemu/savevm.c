@@ -21,29 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-#include "qemu-common.h"
-#include "hw/hw.h"
-#include "net.h"
-#include "console.h"
-#include "sysemu.h"
-#include "qemu-timer.h"
-#include "qemu-char.h"
-#include "block.h"
-#include "audio/audio.h"
-#include "migration.h"
-#include "qemu_socket.h"
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -51,10 +28,6 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <zlib.h>
-
-#ifdef _MSC_VER
-#include "pxwc.h"
-#endif
 
 /* Needed early for HOST_BSD etc. */
 #include "config-host.h"
@@ -98,6 +71,7 @@
 #endif
 
 #ifdef _WIN32
+#include <WinSock2.h>
 #include <windows.h>
 #include <malloc.h>
 #include <sys/timeb.h>
@@ -338,7 +312,7 @@ typedef struct QEMUFileBdrv
 } QEMUFileBdrv;
 
 static int block_put_buffer(void *opaque, const uint8_t *buf,
-                            int64_t pos, int size)
+                           int64_t pos, int size)
 {
     QEMUFileBdrv *s = opaque;
     bdrv_put_buffer(s->bs, buf, s->base_offset + pos, size);
@@ -399,7 +373,7 @@ int qemu_file_has_error(QEMUFile *f)
 
 void qemu_file_set_error(QEMUFile *f)
 {
-	f->has_error = 1;
+    f->has_error = 1;
 }
 
 void qemu_fflush(QEMUFile *f)
@@ -672,6 +646,22 @@ int register_savevm(const char *idstr,
 {
     return register_savevm_live(idstr, instance_id, version_id,
                                 NULL, save_state, load_state, opaque);
+}
+
+void unregister_savevm(const char *idstr, void *opaque)
+{
+    SaveStateEntry **pse;
+
+    pse = &first_se;
+    while (*pse != NULL) {
+        if (strcmp((*pse)->idstr, idstr) == 0 && (*pse)->opaque == opaque) {
+            SaveStateEntry *next = (*pse)->next;
+            qemu_free(*pse);
+            *pse = next;
+            continue;
+        }
+        pse = &(*pse)->next;
+    }
 }
 
 #define QEMU_VM_FILE_MAGIC           0x5145564d

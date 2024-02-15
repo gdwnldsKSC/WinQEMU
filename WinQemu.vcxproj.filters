@@ -1669,7 +1669,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
+    <Text Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="qemu\target-alpha\STATUS">

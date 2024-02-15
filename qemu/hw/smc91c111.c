@@ -42,7 +42,7 @@ typedef struct {
     uint8_t int_level;
     uint8_t int_mask;
     uint8_t macaddr[6];
-	int mmio_index;
+    int mmio_index;
 } smc91c111_state;
 
 #define RCR_SOFT_RST  0x8000
@@ -693,10 +693,10 @@ static CPUWriteMemoryFunc *smc91c111_writefn[] = {
 
 static void smc91c111_cleanup(VLANClientState *vc)
 {
-	smc91c111_state *s = vc->opaque;
+    smc91c111_state *s = vc->opaque;
 
-	cpu_unregister_io_memory(s->mmio_index);
-	qemu_free(s);
+    cpu_unregister_io_memory(s->mmio_index);
+    qemu_free(s);
 }
 
 void smc91c111_init(NICInfo *nd, uint32_t base, qemu_irq irq)
@@ -715,8 +715,8 @@ void smc91c111_init(NICInfo *nd, uint32_t base, qemu_irq irq)
     smc91c111_reset(s);
 
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 smc91c111_receive, smc91c111_can_receive, 
-								 smc91c111_cleanup, s);
+                                 smc91c111_receive, smc91c111_can_receive,
+                                 smc91c111_cleanup, s);
     qemu_format_nic_info_str(s->vc, s->macaddr);
     /* ??? Save/restore.  */
 }

@@ -3693,6 +3693,8 @@ void qemu_system_reset(void)
 	for (re = first_reset_entry; re != NULL; re = re->next) {
 		re->func(re->opaque);
 	}
+//	if (kvm_enabled())             //from upstream, disabled until we fix these symbols/compilation
+//		kvm_sync_vcpus();
 }
 
 void qemu_system_reset_request(void)

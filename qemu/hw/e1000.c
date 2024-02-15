@@ -22,16 +22,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
+
 #include "hw.h"
 #include "pci.h"
 #include "net.h"
@@ -99,7 +90,6 @@ enum {
 typedef struct E1000State_st {
     PCIDevice dev;
     VLANClientState *vc;
-    NICInfo *nd;
     int mmio_index;
 
     uint32_t mac_reg[0x8000];
@@ -158,7 +148,6 @@ enum {
 };
 
 enum { PHY_R = 1, PHY_W = 2, PHY_RW = PHY_R | PHY_W };
-#ifndef _MSC_VER
 static const char phy_regcap[0x20] = {
     [PHY_STATUS] = PHY_R,	[M88E1000_EXT_PHY_SPEC_CTRL] = PHY_RW,
     [PHY_ID1] = PHY_R,		[M88E1000_PHY_SPEC_CTRL] = PHY_RW,
@@ -167,32 +156,6 @@ static const char phy_regcap[0x20] = {
     [PHY_AUTONEG_ADV] = PHY_RW,	[M88E1000_RX_ERR_CNTR] = PHY_R,
     [PHY_ID2] = PHY_R,		[M88E1000_PHY_SPEC_STATUS] = PHY_R
 };
-#else
-static const char phy_regcap[0x20] = {
-	PHY_RW,
-	PHY_R,
-	PHY_R,
-	PHY_R,
-	PHY_RW,
-	PHY_R,
-	0,
-	0,
-	0,
-	PHY_RW,
-	PHY_R,		// 0x0a
-	0,
-	0,
-	0,
-	0,
-	0,
-	PHY_RW,		// 0x10
-	PHY_R,	// 0x11
-	0,		// 0x12
-	0,		// 0x13
-	PHY_RW,		// 0x14
-	PHY_R,		// 0x15
-};
-#endif
 
 static void
 ioport_map(PCIDevice *pci_dev, int region_num, uint32_t addr,
@@ -1042,18 +1005,14 @@ static const uint16_t e1000_eeprom_template[64] = {
     0xffff, 0xffff, 0xffff, 0xffff,      0xffff, 0xffff,      0xffff, 0x0000,
 };
 
-
-#ifndef _MSC_VER
-static const uint16_t phy_reg_init[] =
-{
-	static const uint16_t phy_reg_init[] = {
-		[PHY_CTRL] = 0x1140, [PHY_STATUS] = 0x796d, // link initially up
-		[PHY_ID1] = 0x141, [PHY_ID2] = PHY_ID2_INIT,
-		[PHY_1000T_CTRL] = 0x0e00, [M88E1000_PHY_SPEC_CTRL] = 0x360,
-		[M88E1000_EXT_PHY_SPEC_CTRL] = 0x0d60, [PHY_AUTONEG_ADV] = 0xde1,
-		[PHY_LP_ABILITY] = 0x1e0, [PHY_1000T_STATUS] = 0x3c00,
-		[M88E1000_PHY_SPEC_STATUS] = 0xac00,
-	};
+static const uint16_t phy_reg_init[] = {
+    [PHY_CTRL] = 0x1140,			[PHY_STATUS] = 0x796d, // link initially up
+    [PHY_ID1] = 0x141,				[PHY_ID2] = PHY_ID2_INIT,
+    [PHY_1000T_CTRL] = 0x0e00,			[M88E1000_PHY_SPEC_CTRL] = 0x360,
+    [M88E1000_EXT_PHY_SPEC_CTRL] = 0x0d60,	[PHY_AUTONEG_ADV] = 0xde1,
+    [PHY_LP_ABILITY] = 0x1e0,			[PHY_1000T_STATUS] = 0x3c00,
+    [M88E1000_PHY_SPEC_STATUS] = 0xac00,
+};
 
 static const uint32_t mac_reg_init[] = {
     [PBA] =     0x00100030,
@@ -1068,10 +1027,6 @@ static const uint32_t mac_reg_init[] = {
                 E1000_MANC_ARP_EN | E1000_MANC_0298_EN |
                 E1000_MANC_RMCP_EN,
 };
-#else
-static uint16_t phy_reg_init[0x15];
-static uint32_t mac_reg_init[MANC + 1];
-#endif
 
 /* PCI interface */
 
@@ -1106,6 +1061,14 @@ e1000_mmio_map(PCIDevice *pci_dev, int region_num,
                                      excluded_regs[i] - 4);
 }
 
+static void
+e1000_cleanup(VLANClientState *vc)
+{
+    E1000State *d = vc->opaque;
+
+    unregister_savevm("e1000", d);
+}
+
 static int
 pci_e1000_uninit(PCIDevice *dev)
 {
@@ -1124,83 +1087,9 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     uint16_t checksum = 0;
     static const char info_str[] = "e1000";
     int i;
-// do we even need this stuff?
-#ifdef _MSC_VER
-
-	phy_reg_init[PHY_CTRL] = 0x1140;			phy_reg_init[PHY_STATUS] = 0x796d; // link initially up
-	phy_reg_init[PHY_ID1] = 0x141;				phy_reg_init[PHY_ID2] = PHY_ID2_INIT;
-	phy_reg_init[PHY_1000T_CTRL] = 0x0e00;			phy_reg_init[M88E1000_PHY_SPEC_CTRL] = 0x360;
-	phy_reg_init[M88E1000_EXT_PHY_SPEC_CTRL] = 0x0d60;	phy_reg_init[PHY_AUTONEG_ADV] = 0xde1;
-	phy_reg_init[PHY_LP_ABILITY] = 0x1e0;			phy_reg_init[PHY_1000T_STATUS] = 0x3c00;
-	phy_reg_init[M88E1000_PHY_SPEC_STATUS] = 0xac00;
-		
-	mac_reg_init[PBA] = 0x00100030;
-	mac_reg_init[LEDCTL] = 0x602;
-	mac_reg_init[CTRL] = E1000_CTRL_SWDPIN2 | E1000_CTRL_SWDPIN0 |
-		E1000_CTRL_SPD_1000 | E1000_CTRL_SLU;
-	mac_reg_init[STATUS] = 0x80000000 | E1000_STATUS_GIO_MASTER_ENABLE |
-		E1000_STATUS_ASDV | E1000_STATUS_MTXCKOK |
-		E1000_STATUS_SPEED_1000 | E1000_STATUS_FD |
-		E1000_STATUS_LU;
-	mac_reg_init[MANC] = E1000_MANC_EN_MNG2HOST | E1000_MANC_RCV_TCO_EN |
-		E1000_MANC_ARP_EN | E1000_MANC_0298_EN |
-		E1000_MANC_RMCP_EN;
-
-#undef getreg
-#define getreg(index)	macreg_readops [index] = mac_readreg
-	getreg(PBA);	getreg(RCTL);	getreg(TDH);	getreg(TXDCTL);
-	getreg(WUFC);	getreg(TDT);	getreg(CTRL);	getreg(LEDCTL);
-	getreg(MANC);	getreg(MDIC);	getreg(SWSM);	getreg(STATUS);
-	getreg(TORL);	getreg(TOTL);	getreg(IMS);	getreg(TCTL);
-	getreg(RDH);	getreg(RDT);	getreg(VET);
-
-	macreg_readops[TOTH] = mac_read_clr8;	macreg_readops[TORH] = mac_read_clr8;	macreg_readops[GPRC] = mac_read_clr4;
-	macreg_readops[GPTC] = mac_read_clr4;	macreg_readops[TPR] = mac_read_clr4;	macreg_readops[TPT] = mac_read_clr4;
-	macreg_readops[ICR] = mac_icr_read;	macreg_readops[EECD] = get_eecd;	macreg_readops[EERD] = flash_eerd_read;
-
-	for (i = CRCERRS; i <= MPC; ++i)
-		macreg_readops[i] = &mac_readreg;
-
-	for (i = RA; i <= RA + 31; ++i)
-		macreg_readops[i] = &mac_readreg;
-
-	for (i = MTA; i <= MTA + 127; ++i)
-		macreg_readops[i] = &mac_readreg;
-
-	for (i = VFTA; i <= VFTA + 127; ++i)
-		macreg_readops[i] = &mac_readreg;
-#undef getreg
-
-#undef putreg
-#define putreg(index)	macreg_writeops [index] = mac_writereg
-
-	putreg(PBA);	putreg(EERD);	putreg(SWSM);	putreg(WUFC);
-	putreg(TDBAL);	putreg(TDBAH);	putreg(TXDCTL);	putreg(RDBAH);
-	putreg(RDBAL);	putreg(LEDCTL); putreg(CTRL);	putreg(VET);
-	macreg_writeops[TDLEN] = set_dlen;	macreg_writeops[RDLEN] = set_dlen;	macreg_writeops[TCTL] = set_tctl;
-	macreg_writeops[TDT] = set_tctl;	macreg_writeops[MDIC] = set_mdic;	macreg_writeops[ICS] = set_ics;
-	macreg_writeops[TDH] = set_16bit;	macreg_writeops[RDH] = set_16bit;	macreg_writeops[RDT] = set_rdt;
-	macreg_writeops[IMC] = set_imc;	macreg_writeops[IMS] = set_ims;	macreg_writeops[ICR] = set_icr;
-	macreg_writeops[EECD] = set_eecd;	macreg_writeops[RCTL] = set_rx_control;
-
-		for (i = RA; i <= RA + 31; ++i)
-			macreg_writeops[i] = &mac_writereg;
-
-		for (i = MTA; i <= MTA + 127; ++i)
-			macreg_writeops[i] = &mac_writereg;
-
-		for (i = VFTA; i <= VFTA + 127; ++i)
-			macreg_writeops[i] = &mac_writereg;
-
-#undef putreg
-#endif
-		// we'll figure out if we need it at some point in the future
 
     d = (E1000State *)pci_register_device(bus, "e1000",
                 sizeof(E1000State), devfn, NULL, NULL);
-
-	if (!d)
-		return NULL;
 
     pci_conf = d->dev.config;
     memset(pci_conf, 0, 256);
@@ -1224,7 +1113,6 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     pci_register_io_region((PCIDevice *)d, 1, IOPORT_SIZE,
                            PCI_ADDRESS_SPACE_IO, ioport_map);
 
-    d->nd = nd;
     memmove(d->eeprom_data, e1000_eeprom_template,
         sizeof e1000_eeprom_template);
     for (i = 0; i < 3; i++)
@@ -1242,10 +1130,11 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
     memset(&d->tx, 0, sizeof d->tx);
 
     d->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 e1000_receive, e1000_can_receive, d);
+                                 e1000_receive, e1000_can_receive,
+                                 e1000_cleanup, d);
     d->vc->link_status_changed = e1000_set_link_status;
 
-    qemu_format_nic_info_str(d->vc, d->nd->macaddr);
+    qemu_format_nic_info_str(d->vc, nd->macaddr);
 
     register_savevm(info_str, -1, 2, nic_save, nic_load, d);
     d->dev.unregister = pci_e1000_uninit;

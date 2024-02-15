@@ -23,16 +23,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "usb.h"
 #include "net.h"
@@ -1025,7 +1015,6 @@ static void usb_net_handle_reset(USBDevice *dev)
 {
 }
 
-#ifndef _MSC_VER
 static const char * const usb_net_stringtable[] = {
     [STRING_MANUFACTURER]	= "QEMU",
     [STRING_PRODUCT]		= "RNDIS/QEMU USB Network Device",
@@ -1038,21 +1027,6 @@ static const char * const usb_net_stringtable[] = {
     [STRING_RNDIS]		= "QEMU USB Net RNDIS",
     [STRING_SERIALNUMBER]	= "1",
 };
-#else
-static const char * const usb_net_stringtable[] = {
-	NULL,
-	"QEMU",
-	"RNDIS/QEMU USB Network Device",
-	"400102030405",
-	"QEMU USB Net Data Interface",
-	"QEMU USB Net Control Interface",
-	"QEMU USB Net RNDIS Control Interface",
-	"QEMU USB Net CDC",
-	"QEMU USB Net Subset",
-	"QEMU USB Net RNDIS",
-	"1",
-};
-#endif
 
 static int usb_net_handle_control(USBDevice *dev, int request, int value,
                 int index, int length, uint8_t *data)
@@ -1441,14 +1415,20 @@ static int usbnet_can_receive(void *opaque)
     return !s->in_len;
 }
 
+static void usbnet_cleanup(VLANClientState *vc)
+{
+    USBNetState *s = vc->opaque;
+
+    rndis_clear_responsequeue(s);
+    qemu_free(s);
+}
+
 static void usb_net_handle_destroy(USBDevice *dev)
 {
     USBNetState *s = (USBNetState *) dev;
 
     /* TODO: remove the nd_table[] entry */
     qemu_del_vlan_client(s->vc);
-    rndis_clear_responsequeue(s);
-    qemu_free(s);
 }
 
 USBDevice *usb_net_init(NICInfo *nd)
@@ -1478,7 +1458,9 @@ USBDevice *usb_net_init(NICInfo *nd)
     pstrcpy(s->dev.devname, sizeof(s->dev.devname),
                     "QEMU USB Network Interface");
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                    usbnet_receive, usbnet_can_receive, s);
+                                 usbnet_receive,
+                                 usbnet_can_receive,
+                                 usbnet_cleanup, s);
 
     qemu_format_nic_info_str(s->vc, s->mac);
 

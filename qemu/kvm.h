@@ -40,10 +40,11 @@ void kvm_set_phys_mem(target_phys_addr_t start_addr,
                       ram_addr_t size,
                       ram_addr_t phys_offset);
 
-void kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr, target_phys_addr_t end_addr);
+void kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr,
+                                    target_phys_addr_t end_addr);
 
-int kvm_log_start(target_phys_addr_t phys_addr, target_phys_addr_t len);
-int kvm_log_stop(target_phys_addr_t phys_addr, target_phys_addr_t len);
+int kvm_log_start(target_phys_addr_t phys_addr, ram_addr_t size);
+int kvm_log_stop(target_phys_addr_t phys_addr, ram_addr_t size);
 
 int kvm_has_sync_mmu(void);
 
@@ -119,14 +120,12 @@ void kvm_arch_update_guest_debug(CPUState *env, struct kvm_guest_debug *dbg);
 
 static inline void cpu_synchronize_state(CPUState *env, int modified)
 {
-#ifndef _MSC_VER
-    if (kvm_enabled()) {
+ /*   if (kvm_enabled()) {   // disabled until KVM compile fixed
         if (modified)
             kvm_arch_put_registers(env);
         else
             kvm_arch_get_registers(env);
-    }
-#endif
+    } */
 }
 
 #endif

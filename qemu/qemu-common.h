@@ -86,6 +86,14 @@ static inline char *realpath(const char *path, char *resolved_path)
 #define PRIo64 "I64o"
 #endif
 
+// Add posix supported commands native to windows aliased to standard posix format
+#ifdef _MSC_VER
+#define popen			_popen
+#define pclose			_pclose
+#define getpid			_getpid
+#define getcwd			_getcwd
+#endif
+
 /* FIXME: Remove NEED_CPU_H.  */
 #ifndef NEED_CPU_H
 

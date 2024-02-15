@@ -1273,7 +1273,7 @@
     <ClInclude Include="qemu\slirp\udp.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
+    <Text Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="qemu\qemu-options.hx" />

@@ -38,9 +38,7 @@
 #include "smbus.h"
 #include "kvm.h"
 
-#include "osdep.h"
-
-//#define ACPI_DEBUG
+//#define DEBUG
 
 /* i82731AB (PIIX4) compatible power management function */
 #define PM_FREQ 3579545
@@ -185,7 +183,7 @@ static void pm_ioport_writew(void *opaque, uint32_t addr, uint32_t val)
     default:
         break;
     }
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("PM writew port=0x%04x val=0x%04x\n", addr, val);
 #endif
 }
@@ -210,7 +208,7 @@ static uint32_t pm_ioport_readw(void *opaque, uint32_t addr)
         val = 0;
         break;
     }
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("PM readw port=0x%04x val=0x%04x\n", addr, val);
 #endif
     return val;
@@ -220,7 +218,7 @@ static void pm_ioport_writel(void *opaque, uint32_t addr, uint32_t val)
 {
     //    PIIX4PMState *s = opaque;
     addr &= 0x3f;
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("PM writel port=0x%04x val=0x%08x\n", addr, val);
 #endif
 }
@@ -239,7 +237,7 @@ static uint32_t pm_ioport_readl(void *opaque, uint32_t addr)
         val = 0;
         break;
     }
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("PM readl port=0x%04x val=0x%08x\n", addr, val);
 #endif
     return val;
@@ -249,7 +247,7 @@ static void pm_smi_writeb(void *opaque, uint32_t addr, uint32_t val)
 {
     PIIX4PMState *s = opaque;
     addr &= 1;
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("pm_smi_writeb addr=0x%x val=0x%02x\n", addr, val);
 #endif
     if (addr == 0) {
@@ -281,7 +279,7 @@ static uint32_t pm_smi_readb(void *opaque, uint32_t addr)
     } else {
         val = s->apms;
     }
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("pm_smi_readb addr=0x%x val=0x%02x\n", addr, val);
 #endif
     return val;
@@ -302,7 +300,7 @@ static void smb_transaction(PIIX4PMState *s)
     uint8_t addr = s->smb_addr >> 1;
     i2c_bus *bus = s->smbus;
 
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("SMBus trans addr=0x%02x prot=0x%02x\n", addr, prot);
 #endif
     switch(prot) {
@@ -353,7 +351,7 @@ static void smb_ioport_writeb(void *opaque, uint32_t addr, uint32_t val)
 {
     PIIX4PMState *s = opaque;
     addr &= 0x3f;
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("SMB writeb port=0x%04x val=0x%02x\n", addr, val);
 #endif
     switch(addr) {
@@ -423,7 +421,7 @@ static uint32_t smb_ioport_readb(void *opaque, uint32_t addr)
         val = 0;
         break;
     }
-#ifdef ACPI_DEBUG
+#ifdef DEBUG
     printf("SMB readb port=0x%04x val=0x%02x\n", addr, val);
 #endif
     return val;
@@ -498,13 +496,18 @@ static int pm_load(QEMUFile* f,void* opaque,int version_id)
 
 static void piix4_reset(void *opaque)
 {
-	PIIX4PMState *s = opaque;
-	uint8_t *pci_conf = s->dev.config;
+    PIIX4PMState *s = opaque;
+    uint8_t *pci_conf = s->dev.config;
 
-	pci_conf[0x58] = 0;
-	pci_conf[0x59] = 0;
-	pci_conf[0x5a] = 0;
-	pci_conf[0x5b] = 0;
+    pci_conf[0x58] = 0;
+    pci_conf[0x59] = 0;
+    pci_conf[0x5a] = 0;
+    pci_conf[0x5b] = 0;
+
+    if (kvm_enabled()) {
+        /* Mark SMM as already inited (until KVM supports SMM). */
+        pci_conf[0x5B] = 0x02;
+    }
 }
 
 i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
@@ -619,7 +622,7 @@ static uint32_t gpe_readb(void *opaque, uint32_t addr)
     }
 
 #if defined(DEBUG)
-    printf("gpe read %x == %x\n", addr, val);
+    printf("gpe read %lx == %lx\n", addr, val);
 #endif
     return val;
 }
@@ -661,7 +664,7 @@ static void gpe_writeb(void *opaque, uint32_t addr, uint32_t val)
    }
 
 #if defined(DEBUG)
-    printf("gpe write %x <== %d\n", addr, val);
+    printf("gpe write %lx <== %d\n", addr, val);
 #endif
 }
 
@@ -681,7 +684,7 @@ static uint32_t pcihotplug_read(void *opaque, uint32_t addr)
     }
 
 #if defined(DEBUG)
-    printf("pcihotplug read %x == %x\n", addr, val);
+    printf("pcihotplug read %lx == %lx\n", addr, val);
 #endif
     return val;
 }
@@ -699,14 +702,14 @@ static void pcihotplug_write(void *opaque, uint32_t addr, uint32_t val)
    }
 
 #if defined(DEBUG)
-    printf("pcihotplug write %x <== %d\n", addr, val);
+    printf("pcihotplug write %lx <== %d\n", addr, val);
 #endif
 }
 
 static uint32_t pciej_read(void *opaque, uint32_t addr)
 {
 #if defined(DEBUG)
-    printf("pciej read %x == %x\n", addr, opaque);
+    printf("pciej read %lx == %lx\n", addr, val);
 #endif
     return 0;
 }
@@ -720,7 +723,7 @@ static void pciej_write(void *opaque, uint32_t addr, uint32_t val)
 #endif
 
 #if defined(DEBUG)
-    printf("pciej write %x <== %d\n", addr, val);
+    printf("pciej write %lx <== %d\n", addr, val);
 #endif
 }
 
