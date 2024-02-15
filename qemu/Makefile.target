@@ -131,8 +131,11 @@ all: $(PROGS)
 
 #########################################################
 # cpu emulator library
-LIBOBJS=exec.o kqemu.o translate-all.o cpu-exec.o\
+LIBOBJS=exec.o translate-all.o cpu-exec.o\
         translate.o host-utils.o
+ifdef CONFIG_KQEMU
+LIBOBJS+= kqemu.o
+endif
 # TCG code generator
 LIBOBJS+= tcg/tcg.o tcg/tcg-runtime.o
 CPPFLAGS+=-I$(SRC_PATH)/tcg -I$(SRC_PATH)/tcg/$(ARCH)
@@ -576,7 +579,7 @@ OBJS+= ide.o pckbd.o vga.o $(SOUND_HW) dma.o
 OBJS+= fdc.o mc146818rtc.o serial.o i8259.o i8254.o pcspk.o pc.o
 OBJS+= cirrus_vga.o apic.o ioapic.o parallel.o acpi.o piix_pci.o
 OBJS+= usb-uhci.o vmmouse.o vmport.o vmware_vga.o hpet.o
-OBJS += device-hotplug.o pci-hotplug.o
+OBJS += device-hotplug.o pci-hotplug.o smbios.o
 CPPFLAGS += -DHAS_AUDIO -DHAS_AUDIO_CHOICE
 endif
 ifeq ($(TARGET_BASE_ARCH), ppc)
