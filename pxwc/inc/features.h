@@ -414,7 +414,7 @@ typedef wchar_t wctype_t;
 #define __need_mbstate_t
 #include <wchar.h>
 #define _G_size_t	size_t
-#include <bits/types.h>
+#include <sys/types.h>
 /*typedef struct
 {
   __off_t __pos;
@@ -434,10 +434,18 @@ typedef struct
 #define _G_wint_t  wint_t
 #define _G_stat64  __stat64
 
+#ifdef _MSC_VER
+typedef __int16 _G_int16_t;
+typedef __int32 _G_int32_t;
+typedef unsigned __int16 _G_uint16_t;
+typedef unsigned __int32 _G_uint32_t;
+#else
 typedef __int16_t _G_int16_t;
 typedef __int32_t _G_int32_t;
 typedef __u_int16_t _G_uint16_t;
 typedef __u_int32_t _G_uint32_t;
+#endif
+
 
 #define _G_HAVE_BOOL 1
 

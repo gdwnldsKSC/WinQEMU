@@ -31,6 +31,11 @@ be modified in project WinQemu\qemu\inc\config-host.h
 Add '-net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs'  to the
 command arguments part of the WinQemuTest project to reproduce the 'test' environment
 
+vcpkg install pthreads:x64-windows will be required. acquire vcpkg from
+https://github.com/microsoft/vcpkg/ 
+
+Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting-started
+
 ############
 
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it

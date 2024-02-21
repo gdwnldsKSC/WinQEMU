@@ -1113,6 +1113,12 @@
     <ClCompile Include="qemu\hw\smbios.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qemu-thread.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="clock_gettime.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1672,6 +1678,12 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\smbios.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-thread.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="clock_gettime.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
