@@ -150,6 +150,7 @@ int main(int argc, char **argv)
 #include "hw/baum.h"
 #include "hw/bt.h"
 #include "hw/smbios.h"
+#include "hw/xen.h"
 #include "bt-host.h"
 #include "net.h"
 #include "monitor.h"
@@ -2360,34 +2361,37 @@ int drive_init(struct drive_opt *arg, int snapshot, void *opaque)
 	}
     }
 
-    if (get_param_value(buf, sizeof(buf), "if", str)) {
-        pstrcpy(devname, sizeof(devname), buf);
-        if (!strcmp(buf, "ide")) {
-	    type = IF_IDE;
-            max_devs = MAX_IDE_DEVS;
-        } else if (!strcmp(buf, "scsi")) {
-	    type = IF_SCSI;
-            max_devs = MAX_SCSI_DEVS;
-        } else if (!strcmp(buf, "floppy")) {
-	    type = IF_FLOPPY;
-            max_devs = 0;
-        } else if (!strcmp(buf, "pflash")) {
-	    type = IF_PFLASH;
-            max_devs = 0;
-	} else if (!strcmp(buf, "mtd")) {
-	    type = IF_MTD;
-            max_devs = 0;
-	} else if (!strcmp(buf, "sd")) {
-	    type = IF_SD;
-            max_devs = 0;
-        } else if (!strcmp(buf, "virtio")) {
-            type = IF_VIRTIO;
+	if (get_param_value(buf, sizeof(buf), "if", str)) {
+		pstrcpy(devname, sizeof(devname), buf);
+		if (!strcmp(buf, "ide")) {
+			type = IF_IDE;
+			max_devs = MAX_IDE_DEVS;
+		} else if (!strcmp(buf, "scsi")) {
+			type = IF_SCSI;
+			max_devs = MAX_SCSI_DEVS;
+		} else if (!strcmp(buf, "floppy")) {
+			type = IF_FLOPPY;
+			max_devs = 0;
+		} else if (!strcmp(buf, "pflash")) {
+			type = IF_PFLASH;
+			max_devs = 0;
+		} else if (!strcmp(buf, "mtd")) {
+			type = IF_MTD;
+			max_devs = 0;
+		} else if (!strcmp(buf, "sd")) {
+			type = IF_SD;
+			max_devs = 0;
+		} else if (!strcmp(buf, "virtio")) {
+			type = IF_VIRTIO;
+			max_devs = 0;
+		} else if (!strcmp(buf, "xen")) {
+            type = IF_XEN;
             max_devs = 0;
         } else {
-            fprintf(stderr, "qemu: '%s' unsupported bus type '%s'\n", str, buf);
-            return -1;
+			fprintf(stderr, "qemu: '%s' unsupported bus type '%s'\n", str, buf);
+			return -1;
+		}
 	}
-    }
 
     if (get_param_value(buf, sizeof(buf), "index", str)) {
         index = strtol(buf, NULL, 0);
@@ -2597,8 +2601,9 @@ int drive_init(struct drive_opt *arg, int snapshot, void *opaque)
     switch(type) {
     case IF_IDE:
     case IF_SCSI:
+    case IF_XEN:
         switch(media) {
-	case MEDIA_DISK:
+	    case MEDIA_DISK:
             if (cyls != 0) {
                 bdrv_set_geometry_hint(bdrv, cyls, heads, secs);
                 bdrv_set_translation_hint(bdrv, translation);
@@ -5454,6 +5459,17 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 break;
             case QEMU_OPTION_runas:
                 run_as = optarg;
+                break;
+#endif
+#ifdef CONFIG_XEN
+            case QEMU_OPTION_xen_domid:
+                xen_domid = atoi(optarg);
+                break;
+            case QEMU_OPTION_xen_create:
+                xen_mode = XEN_CREATE;
+                break;
+            case QEMU_OPTION_xen_attach:
+                xen_mode = XEN_ATTACH;
                 break;
 #endif
             }

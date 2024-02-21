@@ -318,7 +318,8 @@ endif
 
 OBJS= main.o syscall.o strace.o mmap.o signal.o path.o thunk.o \
       elfload.o linuxload.o uaccess.o envlist.o
-LIBS+= $(AIOLIBS)
+LIBS+= $(PTHREADLIBS)
+LIBS+= $(CLOCKLIBS)
 ifdef TARGET_HAS_BFLT
 OBJS+= flatload.o
 endif
@@ -560,6 +561,14 @@ ifdef CONFIG_BLUEZ
 LIBS += $(CONFIG_BLUEZ_LIBS)
 endif
 
+# xen backend driver support
+XEN_OBJS := xen_machine_pv.o xen_backend.o xen_devconfig.o xen_domainbuild.o
+XEN_OBJS += xen_console.o xenfb.o xen_disk.o xen_nic.o
+ifeq ($(CONFIG_XEN), yes)
+  OBJS += $(XEN_OBJS)
+  LIBS += $(XEN_LIBS)
+endif
+
 # SCSI layer
 OBJS+= lsi53c895a.o esp.o
 
@@ -686,7 +695,8 @@ ifdef CONFIG_SLIRP
 CPPFLAGS+=-I$(SRC_PATH)/slirp
 endif
 
-LIBS+=$(AIOLIBS)
+LIBS+=$(PTHREADLIBS)
+LIBS+=$(CLOCKLIBS)
 # specific flags are needed for non soft mmu emulator
 ifdef CONFIG_STATIC
 LDFLAGS+=-static

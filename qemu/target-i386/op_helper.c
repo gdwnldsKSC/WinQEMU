@@ -620,6 +620,21 @@ static inline unsigned int get_sp_mask(unsigned int e2)
         return 0xffff;
 }
 
+static int exception_has_error_code(int intno)
+{
+    switch (intno) {
+    case 8:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 17:
+        return 1;
+    }
+    return 0;
+}
+
 #ifdef TARGET_X86_64
 #define SET_ESP(val, sp_mask)\
 do {\
@@ -675,19 +690,9 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
     uint32_t old_eip, sp_mask;
 
     has_error_code = 0;
-    if (!is_int && !is_hw) {
-        switch(intno) {
-        case 8:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 17:
-            has_error_code = 1;
-            break;
-        }
-    }
+    if (!is_int && !is_hw)
+        has_error_code = exception_has_error_code(intno);
+
     if (is_int)
         old_eip = next_eip;
     else
@@ -911,19 +916,8 @@ static void do_interrupt64(int intno, int is_int, int error_code,
     target_ulong old_eip, esp, offset;
 
     has_error_code = 0;
-    if (!is_int && !is_hw) {
-        switch(intno) {
-        case 8:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 17:
-            has_error_code = 1;
-            break;
-        }
-    }
+    if (!is_int && !is_hw)
+        has_error_code = exception_has_error_code(intno);
     if (is_int)
         old_eip = next_eip;
     else
@@ -1223,6 +1217,25 @@ void do_interrupt_user(int intno, int is_int, int error_code,
         EIP = next_eip;
 }
 
+static void handle_even_inj(int intno, int is_int, int error_code,
+    int is_hw, int rm)
+{
+    uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
+    if (!(event_inj & SVM_EVTINJ_VALID)) {
+        int type;
+        if (is_int)
+            type = SVM_EVTINJ_TYPE_SOFT;
+        else
+            type = SVM_EVTINJ_TYPE_EXEPT;
+        event_inj = intno | type | SVM_EVTINJ_VALID;
+        if (!rm && exception_has_error_code(intno)) {
+            event_inj |= SVM_EVTINJ_VALID_ERR;
+            stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err), error_code);
+        }
+        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj);
+    }
+}
+
 /*
  * Begin execution of an interruption. is_int is TRUE if coming from
  * the int instruction. next_eip is the EIP value AFTER the interrupt
@@ -1263,6 +1276,8 @@ void do_interrupt(int intno, int is_int, int error_code,
         }
     }
     if (env->cr[0] & CR0_PE_MASK) {
+        if (env->hflags & HF_SVMI_MASK)
+            handle_even_inj(intno, is_int, error_code, is_hw, 0);
 #ifdef TARGET_X86_64
         if (env->hflags & HF_LMA_MASK) {
             do_interrupt64(intno, is_int, error_code, next_eip, is_hw);
@@ -1272,7 +1287,13 @@ void do_interrupt(int intno, int is_int, int error_code,
             do_interrupt_protected(intno, is_int, error_code, next_eip, is_hw);
         }
     } else {
+        if (env->hflags & HF_SVMI_MASK)
+            handle_even_inj(intno, is_int, error_code, is_hw, 1);
         do_interrupt_real(intno, is_int, error_code, next_eip);
+    }
+    if (env->hflags & HF_SVMI_MASK) {
+        uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
+        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
     }
 }
 
@@ -5295,7 +5316,6 @@ void helper_vmrun(int aflag, int next_eip_addend)
         uint8_t vector = event_inj & SVM_EVTINJ_VEC_MASK;
         uint16_t valid_err = event_inj & SVM_EVTINJ_VALID_ERR;
         uint32_t event_inj_err = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err));
-        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
 
         qemu_log_mask(CPU_LOG_TB_IN_ASM, "Injecting(%#hx): ", valid_err);
         /* FIXME: need to implement valid_err */
@@ -5739,6 +5759,11 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     cpu_x86_set_cpl(env, 0);
     stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_code), exit_code);
     stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_1), exit_info_1);
+
+    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info),
+        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj)));
+    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info_err),
+        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err)));
 
     env->hflags2 &= ~HF2_GIF_MASK;
     /* FIXME: Resets the current ASID register to zero (host ASID). */

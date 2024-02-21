@@ -88,6 +88,7 @@ extern int bios_size;
 extern int cirrus_vga_enabled;
 extern int std_vga_enabled;
 extern int vmsvga_enabled;
+extern int xenfb_enabled;
 extern int graphic_width;
 extern int graphic_height;
 extern int graphic_depth;
@@ -131,7 +132,7 @@ extern unsigned int nb_prom_envs;
 #endif
 
 typedef enum {
-    IF_IDE, IF_SCSI, IF_FLOPPY, IF_PFLASH, IF_MTD, IF_SD, IF_VIRTIO
+    IF_IDE, IF_SCSI, IF_FLOPPY, IF_PFLASH, IF_MTD, IF_SD, IF_VIRTIO, IF_XEN
 } BlockInterfaceType;
 
 typedef enum {

@@ -181,7 +181,9 @@ bsd_user="no"
 build_docs="no"
 uname_release=""
 curses="yes"
+pthread="yes"
 aio="yes"
+io_thread="no"
 nptl="yes"
 mixemu="no"
 bluez="yes"
@@ -191,6 +193,7 @@ aix="no"
 blobs="yes"
 fdt="yes"
 sdl_x11="no"
+xen="yes"
 pkgversion=""
 
 # OS specific
@@ -421,6 +424,8 @@ for opt do
   ;;
   --disable-kqemu) kqemu="no"
   ;;
+  --disable-xen) xen="no"
+  ;;
   --disable-brlapi) brlapi="no"
   ;;
   --disable-bluez) bluez="no"
@@ -476,7 +481,11 @@ for opt do
   ;;
   --enable-mixemu) mixemu="yes"
   ;;
+  --disable-pthread) pthread="no"
+  ;;
   --disable-aio) aio="no"
+  ;;
+  --enable-io-thread) io_thread="yes"
   ;;
   --disable-blobs) blobs="no"
   ;;
@@ -586,6 +595,7 @@ echo "                           Available drivers: $audio_possible_drivers"
 echo "  --audio-card-list=LIST   set list of emulated audio cards [$audio_card_list]"
 echo "                           Available cards: $audio_possible_cards"
 echo "  --enable-mixemu          enable mixer emulation"
+echo "  --disable-xen            disable xen backend driver support"
 echo "  --disable-brlapi         disable BrlAPI"
 echo "  --disable-vnc-tls        disable TLS encryption for VNC server"
 echo "  --disable-vnc-sasl       disable SASL encryption for VNC server"
@@ -607,7 +617,9 @@ echo "  --oss-lib                path to OSS library"
 echo "  --enable-uname-release=R Return R for uname -r in usermode emulation"
 echo "  --sparc_cpu=V            Build qemu for Sparc architecture v7, v8, v8plus, v8plusa, v9"
 echo "  --disable-vde            disable support for vde network"
+echo "  --disable-pthread        disable pthread support"
 echo "  --disable-aio            disable AIO support"
+echo "  --enable-io-thread       enable IO thread"
 echo "  --disable-blobs          disable installing provided firmware blobs"
 echo "  --kerneldir=PATH         look for kernel includes in PATH"
 echo ""
@@ -799,6 +811,22 @@ else
     echo "Make sure to have the zlib libs and headers installed."
     echo
     exit 1
+fi
+
+##########################################
+# xen probe
+
+if test "$xen" = "yes" ; then
+cat > $TMPC <<EOF
+#include <xenctrl.h>
+#include <xs.h>
+int main(void) { xs_daemon_open; xc_interface_open; }
+EOF
+   if $cc $ARCH_CFLAGS -c -o $TMPO $TMPC -lxenstore -lxenctrl 2> /dev/null ; then
+      :
+   else
+      xen="no"
+   fi
 fi
 
 ##########################################
@@ -1103,19 +1131,24 @@ EOF
 fi
 
 ##########################################
-# AIO probe
-AIOLIBS=""
+# pthread probe
+PTHREADLIBS=""
 
-if test "$aio" = "yes" ; then
-  aio=no
-  cat > $TMPC << EOF
+if test "$pthread" = yes; then
+  pthread=no
+cat > $TMPC << EOF
 #include <pthread.h>
 int main(void) { pthread_mutex_t lock;  return 0; }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $AIOLIBS $TMPC 2> /dev/null ; then
-    aio=yes
-    AIOLIBS="-lpthread"
+  if $cc $ARCH_CFLAGS -o $TMPE $PTHREADLIBS $TMPC 2> /dev/null ; then
+    pthread=yes
+    PTHREADLIBS="-lpthread"
   fi
+fi
+
+if test "$pthread" = no; then
+   aio=no
+   io_thread=no
 fi
 
 ##########################################
@@ -1211,6 +1244,7 @@ fi
 
 ##########################################
 # Do we need librt
+CLOCKLIBS=""
 cat > $TMPC <<EOF
 #include <signal.h>
 #include <time.h>
@@ -1225,8 +1259,7 @@ elif $cc $ARCH_CFLAGS -o $TMPE $TMPC -lrt > /dev/null 2> /dev/null ; then
 fi
 
 if test "$rt" = "yes" ; then
-  # Hack, we should have a general purpose LIBS for this sort of thing
-  AIOLIBS="$AIOLIBS -lrt"
+  CLOCKLIBS="-lrt"
 fi
 
 if test "$mingw32" = "yes" ; then
@@ -1296,6 +1329,7 @@ if test -n "$sparc_cpu"; then
     echo "Target Sparc Arch $sparc_cpu"
 fi
 echo "kqemu support     $kqemu"
+echo "xen support       $xen"
 echo "brlapi support    $brlapi"
 echo "Documentation     $build_docs"
 [ ! -z "$uname_release" ] && \
@@ -1303,6 +1337,7 @@ echo "uname -r          $uname_release"
 echo "NPTL support      $nptl"
 echo "vde support       $vde"
 echo "AIO support       $aio"
+echo "IO thread         $io_thread"
 echo "Install blobs     $blobs"
 echo "KVM support       $kvm"
 echo "fdt support       $fdt"
@@ -1355,7 +1390,8 @@ echo "ARCH_LDFLAGS=$ARCH_LDFLAGS" >> $config_mak
 echo "CFLAGS=$CFLAGS" >> $config_mak
 echo "LDFLAGS=$LDFLAGS" >> $config_mak
 echo "EXESUF=$EXESUF" >> $config_mak
-echo "AIOLIBS=$AIOLIBS" >> $config_mak
+echo "PTHREADLIBS=$PTHREADLIBS" >> $config_mak
+echo "CLOCKLIBS=$CLOCKLIBS" >> $config_mak
 case "$cpu" in
   i386)
     echo "ARCH=i386" >> $config_mak
@@ -1612,9 +1648,16 @@ if test "$bluez" = "yes" ; then
   echo "CONFIG_BLUEZ_LIBS=$bluez_libs" >> $config_mak
   echo "#define CONFIG_BLUEZ 1" >> $config_h
 fi
+if test "$xen" = "yes" ; then
+  echo "XEN_LIBS=-lxenstore -lxenctrl -lxenguest" >> $config_mak
+fi
 if test "$aio" = "yes" ; then
   echo "#define CONFIG_AIO 1" >> $config_h
   echo "CONFIG_AIO=yes" >> $config_mak
+fi
+if test "$io_thread" = "yes" ; then
+  echo "CONFIG_IOTHREAD=yes" >> $config_mak
+  echo "#define CONFIG_IOTHREAD 1" >> $config_h
 fi
 if test "$blobs" = "yes" ; then
   echo "INSTALL_BLOBS=yes" >> $config_mak
@@ -1777,6 +1820,11 @@ case "$target_cpu" in
       echo "KVM_CFLAGS=$kvm_cflags" >> $config_mak
       echo "#define CONFIG_KVM 1" >> $config_h
     fi
+    if test "$xen" = "yes" -a "$target_softmmu" = "yes";
+    then
+      echo "CONFIG_XEN=yes" >> $config_mak
+      echo "#define CONFIG_XEN 1" >> $config_h
+    fi
   ;;
   x86_64)
     echo "TARGET_ARCH=x86_64" >> $config_mak
@@ -1792,6 +1840,11 @@ case "$target_cpu" in
       echo "CONFIG_KVM=yes" >> $config_mak
       echo "KVM_CFLAGS=$kvm_cflags" >> $config_mak
       echo "#define CONFIG_KVM 1" >> $config_h
+    fi
+    if test "$xen" = "yes" -a "$target_softmmu" = "yes"
+    then
+      echo "CONFIG_XEN=yes" >> $config_mak
+      echo "#define CONFIG_XEN 1" >> $config_h
     fi
   ;;
   alpha)
