@@ -8,7 +8,7 @@
 #define CONFIG_SLIRP 1
 #define CONFIG_ADLIB 1
 #define QEMU_VERSION "0.10.50"
-#define QEMU_PKGVERSION "MS-VisualStudio-2013"
+#define QEMU_PKGVERSION "MS-VisualStudio-2022"
 #define CONFIG_UNAME_RELEASE ""
 
 #ifdef _MSC_VER
