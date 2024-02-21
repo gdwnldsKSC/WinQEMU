@@ -13,7 +13,7 @@ WinQemu buils the dll, WinQemuTest builds the exe to actually use it
 
 Hardcoded to use D:\Images\ for files.
 
-###
+# Building instructions
 
 2/13/24 - Build system now fixed to output directories being correct for debug builds. 
 To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
@@ -38,7 +38,7 @@ when attempting the build (but it will still work for now).
 
 Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting-started
 
-###
+# Included precompiled images/binaries
 
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
 but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.
