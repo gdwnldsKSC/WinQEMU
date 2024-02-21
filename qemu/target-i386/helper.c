@@ -1837,10 +1837,7 @@ CPUX86State *cpu_x86_init(const char *cpu_model)
     kqemu_init(env);
 #endif
 
-#ifndef _MSC_VER
-    if (kvm_enabled())
-        kvm_init_vcpu(env);
-#endif
+    qemu_init_vcpu(env);
 
     return env;
 }

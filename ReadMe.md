@@ -2,7 +2,8 @@
 VS2022 17.9.0 Windows 11 26052 with the latest 26058 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
-just MSVC compatibiilty fixes.
+just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
+also still work just fine (but is untested).
 
 Including SDL 1.2.14 (with some later patches after this release tag up to April 2009)
 as it appears timeperiod appropriate for the included compiled libraries in the tree 
