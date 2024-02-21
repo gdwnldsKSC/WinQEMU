@@ -943,9 +943,8 @@ static struct qemu_alarm_timer *alarm_timer;
 
 struct qemu_alarm_win32 {
     MMRESULT timerId;
-    HANDLE host_alarm; // FIXME: to be removed in the future, we still need it right now as upstream removed it at this point, but didn't fix the initalizers or functions
     unsigned int period;
-} alarm_win32_data = {0, NULL, -1};
+} alarm_win32_data = {0, -1};
 
 static int win32_start_timer(struct qemu_alarm_timer *t);
 static void win32_stop_timer(struct qemu_alarm_timer *t);
@@ -3725,6 +3724,8 @@ static int qemu_event_init(void)
         (void*)(unsigned long)fds[0]);
 
     io_thread_fd = fds[1];
+    return 0;
+
 fail:
     close(fds[0]);
     close(fds[1]);

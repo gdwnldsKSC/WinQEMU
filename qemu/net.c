@@ -621,7 +621,7 @@ fail_syntax:
     errmsg = "invalid redirection format\n";
  fail:
     if (mon) {
-        monitor_printf(mon, errmsg);
+        monitor_printf(mon, "%s", errmsg);
     }
     else {
         fprintf(stderr, "qemu: %s", errmsg);

@@ -39,6 +39,9 @@ when attempting the build (but it will still work for now).
 
 Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting-started
 
+This will now automatically, after following those steps, build pthreadVC3.dll inside the
+debug target folder as well, which is now required to run. 
+
 # Included precompiled images/binaries
 
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
