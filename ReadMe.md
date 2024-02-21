@@ -13,9 +13,7 @@ WinQemu buils the dll, WinQemuTest builds the exe to actually use it
 
 Hardcoded to use D:\Images\ for files.
 
-
-
-############
+###
 
 2/13/24 - Build system now fixed to output directories being correct for debug builds. 
 To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
@@ -34,9 +32,13 @@ command arguments part of the WinQemuTest project to reproduce the 'test' enviro
 vcpkg install pthreads:x64-windows will be required. acquire vcpkg from
 https://github.com/microsoft/vcpkg/ 
 
+Powershell 7 is brought in/used by vcpkg but you should probably install it system wide.
+Otherwise you will get a pwsh.exe is not recognized as an internal or external command 
+when attempting the build (but it will still work for now). 
+
 Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting-started
 
-############
+###
 
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
 but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.

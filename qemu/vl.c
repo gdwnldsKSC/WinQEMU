@@ -3730,6 +3730,11 @@ void qemu_notify_event(void)
     }
 }
 
+static int qemu_init_main_loop(void)
+{
+    return 0;
+}
+
 #ifdef _WIN32
 static void host_main_loop_wait(int *timeout)
 {
@@ -5560,6 +5565,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     if (smp_cpus > 1)
         kqemu_allowed = 0;
 #endif
+    if (qemu_init_main_loop()) {
+        fprintf(stderr, "qemu_init_main_loop failed\n");
+        exit(1);
+    }
     linux_boot = (kernel_filename != NULL);
     net_boot = (boot_devices_bitmap >> ('n' - 'a')) & 0xF;
 
