@@ -8,7 +8,7 @@
  * This code is licensed under the GNU GPL v2.
  */
  
-/*
+/* 
  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
  * other than GPL is available it will apply instead, WinQEMU elects to use only the 
  * General Public License version 3 (GPLv3) at this time for any software where a choice of 
@@ -56,7 +56,7 @@ static void connex_init(ram_addr_t ram_size, int vga_ram_size,
                 const char *kernel_filename, const char *kernel_cmdline,
                 const char *initrd_filename, const char *cpu_model)
 {
-    struct pxa2xx_state_s *cpu;
+    PXA2xxState *cpu;
     int index;
 
     uint32_t connex_rom = 0x01000000;
@@ -90,14 +90,14 @@ static void verdex_init(ram_addr_t ram_size, int vga_ram_size,
                 const char *kernel_filename, const char *kernel_cmdline,
                 const char *initrd_filename, const char *cpu_model)
 {
-    struct pxa2xx_state_s *cpu;
+    PXA2xxState *cpu;
     int index;
 
     uint32_t verdex_rom = 0x02000000;
     uint32_t verdex_ram = 0x10000000;
 
 #ifndef _MSC_VER
-	cpu = pxa270_init(verdex_ram, cpu_model ?: "pxa270-c0");
+    cpu = pxa270_init(verdex_ram, cpu_model ?: "pxa270-c0");
 #else
     cpu = pxa270_init(verdex_ram, cpu_model ?cpu_model: "pxa270-c0");
 #endif
@@ -122,33 +122,14 @@ static void verdex_init(ram_addr_t ram_size, int vga_ram_size,
                     pxa2xx_gpio_in_get(cpu->gpio)[99]);
 }
 
-#ifndef _MSC_VER
 QEMUMachine connex_machine = {
     .name = "connex",
     .desc = "Gumstix Connex (PXA255)",
     .init = connex_init,
-    .ram_require = (0x05000000 + PXA2XX_INTERNAL_SIZE) | RAMSIZE_FIXED,
 };
 
 QEMUMachine verdex_machine = {
     .name = "verdex",
     .desc = "Gumstix Verdex (PXA270)",
     .init = verdex_init,
-    .ram_require = (0x12000000 + PXA2XX_INTERNAL_SIZE) | RAMSIZE_FIXED,
 };
-#else
-
-QEMUMachine connex_machine = {
-	"connex",
-	"Gumstix Connex (PXA255)",
-	connex_init,
-	(0x05000000 + PXA2XX_INTERNAL_SIZE) | RAMSIZE_FIXED
-};
-
-QEMUMachine verdex_machine = {
-	"verdex",
-	"Gumstix Verdex (PXA270)",
-	verdex_init,
-	(0x12000000 + PXA2XX_INTERNAL_SIZE) | RAMSIZE_FIXED
-};
-#endif
