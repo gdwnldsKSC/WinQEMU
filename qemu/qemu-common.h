@@ -92,6 +92,8 @@ static inline char *realpath(const char *path, char *resolved_path)
 #define pclose			_pclose
 #define getpid			_getpid
 #define getcwd			_getcwd
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
 #endif
 
 /* FIXME: Remove NEED_CPU_H.  */

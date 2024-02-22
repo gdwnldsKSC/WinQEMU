@@ -63,7 +63,6 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 
 #endif
 
-
 #define IOPORT_SIZE       0x40
 #define PNPMMIO_SIZE      0x20000
 
@@ -778,7 +777,7 @@ set_ims(E1000State *s, int index, uint32_t val)
 
 #ifndef _MSC_VER
 #define getreg(x)	[x] = mac_readreg
-static uint32_t (*macreg_readops [])(E1000State *, int) = {
+static uint32_t (*macreg_readops[])(E1000State *, int) = {
     getreg(PBA),	getreg(RCTL),	getreg(TDH),	getreg(TXDCTL),
     getreg(WUFC),	getreg(TDT),	getreg(CTRL),	getreg(LEDCTL),
     getreg(MANC),	getreg(MDIC),	getreg(SWSM),	getreg(STATUS),
@@ -1090,6 +1089,9 @@ pci_e1000_init(PCIBus *bus, NICInfo *nd, int devfn)
 
     d = (E1000State *)pci_register_device(bus, "e1000",
                 sizeof(E1000State), devfn, NULL, NULL);
+
+    if (!d)
+	return NULL;
 
     pci_conf = d->dev.config;
     memset(pci_conf, 0, 256);

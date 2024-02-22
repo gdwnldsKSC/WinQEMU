@@ -34,14 +34,10 @@
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
  
-#include "qemu-common.h"
-#include "console.h"
 #include "vnc.h"
 #include "sysemu.h"
 #include "qemu_socket.h"
 #include "qemu-timer.h"
-#include "audio/audio.h"
-#include <zlib.h>
 #include "acl.h"
 
 #define VNC_REFRESH_INTERVAL (1000 / 30)
@@ -49,32 +45,13 @@
 #include "vnc_keysym.h"
 #include "d3des.h"
 
-#ifdef CONFIG_VNC_TLS
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
-#endif /* CONFIG_VNC_TLS */
-
-// #define _VNC_DEBUG 1
-
-#ifdef _VNC_DEBUG
-#define VNC_DEBUG(fmt, ...) do { fprintf(stderr, fmt, ## __VA_ARGS__); } while (0)
-
-#if defined(CONFIG_VNC_TLS) && _VNC_DEBUG >= 2
-/* Very verbose, so only enabled for _VNC_DEBUG >= 2 */
-static void vnc_debug_gnutls_log(int level, const char* str) {
-	VNC_DEBUG("%d %s", level, str);
-}
-#endif /* CONFIG_VNC_TLS && _VNC_DEBUG */
-#else
-#define VNC_DEBUG(fmt, ...) do { } while (0)
-#endif
-
 #define count_bits(c, v) { \
     for (c = 0; v; v >>= 1) \
     { \
         c += v & 1; \
     } \
 }
+
 
 static VncDisplay *vnc_display; /* needed for info vnc */
 static DisplayChangeListener *dcl;
@@ -399,17 +376,13 @@ static void vnc_resize(VncState *vs)
     memset(vs->guest.dirty, 0xFF, sizeof(vs->guest.dirty));
 
     /* server surface */
-    if (!vs->server.ds) {
-        vs->server.ds = default_allocator.create_displaysurface(ds_get_width(ds),
-                                                                ds_get_height(ds));
-    } else {
-        default_allocator.resize_displaysurface(vs->server.ds,
-                                                ds_get_width(ds), ds_get_height(ds));
-    }
-    if (vs->server.ds->data == NULL) {
-        fprintf(stderr, "vnc: memory allocation failed\n");
-        exit(1);
-    }
+    if (!vs->server.ds)
+        vs->server.ds = qemu_mallocz(sizeof(*vs->server.ds));
+    if (vs->server.ds->data)
+        qemu_free(vs->server.ds->data);
+    *(vs->server.ds) = *(ds->surface);
+    vs->server.ds->data = qemu_mallocz(vs->server.ds->linesize *
+                                       vs->server.ds->height);
     memset(vs->server.dirty, 0xFF, sizeof(vs->guest.dirty));
 }
 
@@ -720,7 +693,7 @@ static int find_and_clear_dirty_height(struct VncSurface *s,
 {
     int h;
 
-    for (h = 1; h < (s->ds->height - y) && h < 1; h++) {
+    for (h = 1; h < (s->ds->height - y); h++) {
         int tmp_x;
         if (!vnc_get_bit(s->dirty[y + h], last_x))
             break;
@@ -738,7 +711,7 @@ static void vnc_update_client(void *opaque)
         int y;
         uint8_t *guest_row;
         uint8_t *server_row;
-        int cmp_bytes = 16 * ds_get_bytes_per_pixel(vs->ds);
+        int cmp_bytes;
         uint32_t width_mask[VNC_DIRTY_WORDS];
         int n_rectangles;
         int saved_offset;
@@ -758,6 +731,7 @@ static void vnc_update_client(void *opaque)
          * Update server dirty map.
          */
         vnc_set_bits(width_mask, (ds_get_width(vs->ds) / 16), VNC_DIRTY_WORDS);
+        cmp_bytes = 16 * ds_get_bytes_per_pixel(vs->ds);
         guest_row  = vs->guest.ds->data;
         server_row = vs->server.ds->data;
         for (y = 0; y < vs->guest.ds->height; y++) {
@@ -951,7 +925,8 @@ int vnc_client_io_error(VncState *vs, int ret, int last_errno)
         if (!vs->vd->clients)
             dcl->idle = 1;
 
-        default_allocator.free_displaysurface(vs->server.ds);
+        qemu_free(vs->server.ds->data);
+        qemu_free(vs->server.ds);
         qemu_free(vs->guest.ds);
         qemu_free(vs);
 
@@ -1327,7 +1302,7 @@ static void do_key_event(VncState *vs, int down, int keycode, int sym)
             vs->modifiers_state[keycode] = 0;
         break;
 #ifndef _MSC_VER
-	case 0x02 ... 0x0a: /* '1' to '9' keys */
+    case 0x02 ... 0x0a: /* '1' to '9' keys */
 #else
 	case 0x02:
 	case 0x03:
@@ -1390,39 +1365,39 @@ static void do_key_event(VncState *vs, int down, int keycode, int sym)
             case 0xb8:                          /* Right ALT */
                 break;
             case 0xc8:
-			case 0x48:
+            case 0x48:
                 kbd_put_keysym(QEMU_KEY_UP);
                 break;
             case 0xd0:
-			case 0x50:
+            case 0x50:
                 kbd_put_keysym(QEMU_KEY_DOWN);
                 break;
             case 0xcb:
-			case 0x4b:
+            case 0x4b:
                 kbd_put_keysym(QEMU_KEY_LEFT);
                 break;
             case 0xcd:
-			case 0x4d:
+            case 0x4d:
                 kbd_put_keysym(QEMU_KEY_RIGHT);
                 break;
             case 0xd3:
-			case 0x53:
+            case 0x53:
                 kbd_put_keysym(QEMU_KEY_DELETE);
                 break;
             case 0xc7:
-			case 0x47:
+            case 0x47:
                 kbd_put_keysym(QEMU_KEY_HOME);
                 break;
             case 0xcf:
-			case 0x4f:
+            case 0x4f:
                 kbd_put_keysym(QEMU_KEY_END);
                 break;
             case 0xc9:
-			case 0x49:
+            case 0x49:
                 kbd_put_keysym(QEMU_KEY_PAGEUP);
                 break;
             case 0xd1:
-			case 0x51:
+            case 0x51:
                 kbd_put_keysym(QEMU_KEY_PAGEDOWN);
                 break;
             default:
@@ -1469,8 +1444,8 @@ static void framebuffer_update_request(VncState *vs, int incremental,
 
     int i;
     vs->need_update = 1;
-    vs->force_update = 1;
     if (!incremental) {
+        vs->force_update = 1;
         for (i = 0; i < h; i++) {
             vnc_set_bits(vs->guest.dirty[y_position + i],
                          (ds_get_width(vs->ds) / 16), VNC_DIRTY_WORDS);
@@ -1545,7 +1520,7 @@ static void set_encodings(VncState *vs, int32_t *encodings, size_t n_encodings)
             vs->features |= VNC_FEATURE_WMVI_MASK;
             break;
 #ifndef _MSC_VER
-		case VNC_ENCODING_COMPRESSLEVEL0 ... VNC_ENCODING_COMPRESSLEVEL0 + 9:
+        case VNC_ENCODING_COMPRESSLEVEL0 ... VNC_ENCODING_COMPRESSLEVEL0 + 9:
 #else
 		case VNC_ENCODING_COMPRESSLEVEL0:
 		case VNC_ENCODING_COMPRESSLEVEL0 + 1:
@@ -1561,7 +1536,7 @@ static void set_encodings(VncState *vs, int32_t *encodings, size_t n_encodings)
             vs->tight_compression = (enc & 0x0F);
             break;
 #ifndef _MSC_VER
-		case VNC_ENCODING_QUALITYLEVEL0 ... VNC_ENCODING_QUALITYLEVEL0 + 9:
+        case VNC_ENCODING_QUALITYLEVEL0 ... VNC_ENCODING_QUALITYLEVEL0 + 9:
 #else
 		case VNC_ENCODING_QUALITYLEVEL0:
 		case VNC_ENCODING_QUALITYLEVEL0 + 1:

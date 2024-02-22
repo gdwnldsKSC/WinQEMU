@@ -168,6 +168,9 @@
     <ClCompile Include="qemu\acl.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
+    <ClCompile Include="qemu\hw\watchdog.c" />
+    <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
+    <ClCompile Include="qemu\hw\wdt_ib700.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1082,6 +1085,7 @@
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
+    <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

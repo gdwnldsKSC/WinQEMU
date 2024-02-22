@@ -48,6 +48,8 @@ int kvm_log_stop(target_phys_addr_t phys_addr, ram_addr_t size);
 
 int kvm_has_sync_mmu(void);
 
+void kvm_setup_guest_memory(void *start, size_t size);
+
 int kvm_coalesce_mmio_region(target_phys_addr_t start, ram_addr_t size);
 int kvm_uncoalesce_mmio_region(target_phys_addr_t start, ram_addr_t size);
 
@@ -120,12 +122,14 @@ void kvm_arch_update_guest_debug(CPUState *env, struct kvm_guest_debug *dbg);
 
 static inline void cpu_synchronize_state(CPUState *env, int modified)
 {
- /*   if (kvm_enabled()) {   // disabled until KVM compile fixed
+#ifndef _MSC_VER // disabled in MSCV
+    if (kvm_enabled()) {
         if (modified)
             kvm_arch_put_registers(env);
         else
             kvm_arch_get_registers(env);
-    } */
+    }
+#endif
 }
 
 #endif
