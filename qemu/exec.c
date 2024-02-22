@@ -57,7 +57,7 @@
 //#define DEBUG_TB_INVALIDATE
 //#define DEBUG_FLUSH
 //#define DEBUG_TLB
-#define DEBUG_UNASSIGNED
+//#define DEBUG_UNASSIGNED
 
 /* make various TB consistency checks */
 //#define DEBUG_TB_CHECK
@@ -128,15 +128,15 @@ uint8_t *phys_ram_dirty;
 static int in_migration;
 
 typedef struct RAMBlock {
-    uint8_t* host;
+    uint8_t *host;
     ram_addr_t offset;
     ram_addr_t length;
-    struct RAMBlock* next;
+    struct RAMBlock *next;
 } RAMBlock;
 
-static RAMBlock* ram_blocks;
+static RAMBlock *ram_blocks;
 /* TODO: When we implement (and use) ram deallocation (e.g. for hotplug)
-   then we can no longet assume contiguous ram offsets, and external uses
+   then we can no longer assume contiguous ram offsets, and external uses
    of this variable will break.  */
 ram_addr_t last_ram_offset;
 #endif
@@ -419,7 +419,7 @@ static void tlb_unprotect_code_phys(CPUState *env, ram_addr_t ram_addr,
 #define DEFAULT_CODE_GEN_BUFFER_SIZE (32 * 1024 * 1024)
 
 #if defined(CONFIG_USER_ONLY)
-/* Currently it is not recommanded to allocate big chunks of data in
+/* Currently it is not recommended to allocate big chunks of data in
    user mode. It will change when a dedicated libc will be used */
 #define USE_STATIC_CODE_GEN_BUFFER
 #endif
@@ -441,7 +441,7 @@ static void code_gen_alloc(unsigned long tb_size)
         /* in user mode, phys_ram_size is not meaningful */
         code_gen_buffer_size = DEFAULT_CODE_GEN_BUFFER_SIZE;
 #else
-        /* XXX: needs ajustments */
+        /* XXX: needs adjustments */
         code_gen_buffer_size = (unsigned long)(ram_size / 4);
 #endif
     }
@@ -1485,22 +1485,19 @@ void cpu_single_step(CPUState *env, int enabled)
 #if defined(TARGET_HAS_ICE)
     if (env->singlestep_enabled != enabled) {
         env->singlestep_enabled = enabled;
-
 #ifndef _MSC_VER
         if (kvm_enabled())
             kvm_update_guest_debug(env, 0);
-#else
-		if (0);
 #endif
 
-        else {
-            /* must flush all the translated code to avoid inconsistancies */
-            /* XXX: only flush what is necessary */
-            tb_flush(env);
-        }
-    }
 #endif
+    } else {
+        /* must flush all the translated code to avoid inconsistencies */
+        /* XXX: only flush what is necessary */
+        tb_flush(env);
+    }
 }
+
 
 /* enable or disable low levels log */
 void cpu_set_log(int log_flags)
@@ -1524,7 +1521,6 @@ void cpu_set_log(int log_flags)
 #else
 		setvbuf(stdout, NULL, _IONBF, 0);
 #endif
-
 #endif
         log_append = 1;
     }
@@ -2080,7 +2076,7 @@ int tlb_set_page_exec(CPUState *env, target_ulong vaddr,
         else
             iotlb |= IO_MEM_ROM;
     } else {
-        /* IO handlers are currently passed a phsical address.
+        /* IO handlers are currently passed a physical address.
            It would be nice to pass an offset from the base address
            of that region.  This would avoid having to special case RAM,
            and avoid full address decoding in every device.
@@ -2209,7 +2205,7 @@ int page_get_flags(target_ulong address)
 }
 
 /* modify the flags of a page and invalidate the code if
-   necessary. The flag PAGE_WRITE_ORG is positionned automatically
+   necessary. The flag PAGE_WRITE_ORG is positioned automatically
    depending on PAGE_WRITE */
 void page_set_flags(target_ulong start, target_ulong end, int flags)
 {
@@ -2276,7 +2272,7 @@ int page_check_range(target_ulong start, target_ulong len, int flags)
 }
 
 /* called from signal handler: invalidate the code and unprotect the
-   page. Return TRUE if the fault was succesfully handled. */
+   page. Return TRUE if the fault was successfully handled. */
 int page_unprotect(target_ulong address, unsigned long pc, void *puc)
 {
     unsigned int page_index, prot, pindex;
@@ -2360,7 +2356,7 @@ static void *subpage_init (target_phys_addr_t base, ram_addr_t *phys,
    page size. If (phys_offset & ~TARGET_PAGE_MASK) != 0, then it is an
    io memory page.  The address used when calling the IO function is
    the offset from the start of the region, plus region_offset.  Both
-   start_region and regon_offset are rounded down to a page boundary
+   start_addr and region_offset are rounded down to a page boundary
    before calculating this offset.  This should not be a problem unless
    the low bits of start_addr and region_offset differ.  */
 void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
@@ -2483,7 +2479,7 @@ void qemu_unregister_coalesced_mmio(target_phys_addr_t addr, ram_addr_t size)
 
 #ifdef CONFIG_KQEMU
 /* XXX: better than nothing */
-static ram_addr_T kqemu_ram_alloc(ram_addr_t size)
+static ram_addr_t kqemu_ram_alloc(ram_addr_t size)
 {
     ram_addr_t addr;
     if ((last_ram_offset + size) > kqemu_phys_ram_size) {
@@ -2499,9 +2495,9 @@ static ram_addr_T kqemu_ram_alloc(ram_addr_t size)
 
 ram_addr_t qemu_ram_alloc(ram_addr_t size)
 {
-    RAMBlock* new_block;
+    RAMBlock *new_block;
 
-#ifdef USEKQEMU
+#ifdef CONFIG_KQEMU
     if (kqemu_phys_ram_base) {
         return kqemu_ram_alloc(size);
     }
@@ -2520,7 +2516,7 @@ ram_addr_t qemu_ram_alloc(ram_addr_t size)
     phys_ram_dirty = qemu_realloc(phys_ram_dirty,
         (last_ram_offset + size) >> TARGET_PAGE_BITS);
     memset(phys_ram_dirty + (last_ram_offset >> TARGET_PAGE_BITS),
-        0xff, size >> TARGET_PAGE_BITS);
+           0xff, size >> TARGET_PAGE_BITS);
 
     last_ram_offset += size;
 
@@ -2534,7 +2530,7 @@ ram_addr_t qemu_ram_alloc(ram_addr_t size)
 
 void qemu_ram_free(ram_addr_t addr)
 {
-    /* TODO: implement this. */
+    /* TODO: implement this.  */
 }
 
 /* Return a host pointer to ram allocated with qemu_ram_alloc.
@@ -2547,9 +2543,9 @@ void qemu_ram_free(ram_addr_t addr)
  */
 void *qemu_get_ram_ptr(ram_addr_t addr)
 {
-    RAMBlock* prev;
-    RAMBlock** prevp;
-    RAMBlock* block;
+    RAMBlock *prev;
+    RAMBlock **prevp;
+    RAMBlock *block;
 
 #ifdef CONFIG_KQEMU
     if (kqemu_phys_ram_base) {
@@ -2561,9 +2557,9 @@ void *qemu_get_ram_ptr(ram_addr_t addr)
     prevp = &ram_blocks;
     block = ram_blocks;
     while (block && (block->offset > addr
-        || block->offset + block->length <= addr)) {
+                     || block->offset + block->length <= addr)) {
         if (prev)
-            prevp = &prev->next;
+          prevp = &prev->next;
         prev = block;
         block = block->next;
     }
@@ -2584,10 +2580,10 @@ void *qemu_get_ram_ptr(ram_addr_t addr)
    (typically a TLB entry) back to a ram offset.  */
 ram_addr_t qemu_ram_addr_from_host(void *ptr)
 {
-    RAMBlock* prev;
-    RAMBlock** prevp;
-    RAMBlock* block;
-    uint8_t* host = ptr;
+    RAMBlock *prev;
+    RAMBlock **prevp;
+    RAMBlock *block;
+    uint8_t *host = ptr;
 
 #ifdef CONFIG_KQEMU
     if (kqemu_phys_ram_base) {
@@ -2599,9 +2595,9 @@ ram_addr_t qemu_ram_addr_from_host(void *ptr)
     prevp = &ram_blocks;
     block = ram_blocks;
     while (block && (block->host > host
-        || block->host + block->length <= host)) {
+                     || block->host + block->length <= host)) {
         if (prev)
-            prevp = &prev->next;
+          prevp = &prev->next;
         prev = block;
         block = block->next;
     }
@@ -3061,7 +3057,7 @@ static void io_mem_init(void)
 
 /* mem_read and mem_write are arrays of functions containing the
    function to access byte (index 0), word (index 1) and dword (index
-   2). Functions can be omitted with a NULL function pointer. 
+   2). Functions can be omitted with a NULL function pointer.
    If io_index is non zero, the corresponding io zone is
    modified. If it is zero, a new io zone is allocated. The return
    value can be used with cpu_register_physical_memory(). (-1) is
@@ -3460,8 +3456,8 @@ uint32_t ldl_phys(target_phys_addr_t addr)
     } else {
         /* RAM case */
 /*	another MSVC hack deviating from upstream
-		ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
-		    (addr & ~TARGET_PAGE_MASK);
+        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+            (addr & ~TARGET_PAGE_MASK);
 */
 		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
 		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
@@ -3503,8 +3499,8 @@ uint64_t ldq_phys(target_phys_addr_t addr)
     } else {
         /* RAM case */
 /*	another MSVC hack deviating from upstream
-		ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
-		    (addr & ~TARGET_PAGE_MASK);
+        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+            (addr & ~TARGET_PAGE_MASK);
 */
 		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
 		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
@@ -3596,8 +3592,8 @@ void stq_phys_notdirty(target_phys_addr_t addr, uint64_t val)
 #endif
     } else {
 /*	another MSVC hack deviating from upstream
-		ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
-		    (addr & ~TARGET_PAGE_MASK);
+        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+            (addr & ~TARGET_PAGE_MASK);
 */
 		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
 		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);

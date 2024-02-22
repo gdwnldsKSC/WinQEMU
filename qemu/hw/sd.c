@@ -217,7 +217,7 @@ static uint16_t sd_crc16(void *message, size_t width)
 static void sd_set_ocr(SDState *sd)
 {
     /* All voltages OK, card power-up OK, Standard Capacity SD Memory Card */
-    sd->ocr = 0x80ffff80;
+    sd->ocr = 0x80ffff00;
 }
 
 static void sd_set_scr(SDState *sd)
@@ -264,8 +264,6 @@ static void sd_set_cid(SDState *sd)
 #define SECTOR_SHIFT	5			/* 16 kilobytes */
 #define WPGROUP_SHIFT	7			/* 2 megs */
 #define CMULT_SHIFT	9			/* 512 times HWBLOCK_SIZE */
-#define BLOCK_SIZE	(1 << (HWBLOCK_SHIFT))
-#define SECTOR_SIZE	(1 << (HWBLOCK_SHIFT + SECTOR_SHIFT))
 #define WPGROUP_SIZE	(1 << (HWBLOCK_SHIFT + SECTOR_SHIFT + WPGROUP_SHIFT))
 
 static const uint8_t sd_csd_rw_mask[16] = {
@@ -389,7 +387,11 @@ static void sd_reset(SDState *sd, BlockDriverState *bdrv)
     uint32_t size;
     uint64_t sect;
 
-    bdrv_get_geometry(bdrv, &sect);
+    if (bdrv) {
+        bdrv_get_geometry(bdrv, &sect);
+    } else {
+        sect = 0;
+    }
     sect <<= 9;
 
     if (sect > 0x40000000)
@@ -412,7 +414,7 @@ static void sd_reset(SDState *sd, BlockDriverState *bdrv)
 
     if (sd->wp_groups)
         qemu_free(sd->wp_groups);
-    sd->wp_switch = bdrv_is_read_only(bdrv);
+    sd->wp_switch = bdrv ? bdrv_is_read_only(bdrv) : 0;
     sd->wp_groups = (int *) qemu_mallocz(sizeof(int) * sect);
     memset(sd->function_group, 0, sizeof(int) * 6);
     sd->erase_start = 0;
@@ -445,7 +447,9 @@ SDState *sd_init(BlockDriverState *bs, int is_spi)
     sd->spi = is_spi;
     sd->enable = 1;
     sd_reset(sd, bs);
-    bdrv_set_change_cb(sd->bdrv, sd_cardchange, sd);
+    if (sd->bdrv) {
+        bdrv_set_change_cb(sd->bdrv, sd_cardchange, sd);
+    }
     return sd;
 }
 
@@ -1252,7 +1256,7 @@ int sd_do_command(SDState *sd, struct sd_request_s *req,
     sd_rsp_type_t rtype;
     int rsplen;
 
-    if (!bdrv_is_inserted(sd->bdrv) || !sd->enable) {
+    if (!sd->bdrv || !bdrv_is_inserted(sd->bdrv) || !sd->enable) {
         return 0;
     }
 

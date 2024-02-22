@@ -1974,7 +1974,7 @@ static void ide_atapi_cmd(IDEState *s)
 					ide_atapi_cmd_reply(s, ret, max_len);
         }
 			/* TODO: BD support, fall through for now */
-		}
+        }
 		else if (format == 0x80); /* TODO); AACS volume identifier */
 		else if (format == 0x81); /* TODO); AACS media serial number */
 		else if (format == 0x82); /* TODO); AACS media identifier */
@@ -3327,7 +3327,7 @@ void pci_cmd646_ide_init(PCIBus *bus, BlockDriverState **hd_table,
     pci_conf[0x09] = 0x8f;
 
     pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_IDE);
-    pci_conf[0x0e] = 0x00; // header_type
+    pci_conf[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_NORMAL; // header_type
 
     pci_conf[0x51] = 0x04; // enable IDE0
     if (secondary_ide_enabled) {
@@ -3397,7 +3397,7 @@ void pci_piix3_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_INTEL_82371SB_1);
     pci_conf[0x09] = 0x80; // legacy ATA mode
     pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_IDE);
-    pci_conf[0x0e] = 0x00; // header_type
+    pci_conf[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_NORMAL; // header_type
 
     qemu_register_reset(piix3_reset, d);
     piix3_reset(d);
@@ -3437,7 +3437,7 @@ void pci_piix4_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_INTEL_82371AB);
     pci_conf[0x09] = 0x80; // legacy ATA mode
     pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_IDE);
-    pci_conf[0x0e] = 0x00; // header_type
+    pci_conf[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_NORMAL; // header_type
 
     qemu_register_reset(piix3_reset, d);
     piix3_reset(d);
