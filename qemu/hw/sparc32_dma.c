@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "sparc32_dma.h"
 #include "sun4m.h"
@@ -47,26 +36,12 @@
  * http://www.ibiblio.org/pub/historic-linux/early-ports/Sparc/NCR/DMA2.txt
  */
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_DMA
-#define DPRINTF(fmt, args...) \
-do { printf("DMA: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...)                               \
+    do { printf("DMA: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...)
+#define DPRINTF(fmt, ...)
 #endif
-
-#else
-
-#ifdef DEBUG_DMA
-#define DPRINTF(fmt,...) \
-do { printf("DMA: " fmt ,__VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...)
-#endif
-
-#endif
-
 
 #define DMA_REGS 4
 #define DMA_SIZE (4 * sizeof(uint32_t))

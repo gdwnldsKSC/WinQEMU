@@ -21,18 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "sun4m.h"
 #include "sysemu.h"
@@ -48,24 +36,11 @@
  * This also includes the PMC CPU idle controller.
  */
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_MISC
-#define MISC_DPRINTF(fmt, args...) \
-do { printf("MISC: " fmt , ##args); } while (0)
+#define MISC_DPRINTF(fmt, ...)                                  \
+    do { printf("MISC: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define MISC_DPRINTF(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG_MISC
-#define MISC_DPRINTF(fmt,...) \
-do { printf("MISC: " fmt , __VA_ARGS__); } while (0)
-#else
-#define MISC_DPRINTF(fmt,...)
-#endif
-
+#define MISC_DPRINTF(fmt, ...)
 #endif
 
 typedef struct MiscState {
@@ -81,10 +56,7 @@ typedef struct MiscState {
 
 #define MISC_SIZE 1
 #define SYSCTRL_SIZE 4
-#define LED_MAXADDR 1
-#define LED_SIZE (LED_MAXADDR + 1)
 
-#define MISC_MASK 0x0fff0000
 #define MISC_LEDS 0x01600000
 #define MISC_CFG  0x01800000
 #define MISC_DIAG 0x01a00000

@@ -23,15 +23,15 @@
  */
 #include "hw.h"
 #include "sun4m.h"
-#include "console.h"
+#include "monitor.h"
 //#define DEBUG_IRQ_COUNT
 //#define DEBUG_IRQ
 
 #ifdef DEBUG_IRQ
-#define DPRINTF(fmt, args...) \
-do { printf("IRQ: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...)                                       \
+    do { printf("IRQ: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...)
+#define DPRINTF(fmt, ...)
 #endif
 
 /*
@@ -90,26 +90,26 @@ static CPUWriteMemoryFunc *sun4c_intctl_mem_write[3] = {
     NULL,
 };
 
-void sun4c_pic_info(void *opaque)
+void sun4c_pic_info(Monitor *mon, void *opaque)
 {
     Sun4c_INTCTLState *s = opaque;
 
-    monitor_printf("master: pending 0x%2.2x, enabled 0x%2.2x\n", s->pending,
-                s->reg);
+    monitor_printf(mon, "master: pending 0x%2.2x, enabled 0x%2.2x\n",
+                   s->pending, s->reg);
 }
 
-void sun4c_irq_info(void *opaque)
+void sun4c_irq_info(Monitor *mon, void *opaque)
 {
 #ifndef DEBUG_IRQ_COUNT
-    monitor_printf("irq statistic code not compiled.\n");
+    monitor_printf(mon, "irq statistic code not compiled.\n");
 #else
     Sun4c_INTCTLState *s = opaque;
     int64_t count;
 
-    monitor_printf("IRQ statistics:\n");
+    monitor_printf(mon, "IRQ statistics:\n");
     count = s->irq_count[i];
     if (count > 0)
-        monitor_printf("%2d: %" PRId64 "\n", i, count);
+        monitor_printf(mon, "%2d: %" PRId64 "\n", i, count);
 #endif
 }
 

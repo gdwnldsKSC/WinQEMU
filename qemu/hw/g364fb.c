@@ -18,16 +18,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "mips.h"
 #include "console.h"
@@ -35,29 +25,14 @@
 
 //#define DEBUG_G364
 
-#ifndef _MSC_VER
-
-#ifdef DEBUG_G364
-#define DPRINTF(fmt, args...) \
-do { printf("g364: " fmt , ##args); } while (0)
-#else
-#define DPRINTF(fmt, args...) do {} while (0)
-#endif
-#define BADF(fmt, args...) \
-do { fprintf(stderr, "g364 ERROR: " fmt , ##args);} while (0)
-
-#else
-
 #ifdef DEBUG_G364
 #define DPRINTF(fmt, ...) \
-do { printf("g364: " fmt , __VA_ARGS__); } while (0)
+do { printf("g364: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define DPRINTF(fmt, ...) do {} while (0)
 #endif
 #define BADF(fmt, ...) \
-do { fprintf(stderr, "g364 ERROR: " fmt , __VA_ARGS__);} while (0)
-
-#endif
+do { fprintf(stderr, "g364 ERROR: " fmt , ## __VA_ARGS__);} while (0)
 
 typedef struct G364State {
     /* hardware */

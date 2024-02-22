@@ -8,40 +8,17 @@
  * This code is licenced under the LGPL.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "usb.h"
 #include "qemu-char.h"
 
 //#define DEBUG_Serial
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_Serial
-#define DPRINTF(fmt, args...) \
-do { printf("usb-serial: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("usb-serial: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...) do {} while(0)
-#endif
-
-#else
-
-#ifdef DEBUG_Serial
-#define DPRINTF(fmt,...) \
-do { printf("usb-serial: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...) do {} while(0)
-#endif
-
+#define DPRINTF(fmt, ...) do {} while(0)
 #endif
 
 #define RECV_BUF 384

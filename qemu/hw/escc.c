@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 #include "hw.h"
 #include "escc.h"
 #include "qemu-char.h"
@@ -72,48 +71,23 @@
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
  
-#ifndef _MSC_VER
-
 #ifdef DEBUG_SERIAL
-#define SER_DPRINTF(fmt, args...) \
-do { printf("SER: " fmt , ##args); } while (0)
-#else
-#define SER_DPRINTF(fmt, args...)
-#endif
-#ifdef DEBUG_KBD
-#define KBD_DPRINTF(fmt, args...) \
-do { printf("KBD: " fmt , ##args); } while (0)
-#else
-#define KBD_DPRINTF(fmt, args...)
-#endif
-#ifdef DEBUG_MOUSE
-#define MS_DPRINTF(fmt, args...) \
-do { printf("MSC: " fmt , ##args); } while (0)
-#else
-#define MS_DPRINTF(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG_SERIAL
-#define SER_DPRINTF(fmt, ...) \
-do { printf("SER: " fmt , __VA_ARGS__); } while (0)
+#define SER_DPRINTF(fmt, ...)                                   \
+    do { printf("SER: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define SER_DPRINTF(fmt, ...)
 #endif
 #ifdef DEBUG_KBD
-#define KBD_DPRINTF(fmt, ...) \
-do { printf("KBD: " fmt , __VA_ARGS__); } while (0)
+#define KBD_DPRINTF(fmt, ...)                                   \
+    do { printf("KBD: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define KBD_DPRINTF(fmt, ...)
 #endif
 #ifdef DEBUG_MOUSE
-#define MS_DPRINTF(fmt, ...) \
-do { printf("MSC: " fmt , __VA_ARGS__); } while (0)
+#define MS_DPRINTF(fmt, ...)                                    \
+    do { printf("MSC: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define MS_DPRINTF(fmt, ...)
-#endif
-
 #endif
 
 typedef enum {

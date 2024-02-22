@@ -7,16 +7,6 @@
  * This code is licenced under the LGPL.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "usb.h"
 #include "block.h"
@@ -25,26 +15,12 @@
 
 //#define DEBUG_MSD
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_MSD
-#define DPRINTF(fmt, args...) \
-do { printf("usb-msd: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("usb-msd: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...) do {} while(0)
+#define DPRINTF(fmt, ...) do {} while(0)
 #endif
-
-#else
-
-#ifdef DEBUG_MSD
-#define DPRINTF(fmt,...) \
-do { printf("usb-msd: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...) do {} while(0)
-#endif
-
-#endif
-
 
 /* USB requests.  */
 #define MassStorageReset  0xff

@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "nvram.h"
 #include "isa.h"
@@ -40,23 +29,12 @@
 
 //#define DEBUG_NVRAM
 
-#ifndef _MSC_VER
-
 #if defined(DEBUG_NVRAM)
-#define NVRAM_PRINTF(fmt, args...) do { printf(fmt , ##args); } while (0)
+#define NVRAM_PRINTF(fmt, ...) do { printf(fmt , ## __VA_ARGS__); } while (0)
 #else
-#define NVRAM_PRINTF(fmt, args...) do { } while (0)
-
-#endif
-#else
-
-#if defined(DEBUG_NVRAM)
-#define NVRAM_PRINTF(fmt, ...) do { printf(fmt , __VA_ARGS__); } while (0)
-#else
-#define NVRAM_PRINTF(fmt, args,...) do { } while (0)
+#define NVRAM_PRINTF(fmt, ...) do { } while (0)
 #endif
 
-#endif
 /*
  * The M48T02, M48T08 and M48T59 chips are very similar. The newer '59 has
  * alarm and a watchdog timer and related control registers. In the

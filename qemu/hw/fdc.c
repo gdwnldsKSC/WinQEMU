@@ -2,7 +2,7 @@
  * QEMU Floppy disk emulator (Intel 82078)
  *
  * Copyright (c) 2003, 2007 Jocelyn Mayer
- * Copyright (c) 2008 Herv?Poussineau
+ * Copyright (c) 2008 Hervé Poussineau
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,17 +26,6 @@
  * The controller is used in Sun4m systems in a slightly different
  * way. There are changes in DOR register and DMA is not available.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "fdc.h"
 #include "block.h"
@@ -47,31 +36,16 @@
 /* debug Floppy devices */
 //#define DEBUG_FLOPPY
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_FLOPPY
-#define FLOPPY_DPRINTF(fmt, args...) \
-do { printf("FLOPPY: " fmt , ##args); } while (0)
-#else
-#define FLOPPY_DPRINTF(fmt, args...)
-#endif
-
-#define FLOPPY_ERROR(fmt, args...) \
-do { printf("FLOPPY ERROR: %s: " fmt, __func__ , ##args); } while (0)
-
-#else
-
-#ifdef DEBUG_FLOPPY
-#define FLOPPY_DPRINTF(fmt, ...) \
-do { printf("FLOPPY: " fmt , __VA_ARGS__); } while (0)
+#define FLOPPY_DPRINTF(fmt, ...)                                \
+    do { printf("FLOPPY: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define FLOPPY_DPRINTF(fmt, ...)
 #endif
 
-#define FLOPPY_ERROR(fmt, ...) \
-do { printf("FLOPPY ERROR: %s: " fmt, __func__ , __VA_ARGS__); } while (0)
+#define FLOPPY_ERROR(fmt, ...)                                          \
+    do { printf("FLOPPY ERROR: %s: " fmt, __func__ , ## __VA_ARGS__); } while (0)
 
-#endif
 /********************************************************/
 /* Floppy drive emulation                               */
 

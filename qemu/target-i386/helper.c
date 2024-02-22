@@ -43,32 +43,32 @@
 
 //#define DEBUG_MMU
 
-    /* feature flags taken from "Intel Processor Identification and the CPUID
-     * Instruction" and AMD's "CPUID Specification". In cases of disagreement
-     * about feature names, the Linux name is used. */
-static const char* feature_name[] = {
+/* feature flags taken from "Intel Processor Identification and the CPUID
+ * Instruction" and AMD's "CPUID Specification". In cases of disagreement
+ * about feature names, the Linux name is used. */
+static const char *feature_name[] = {
     "fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce",
     "cx8", "apic", NULL, "sep", "mtrr", "pge", "mca", "cmov",
     "pat", "pse36", "pn" /* Intel psn */, "clflush" /* Intel clfsh */, NULL, "ds" /* Intel dts */, "acpi", "mmx",
     "fxsr", "sse", "sse2", "ss", "ht" /* Intel htt */, "tm", "ia64", "pbe",
 };
-static const char* ext_feature_name[] = {
-   "pni" /* Intel,AMD sse3 */, NULL, NULL, "monitor", "ds_cpl", "vmx", NULL /* Linux smx */, "est",
-   "tm2", "ssse3", "cid", NULL, NULL, "cx16", "xtpr", NULL,
-   NULL, NULL, "dca", NULL, NULL, NULL, NULL, "popcnt",
-   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+static const char *ext_feature_name[] = {
+    "pni" /* Intel,AMD sse3 */, NULL, NULL, "monitor", "ds_cpl", "vmx", NULL /* Linux smx */, "est",
+    "tm2", "ssse3", "cid", NULL, NULL, "cx16", "xtpr", NULL,
+    NULL, NULL, "dca", NULL, NULL, NULL, NULL, "popcnt",
+       NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
-static const char* ext2_feature_name[] = {
-   "fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce",
-   "cx8" /* AMD CMPXCHG8B */, "apic", NULL, "syscall", "mtrr", "pge", "mca", "cmov",
-   "pat", "pse36", NULL, NULL /* Linux mp */, "nx" /* Intel xd */, NULL, "mmxext", "mmx",
-   "fxsr", "fxsr_opt" /* AMD ffxsr */, "pdpe1gb" /* AMD Page1GB */, "rdtscp", NULL, "lm" /* Intel 64 */, "3dnowext", "3dnow",
+static const char *ext2_feature_name[] = {
+    "fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce",
+    "cx8" /* AMD CMPXCHG8B */, "apic", NULL, "syscall", "mtrr", "pge", "mca", "cmov",
+    "pat", "pse36", NULL, NULL /* Linux mp */, "nx" /* Intel xd */, NULL, "mmxext", "mmx",
+    "fxsr", "fxsr_opt" /* AMD ffxsr */, "pdpe1gb" /* AMD Page1GB */, "rdtscp", NULL, "lm" /* Intel 64 */, "3dnowext", "3dnow",
 };
-static const char* ext3_feature_name[] = {
-   "lahf_lm" /* AMD LahfSahf */, "cmp_legacy", "svm", "extapic" /* AMD ExtApicSpace */, "cr8legacy" /* AMD AltMovCr8 */, "abm", "sse4a", "misalignsse",
-   "3dnowprefetch", "osvw", NULL /* Linux ibs */, NULL, "skinit", "wdt", NULL, NULL,
-   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+static const char *ext3_feature_name[] = {
+    "lahf_lm" /* AMD LahfSahf */, "cmp_legacy", "svm", "extapic" /* AMD ExtApicSpace */, "cr8legacy" /* AMD AltMovCr8 */, "abm", "sse4a", "misalignsse",
+    "3dnowprefetch", "osvw", NULL /* Linux ibs */, NULL, "skinit", "wdt", NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 static void add_flagname_to_bitmaps(char *flagname, uint32_t *features, 
@@ -83,33 +83,29 @@ static void add_flagname_to_bitmaps(char *flagname, uint32_t *features,
         if (feature_name[i] && !strcmp (flagname, feature_name[i])) {
             *features |= 1 << i;
             found = 1;
-            return;
         }
     for ( i = 0 ; i < 32 ; i++ ) 
         if (ext_feature_name[i] && !strcmp (flagname, ext_feature_name[i])) {
             *ext_features |= 1 << i;
             found = 1;
-            return;
         }
     for ( i = 0 ; i < 32 ; i++ ) 
         if (ext2_feature_name[i] && !strcmp (flagname, ext2_feature_name[i])) {
             *ext2_features |= 1 << i;
             found = 1;
-            return;
         }
     for ( i = 0 ; i < 32 ; i++ ) 
         if (ext3_feature_name[i] && !strcmp (flagname, ext3_feature_name[i])) {
             *ext3_features |= 1 << i;
             found = 1;
-            return;
         }
     if (!found) {
         fprintf(stderr, "CPU feature %s not found\n", flagname);
     }
 }
 
-static void kvm_trim_features(uint32_t* features, uint32_t supported,
-    const char* names[])
+static void kvm_trim_features(uint32_t *features, uint32_t supported,
+                              const char *names[])
 {
     int i;
     uint32_t mask;
@@ -219,8 +215,6 @@ static x86_def_t x86_defs[] = {
         .model_id = "Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz",
     },
 #endif
-
-#ifndef _MSC_VER
     {
         .name = "qemu32",
         .level = 2,
@@ -323,118 +317,6 @@ static x86_def_t x86_defs[] = {
         .xlevel = 0x8000000A,
         .model_id = "Intel(R) Atom(TM) CPU N270   @ 1.60GHz",
     },
-#else
-	{
-		"qemu32",
-		2,
-		0, 0, 0,
-		6,
-		3,
-		3,
-		PPRO_FEATURES, CPUID_EXT_SSE3, 0, 0,
-		0,
-		"QEMU Virtual CPU version " QEMU_VERSION,
-	},
-	{
-		"coreduo",
-		10,
-		0, 0, 0,
-		6,
-		14,
-		8,
-		/* The original CPU also implements these features:
-		CPUID_DTS, CPUID_ACPI, CPUID_SS, CPUID_HT,
-		CPUID_TM, CPUID_PBE */
-		PPRO_FEATURES | CPUID_VME |
-		CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA,
-		/* The original CPU also implements these ext features:
-		CPUID_EXT_VMX, CPUID_EXT_EST, CPUID_EXT_TM2, CPUID_EXT_XTPR,
-		CPUID_EXT_PDCM */
-		CPUID_EXT_SSE3 | CPUID_EXT_MONITOR,
-		CPUID_EXT2_NX,
-		0,
-		0x80000008,
-		"Genuine Intel(R) CPU           T2600  @ 2.16GHz",
-	},
-	{
-		"486",
-		0,
-		0, 0, 0,
-		4,
-		0,
-		0,
-		I486_FEATURES, 0, 0, 0,
-		0,
-	},
-	{
-		"pentium",
-		1,
-		0, 0, 0,
-		5,
-		4,
-		3,
-		PENTIUM_FEATURES, 0, 0, 0,
-		0,
-	},
-	{
-		"pentium2",
-		2,
-		0, 0, 0,
-		6,
-		5,
-		2,
-		PENTIUM2_FEATURES, 0, 0, 0,
-		0,
-	},
-	{
-		"pentium3",
-		2,
-		0, 0, 0,
-		6,
-		7,
-		3,
-		PENTIUM3_FEATURES, 0, 0, 0,
-		0,
-	},
-	{
-		"athlon",
-		2,
-		0x68747541, /* "Auth" */
-		0x69746e65, /* "enti" */
-		0x444d4163, /* "cAMD" */
-		6,
-		2,
-		3,
-		PPRO_FEATURES | CPUID_PSE36 | CPUID_VME | CPUID_MTRR | CPUID_MCA,
-		(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_MMXEXT | CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
-		0, 0,
-		0x80000008,
-		/* XXX: put another string ? */
-		"QEMU Virtual CPU version " QEMU_VERSION,
-	},
-	{
-		"n270",
-		/* original is on level 10 */
-		5,
-		0, 0, 0,
-		6,
-		28,
-		2,
-		PPRO_FEATURES |
-		CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA | CPUID_VME,
-		/* Missing: CPUID_DTS | CPUID_ACPI | CPUID_SS |
-		* CPUID_HT | CPUID_TM | CPUID_PBE */
-		/* Some CPUs got no CPUID_SEP */
-		CPUID_EXT_MONITOR |
-		CPUID_EXT_SSE3 /* PNI */ | CPUID_EXT_SSSE3,
-		/* Missing: CPUID_EXT_DSCPL | CPUID_EXT_EST |
-		* CPUID_EXT_TM2 | CPUID_EXT_XTPR */
-		(PPRO_FEATURES & 0x0183F3FF) | CPUID_EXT2_NX,
-		0, /* Missing: .ext3_features = CPUID_EXT3_LAHF_LM */
-		0x8000000A,
-		"Intel(R) Atom(TM) CPU N270   @ 1.60GHz",
-	},
-#endif
 };
 
 static int cpu_x86_find_by_name(x86_def_t *x86_cpu_def, const char *cpu_model)
@@ -718,20 +600,19 @@ static const char *cc_op_str[] = {
 };
 
 static void
-cpu_x86_dump_seg_cache(CPUState* env, FILE* f,
-    int (*cpu_fprintf)(FILE* f, const char* fmt, ...),
-    const char* name, struct SegmentCache* sc)
+cpu_x86_dump_seg_cache(CPUState *env, FILE *f,
+                       int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
+                       const char *name, struct SegmentCache *sc)
 {
 #ifdef TARGET_X86_64
     if (env->hflags & HF_CS64_MASK) {
         cpu_fprintf(f, "%-3s=%04x %016" PRIx64 " %08x %08x", name,
-            sc->selector, sc->base, sc->limit, sc->flags);
-    }
-    else
+                    sc->selector, sc->base, sc->limit, sc->flags);
+    } else
 #endif
     {
         cpu_fprintf(f, "%-3s=%04x %08x %08x %08x", name, sc->selector,
-            (uint32_t)sc->base, sc->limit, sc->flags);
+                    (uint32_t)sc->base, sc->limit, sc->flags);
     }
 
     if (!(env->hflags & HF_PE_MASK) || !(sc->flags & DESC_P_MASK))
@@ -741,19 +622,17 @@ cpu_x86_dump_seg_cache(CPUState* env, FILE* f,
     if (sc->flags & DESC_S_MASK) {
         if (sc->flags & DESC_CS_MASK) {
             cpu_fprintf(f, (sc->flags & DESC_L_MASK) ? "CS64" :
-                ((sc->flags & DESC_B_MASK) ? "CS32" : "CS16"));
+                           ((sc->flags & DESC_B_MASK) ? "CS32" : "CS16"));
             cpu_fprintf(f, " [%c%c", (sc->flags & DESC_C_MASK) ? 'C' : '-',
-                (sc->flags & DESC_R_MASK) ? 'R' : '-');
-        }
-        else {
+                        (sc->flags & DESC_R_MASK) ? 'R' : '-');
+        } else {
             cpu_fprintf(f, (sc->flags & DESC_B_MASK) ? "DS  " : "DS16");
             cpu_fprintf(f, " [%c%c", (sc->flags & DESC_E_MASK) ? 'E' : '-',
-                (sc->flags & DESC_W_MASK) ? 'W' : '-');
+                        (sc->flags & DESC_W_MASK) ? 'W' : '-');
         }
         cpu_fprintf(f, "%c]", (sc->flags & DESC_A_MASK) ? 'A' : '-');
-    }
-    else {
-        static const char* sys_type_name[2][16] = {
+    } else {
+        static const char *sys_type_name[2][16] = {
             { /* 32 bit mode */
                 "Reserved", "TSS16-avl", "LDT", "TSS16-busy",
                 "CallGate16", "TaskGate", "IntGate16", "TrapGate16",
@@ -768,8 +647,8 @@ cpu_x86_dump_seg_cache(CPUState* env, FILE* f,
             }
         };
         cpu_fprintf(f, sys_type_name[(env->hflags & HF_LMA_MASK) ? 1 : 0]
-            [(sc->flags & DESC_TYPE_MASK)
-            >> DESC_TYPE_SHIFT]);
+                                    [(sc->flags & DESC_TYPE_MASK)
+                                     >> DESC_TYPE_SHIFT]);
     }
 done:
     cpu_fprintf(f, "\n");
@@ -794,8 +673,8 @@ void cpu_dump_state(CPUState *env, FILE *f,
 #endif
 
 #ifndef _MSC_VER
-	if (kvm_enabled())
-		kvm_arch_get_registers(env);
+    if (kvm_enabled())
+        kvm_arch_get_registers(env);
 #endif
 
     eflags = env->eflags;
@@ -865,9 +744,9 @@ void cpu_dump_state(CPUState *env, FILE *f,
                     env->halted);
     }
 
-    for (i = 0; i < 6; i++) {
+    for(i = 0; i < 6; i++) {
         cpu_x86_dump_seg_cache(env, f, cpu_fprintf, seg_name[i],
-            &env->segs[i]);
+                               &env->segs[i]);
     }
     cpu_x86_dump_seg_cache(env, f, cpu_fprintf, "LDT", &env->ldt);
     cpu_x86_dump_seg_cache(env, f, cpu_fprintf, "TR", &env->tr);
@@ -1863,17 +1742,17 @@ CPUX86State *cpu_x86_init(const char *cpu_model)
 #ifndef _MSC_VER
     if (kvm_enabled()) {
         kvm_trim_features(&env->cpuid_features,
-            kvm_arch_get_supported_cpuid(env, 1, R_EDX),
-            feature_name);
+                          kvm_arch_get_supported_cpuid(env, 1, R_EDX),
+                          feature_name);
         kvm_trim_features(&env->cpuid_ext_features,
-            kvm_arch_get_supported_cpuid(env, 1, R_ECX),
-            ext_feature_name);
+                          kvm_arch_get_supported_cpuid(env, 1, R_ECX),
+                          ext_feature_name);
         kvm_trim_features(&env->cpuid_ext2_features,
-            kvm_arch_get_supported_cpuid(env, 0x80000001, R_EDX),
-            ext2_feature_name);
+                          kvm_arch_get_supported_cpuid(env, 0x80000001, R_EDX),
+                          ext2_feature_name);
         kvm_trim_features(&env->cpuid_ext3_features,
-            kvm_arch_get_supported_cpuid(env, 0x80000001, R_ECX),
-            ext3_feature_name);
+                          kvm_arch_get_supported_cpuid(env, 0x80000001, R_ECX),
+                          ext3_feature_name);
     }
 #endif
     return env;

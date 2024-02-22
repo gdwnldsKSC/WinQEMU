@@ -21,42 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "sun4m.h"
-#include "console.h"
+#include "monitor.h"
 
 //#define DEBUG_IRQ_COUNT
 //#define DEBUG_IRQ
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_IRQ
-#define DPRINTF(fmt, args...) \
-do { printf("IRQ: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...)                                       \
+    do { printf("IRQ: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG_IRQ
-#define DPRINTF(fmt,...) \
-do { printf("IRQ: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...)
-#endif
-
+#define DPRINTF(fmt, ...)
 #endif
 
 /*
@@ -101,7 +77,6 @@ typedef struct SLAVIO_CPUINTCTLState {
 #define MASTER_IRQ_MASK ~0x0fa2007f
 #define MASTER_DISABLE 0x80000000
 #define CPU_SOFTIRQ_MASK 0xfffe0000
-#define CPU_HARDIRQ_MASK 0x0000fffe
 #define CPU_IRQ_INT15_IN 0x0004000
 #define CPU_IRQ_INT15_MASK 0x80000000
 
@@ -243,33 +218,33 @@ static CPUWriteMemoryFunc *slavio_intctlm_mem_write[3] = {
     slavio_intctlm_mem_writel,
 };
 
-void slavio_pic_info(void *opaque)
+void slavio_pic_info(Monitor *mon, void *opaque)
 {
     SLAVIO_INTCTLState *s = opaque;
     int i;
 
     for (i = 0; i < MAX_CPUS; i++) {
-        monitor_printf("per-cpu %d: pending 0x%08x\n", i,
-                    s->slaves[i]->intreg_pending);
+        monitor_printf(mon, "per-cpu %d: pending 0x%08x\n", i,
+                       s->slaves[i]->intreg_pending);
     }
-    monitor_printf("master: pending 0x%08x, disabled 0x%08x\n",
-                s->intregm_pending, s->intregm_disabled);
+    monitor_printf(mon, "master: pending 0x%08x, disabled 0x%08x\n",
+                   s->intregm_pending, s->intregm_disabled);
 }
 
-void slavio_irq_info(void *opaque)
+void slavio_irq_info(Monitor *mon, void *opaque)
 {
 #ifndef DEBUG_IRQ_COUNT
-    monitor_printf("irq statistic code not compiled.\n");
+    monitor_printf(mon, "irq statistic code not compiled.\n");
 #else
     SLAVIO_INTCTLState *s = opaque;
     int i;
     int64_t count;
 
-    monitor_printf("IRQ statistics:\n");
+    monitor_printf(mon, "IRQ statistics:\n");
     for (i = 0; i < 32; i++) {
         count = s->irq_count[i];
         if (count > 0)
-            monitor_printf("%2d: %" PRId64 "\n", i, count);
+            monitor_printf(mon, "%2d: %" PRId64 "\n", i, count);
     }
 #endif
 }

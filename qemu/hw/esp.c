@@ -36,10 +36,6 @@
 #include "scsi-disk.h"
 #include "scsi.h"
 
-#ifdef _MSC_VER
-#define __func__ __FUNCTION__
-#endif
-
 /* debug ESP card */
 //#define DEBUG_ESP
 
@@ -51,31 +47,15 @@
  * http://www.ibiblio.org/pub/historic-linux/early-ports/Sparc/NCR/NCR53C9X.txt
  */
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_ESP
-#define DPRINTF(fmt, args...) \
-do { printf("ESP: " fmt , ##args); } while (0)
-#else
-#define DPRINTF(fmt, args...) do {} while (0)
-#endif
-
-#define ESP_ERROR(fmt, args...) \
-do { printf("ESP ERROR: %s: " fmt, __func__ , ##args); } while (0)
-
-#else
-
-#ifdef DEBUG_ESP
-#define DPRINTF(fmt, ...) \
-do { printf("ESP: " fmt , __VA_ARGS__); } while (0)
+#define DPRINTF(fmt, ...)                                       \
+    do { printf("ESP: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define DPRINTF(fmt, ...) do {} while (0)
 #endif
 
-#define ESP_ERROR(fmt, ...) \
-do { printf("ESP ERROR: %s: " fmt, __func__ , __VA_ARGS__); } while (0)
-
-#endif
+#define ESP_ERROR(fmt, ...)                                             \
+    do { printf("ESP ERROR: %s: " fmt, __func__ , ## __VA_ARGS__); } while (0)
 
 #define ESP_REGS 16
 #define TI_BUFSZ 16
@@ -613,7 +593,7 @@ static void esp_mem_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
     s->wregs[saddr] = val;
 }
 
-static CPUReadMemoryFunc *esp_mem_read [3] = {
+static CPUReadMemoryFunc *esp_mem_read[3] = {
     esp_mem_readb,
     NULL,
     NULL,

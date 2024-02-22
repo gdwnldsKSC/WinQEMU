@@ -7,42 +7,19 @@
  * This code is licenced under the GPL.
  */
 
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 /* This file contains implementation code for the RealView EB interrupt
    controller, MPCore distributed interrupt controller and ARMv7-M
    Nested Vectored Interrupt Controller.  */
 
 //#define DEBUG_GIC
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_GIC
-#define DPRINTF(fmt, args...) \
-do { printf("arm_gic: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("arm_gic: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...) do {} while(0)
+#define DPRINTF(fmt, ...) do {} while(0)
 #endif
 
-#else
-
-#ifdef DEBUG_GIC
-#define DPRINTF(fmt,...) \
-do { printf("arm_gic: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...) do {} while(0)
-#endif
-
-#endif
 #ifdef NVIC
 static const uint8_t gic_id[] =
 { 0x00, 0xb0, 0x1b, 0x00, 0x0d, 0xe0, 0x05, 0xb1 };

@@ -1,22 +1,22 @@
 /*
-*  i386 helpers
-*
-*  Copyright (c) 2003 Fabrice Bellard
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2 of the License, or (at your option) any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
-*/
+ *  i386 helpers
+ *
+ *  Copyright (c) 2003 Fabrice Bellard
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ */
 
 
 /*
@@ -620,19 +620,19 @@ static inline unsigned int get_sp_mask(unsigned int e2)
         return 0xffff;
 }
 
-static int exception_has_error_code(int intno)
+static int exeption_has_error_code(int intno)
 {
-    switch (intno) {
-    case 8:
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-    case 17:
-        return 1;
-    }
-    return 0;
+        switch(intno) {
+        case 8:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 17:
+            return 1;
+        }
+	return 0;
 }
 
 #ifdef TARGET_X86_64
@@ -691,8 +691,7 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
 
     has_error_code = 0;
     if (!is_int && !is_hw)
-        has_error_code = exception_has_error_code(intno);
-
+        has_error_code = exeption_has_error_code(intno);
     if (is_int)
         old_eip = next_eip;
     else
@@ -917,7 +916,7 @@ static void do_interrupt64(int intno, int is_int, int error_code,
 
     has_error_code = 0;
     if (!is_int && !is_hw)
-        has_error_code = exception_has_error_code(intno);
+        has_error_code = exeption_has_error_code(intno);
     if (is_int)
         old_eip = next_eip;
     else
@@ -1219,21 +1218,21 @@ void do_interrupt_user(int intno, int is_int, int error_code,
 
 #if !defined(CONFIG_USER_ONLY)
 static void handle_even_inj(int intno, int is_int, int error_code,
-    int is_hw, int rm)
+		int is_hw, int rm)
 {
     uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
     if (!(event_inj & SVM_EVTINJ_VALID)) {
-        int type;
-        if (is_int)
-            type = SVM_EVTINJ_TYPE_SOFT;
-        else
-            type = SVM_EVTINJ_TYPE_EXEPT;
-        event_inj = intno | type | SVM_EVTINJ_VALID;
-        if (!rm && exception_has_error_code(intno)) {
-            event_inj |= SVM_EVTINJ_VALID_ERR;
-            stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err), error_code);
-        }
-        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj);
+	    int type;
+	    if (is_int)
+		    type = SVM_EVTINJ_TYPE_SOFT;
+	    else
+		    type = SVM_EVTINJ_TYPE_EXEPT;
+	    event_inj = intno | type | SVM_EVTINJ_VALID;
+	    if (!rm && exeption_has_error_code(intno)) {
+		    event_inj |= SVM_EVTINJ_VALID_ERR;
+		    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err), error_code);
+	    }
+	    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj);
     }
 }
 #endif
@@ -1297,10 +1296,11 @@ void do_interrupt(int intno, int is_int, int error_code,
 #endif
         do_interrupt_real(intno, is_int, error_code, next_eip);
     }
+
 #if !defined(CONFIG_USER_ONLY)
     if (env->hflags & HF_SVMI_MASK) {
-        uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
-        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
+	    uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
+	    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
     }
 #endif
 }
@@ -3730,7 +3730,7 @@ void helper_fucomi_ST0_FT0(void)
 void helper_fadd_ST0_FT0(void)
 {
 #ifndef _MSC_VER
-	ST0 += FT0;
+    ST0 += FT0;
 #else
 	fx80_adde_fx80 (&ST0, &FT0);
 #endif
@@ -3739,7 +3739,7 @@ void helper_fadd_ST0_FT0(void)
 void helper_fmul_ST0_FT0(void)
 {
 #ifndef _MSC_VER
-	ST0 *= FT0;
+    ST0 *= FT0;
 #else
 	fx80_mule_fx80(&ST0, &FT0);
 #endif
@@ -3748,7 +3748,7 @@ void helper_fmul_ST0_FT0(void)
 void helper_fsub_ST0_FT0(void)
 {
 #ifndef _MSC_VER
-	ST0 -= FT0;
+    ST0 -= FT0;
 #else
 	fx80_sube_fx80(&ST0, &FT0);
 #endif
@@ -3757,7 +3757,7 @@ void helper_fsub_ST0_FT0(void)
 void helper_fsubr_ST0_FT0(void)
 {
 #ifndef _MSC_VER
-	ST0 = FT0 - ST0;
+    ST0 = FT0 - ST0;
 #else
 	CPU86_LDouble temp;
 	temp = fx80_sub_fx80 (&FT0, &ST0);
@@ -3780,7 +3780,7 @@ void helper_fdivr_ST0_FT0(void)
 void helper_fadd_STN_ST0(int st_index)
 {
 #ifndef _MSC_VER
-	ST(st_index) += ST0;
+    ST(st_index) += ST0;
 #else
 	fx80_adde_fx80(&ST(st_index), &ST0);
 #endif
@@ -3789,7 +3789,7 @@ void helper_fadd_STN_ST0(int st_index)
 void helper_fmul_STN_ST0(int st_index)
 {
 #ifndef _MSC_VER
-	ST(st_index) *= ST0;
+    ST(st_index) *= ST0;
 #else
 	fx80_mule_fx80(&ST(st_index), &ST0);
 #endif
@@ -3798,7 +3798,7 @@ void helper_fmul_STN_ST0(int st_index)
 void helper_fsub_STN_ST0(int st_index)
 {
 #ifndef _MSC_VER
-	ST(st_index) -= ST0;
+    ST(st_index) -= ST0;
 #else
 	fx80_sube_fx80(&ST(st_index), &ST0);
 #endif
@@ -3810,7 +3810,7 @@ void helper_fsubr_STN_ST0(int st_index)
     p = &ST(st_index);
 
 #ifndef _MSC_VER
-	*p = ST0 - *p;
+    *p = ST0 - *p;
 #else
 	*p = fx80_sub_fx80(&ST0, p); // BUGBUG
 #endif
@@ -3844,7 +3844,7 @@ void helper_fabs_ST0(void)
 void helper_fld1_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[1];
+    ST0 = f15rk[1];
 #else
 	ST0 = fx80_from_longdouble(f15rk[1]);
 #endif
@@ -3853,7 +3853,7 @@ void helper_fld1_ST0(void)
 void helper_fldl2t_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[6];
+    ST0 = f15rk[6];
 #else
 	ST0 = fx80_from_longdouble(f15rk[6]);
 #endif
@@ -3862,7 +3862,7 @@ void helper_fldl2t_ST0(void)
 void helper_fldl2e_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[5];
+    ST0 = f15rk[5];
 #else
 	ST0 = fx80_from_longdouble(f15rk[5]);
 #endif
@@ -3871,7 +3871,7 @@ void helper_fldl2e_ST0(void)
 void helper_fldpi_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[2];
+    ST0 = f15rk[2];
 #else
 	ST0 = fx80_from_longdouble(f15rk[2]);
 #endif
@@ -3880,7 +3880,7 @@ void helper_fldpi_ST0(void)
 void helper_fldlg2_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[3];
+    ST0 = f15rk[3];
 #else
 	ST0 = fx80_from_longdouble(f15rk[3]);
 #endif
@@ -3889,7 +3889,7 @@ void helper_fldlg2_ST0(void)
 void helper_fldln2_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[4];
+    ST0 = f15rk[4];
 #else
 	ST0 = fx80_from_longdouble(f15rk[4]);
 #endif
@@ -3898,7 +3898,7 @@ void helper_fldln2_ST0(void)
 void helper_fldz_ST0(void)
 {
 #ifndef _MSC_VER
-	ST0 = f15rk[0];
+    ST0 = f15rk[0];
 #else
 	ST0 = fx80_from_longdouble(f15rk[0]);
 #endif
@@ -3907,7 +3907,7 @@ void helper_fldz_ST0(void)
 void helper_fldz_FT0(void)
 {
 #ifndef _MSC_VER
-	FT0 = f15rk[0];
+    FT0 = f15rk[0];
 #else
 	FT0 = fx80_from_longdouble(f15rk[0]);
 #endif
@@ -3997,20 +3997,20 @@ void helper_fninit(void)
 
 void helper_fbld_ST0(target_ulong ptr)
 {
-	CPU86_LDouble tmp;
-	uint64_t val;
-	unsigned int v;
-	int i;
+    CPU86_LDouble tmp;
+    uint64_t val;
+    unsigned int v;
+    int i;
 
-	val = 0;
-	for (i = 8; i >= 0; i--) {
-		v = ldub(ptr + i);
-		val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
-	}
+    val = 0;
+    for(i = 8; i >= 0; i--) {
+        v = ldub(ptr + i);
+        val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
+    }
 #ifndef _MSC_VER
-	tmp = val;
-	if (ldub(ptr + 9) & 0x80)
-		tmp = -tmp;
+    tmp = val;
+    if (ldub(ptr + 9) & 0x80)
+        tmp = -tmp;
 #else
 	tmp = fx80_from_int64(val);
 	if (ldub(ptr + 9) & 0x80)
@@ -4057,16 +4057,16 @@ void helper_f2xm1(void)
 
 void helper_fyl2x(void)
 {
-	CPU86_LDouble fptemp;
+    CPU86_LDouble fptemp;
 #ifdef _MSC_VER
 	long double temp;
 #endif
 
     fptemp = ST0;
 #ifndef _MSC_VER
-	if (fptemp>0.0){
+    if (fptemp>0.0){
 		fptemp = log(fptemp) / log(2.0);	 /* log2(ST) */
-		ST1 *= fptemp;
+        ST1 *= fptemp;
 #else
 	if (fx80_isg_double(&fptemp, 0.0)){
 		temp = fx80_to_longdouble(&fptemp);
@@ -4090,55 +4090,54 @@ void helper_fptan(void)
 #else
 	if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
 #endif
-		env->fpus |= 0x400;
-	} else {
+        env->fpus |= 0x400;
+    } else {
 #ifndef _MSC_VER
-		ST0 = tan(fptemp);
-		fpush();
-		ST0 = 1.0;
+        ST0 = tan(fptemp);
+        fpush();
+        ST0 = 1.0;
 #else
 		ST0 = fx80_tanl (&fptemp);
 		fpush();
 		ST0 = fx80_from_longdouble (1.0);
 #endif
 
-		env->fpus &= (~0x400);  /* C2 <-- 0 */
-		/* the above code is for  |arg| < 2**52 only */
-	}
+        env->fpus &= (~0x400);  /* C2 <-- 0 */
+        /* the above code is for  |arg| < 2**52 only */
+    }
 }
 
 void helper_fpatan(void)
 {
     CPU86_LDouble fptemp, fpsrcop;
 
-	fpsrcop = ST1;
-	fptemp = ST0;
+    fpsrcop = ST1;
+    fptemp = ST0;
 #ifndef _MSC_VER
-	ST1 = atan2(fpsrcop,fptemp);
+    ST1 = atan2(fpsrcop,fptemp);
 #else
 	ST1 = fx80_atan2l (&fpsrcop,&fptemp);
 #endif
-	fpop();
+    fpop();
 }
 
 void helper_fxtract(void)
 {
-	CPU86_LDoubleU temp;
-	unsigned int expdif;
+    CPU86_LDoubleU temp;
+    unsigned int expdif;
 
-	temp.d = ST0;
-	expdif = EXPD(temp) - EXPBIAS;
-	/*DP exponent bias*/
+    temp.d = ST0;
+    expdif = EXPD(temp) - EXPBIAS;
+    /*DP exponent bias*/
 #ifndef _MSC_VER
-	ST0 = expdif;
+    ST0 = expdif;
 #else
 	ST0 = fx80_from_int32(expdif);
 #endif
 
-	fpush();
-	BIASEXPONENT(temp);
-
-	ST0 = temp.d;
+    fpush();
+    BIASEXPONENT(temp);
+    ST0 = temp.d;
 }
 
 #ifdef _MSC_VER
@@ -4148,14 +4147,14 @@ static unsigned int __qnan[] = {0x7fc00001};
 
 void helper_fprem1(void)
 {
-	CPU86_LDouble dblq, fpsrcop, fptemp;
-	CPU86_LDoubleU fpsrcop1, fptemp1;
-	int expdif;
-	signed long long int q;
+    CPU86_LDouble dblq, fpsrcop, fptemp;
+    CPU86_LDoubleU fpsrcop1, fptemp1;
+    int expdif;
+    signed long long int q;
 
 #ifndef _MSC_VER
-	if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
-		ST0 = 0.0 / 0.0; /* NaN */
+    if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
+        ST0 = 0.0 / 0.0; /* NaN */
 #else
 	CPU86_LDouble temp, temp1;
 	temp1 = ST(1);
@@ -4165,37 +4164,35 @@ void helper_fprem1(void)
 	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
 		ST0 = fx80_from_longdouble(NAN);
 #endif
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		return;
-	}
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+        return;
+    }
 
-	fpsrcop = ST0;
-	fptemp = ST1;
-	fpsrcop1.d = fpsrcop;
-	fptemp1.d = fptemp;
+    fpsrcop = ST0;
+    fptemp = ST1;
+    fpsrcop1.d = fpsrcop;
+    fptemp1.d = fptemp;
+    expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
 
-	expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
+    if (expdif < 0) {
+        /* optimisation? taken from the AMD docs */
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+        /* ST0 is unchanged */
+        return;
+    }
 
-	if (expdif < 0) {
-		/* optimisation? taken from the AMD docs */
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		/* ST0 is unchanged */
-		return;
-	}
-
-	if (expdif < 53) {
+    if (expdif < 53) {
 #ifndef _MSC_VER
-		dblq = fpsrcop / fptemp;
-		/* round dblq towards nearest integer */
-		dblq = rint(dblq);
-		ST0 = fpsrcop - fptemp * dblq;
+        dblq = fpsrcop / fptemp;
+        /* round dblq towards nearest integer */
+        dblq = rint(dblq);
+        ST0 = fpsrcop - fptemp * dblq;
 
-		/* convert dblq to q by truncating towards zero */
-
-		if (dblq < 0.0)
-			q = (signed long long int)(-dblq);
-		else
-			q = (signed long long int)dblq;
+        /* convert dblq to q by truncating towards zero */
+        if (dblq < 0.0)
+           q = (signed long long int)(-dblq);
+        else
+           q = (signed long long int)dblq;
 #else
 		dblq = fx80_div_fx80(&fpsrcop, &fptemp);
 		/* round dblq towards nearest integer */
@@ -4215,21 +4212,20 @@ void helper_fprem1(void)
 		else
 			q = fx80_to_int64(&dblq);
 #endif
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		/* (C0,C3,C1) <-- (q2,q1,q0) */
-		env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
-		env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
-		env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-	}
-	else {
-		env->fpus |= 0x400;  /* C2 <-- 1 */
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
+        env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
+        env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
+    } else {
+        env->fpus |= 0x400;  /* C2 <-- 1 */
 #ifndef _MSC_VER
-		fptemp = pow(2.0, expdif - 50);
-		fpsrcop = (ST0 / ST1) / fptemp;
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = (fpsrcop < 0.0) ?
-			-(floor(fabs(fpsrcop))) : floor(fpsrcop);
-		ST0 -= (ST1 * fpsrcop * fptemp);
+        fptemp = pow(2.0, expdif - 50);
+        fpsrcop = (ST0 / ST1) / fptemp;
+        /* fpsrcop = integer obtained by chopping */
+        fpsrcop = (fpsrcop < 0.0) ?
+                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+        ST0 -= (ST1 * fpsrcop * fptemp);
 
 
 #else
@@ -4243,19 +4239,19 @@ void helper_fprem1(void)
 		temp1 = fx80_mul_x80(&temp, &fptemp);
 		fx80_sube_fx80(&ST0, &temp1);
 #endif
-	}
+    }
 }
 
 void helper_fprem(void)
 {
-	CPU86_LDouble dblq, fpsrcop, fptemp;
-	CPU86_LDoubleU fpsrcop1, fptemp1;
-	int expdif;
-	signed long long int q;
+    CPU86_LDouble dblq, fpsrcop, fptemp;
+    CPU86_LDoubleU fpsrcop1, fptemp1;
+    int expdif;
+    signed long long int q;
 
 #ifndef _MSC_VER
-	if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
-		ST0 = 0.0 / 0.0; /* NaN */
+    if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
+       ST0 = 0.0 / 0.0; /* NaN */
 #else
 	CPU86_LDouble temp, temp1;
 	temp1 = ST(1);
@@ -4265,43 +4261,40 @@ void helper_fprem(void)
 	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
 		ST0 = fx80_from_longdouble(NAN);
 #endif
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		return;
-	}
+       env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+       return;
+    }
 
 #ifndef _MSC_VER
-	fpsrcop = (CPU86_LDouble)ST0;
-	fptemp = (CPU86_LDouble)ST1;
+    fpsrcop = (CPU86_LDouble)ST0;
+    fptemp = (CPU86_LDouble)ST1;
 #else
 	fpsrcop = ST0;
 	fptemp = ST1;
 #endif
-	fpsrcop1.d = fpsrcop;
-	fptemp1.d = fptemp;
+    fpsrcop1.d = fpsrcop;
+    fptemp1.d = fptemp;
+    expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
 
+    if (expdif < 0) {
+        /* optimisation? taken from the AMD docs */
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+        /* ST0 is unchanged */
+        return;
+    }
 
-	expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
-
-	if (expdif < 0) {
-		/* optimisation? taken from the AMD docs */
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		/* ST0 is unchanged */
-		return;
-	}
-
-	if (expdif < 53) {
+    if ( expdif < 53 ) {
 #ifndef _MSC_VER
-		dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
-		/* round dblq towards zero */
-		dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
-		ST0 = fpsrcop/*ST0*/ - fptemp * dblq;
+        dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
+        /* round dblq towards zero */
+        dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
+        ST0 = fpsrcop/*ST0*/ - fptemp * dblq;
 
-		/* convert dblq to q by truncating towards zero */
-
-		if (dblq < 0.0)
-			q = (signed long long int)(-dblq);
-		else
-			q = (signed long long int)dblq;
+        /* convert dblq to q by truncating towards zero */
+        if (dblq < 0.0)
+           q = (signed long long int)(-dblq);
+        else
+           q = (signed long long int)dblq;
 #else
 		dblq = fx80_div_fx80(&fpsrcop/*ST0*/, &fptemp/*ST1*/);
 		/* round dblq towards zero */
@@ -4323,22 +4316,21 @@ void helper_fprem(void)
 		else
 			q = fx80_to_int64(&dblq);
 #endif
-		env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-		/* (C0,C3,C1) <-- (q2,q1,q0) */
-		env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
-		env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
-		env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-	}
-	else {
-		int N = 32 + (expdif % 32); /* as per AMD docs */
-		env->fpus |= 0x400;  /* C2 <-- 1 */
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
+        env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
+        env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
+    } else {
+        int N = 32 + (expdif % 32); /* as per AMD docs */
+        env->fpus |= 0x400;  /* C2 <-- 1 */
 #ifndef _MSC_VER
-		fptemp = pow(2.0, (double)(expdif - N));
-		fpsrcop = (ST0 / ST1) / fptemp;
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = (fpsrcop < 0.0) ?
-			-(floor(fabs(fpsrcop))) : floor(fpsrcop);
-		ST0 -= (ST1 * fpsrcop * fptemp);
+        fptemp = pow(2.0, (double)(expdif - N));
+        fpsrcop = (ST0 / ST1) / fptemp;
+        /* fpsrcop = integer obtained by chopping */
+        fpsrcop = (fpsrcop < 0.0) ?
+                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+        ST0 -= (ST1 * fpsrcop * fptemp);
 #else
 		fptemp = fx80_from_longdouble(pow(2.0, (double)(expdif - N)));
 		temp = fx80_div_fx80(&ST0, &ST1);
@@ -4350,7 +4342,7 @@ void helper_fprem(void)
 		temp1 = fx80_mul_x80(&temp, &fptemp);
 		fx80_sube_fx80(&ST0, &temp1);
 #endif
-	}
+    }
 }
 
 void helper_fyl2xp1(void)
@@ -4360,41 +4352,39 @@ void helper_fyl2xp1(void)
 	CPU86_LDouble temp;
 #endif
 
-
-	fptemp = ST0;
+    fptemp = ST0;
 #ifndef _MSC_VER
 	if ((fptemp + 1.0)>0.0) {
 		fptemp = log(fptemp + 1.0) / log(2.0); /* log2(ST+1.0) */
-		ST1 *= fptemp;
+        ST1 *= fptemp;
 #else
 	if ((fx80_to_longdouble(&fptemp) + 1.0)>0.0) {
 		temp = fx80_add_double(&fptemp, 1.0);
 		fptemp = fx80_logl(&temp);
 		fx80_mule_fx80(&ST1, &fptemp);
 #endif
-		fpop();
-	}
-	else {
-		env->fpus &= (~0x4700);
-		env->fpus |= 0x400;
-	}
+        fpop();
+    } else {
+        env->fpus &= (~0x4700);
+        env->fpus |= 0x400;
+    }
 }
 
 void helper_fsqrt(void)
 {
     CPU86_LDouble fptemp;
 
-	fptemp = ST0;
+    fptemp = ST0;
 #ifndef _MSC_VER
-	if (fptemp<0.0) {
+    if (fptemp<0.0) {
 #else
 	if (fx80_to_longdouble (&fptemp) <0.0) {
 #endif
-		env->fpus &= (~0x4700);  /* (C3,C2,C1,C0) <-- 0000 */
-		env->fpus |= 0x400;
-	}
+        env->fpus &= (~0x4700);  /* (C3,C2,C1,C0) <-- 0000 */
+        env->fpus |= 0x400;
+    }
 #ifndef _MSC_VER
-	ST0 = sqrt(fptemp);
+    ST0 = sqrt(fptemp);
 #else
 	ST0 = fx80_sqrtl (&fptemp);
 #endif
@@ -4404,28 +4394,27 @@ void helper_fsincos(void)
 {
     CPU86_LDouble fptemp;
 
-
-	fptemp = ST0;
+    fptemp = ST0;
 #ifndef _MSC_VER
-	if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
 	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
 
 #endif
-		env->fpus |= 0x400;
-	} else {
+        env->fpus |= 0x400;
+    } else {
 #ifndef _MSC_VER
-		ST0 = sin(fptemp);
-		fpush();
-		ST0 = cos(fptemp);
+        ST0 = sin(fptemp);
+        fpush();
+        ST0 = cos(fptemp);
 #else
 		ST0 = fx80_sinl (&fptemp);
 		fpush();
 		ST0 = fx80_cosl(&fptemp);
 #endif
-		env->fpus &= (~0x400);  /* C2 <-- 0 */
-		/* the above code is for  |arg| < 2**63 only */
-	}
+        env->fpus &= (~0x400);  /* C2 <-- 0 */
+        /* the above code is for  |arg| < 2**63 only */
+    }
 }
 
 void helper_frndint(void)
@@ -4436,7 +4425,7 @@ void helper_frndint(void)
 void helper_fscale(void)
 {
 #ifndef _MSC_VER
-	ST0 = ldexp (ST0, (int)(ST1));
+    ST0 = ldexp (ST0, (int)(ST1));
 #else
 	ST0 = fx80_ldexp (&(ST0), fx80_to_int32 (&(ST1)));
 #endif
@@ -4446,44 +4435,44 @@ void helper_fsin(void)
 {
     CPU86_LDouble fptemp;
 
-	fptemp = ST0;
+    fptemp = ST0;
 #ifndef _MSC_VER
-	if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
 	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
 #endif
-		env->fpus |= 0x400;
-	} else {
+        env->fpus |= 0x400;
+    } else {
 #ifndef _MSC_VER
-		ST0 = sin(fptemp);
+        ST0 = sin(fptemp);
 #else
 		ST0 = fx80_sinl (&fptemp);
 #endif
-		env->fpus &= (~0x400);  /* C2 <-- 0 */
-		/* the above code is for  |arg| < 2**53 only */
-	}
+        env->fpus &= (~0x400);  /* C2 <-- 0 */
+        /* the above code is for  |arg| < 2**53 only */
+    }
 }
 
 void helper_fcos(void)
 {
     CPU86_LDouble fptemp;
 
-	fptemp = ST0;
+    fptemp = ST0;
 #ifndef _MSC_VER
-	if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
 	if((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
 #endif
-		env->fpus |= 0x400;
-	} else {
+        env->fpus |= 0x400;
+    } else {
 #ifndef _MSC_VER
-		ST0 = cos(fptemp);
+        ST0 = cos(fptemp);
 #else
 		ST0 = fx80_cosl (&fptemp);
 #endif
-		env->fpus &= (~0x400);  /* C2 <-- 0 */
-		/* the above code is for  |arg5 < 2**63 only */
-	}
+        env->fpus &= (~0x400);  /* C2 <-- 0 */
+        /* the above code is for  |arg5 < 2**63 only */
+    }
 }
 
 void helper_fxam_ST0(void)
@@ -5083,7 +5072,6 @@ static float approx_rcp(float a)
 #endif
 
 #endif
-
 #if !defined(CONFIG_USER_ONLY)
 /* try to fill the TLB and return an exception if error. If retaddr is
    NULL, it means that the function was called in C code (i.e. not
@@ -5382,9 +5370,9 @@ void helper_vmload(int aflag)
     else
         addr = (uint32_t)EAX;
 
-	qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmload! " TARGET_FMT_lx "\nFS: %016I64x  | " TARGET_FMT_lx "\n",
-		addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
-		env->segs[R_FS].base);
+    qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmload! " TARGET_FMT_lx "\nFS: %016" PRIx64 " | " TARGET_FMT_lx "\n",
+                addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
+                env->segs[R_FS].base);
 
     svm_load_seg_cache(addr + offsetof(struct vmcb, save.fs),
                        env, R_FS);
@@ -5417,9 +5405,9 @@ void helper_vmsave(int aflag)
     else
         addr = (uint32_t)EAX;
 
-	qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmsave! " TARGET_FMT_lx "\nFS: %016I64x | " TARGET_FMT_lx "\n",
-		addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
-		env->segs[R_FS].base);
+    qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmsave! " TARGET_FMT_lx "\nFS: %016" PRIx64 " | " TARGET_FMT_lx "\n",
+                addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
+                env->segs[R_FS].base);
 
     svm_save_seg(addr + offsetof(struct vmcb, save.fs), 
                  &env->segs[R_FS]);
@@ -5478,11 +5466,11 @@ void helper_invlpga(int aflag)
 
 void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 {
-	if (likely(!(env->hflags & HF_SVMI_MASK)))
-		return;
-	switch (type) {
+    if (likely(!(env->hflags & HF_SVMI_MASK)))
+        return;
+    switch(type) {
 #ifndef _MSC_VER
-	case SVM_EXIT_READ_CR0 ... SVM_EXIT_READ_CR0 + 8:
+    case SVM_EXIT_READ_CR0 ... SVM_EXIT_READ_CR0 + 8:
 #else
 	case SVM_EXIT_READ_CR0:
 	case SVM_EXIT_READ_CR0 + 1:
@@ -5494,12 +5482,12 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 	case SVM_EXIT_READ_CR0 + 7:
 	case SVM_EXIT_READ_CR0 + 8:
 #endif
-		if (env->intercept_cr_read & (1 << (type - SVM_EXIT_READ_CR0))) {
-			helper_vmexit(type, param);
-		}
-		break;
+        if (env->intercept_cr_read & (1 << (type - SVM_EXIT_READ_CR0))) {
+            helper_vmexit(type, param);
+        }
+        break;
 #ifndef _MSC_VER
-	case SVM_EXIT_WRITE_CR0 ... SVM_EXIT_WRITE_CR0 + 8:
+    case SVM_EXIT_WRITE_CR0 ... SVM_EXIT_WRITE_CR0 + 8:
 #else
 	case SVM_EXIT_WRITE_CR0:
 	case SVM_EXIT_WRITE_CR0 + 1:
@@ -5511,12 +5499,12 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 	case SVM_EXIT_WRITE_CR0 + 7:
 	case SVM_EXIT_WRITE_CR0 + 8:
 #endif
-		if (env->intercept_cr_write & (1 << (type - SVM_EXIT_WRITE_CR0))) {
-			helper_vmexit(type, param);
-		}
-		break;
+        if (env->intercept_cr_write & (1 << (type - SVM_EXIT_WRITE_CR0))) {
+            helper_vmexit(type, param);
+        }
+        break;
 #ifndef _MSC_VER
-	case SVM_EXIT_READ_DR0 ... SVM_EXIT_READ_DR0 + 7:
+    case SVM_EXIT_READ_DR0 ... SVM_EXIT_READ_DR0 + 7:
 #else
 	case SVM_EXIT_READ_DR0:
 	case SVM_EXIT_READ_DR0 + 1:
@@ -5527,12 +5515,12 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 	case SVM_EXIT_READ_DR0 + 6:
 	case SVM_EXIT_READ_DR0 + 7:
 #endif
-		if (env->intercept_dr_read & (1 << (type - SVM_EXIT_READ_DR0))) {
-			helper_vmexit(type, param);
-		}
-		break;
+        if (env->intercept_dr_read & (1 << (type - SVM_EXIT_READ_DR0))) {
+            helper_vmexit(type, param);
+        }
+        break;
 #ifndef _MSC_VER
-	case SVM_EXIT_WRITE_DR0 ... SVM_EXIT_WRITE_DR0 + 7:
+    case SVM_EXIT_WRITE_DR0 ... SVM_EXIT_WRITE_DR0 + 7:
 #else
 	case SVM_EXIT_WRITE_DR0:
 	case SVM_EXIT_WRITE_DR0 + 1:
@@ -5543,12 +5531,12 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 	case SVM_EXIT_WRITE_DR0 + 6:
 	case SVM_EXIT_WRITE_DR0 + 7:
 #endif
-		if (env->intercept_dr_write & (1 << (type - SVM_EXIT_WRITE_DR0))) {
-			helper_vmexit(type, param);
-		}
-		break;
+        if (env->intercept_dr_write & (1 << (type - SVM_EXIT_WRITE_DR0))) {
+            helper_vmexit(type, param);
+        }
+        break;
 #ifndef _MSC_VER
-	case SVM_EXIT_EXCP_BASE ... SVM_EXIT_EXCP_BASE + 31:
+    case SVM_EXIT_EXCP_BASE ... SVM_EXIT_EXCP_BASE + 31:
 #else
 	case SVM_EXIT_EXCP_BASE:
 	case SVM_EXIT_EXCP_BASE + 1:
@@ -5583,37 +5571,37 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 	case SVM_EXIT_EXCP_BASE + 30:
 	case SVM_EXIT_EXCP_BASE + 31:
 #endif
-		if (env->intercept_exceptions & (1 << (type - SVM_EXIT_EXCP_BASE))) {
-			helper_vmexit(type, param);
-		}
-		break;
-	case SVM_EXIT_MSR:
-		if (env->intercept & (1ULL << (SVM_EXIT_MSR - SVM_EXIT_INTR))) {
-			/* FIXME: this should be read in at vmrun (faster this way?) */
-			uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
-			uint32_t t0, t1;
+        if (env->intercept_exceptions & (1 << (type - SVM_EXIT_EXCP_BASE))) {
+            helper_vmexit(type, param);
+        }
+        break;
+    case SVM_EXIT_MSR:
+        if (env->intercept & (1ULL << (SVM_EXIT_MSR - SVM_EXIT_INTR))) {
+            /* FIXME: this should be read in at vmrun (faster this way?) */
+            uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
+            uint32_t t0, t1;
 #ifndef _MSC_VER
 			switch ((uint32_t)ECX) {
-			case 0 ... 0x1fff:
-				t0 = (ECX * 2) % 8;
-				t1 = ECX / 8;
-				break;
-			case 0xc0000000 ... 0xc0001fff:
-				t0 = (8192 + ECX - 0xc0000000) * 2;
-				t1 = (t0 / 8);
-				t0 %= 8;
-				break;
-			case 0xc0010000 ... 0xc0011fff:
-				t0 = (16384 + ECX - 0xc0010000) * 2;
-				t1 = (t0 / 8);
-				t0 %= 8;
-				break;
-			default:
-				helper_vmexit(type, param);
-				t0 = 0;
-				t1 = 0;
-				break;
-			}
+            case 0 ... 0x1fff:
+                t0 = (ECX * 2) % 8;
+                t1 = ECX / 8;
+                break;
+            case 0xc0000000 ... 0xc0001fff:
+                t0 = (8192 + ECX - 0xc0000000) * 2;
+                t1 = (t0 / 8);
+                t0 %= 8;
+                break;
+            case 0xc0010000 ... 0xc0011fff:
+                t0 = (16384 + ECX - 0xc0010000) * 2;
+                t1 = (t0 / 8);
+                t0 %= 8;
+                break;
+            default:
+                helper_vmexit(type, param);
+                t0 = 0;
+                t1 = 0;
+                break;
+            }
 #else
 			if ((uint32_t)ECX >= 0 && (uint32_t)ECX <= 0x1fff)
 			{
@@ -5639,16 +5627,16 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 				t1 = 0;
 			}
 #endif
-			if (ldub_phys(addr + t1) & ((1 << param) << t0))
-				helper_vmexit(type, param);
-		}
-		break;
-	default:
-		if (env->intercept & (1ULL << (type - SVM_EXIT_INTR))) {
-			helper_vmexit(type, param);
-		}
-		break;
-	}
+            if (ldub_phys(addr + t1) & ((1 << param) << t0))
+                helper_vmexit(type, param);
+        }
+        break;
+    default:
+        if (env->intercept & (1ULL << (type - SVM_EXIT_INTR))) {
+            helper_vmexit(type, param);
+        }
+        break;
+    }
 }
 
 void helper_svm_check_io(uint32_t port, uint32_t param, 
@@ -5672,10 +5660,10 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
 {
     uint32_t int_ctl;
 
-	qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmexit(%08x, %016I64x , %016I64x  , " TARGET_FMT_lx ")!\n",
-		exit_code, exit_info_1,
-		ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2)),
-		EIP);
+    qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmexit(%08x, %016" PRIx64 ", %016" PRIx64 ", " TARGET_FMT_lx ")!\n",
+                exit_code, exit_info_1,
+                ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2)),
+                EIP);
 
     if(env->hflags & HF_INHIBIT_IRQ_MASK) {
         stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.int_state), SVM_INTERRUPT_SHADOW_MASK);
@@ -5769,9 +5757,9 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_1), exit_info_1);
 
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info),
-        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj)));
+             ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj)));
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info_err),
-        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err)));
+             ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err)));
 
     env->hflags2 &= ~HF2_GIF_MASK;
     /* FIXME: Resets the current ASID register to zero (host ASID). */

@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include <slirp.h>
 
 /* XXX: only DHCP is supported */
@@ -53,24 +42,11 @@ const char *bootp_filename;
 
 static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG
-#define dprintf(fmt, args...) \
-if (slirp_debug & DBG_CALL) { fprintf(dfd, fmt, ## args); fflush(dfd); }
+#define dprintf(fmt, ...) \
+if (slirp_debug & DBG_CALL) { fprintf(dfd, fmt, ##  __VA_ARGS__); fflush(dfd); }
 #else
-#define dprintf(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG
-#define dprintf(fmt,...) \
-if (slirp_debug & DBG_CALL) { fprintf(dfd, fmt, __VA_ARGS__); fflush(dfd); }
-#else
-#define dprintf(fmt,...)
-#endif
-
+#define dprintf(fmt, ...)
 #endif
 
 static BOOTPClient *get_new_addr(struct in_addr *paddr)

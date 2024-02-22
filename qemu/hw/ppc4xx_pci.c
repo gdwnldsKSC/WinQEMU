@@ -33,7 +33,7 @@ typedef target_phys_addr_t pci_addr_t;
 #ifdef DEBUG
 #define DPRINTF(fmt, ...) do { printf(fmt, ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...)
+#define DPRINTF(fmt, ...)
 #endif /* DEBUG */
 
 struct PCIMasterMap {
@@ -379,7 +379,7 @@ PCIBus *ppc4xx_pci_init(CPUState *env, qemu_irq pci_irqs[4],
                                               0, NULL, NULL);
     pci_conf = controller->pci_dev->config;
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_IBM);
-    pci_config_set_device_id(pci_conf, 0x027f); // device_id
+    pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_IBM_440GX);
     pci_config_set_class(pci_conf, PCI_CLASS_BRIDGE_OTHER);
 
     /* CFGADDR */

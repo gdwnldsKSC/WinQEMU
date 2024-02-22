@@ -13,46 +13,19 @@
  * the host adapter emulator.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include <qemu-common.h>
 #include <sysemu.h>
 //#define DEBUG_SCSI
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_SCSI
-#define DPRINTF(fmt, args...) \
-do { printf("scsi-disk: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("scsi-disk: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...) do {} while(0)
+#define DPRINTF(fmt, ...) do {} while(0)
 #endif
 
-#define BADF(fmt, args...) \
-do { fprintf(stderr, "scsi-disk: " fmt , ##args); } while (0)
-
-#else
-
-#ifdef DEBUG_SCSI
-#define DPRINTF(fmt,...) \
-do { printf("scsi-disk: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...) do {} while(0)
-#endif
-
-#define BADF(fmt,...) \
-do { fprintf(stderr, "scsi-disk: " fmt , __VA_ARGS__); } while (0)
-
-#endif
-
+#define BADF(fmt, ...) \
+do { fprintf(stderr, "scsi-disk: " fmt , ## __VA_ARGS__); } while (0)
 
 #include "qemu-common.h"
 #include "block.h"
@@ -362,7 +335,7 @@ static uint8_t *scsi_get_buf(SCSIDevice *d, uint32_t tag)
         BADF("Bad buffer tag 0x%x\n", tag);
         return NULL;
     }
-    return r->iov.iov_base;
+    return (uint8_t *)r->iov.iov_base;
 }
 
 /* Execute a scsi command.  Returns the length of the data expected by the

@@ -7,41 +7,18 @@
  * This code is licenced under the GPL.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "primecell.h"
 #include "sd.h"
 
 //#define DEBUG_PL181 1
-#ifndef _MSC_VER
 
 #ifdef DEBUG_PL181
-#define DPRINTF(fmt, args...) \
-do { printf("pl181: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("pl181: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, args...) do {} while(0)
+#define DPRINTF(fmt, ...) do {} while(0)
 #endif
-
-#else
-
-#ifdef DEBUG_PL181
-#define DPRINTF(fmt,...) \
-do { printf("pl181: " fmt , __VA_ARGS__); } while (0)
-#else
-#define DPRINTF(fmt,...) do {} while(0)
-#endif
-
-#endif
-
 
 #define PL181_FIFO_LEN 16
 

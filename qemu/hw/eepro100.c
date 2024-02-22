@@ -34,16 +34,6 @@
  * Open Source Software Developer Manual
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #if defined(TARGET_I386)
 #ifndef _MSC_VER
 # warning "PXE boot still not working!"
@@ -72,22 +62,11 @@
 
 /* debug EEPRO100 card */
 //~ #define DEBUG_EEPRO100
-#ifndef _MSC_VER
 
 #ifdef DEBUG_EEPRO100
-#define logout(fmt, args...) fprintf(stderr, "EE100\t%-24s" fmt, __func__, ##args)
-#else
-#define logout(fmt, args...) ((void)0)
-#endif
-
-#else
-
-#ifdef DEBUG_EEPRO100
-#define logout(fmt, ...) fprintf(stderr, "EE100\t%-24s" fmt, __func__, __VA_ARGS__)
+#define logout(fmt, ...) fprintf(stderr, "EE100\t%-24s" fmt, __func__, ## __VA_ARGS__)
 #else
 #define logout(fmt, ...) ((void)0)
-#endif
-
 #endif
 
 /* Set flags to 0 to disable debug output. */

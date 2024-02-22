@@ -18,24 +18,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #if SHIFT == 0
 #define Reg MMXReg
-#ifndef _MSC_VER
-#define XMM_ONLY(x...)
-#else
-#define XMM_ONLY(x,...)
-#endif
+#define XMM_ONLY(...)
 #define B(n) MMX_B(n)
 #define W(n) MMX_W(n)
 #define L(n) MMX_L(n)
@@ -43,11 +28,7 @@
 #define SUFFIX _mmx
 #else
 #define Reg XMMReg
-#ifndef _MSC_VER
-#define XMM_ONLY(x...) x
-#else
-#define XMM_ONLY(x,...) x
-#endif
+#define XMM_ONLY(...) __VA_ARGS__
 #define B(n) XMM_B(n)
 #define W(n) XMM_W(n)
 #define L(n) XMM_L(n)

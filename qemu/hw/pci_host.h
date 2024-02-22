@@ -22,40 +22,17 @@
  * THE SOFTWARE.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 /* Worker routines for a PCI host controller that uses an {address,data}
    register pair to access PCI configuration space.  */
 
 /* debug PCI */
 //#define DEBUG_PCI
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_PCI
-#define PCI_DPRINTF(fmt, args...) \
-do { printf("pci_host_data: " fmt , ##args); } while (0)
+#define PCI_DPRINTF(fmt, ...) \
+do { printf("pci_host_data: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define PCI_DPRINTF(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG_PCI
-#define PCI_DPRINTF(fmt,...) \
-do { printf("pci_host_data: " fmt , __VA_ARGS__); } while (0)
-#else
-#define PCI_DPRINTF(fmt,...)
-#endif
-
+#define PCI_DPRINTF(fmt, ...)
 #endif
 
 typedef struct {

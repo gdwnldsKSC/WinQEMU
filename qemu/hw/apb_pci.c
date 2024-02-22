@@ -22,18 +22,6 @@
  * THE SOFTWARE.
  */
 
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-
 /* XXX This file and most of its contents are somewhat misnamed.  The
    Ultrasparc PCI host is called the PCI Bus Module (PBM).  The APB is
    the secondary PCI bridge.  */
@@ -44,24 +32,11 @@
 /* debug APB */
 //#define DEBUG_APB
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_APB
-#define APB_DPRINTF(fmt, args...) \
-do { printf("APB: " fmt , ##args); } while (0)
+#define APB_DPRINTF(fmt, ...) \
+do { printf("APB: " fmt , ## __VA_ARGS__); } while (0)
 #else
-#define APB_DPRINTF(fmt, args...)
-#endif
-
-#else
-
-#ifdef DEBUG_APB
-#define APB_DPRINTF(fmt,...) \
-do { printf("APB: " fmt , __VA_ARGS__); } while (0)
-#else
-#define APB_DPRINTF(fmt,...)
-#endif
-
+#define APB_DPRINTF(fmt, ...)
 #endif
 
 typedef target_phys_addr_t pci_addr_t;

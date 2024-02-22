@@ -42,35 +42,17 @@
 //#define DEBUG_RC4030
 //#define DEBUG_RC4030_DMA
 
-#ifndef _MSC_VER
-
 #ifdef DEBUG_RC4030
-#define DPRINTF(fmt, args...) \
-do { printf("rc4030: " fmt , ##args); } while (0)
+#define DPRINTF(fmt, ...) \
+do { printf("rc4030: " fmt , ## __VA_ARGS__); } while (0)
 static const char* irq_names[] = { "parallel", "floppy", "sound", "video",
             "network", "scsi", "keyboard", "mouse", "serial0", "serial1" };
 #else
-#define DPRINTF(fmt, args...)
+#define DPRINTF(fmt, ...)
 #endif
 
-#define RC4030_ERROR(fmt, args...) \
-do { fprintf(stderr, "rc4030 ERROR: %s: " fmt, __func__ , ##args); } while (0)
-
-#else
-
-#ifdef DEBUG_RC4030
-#define DPRINTF(fmt,...) \
-do { printf("rc4030: " fmt , __VA_ARGS__); } while (0)
-static const char* irq_names[] = { "parallel", "floppy", "sound", "video",
-            "network", "scsi", "keyboard", "mouse", "serial0", "serial1" };
-#else
-#define DPRINTF(fmt,...)
-#endif
-
-#define RC4030_ERROR(fmt,...) \
-do { fprintf(stderr, "rc4030 ERROR: %s: " fmt, __func__ , __VA_ARGS__); } while (0)
-
-#endif
+#define RC4030_ERROR(fmt, ...) \
+do { fprintf(stderr, "rc4030 ERROR: %s: " fmt, __func__ , ## __VA_ARGS__); } while (0)
 
 /********************************************************/
 /* rc4030 emulation                                     */
@@ -843,7 +825,7 @@ void *rc4030_init(qemu_irq timer, qemu_irq jazz_bus,
 
     s = qemu_mallocz(sizeof(rc4030State));
 
-	*irqs = qemu_allocate_irqs(rc4030_irq_jazz_request, s, 16);
+    *irqs = qemu_allocate_irqs(rc4030_irq_jazz_request, s, 16);
     *dmas = rc4030_allocate_dmas(s, 4);
 
     s->periodic_timer = qemu_new_timer(vm_clock, rc4030_periodic_timer, s);
@@ -859,5 +841,5 @@ void *rc4030_init(qemu_irq timer, qemu_irq jazz_bus,
     s_jazzio = cpu_register_io_memory(0, jazzio_read, jazzio_write, s);
     cpu_register_physical_memory(0xf0000000, 0x00001000, s_jazzio);
 
-	return s;
+    return s;
 }

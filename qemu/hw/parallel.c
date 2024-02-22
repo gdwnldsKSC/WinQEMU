@@ -22,17 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "qemu-char.h"
 #include "isa.h"
@@ -40,21 +29,10 @@
 
 //#define DEBUG_PARALLEL
 
-#ifndef _MSC_VER
 #ifdef DEBUG_PARALLEL
-#define pdebug(fmt, arg...) printf("pp: " fmt, ##arg)
+#define pdebug(fmt, ...) printf("pp: " fmt, ## __VA_ARGS__)
 #else
-#define pdebug(fmt, arg...) ((void)0)
-#endif
-
-#else
-
-#ifdef DEBUG_PARALLEL
-#define pdebug(fmt,...) printf("pp: " fmt, __VA_ARGS__)
-#else
-#define pdebug(fmt,...) ((void)0)
-#endif
-
+#define pdebug(fmt, ...) ((void)0)
 #endif
 
 #define PARA_REG_DATA 0
@@ -151,9 +129,6 @@ static void parallel_ioport_write_hw(void *opaque, uint32_t addr, uint32_t val)
     ParallelState *s = opaque;
     uint8_t parm = val;
     int dir;
-#ifdef _MSC_VER
-	struct ParallelIOArg ioarg;
-#endif
 
     /* Sometimes programs do several writes for timing purposes on old
        HW. Take care not to waste time on writes that do nothing. */
@@ -198,13 +173,7 @@ static void parallel_ioport_write_hw(void *opaque, uint32_t addr, uint32_t val)
             /* Controls not correct for EPP address cycle, so do nothing */
             pdebug("wa%02x s\n", val);
         else {
-#ifndef _MSC_VER
             struct ParallelIOArg ioarg = { .buffer = &parm, .count = 1 };
-#else
-            memset (&ioarg, 0, sizeof (ioarg));
-			ioarg.buffer = &parm;
-			ioarg.count = 1;
-#endif
             if (qemu_chr_ioctl(s->chr, CHR_IOCTL_PP_EPP_WRITE_ADDR, &ioarg)) {
                 s->epp_timeout = 1;
                 pdebug("wa%02x t\n", val);
@@ -218,13 +187,7 @@ static void parallel_ioport_write_hw(void *opaque, uint32_t addr, uint32_t val)
             /* Controls not correct for EPP data cycle, so do nothing */
             pdebug("we%02x s\n", val);
         else {
-#ifndef _MSC_VER
             struct ParallelIOArg ioarg = { .buffer = &parm, .count = 1 };
-#else
-            memset (&ioarg, 0, sizeof (ioarg));
-			ioarg.buffer = &parm;
-			ioarg.count = 1;
-#endif
             if (qemu_chr_ioctl(s->chr, CHR_IOCTL_PP_EPP_WRITE, &ioarg)) {
                 s->epp_timeout = 1;
                 pdebug("we%02x t\n", val);
@@ -242,13 +205,9 @@ parallel_ioport_eppdata_write_hw2(void *opaque, uint32_t addr, uint32_t val)
     ParallelState *s = opaque;
     uint16_t eppdata = cpu_to_le16(val);
     int err;
-#ifndef _MSC_VER
     struct ParallelIOArg ioarg = {
         .buffer = &eppdata, .count = sizeof(eppdata)
     };
-#else
-	struct ParallelIOArg ioarg = {&eppdata, sizeof(eppdata)};
-#endif
     if ((s->control & (PARA_CTR_DIR|PARA_CTR_SIGNAL)) != PARA_CTR_INIT) {
         /* Controls not correct for EPP data cycle, so do nothing */
         pdebug("we%04x s\n", val);
@@ -269,13 +228,9 @@ parallel_ioport_eppdata_write_hw4(void *opaque, uint32_t addr, uint32_t val)
     ParallelState *s = opaque;
     uint32_t eppdata = cpu_to_le32(val);
     int err;
-#ifndef _MSC_VER
-	struct ParallelIOArg ioarg = {
-		.buffer = &eppdata, .count = sizeof(eppdata)
-	};
-#else
-	struct ParallelIOArg ioarg = {&eppdata, sizeof(eppdata)};
-#endif
+    struct ParallelIOArg ioarg = {
+        .buffer = &eppdata, .count = sizeof(eppdata)
+    };
     if ((s->control & (PARA_CTR_DIR|PARA_CTR_SIGNAL)) != PARA_CTR_INIT) {
         /* Controls not correct for EPP data cycle, so do nothing */
         pdebug("we%08x s\n", val);
@@ -330,11 +285,6 @@ static uint32_t parallel_ioport_read_hw(void *opaque, uint32_t addr)
 {
     ParallelState *s = opaque;
     uint8_t ret = 0xff;
-#ifdef _MSC_VER
-	struct ParallelIOArg ioarg;
-	memset (&ioarg, 0, sizeof (ioarg));
-#endif
-
     addr &= 7;
     switch(addr) {
     case PARA_REG_DATA:
@@ -372,12 +322,7 @@ static uint32_t parallel_ioport_read_hw(void *opaque, uint32_t addr)
             /* Controls not correct for EPP addr cycle, so do nothing */
             pdebug("ra%02x s\n", ret);
         else {
-#ifndef _MSC_VER
-			struct ParallelIOArg ioarg = { .buffer = &ret, .count = 1 };
-#else
-			ioarg.buffer = &ret;
-			ioarg.count = 1;
-#endif
+            struct ParallelIOArg ioarg = { .buffer = &ret, .count = 1 };
             if (qemu_chr_ioctl(s->chr, CHR_IOCTL_PP_EPP_READ_ADDR, &ioarg)) {
                 s->epp_timeout = 1;
                 pdebug("ra%02x t\n", ret);
@@ -391,12 +336,7 @@ static uint32_t parallel_ioport_read_hw(void *opaque, uint32_t addr)
             /* Controls not correct for EPP data cycle, so do nothing */
             pdebug("re%02x s\n", ret);
         else {
-#ifndef _MSC_VER
-			struct ParallelIOArg ioarg = { .buffer = &ret, .count = 1 };
-#else
-			ioarg.buffer = &ret;
-			ioarg.count = 1;
-#endif
+            struct ParallelIOArg ioarg = { .buffer = &ret, .count = 1 };
             if (qemu_chr_ioctl(s->chr, CHR_IOCTL_PP_EPP_READ, &ioarg)) {
                 s->epp_timeout = 1;
                 pdebug("re%02x t\n", ret);
@@ -417,13 +357,9 @@ parallel_ioport_eppdata_read_hw2(void *opaque, uint32_t addr)
     uint32_t ret;
     uint16_t eppdata = ~0;
     int err;
-#ifndef _MSC_VER
-	struct ParallelIOArg ioarg = {
-		.buffer = &eppdata, .count = sizeof(eppdata)
-	};
-#else
-	struct ParallelIOArg ioarg = {&eppdata, sizeof(eppdata)};
-#endif
+    struct ParallelIOArg ioarg = {
+        .buffer = &eppdata, .count = sizeof(eppdata)
+    };
     if ((s->control & (PARA_CTR_DIR|PARA_CTR_SIGNAL)) != (PARA_CTR_DIR|PARA_CTR_INIT)) {
         /* Controls not correct for EPP data cycle, so do nothing */
         pdebug("re%04x s\n", eppdata);
@@ -448,13 +384,9 @@ parallel_ioport_eppdata_read_hw4(void *opaque, uint32_t addr)
     uint32_t ret;
     uint32_t eppdata = ~0U;
     int err;
-#ifndef _MSC_VER
-	struct ParallelIOArg ioarg = {
-		.buffer = &eppdata, .count = sizeof(eppdata)
-	};
-#else
-	struct ParallelIOArg ioarg = {&eppdata, sizeof(eppdata)};
-#endif
+    struct ParallelIOArg ioarg = {
+        .buffer = &eppdata, .count = sizeof(eppdata)
+    };
     if ((s->control & (PARA_CTR_DIR|PARA_CTR_SIGNAL)) != (PARA_CTR_DIR|PARA_CTR_INIT)) {
         /* Controls not correct for EPP data cycle, so do nothing */
         pdebug("re%08x s\n", eppdata);
