@@ -1697,6 +1697,9 @@
     <ClInclude Include="qemu\hw\watchdog.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\qemu-options.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />

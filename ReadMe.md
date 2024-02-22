@@ -42,6 +42,18 @@ Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting
 This will now automatically, after following those steps, build pthreadVC3.dll inside the
 debug target folder as well, which is now required to run. 
 
+From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.h
+
+Rebaselined on upstream vl.c which now (as of a few iterations ago) uses that header
+instead of declaring all the enum and help files in source to allow them to remain in 
+sync and export of current version documentation easier.
+
+This will need to be re-done every time there is a change/feature added to these functions,
+but for ease of use I will be supplying a working version of qemu-options.h in my repository.
+
+qemu-options generated QEMU_OPTIONS_net must be modified to avoid macro expansion issues
+in MSVC C Preprocessor currently. 
+
 # Included precompiled images/binaries
 
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it

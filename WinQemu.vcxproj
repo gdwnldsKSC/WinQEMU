@@ -1086,6 +1086,7 @@
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
+    <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
