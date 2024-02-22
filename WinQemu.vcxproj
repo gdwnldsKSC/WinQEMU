@@ -166,6 +166,21 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
     <ClCompile Include="qemu\acl.c" />
+    <ClCompile Include="qemu\block\bochs.c" />
+    <ClCompile Include="qemu\block\cloop.c" />
+    <ClCompile Include="qemu\block\cow.c" />
+    <ClCompile Include="qemu\block\dmg.c" />
+    <ClCompile Include="qemu\block\nbd.c" />
+    <ClCompile Include="qemu\block\parallels.c" />
+    <ClCompile Include="qemu\block\qcow.c" />
+    <ClCompile Include="qemu\block\qcow2.c" />
+    <ClCompile Include="qemu\block\raw-posix.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\block\raw-win32.c" />
+    <ClCompile Include="qemu\block\vmdk.c" />
+    <ClCompile Include="qemu\block\vpc.c" />
+    <ClCompile Include="qemu\block\vvfat.c" />
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
@@ -217,26 +232,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\block-bochs.c" />
-    <ClCompile Include="qemu\block-cloop.c" />
-    <ClCompile Include="qemu\block-cow.c" />
-    <ClCompile Include="qemu\block-dmg.c" />
-    <ClCompile Include="qemu\block-nbd.c" />
-    <ClCompile Include="qemu\block-parallels.c" />
-    <ClCompile Include="qemu\block-qcow.c" />
-    <ClCompile Include="qemu\block-qcow2.c" />
-    <ClCompile Include="qemu\block-raw-posix.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\block-raw-win32.c" />
-    <ClCompile Include="qemu\block-vmdk.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="qemu\block-vpc.c" />
-    <ClCompile Include="qemu\block-vvfat.c" />
     <ClCompile Include="qemu\block.c" />
     <ClCompile Include="qemu\bt-host.c" />
     <ClCompile Include="qemu\bt-vhci.c" />

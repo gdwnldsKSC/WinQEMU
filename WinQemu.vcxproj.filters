@@ -52,6 +52,12 @@
     <Filter Include="qemu\target-alpha">
       <UniqueIdentifier>{e72866bb-be52-4bbd-9998-3f723e3f759b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\block">
+      <UniqueIdentifier>{8784dc82-aca4-46a7-ac8e-57c127a36ba3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\block\src">
+      <UniqueIdentifier>{dc3c6453-7eb5-4bee-9978-4786f6958ca8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -79,45 +85,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\arm-semi.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-bochs.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-cloop.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-cow.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-dmg.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-nbd.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-parallels.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-qcow.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-qcow2.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-raw-posix.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-raw-win32.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-vmdk.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-vpc.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\block-vvfat.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\block.c">
@@ -1133,6 +1100,45 @@
     </ClCompile>
     <ClCompile Include="qemu\module.c">
       <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\bochs.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\cloop.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\cow.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\dmg.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\nbd.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\parallels.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qcow.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qcow2.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\raw-posix.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\raw-win32.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\vmdk.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\vpc.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\vvfat.c">
+      <Filter>qemu\block\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
