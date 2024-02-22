@@ -72,6 +72,7 @@ static void help(void)
            "QEMU disk image utility\n"
            "\n"
            "Command syntax:\n"
+           "  check [-f fmt] filename\n"
            "  create [-e] [-6] [-F fmt] [-b base_image] [-f fmt] filename [size]\n"
            "  commit [-f fmt] filename\n"
            "  convert [-c] [-e] [-6] [-f fmt] [-O output_fmt] [-B output_base_image] filename [filename2 [...]] output_filename\n"
@@ -329,19 +330,19 @@ static int img_create(int argc, char **argv)
     return 0;
 }
 
-static int img_check(int argc, char** argv)
+static int img_check(int argc, char **argv)
 {
     int c, ret;
-    const char* filename, * fmt;
-    BlockDriver* drv;
-    BlockDriverState* bs;
+    const char *filename, *fmt;
+    BlockDriver *drv;
+    BlockDriverState *bs;
 
     fmt = NULL;
-    for (;;) {
+    for(;;) {
         c = getopt(argc, argv, "f:h");
         if (c == -1)
             break;
-        switch (c) {
+        switch(c) {
         case 'h':
             help();
             break;
@@ -361,15 +362,14 @@ static int img_check(int argc, char** argv)
         drv = bdrv_find_format(fmt);
         if (!drv)
             error("Unknown file format '%s'", fmt);
-    }
-    else {
+    } else {
         drv = NULL;
     }
     if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
         error("Could not open '%s'", filename);
     }
     ret = bdrv_check(bs);
-    switch (ret) {
+    switch(ret) {
     case 0:
         printf("No errors were found on the image.\n");
         break;
@@ -379,8 +379,7 @@ static int img_check(int argc, char** argv)
     default:
         if (ret < 0) {
             error("An error occurred during the check");
-        }
-        else {
+        } else {
             printf("%d errors were found on the image.\n", ret);
         }
         break;
@@ -558,11 +557,11 @@ static int img_convert(int argc, char **argv)
     drv = bdrv_find_format(out_fmt);
     if (!drv)
         error("Unknown file format '%s'", out_fmt);
-    if (flags & BLOCK_FLAG_COMPRESS && drv != &bdrv_qcow && drv != &bdrv_qcow2)
+    if (flags & BLOCK_FLAG_COMPRESS && strcmp(drv->format_name, "qcow") && strcmp(drv->format_name, "qcow2"))
         error("Compression not supported for this file format");
-    if (flags & BLOCK_FLAG_ENCRYPT && drv != &bdrv_qcow && drv != &bdrv_qcow2)
+    if (flags & BLOCK_FLAG_ENCRYPT && strcmp(drv->format_name, "qcow") && strcmp(drv->format_name, "qcow2"))
         error("Encryption not supported for this file format");
-    if (flags & BLOCK_FLAG_COMPAT6 && drv != &bdrv_vmdk)
+    if (flags & BLOCK_FLAG_COMPAT6 && strcmp(drv->format_name, "vmdk"))
         error("Alternative compatibility level not supported for this file format");
     if (flags & BLOCK_FLAG_ENCRYPT && flags & BLOCK_FLAG_COMPRESS)
         error("Compression and encryption not supported at the same time");
@@ -671,7 +670,7 @@ static int img_convert(int argc, char **argv)
             if (n > bs_offset + bs_sectors - sector_num)
                 n = bs_offset + bs_sectors - sector_num;
 
-            if (drv != &bdrv_host_device) {
+            if (strcmp(drv->format_name, "host_device")) {
                 if (!bdrv_is_allocated(bs[bs_i], sector_num - bs_offset,
                                        n, &n1)) {
                     sector_num += n1;
@@ -698,7 +697,7 @@ static int img_convert(int argc, char **argv)
                    If the output is to a host device, we also write out
                    sectors that are entirely 0, since whatever data was
                    already there is garbage, not 0s. */
-                if (drv == &bdrv_host_device || out_baseimg ||
+                if (strcmp(drv->format_name, "host_device") == 0 || out_baseimg ||
                     is_allocated_sectors(buf1, n, &n1)) {
                     if (bdrv_write(out_bs, sector_num, buf1, n1) < 0)
                         error("error while writing");

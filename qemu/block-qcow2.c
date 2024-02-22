@@ -34,6 +34,7 @@
 
 #include "qemu-common.h"
 #include "block_int.h"
+#include "module.h"
 #include <zlib.h>
 #include "aes.h"
 
@@ -1014,11 +1015,11 @@ static int alloc_cluster_link_l2(BlockDriverState *bs, uint64_t cluster_offset,
 
     for (i = 0; i < m->nb_clusters; i++) {
         /* if two concurrent writes happen to the same unallocated cluster
-         * each write allocates separate cluster and writes data concurrently.
-         * The first one to complete updates l2 table with pointer to its
-         * cluster the second one has to do RMW (which is done above by
-         * copy_sectors()), update l2 table with its cluster pointer and free
-         * old cluster. This is what this loop does */
+	 * each write allocates separate cluster and writes data concurrently.
+	 * The first one to complete updates l2 table with pointer to its
+	 * cluster the second one has to do RMW (which is done above by
+	 * copy_sectors()), update l2 table with its cluster pointer and free
+	 * old cluster. This is what this loop does */
         if(l2_table[l2_index + i] != 0)
             old_cluster[j++] = l2_table[l2_index + i];
 
@@ -1033,7 +1034,7 @@ static int alloc_cluster_link_l2(BlockDriverState *bs, uint64_t cluster_offset,
 
     for (i = 0; i < j; i++)
         free_any_clusters(bs, be64_to_cpu(old_cluster[i]) & ~QCOW_OFLAG_COPIED,
-            1);
+                          1);
 
     ret = 0;
 err:
@@ -1440,7 +1441,7 @@ static QCowAIOCB *qcow_aio_setup(BlockDriverState *bs,
     acb->sector_num = sector_num;
     acb->qiov = qiov;
     if (qiov->niov > 1) {
-        acb->buf = acb->orig_buf = qemu_memalign(512, qiov->size);
+        acb->buf = acb->orig_buf = qemu_blockalign(bs, qiov->size);
         if (is_write)
             qemu_iovec_to_buffer(qiov, acb->buf);
     } else {
@@ -2913,7 +2914,7 @@ static int qcow_get_buffer(BlockDriverState *bs, uint8_t *buf,
     return ret;
 }
 
-BlockDriver bdrv_qcow2 = {
+static BlockDriver bdrv_qcow2 = {
     .format_name	= "qcow2",
     .instance_size	= sizeof(BDRVQcowState),
     .bdrv_probe		= qcow_probe,
@@ -2943,3 +2944,10 @@ BlockDriver bdrv_qcow2 = {
     .bdrv_create2 = qcow_create2,
     .bdrv_check = qcow_check,
 };
+
+static void bdrv_qcow2_init(void)
+{
+    bdrv_register(&bdrv_qcow2);
+}
+
+block_init(bdrv_qcow2_init);

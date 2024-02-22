@@ -36,6 +36,7 @@
  
 #include "qemu-common.h"
 #include "block_int.h"
+#include "module.h"
 
 /**************************************************************/
 
@@ -188,12 +189,18 @@ static void parallels_close(BlockDriverState *bs)
     close(s->fd);
 }
 
-BlockDriver bdrv_parallels = {
-    "parallels",
-    sizeof(BDRVParallelsState),
-    parallels_probe,
-    parallels_open,
-    parallels_read,
-    NULL,
-    parallels_close,
+static BlockDriver bdrv_parallels = {
+    .format_name	= "parallels",
+    .instance_size	= sizeof(BDRVParallelsState),
+    .bdrv_probe		= parallels_probe,
+    .bdrv_open		= parallels_open,
+    .bdrv_read		= parallels_read,
+    .bdrv_close		= parallels_close,
 };
+
+static void bdrv_parallels_init(void)
+{
+    bdrv_register(&bdrv_parallels);
+}
+
+block_init(bdrv_parallels_init);

@@ -26,18 +26,9 @@
  * THE SOFTWARE.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "nbd.h"
+#include "module.h"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -186,64 +177,20 @@ static int64_t nbd_getlength(BlockDriverState *bs)
     return s->size;
 }
 
-#ifndef _MSC_VER
-BlockDriver bdrv_nbd = {
-    "nbd",
-    sizeof(BDRVNBDState),
-    NULL, /* no probe for protocols */
-    nbd_open,
-    nbd_read,
-    nbd_write,
-    nbd_close,
-    .bdrv_getlength = nbd_getlength,
-    .protocol_name = "nbd",
-};
-#else
-BlockDriver bdrv_nbd = {
-	"nbd",					//const char *format_name;
-	sizeof(BDRVNBDState),	//int instance_size;
-	NULL,					//int (*bdrv_probe)(const uint8_t *buf, int buf_size, const char *filename);
-	nbd_open,				//int (*bdrv_open)(BlockDriverState *bs, const char *filename, int flags);
-	nbd_read,				//int (*bdrv_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors);
-	nbd_write,				//int (*bdrv_write)(BlockDriverState *bs, int64_t sector_num,	const uint8_t *buf, int nb_sectors);
-	nbd_close,				//void (*bdrv_close)(BlockDriverState *bs);
-	NULL,					//int (*bdrv_create)(const char *filename, int64_t total_sectors, const char *backing_file, int flags);
-	NULL,					//void (*bdrv_flush)(BlockDriverState *bs);
-	NULL,					//int (*bdrv_is_allocated)(BlockDriverState *bs, int64_t sector_num, int nb_sectors, int *pnum);
-	NULL,					//int (*bdrv_set_key)(BlockDriverState *bs, const char *key);
-	NULL,					//int (*bdrv_make_empty)(BlockDriverState *bs);
-
-	/* aio */
-	NULL,					//BlockDriverAIOCB *(*bdrv_aio_read)(BlockDriverState *bs, int64_t sector_num, uint8_t *buf, int nb_sectors, BlockDriverCompletionFunc *cb, void *opaque);
-	NULL,					//BlockDriverAIOCB *(*bdrv_aio_write)(BlockDriverState *bs, int64_t sector_num, const uint8_t *buf, int nb_sectors, BlockDriverCompletionFunc *cb, void *opaque);
-	NULL,					//void (*bdrv_aio_cancel)(BlockDriverAIOCB *acb);
-	0,						//int aiocb_size;
-
-	"nbd",					//const char *protocol_name;
-	NULL,					//int (*bdrv_pread)(BlockDriverState *bs, int64_t offset, uint8_t *buf, int count);
-	NULL,					//int (*bdrv_pwrite)(BlockDriverState *bs, int64_t offset, const uint8_t *buf, int count);
-	NULL,					//int (*bdrv_truncate)(BlockDriverState *bs, int64_t offset);
-	bdrv_getlength,			//int64_t (*bdrv_getlength)(BlockDriverState *bs);
-	NULL,					//int (*bdrv_write_compressed)(BlockDriverState *bs, int64_t sector_num, const uint8_t *buf, int nb_sectors);
-
-	NULL,					//int (*bdrv_snapshot_create)(BlockDriverState *bs, QEMUSnapshotInfo *sn_info);
-	NULL,					//int (*bdrv_snapshot_goto)(BlockDriverState *bs, const char *snapshot_id);
-	NULL,					//int (*bdrv_snapshot_delete)(BlockDriverState *bs, const char *snapshot_id);
-	NULL,					//int (*bdrv_snapshot_list)(BlockDriverState *bs, QEMUSnapshotInfo **psn_info);
-	NULL,					//int (*bdrv_get_info)(BlockDriverState *bs, BlockDriverInfo *bdi);
-
-	/* removable device specific */
-	NULL,					//int (*bdrv_is_inserted)(BlockDriverState *bs);
-	NULL,					//int (*bdrv_media_changed)(BlockDriverState *bs);
-	NULL,					//int (*bdrv_eject)(BlockDriverState *bs, int eject_flag);
-	NULL,					//int (*bdrv_set_locked)(BlockDriverState *bs, int locked);
-
-	/* to control generic scsi devices */
-	NULL,					//int (*bdrv_ioctl)(BlockDriverState *bs, unsigned long int req, void *buf);
-
-	NULL,					//BlockDriverAIOCB *free_aiocb;
-	NULL					//struct BlockDriver *next;
+static BlockDriver bdrv_nbd = {
+    .format_name	= "nbd",
+    .instance_size	= sizeof(BDRVNBDState),
+    .bdrv_open		= nbd_open,
+    .bdrv_read		= nbd_read,
+    .bdrv_write		= nbd_write,
+    .bdrv_close		= nbd_close,
+    .bdrv_getlength	= nbd_getlength,
+    .protocol_name	= "nbd",
 };
 
+static void bdrv_nbd_init(void)
+{
+    bdrv_register(&bdrv_nbd);
+}
 
-#endif
+block_init(bdrv_nbd_init);

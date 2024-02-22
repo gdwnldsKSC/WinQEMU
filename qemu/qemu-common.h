@@ -216,6 +216,7 @@ typedef struct PCMCIACardState PCMCIACardState;
 typedef struct MouseTransformInfo MouseTransformInfo;
 typedef struct uWireSlave uWireSlave;
 typedef struct I2SCodec I2SCodec;
+typedef struct DeviceState DeviceState;
 
 /* CPU save/load.  */
 void cpu_save(QEMUFile *f, void *opaque);
@@ -254,6 +255,8 @@ void qemu_iovec_from_buffer(QEMUIOVector *qiov, const void *buf, size_t count);
 
 struct Monitor;
 typedef struct Monitor Monitor;
+
+#include "module.h"
 
 #endif /* dyngen-exec.h hack */
 

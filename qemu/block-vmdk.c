@@ -35,8 +35,7 @@
  
 #include "qemu-common.h"
 #include "block_int.h"
-
-#include <assert.h>
+#include "module.h"
 
 #define VMDK3_MAGIC (('C' << 24) | ('O' << 16) | ('W' << 8) | 'D')
 #define VMDK4_MAGIC (('K' << 24) | ('D' << 16) | ('M' << 8) | 'V')
@@ -159,7 +158,7 @@ static uint32_t vmdk_read_cid(BlockDriverState *bs, int parent)
         cid_str_size = sizeof("CID");
     }
 
-    if ((p_name = strstr(desc,cid_str)) != 0) {
+    if ((p_name = strstr(desc,cid_str)) != NULL) {
         p_name += cid_str_size;
         sscanf(p_name,"%x",&cid);
     }
@@ -179,7 +178,7 @@ static int vmdk_write_cid(BlockDriverState *bs, uint32_t cid)
 
     tmp_str = strstr(desc,"parentCID");
     pstrcpy(tmp_desc, sizeof(tmp_desc), tmp_str);
-    if ((p_name = strstr(desc,"CID")) != 0) {
+    if ((p_name = strstr(desc,"CID")) != NULL) {
         p_name += sizeof("CID");
         snprintf(p_name, sizeof(desc) - (p_name - desc), "%x\n", cid);
         pstrcat(desc, sizeof(desc), tmp_desc);
@@ -264,7 +263,7 @@ static int vmdk_snapshot_create(const char *filename, const char *backing_file)
     if (read(p_fd, p_desc, DESC_SIZE) != DESC_SIZE)
         goto fail;
 
-    if ((p_name = strstr(p_desc,"CID")) != 0) {
+    if ((p_name = strstr(p_desc,"CID")) != NULL) {
         p_name += sizeof("CID");
         sscanf(p_name,"%x",&p_cid);
     }
@@ -355,12 +354,12 @@ static int vmdk_parent_open(BlockDriverState *bs, const char * filename)
     if (bdrv_pread(s->hd, 0x200, desc, DESC_SIZE) != DESC_SIZE)
         return -1;
 
-    if ((p_name = strstr(desc,"parentFileNameHint")) != 0) {
+    if ((p_name = strstr(desc,"parentFileNameHint")) != NULL) {
         char *end_name;
         struct stat file_buf;
 
         p_name += sizeof("parentFileNameHint") + 1;
-        if ((end_name = strchr(p_name,'\"')) == 0)
+        if ((end_name = strchr(p_name,'\"')) == NULL)
             return -1;
         if ((end_name - p_name) > sizeof (s->hd->backing_file) - 1)
             return -1;
@@ -487,7 +486,7 @@ static int get_whole_cluster(BlockDriverState *bs, uint64_t cluster_offset,
     BDRVVmdkState *s = bs->opaque;
     uint8_t  whole_grain[s->cluster_sectors*512];        // 128 sectors * 512 bytes each = grain size 64KB
 
-	// we will be here if it's first write on non-exist grain(cluster).
+    // we will be here if it's first write on non-exist grain(cluster).
     // try to read from parent image, if exist
     if (s->hd->backing_hd) {
         BDRVVmdkState *ps = s->hd->backing_hd->opaque;
@@ -527,31 +526,23 @@ static int get_whole_cluster(BlockDriverState *bs, uint64_t cluster_offset,
 		if (!vmdk_is_cid_valid(bs))
 		{
 			free (whole_grain);
-			return -1;
+            return -1;
 		}
 
-		parent_cluster_offset = get_cluster_offset(s->hd->backing_hd, NULL, offset, allocate);
+        parent_cluster_offset = get_cluster_offset(s->hd->backing_hd, NULL, offset, allocate);
 
-		if (parent_cluster_offset) {
-			BDRVVmdkState *act_s = activeBDRV.hd->opaque;
+        if (parent_cluster_offset) {
+            BDRVVmdkState *act_s = activeBDRV.hd->opaque;
 
-			if (bdrv_pread(ps->hd, parent_cluster_offset, whole_grain, ps->cluster_sectors*512) != ps->cluster_sectors*512)
-			{
-				free (whole_grain);
-				return -1;
-			}
+            if (bdrv_pread(ps->hd, parent_cluster_offset, whole_grain, ps->cluster_sectors*512) != ps->cluster_sectors*512)
+                return -1;
 
-			//Write grain only into the active image
-			if (bdrv_pwrite(act_s->hd, activeBDRV.cluster_offset << 9, whole_grain, sizeof(whole_grain)) != sizeof(whole_grain))
-			{
-				free (whole_grain);
-				return -1;
-			}
-		}
-	}
-
-	free (whole_grain);
-	return 0;
+            //Write grain only into the active image
+            if (bdrv_pwrite(act_s->hd, activeBDRV.cluster_offset << 9, whole_grain, sizeof(whole_grain)) != sizeof(whole_grain))
+                return -1;
+        }
+    }
+    return 0;
 }
 #endif
 
@@ -881,15 +872,22 @@ static void vmdk_flush(BlockDriverState *bs)
     bdrv_flush(s->hd);
 }
 
-BlockDriver bdrv_vmdk = {
-    "vmdk",
-    sizeof(BDRVVmdkState),
-    vmdk_probe,
-    vmdk_open,
-    vmdk_read,
-    vmdk_write,
-    vmdk_close,
-    vmdk_create,
-    vmdk_flush,
-    vmdk_is_allocated,
+static BlockDriver bdrv_vmdk = {
+    .format_name	= "vmdk",
+    .instance_size	= sizeof(BDRVVmdkState),
+    .bdrv_probe		= vmdk_probe,
+    .bdrv_open		= vmdk_open,
+    .bdrv_read		= vmdk_read,
+    .bdrv_write		= vmdk_write,
+    .bdrv_close		= vmdk_close,
+    .bdrv_create	= vmdk_create,
+    .bdrv_flush		= vmdk_flush,
+    .bdrv_is_allocated	= vmdk_is_allocated,
 };
+
+static void bdrv_vmdk_init(void)
+{
+    bdrv_register(&bdrv_vmdk);
+}
+
+block_init(bdrv_vmdk_init);
