@@ -45,7 +45,7 @@ do { printf("mcf_fec: " fmt, __VA_ARGS__); } while (0)
 
 typedef struct {
     qemu_irq *irq;
-	int mmio_index;
+    int mmio_index;
     VLANClientState *vc;
     uint32_t irq_state;
     uint32_t eir;
@@ -267,8 +267,7 @@ static uint32_t mcf_fec_read(void *opaque, target_phys_addr_t addr)
     case 0x184: return s->etdsr;
     case 0x188: return s->emrbr;
     default:
-        cpu_abort(cpu_single_env, "mcf_fec_read: Bad address 0x%x\n",
-                  (int)addr);
+        hw_error("mcf_fec_read: Bad address 0x%x\n", (int)addr);
         return 0;
     }
 }
@@ -364,8 +363,7 @@ static void mcf_fec_write(void *opaque, target_phys_addr_t addr, uint32_t value)
         s->emrbr = value & 0x7f0;
         break;
     default:
-        cpu_abort(cpu_single_env, "mcf_fec_write Bad address 0x%x\n",
-                  (int)addr);
+        hw_error("mcf_fec_write Bad address 0x%x\n", (int)addr);
     }
     mcf_fec_update(s);
 }
@@ -465,11 +463,11 @@ static CPUWriteMemoryFunc *mcf_fec_writefn[] = {
 
 static void mcf_fec_cleanup(VLANClientState *vc)
 {
-	mcf_fec_state *s = vc->opaque;
+    mcf_fec_state *s = vc->opaque;
 
-	cpu_unregister_io_memory(s->mmio_index);
+    cpu_unregister_io_memory(s->mmio_index);
 
-	qemu_free(s);
+    qemu_free(s);
 }
 
 void mcf_fec_init(NICInfo *nd, target_phys_addr_t base, qemu_irq *irq)
@@ -485,8 +483,8 @@ void mcf_fec_init(NICInfo *nd, target_phys_addr_t base, qemu_irq *irq)
     cpu_register_physical_memory(base, 0x400, s->mmio_index);
 
     s->vc = qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                 mcf_fec_receive, mcf_fec_can_receive, 
-								 mcf_fec_cleanup, s);
+                                 mcf_fec_receive, mcf_fec_can_receive,
+                                 mcf_fec_cleanup, s);
     memcpy(s->macaddr, nd->macaddr, 6);
     qemu_format_nic_info_str(s->vc, s->macaddr);
 }

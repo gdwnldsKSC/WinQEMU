@@ -428,8 +428,7 @@ static uint32_t mipid_txrx(void *opaque, uint32_t cmd, int len)
     uint8_t ret;
 
     if (len > 9)
-        cpu_abort(cpu_single_env, "%s: FIXME: bad SPI word width %i\n",
-                        __FUNCTION__, len);
+        hw_error("%s: FIXME: bad SPI word width %i\n", __FUNCTION__, len);
 
     if (s->p >= ARRAY_SIZE(s->resp))
         ret = 0;
@@ -1407,14 +1406,10 @@ QEMUMachine n800_machine = {
     .name = "n800",
     .desc = "Nokia N800 tablet aka. RX-34 (OMAP2420)",
     .init = n800_init,
-    .ram_require = (0x08000000 + 0x00018000 + OMAP242X_SRAM_SIZE) |
-            RAMSIZE_FIXED,
 };
 
 QEMUMachine n810_machine = {
     .name = "n810",
     .desc = "Nokia N810 tablet aka. RX-44 (OMAP2420)",
     .init = n810_init,
-    .ram_require = (0x08000000 + 0x00018000 + OMAP242X_SRAM_SIZE) |
-            RAMSIZE_FIXED,
 };

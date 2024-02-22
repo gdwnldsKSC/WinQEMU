@@ -81,14 +81,16 @@ struct pxa2xx_lcdc_s {
 #ifdef _MSC_VER
 #pragma pack (push, 1)
 #endif
-
+#ifndef _MSC_VER
 struct __attribute__ ((__packed__)) pxa_frame_descriptor_s {
+#else
+struct pxa_frame_descriptor_s {
+#endif
     uint32_t fdaddr;
     uint32_t fsaddr;
     uint32_t fidr;
     uint32_t ldcmd;
 };
-
 #ifdef _MSC_VER
 #pragma pack (pop)
 #endif
@@ -418,8 +420,7 @@ static uint32_t pxa2xx_lcdc_read(void *opaque, target_phys_addr_t offset)
 
     default:
     fail:
-        cpu_abort(cpu_single_env,
-                "%s: Bad offset " REG_FMT "\n", __FUNCTION__, offset);
+        hw_error("%s: Bad offset " REG_FMT "\n", __FUNCTION__, offset);
     }
 
     return 0;
@@ -574,8 +575,7 @@ static void pxa2xx_lcdc_write(void *opaque,
 
     default:
     fail:
-        cpu_abort(cpu_single_env,
-                "%s: Bad offset " REG_FMT "\n", __FUNCTION__, offset);
+        hw_error("%s: Bad offset " REG_FMT "\n", __FUNCTION__, offset);
     }
 }
 

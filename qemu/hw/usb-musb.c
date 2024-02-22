@@ -567,7 +567,7 @@ static int musb_timeout(int ttype, int speed, int val)
         /* TODO: what with low-speed Bulk and Isochronous?  */
     }
 
-    cpu_abort(cpu_single_env, "bad interval\n");
+    hw_error("bad interval\n");
 }
 
 static inline void musb_packet(struct musb_s *s, struct musb_ep_s *ep,
@@ -1598,7 +1598,7 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
 	{
 		printf("%s: unknown register at %02x\n", __FUNCTION__, (int)addr);
 		return 0x00000000;
-	};
+    };
 #endif
 }
 

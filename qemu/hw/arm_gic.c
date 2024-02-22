@@ -62,7 +62,7 @@ typedef struct gic_irq_state
     unsigned enabled:1;
     unsigned pending:NCPU;
     unsigned active:NCPU;
-    unsigned level:1;
+    unsigned level:NCPU;
     unsigned model:1; /* 0 = N:N, 1 = 1:N */
     unsigned trigger:1; /* nonzero = edge triggered.  */
 } gic_irq_state;
@@ -366,7 +366,7 @@ static uint32_t gic_dist_readb(void *opaque, target_phys_addr_t offset)
     }
     return res;
 bad_reg:
-    cpu_abort(cpu_single_env, "gic_dist_readb: Bad offset %x\n", (int)offset);
+    hw_error("gic_dist_readb: Bad offset %x\n", (int)offset);
     return 0;
 }
 
@@ -528,7 +528,7 @@ static void gic_dist_writeb(void *opaque, target_phys_addr_t offset,
     gic_update(s);
     return;
 bad_reg:
-    cpu_abort(cpu_single_env, "gic_dist_writeb: Bad offset %x\n", (int)offset);
+    hw_error("gic_dist_writeb: Bad offset %x\n", (int)offset);
 }
 
 static void gic_dist_writew(void *opaque, target_phys_addr_t offset,
@@ -610,8 +610,7 @@ static uint32_t gic_cpu_read(gic_state *s, int cpu, int offset)
     case 0x18: /* Highest Pending Interrupt */
         return s->current_pending[cpu];
     default:
-        cpu_abort(cpu_single_env, "gic_cpu_read: Bad offset %x\n",
-                  (int)offset);
+        hw_error("gic_cpu_read: Bad offset %x\n", (int)offset);
         return 0;
     }
 }
@@ -632,8 +631,7 @@ static void gic_cpu_write(gic_state *s, int cpu, int offset, uint32_t value)
     case 0x10: /* End Of Interrupt */
         return gic_complete_irq(s, cpu, value & 0x3ff);
     default:
-        cpu_abort(cpu_single_env, "gic_cpu_write: Bad offset %x\n",
-                  (int)offset);
+        hw_error("gic_cpu_write: Bad offset %x\n", (int)offset);
         return;
     }
     gic_update(s);

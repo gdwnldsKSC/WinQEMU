@@ -153,8 +153,7 @@ static uint32_t pl061_read(void *opaque, target_phys_addr_t offset)
     case 0x524: /* Commit */
         return s->cr;
     default:
-        cpu_abort (cpu_single_env, "pl061_read: Bad offset %x\n",
-                   (int)offset);
+        hw_error("pl061_read: Bad offset %x\n", (int)offset);
         return 0;
     }
 }
@@ -226,8 +225,7 @@ static void pl061_write(void *opaque, target_phys_addr_t offset,
             s->cr = value;
         break;
     default:
-        cpu_abort (cpu_single_env, "pl061_write: Bad offset %x\n",
-                   (int)offset);
+        hw_error("pl061_write: Bad offset %x\n", (int)offset);
     }
     pl061_update(s);
 }
