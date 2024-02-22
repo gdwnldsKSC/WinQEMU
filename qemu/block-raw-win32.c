@@ -35,7 +35,6 @@
 #include "qemu-common.h"
 #include "qemu-timer.h"
 #include "block_int.h"
-#include <assert.h>
 #include <windows.h>
 #include <winioctl.h>
 

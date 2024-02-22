@@ -33,10 +33,16 @@
 #include <sys/statvfs.h>
 #endif
 
-#include "qemu-common.h"
-#include "sysemu.h"
+/* FIXME: This file should be target independent. However it has kqemu
+   hacks, so must be built for every target.  */
+
+/* Needed early for HOST_BSD etc. */
+#include "config-host.h"
 
 #ifdef _WIN32
+#ifdef _MSC_VER
+#include <WinSock2.h>
+#endif
 #include <windows.h>
 #elif defined(HOST_BSD)
 #include <stdlib.h>
@@ -44,6 +50,8 @@
 #include <malloc.h>
 #endif
 
+#include "qemu-common.h"
+#include "sysemu.h"
 #include "qemu_socket.h"
 
 #if defined(_WIN32)

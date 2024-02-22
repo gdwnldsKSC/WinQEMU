@@ -41,26 +41,12 @@ enum {
 #define DBGBIT(x)	(1<<DEBUG_##x)
 static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 
-#ifndef _MSC_VER
-#define	DBGOUT(what, fmt, params...) do { \
+#define	DBGOUT(what, fmt, ...) do { \
     if (debugflags & DBGBIT(what)) \
-        fprintf(stderr, "e1000: " fmt, ##params); \
+        fprintf(stderr, "e1000: " fmt, ## __VA_ARGS__); \
     } while (0)
 #else
-#define	DBGOUT(what, fmt, ...) do { \
-	if (debugflags & DBGBIT(what)) \
-	fprintf(stderr, "e1000: " fmt, __VA_ARGS__); \
-} while (0)
-#endif
-
-#else
-
-#ifndef _MSC_VER
-#define	DBGOUT(what, fmt, params...) do {} while (0)
-#else
 #define	DBGOUT(what, fmt, ...) do {} while (0)
-#endif
-
 #endif
 
 #define IOPORT_SIZE       0x40

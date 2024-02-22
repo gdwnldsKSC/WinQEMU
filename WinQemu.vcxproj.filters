@@ -1128,6 +1128,9 @@
     <ClCompile Include="qemu\gdbstub.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\tool-osdep.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">

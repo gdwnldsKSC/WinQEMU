@@ -42,7 +42,6 @@
 #endif
 #endif
 
-#include <assert.h>
 #include <stddef.h>             /* offsetof */
 #include "hw.h"
 #include "pci.h"

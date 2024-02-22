@@ -35,7 +35,6 @@
  
 #include <sys/stat.h>
 #include <dirent.h>
-#include <assert.h>
 #include "qemu-common.h"
 #include "block_int.h"
 
