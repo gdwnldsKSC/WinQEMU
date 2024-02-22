@@ -1432,9 +1432,10 @@ static int gdb_breakpoint_insert(target_ulong addr, target_ulong len, int type)
 {
     CPUState *env;
     int err = 0;
-
+#ifndef _MSC_VER
     if (kvm_enabled())
         return kvm_insert_breakpoint(gdbserver_state->c_cpu, addr, len, type);
+#endif
 
     switch (type) {
     case GDB_BREAKPOINT_SW:
@@ -1466,9 +1467,10 @@ static int gdb_breakpoint_remove(target_ulong addr, target_ulong len, int type)
 {
     CPUState *env;
     int err = 0;
-
+#ifndef _MSC_VER
     if (kvm_enabled())
         return kvm_remove_breakpoint(gdbserver_state->c_cpu, addr, len, type);
+#endif
 
     switch (type) {
     case GDB_BREAKPOINT_SW:
@@ -1498,11 +1500,12 @@ static int gdb_breakpoint_remove(target_ulong addr, target_ulong len, int type)
 static void gdb_breakpoint_remove_all(void)
 {
     CPUState *env;
-
+#ifndef _MSC_VER
     if (kvm_enabled()) {
         kvm_remove_all_breakpoints(gdbserver_state->c_cpu);
         return;
     }
+#endif
 
     for (env = first_cpu; env != NULL; env = env->next_cpu) {
         cpu_breakpoint_remove_all(env, BP_GDB);

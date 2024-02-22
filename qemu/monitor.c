@@ -98,8 +98,8 @@ struct Monitor {
 
 static LIST_HEAD(mon_list, Monitor) mon_list;
 
-static const mon_cmd_t mon_cmds[48];
-static const mon_cmd_t info_cmds[33];
+static const mon_cmd_t mon_cmds[49]; // must define these two due to MSVC not supporting variable length arrays 
+static const mon_cmd_t info_cmds[34];
 
 Monitor *cur_mon = NULL;
 
@@ -595,7 +595,6 @@ static void encrypted_bdrv_it(void *opaque, BlockDriverState *bs)
     }
 }
 
-#ifdef CONFIG_GDBSTUB
 static void do_gdbserver(Monitor *mon, const char *device)
 {
     if (!device)
@@ -610,7 +609,6 @@ static void do_gdbserver(Monitor *mon, const char *device)
                        device);
     }
 }
-#endif
 
 static void do_watchdog_action(Monitor *mon, const char *action)
 {
@@ -1706,10 +1704,8 @@ static const mon_cmd_t mon_cmds[] = {
       "", "stop emulation", },
     { "c|cont", "", do_cont,
       "", "resume emulation", },
-#ifdef CONFIG_GDBSTUB
     { "gdbserver", "s?", do_gdbserver,
       "[device]", "start gdbserver on given device (default 'tcp::1234'), stop with 'none'", },
-#endif
     { "x", "/l", do_memory_dump,
       "/fmt addr", "virtual memory dump starting at 'addr'", },
     { "xp", "/l", do_physical_memory_dump,

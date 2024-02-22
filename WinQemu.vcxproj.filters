@@ -165,9 +165,6 @@
     <ClCompile Include="qemu\exec.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\gdbstub.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\host-utils.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1127,6 +1124,9 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\wdt_ib700.c">
       <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\gdbstub.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
