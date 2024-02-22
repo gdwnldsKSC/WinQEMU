@@ -469,13 +469,9 @@ static void audio_init (PCIBus *pci_bus)
     }
 
     if (audio_enabled) {
-        AudioState *s;
-
-        s = AUD_init ();
-        if (s) {
-            for (c = soundhw; c->name; ++c) {
-                if (c->enabled)
-                    c->init.init_pci (pci_bus, s);
+        for (c = soundhw; c->name; ++c) {
+            if (c->enabled) {
+                c->init.init_pci(pci_bus);
             }
         }
     }
@@ -958,5 +954,4 @@ QEMUMachine mips_malta_machine = {
     .name = "malta",
     .desc = "MIPS Malta Core LV",
     .init = mips_malta_init,
-    .ram_require = VGA_RAM_SIZE + BIOS_SIZE,
 };

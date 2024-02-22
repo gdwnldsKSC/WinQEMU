@@ -21,26 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
 #include "hw/hw.h"
 #include "audio.h"
 #include "monitor.h"
 #include "qemu-timer.h"
 #include "sysemu.h"
-
-#ifdef _MSC_VER
-#define strcasecmp strcmp
-#endif
 
 #define AUDIO_CAP "audio"
 #include "audio_int.h"
@@ -53,11 +38,7 @@
 #define SW_NAME(sw) (sw)->name ? (sw)->name : "unknown"
 
 static struct audio_driver *drvtab[] = {
-#ifndef _MSC_VER
-	AUDIO_DRIVERS, // BUGBUG
-#else
-	AUDIO_CAP,
-#endif
+    AUDIO_DRIVERS
     &no_audio_driver,
     &wav_audio_driver
 };
@@ -1730,6 +1711,10 @@ AudioState *AUD_init (void)
     const char *drvname;
     AudioState *s = &glob_audio_state;
 
+    if (s->drv) {
+        return s;
+    }
+
     LIST_INIT (&s->hw_head_out);
     LIST_INIT (&s->hw_head_in);
     LIST_INIT (&s->cap_head);
@@ -1737,8 +1722,7 @@ AudioState *AUD_init (void)
 
     s->ts = qemu_new_timer (vm_clock, audio_timer, s);
     if (!s->ts) {
-        dolog ("Could not create audio timer\n");
-        return NULL;
+        hw_error("Could not create audio timer\n");
     }
 
     audio_process_options ("AUDIO", audio_options);
@@ -1791,37 +1775,30 @@ AudioState *AUD_init (void)
     if (!done) {
         done = !audio_driver_init (s, &no_audio_driver);
         if (!done) {
-            dolog ("Could not initialize audio subsystem\n");
+            hw_error("Could not initialize audio subsystem\n");
         }
         else {
             dolog ("warning: Using timer based audio emulation\n");
         }
     }
 
-    if (done) {
-        VMChangeStateEntry *e;
+    VMChangeStateEntry *e;
 
-        if (conf.period.hertz <= 0) {
-            if (conf.period.hertz < 0) {
-                dolog ("warning: Timer period is negative - %d "
-                       "treating as zero\n",
-                       conf.period.hertz);
-            }
-            conf.period.ticks = 1;
+    if (conf.period.hertz <= 0) {
+        if (conf.period.hertz < 0) {
+            dolog ("warning: Timer period is negative - %d "
+                   "treating as zero\n",
+                   conf.period.hertz);
         }
-        else {
-            conf.period.ticks = ticks_per_sec / conf.period.hertz;
-        }
-
-        e = qemu_add_vm_change_state_handler (audio_vm_change_state_handler, s);
-        if (!e) {
-            dolog ("warning: Could not register change state handler\n"
-                   "(Audio can continue looping even after stopping the VM)\n");
-        }
+        conf.period.ticks = 1;
+    } else {
+        conf.period.ticks = ticks_per_sec / conf.period.hertz;
     }
-    else {
-        qemu_del_timer (s->ts);
-        return NULL;
+
+    e = qemu_add_vm_change_state_handler (audio_vm_change_state_handler, s);
+    if (!e) {
+        dolog ("warning: Could not register change state handler\n"
+               "(Audio can continue looping even after stopping the VM)\n");
     }
 
     LIST_INIT (&s->card_head);

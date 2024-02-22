@@ -22,16 +22,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 /* #define DEBUG_ES1370 */
 /* #define VERBOSE_ES1370 */
 #define SILENT_ES1370
@@ -529,9 +519,9 @@ IO_WRITE_PROTO (es1370_writeb)
 IO_WRITE_PROTO (es1370_writew)
 {
     ES1370State *s = opaque;
+    addr = es1370_fixup (s, addr);
     uint32_t shift, mask;
     struct chan *d = &s->chan[0];
-	addr = es1370_fixup (s, addr);	
 
     switch (addr) {
     case ES1370_REG_CODEC:
@@ -1015,19 +1005,15 @@ static void es1370_on_reset (void *opaque)
     es1370_reset (s);
 }
 
-int es1370_init (PCIBus *bus, AudioState *audio)
+int es1370_init (PCIBus *bus)
 {
+    AudioState *audio = AUD_init();
     PCIES1370State *d;
     ES1370State *s;
     uint8_t *c;
 
     if (!bus) {
         dolog ("No PCI bus\n");
-        return -1;
-    }
-
-    if (!audio) {
-        dolog ("No audio state\n");
         return -1;
     }
 
