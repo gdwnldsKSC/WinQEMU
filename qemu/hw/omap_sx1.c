@@ -115,7 +115,7 @@ static struct arm_boot_info sx1_binfo = {
     .board_id = 0x265,
 };
 
-static void sx1_init(ram_addr_t ram_size, int vga_ram_size,
+static void sx1_init(ram_addr_t ram_size,
                 const char *boot_device,
                 const char *kernel_filename, const char *kernel_cmdline,
                 const char *initrd_filename, const char *cpu_model,
@@ -205,21 +205,21 @@ static void sx1_init(ram_addr_t ram_size, int vga_ram_size,
     //~ qemu_console_resize(ds, 640, 480);
 }
 
-static void sx1_init_v1(ram_addr_t ram_size, int vga_ram_size,
+static void sx1_init_v1(ram_addr_t ram_size,
                 const char *boot_device,
                 const char *kernel_filename, const char *kernel_cmdline,
                 const char *initrd_filename, const char *cpu_model)
 {
-    sx1_init(ram_size, vga_ram_size, boot_device, kernel_filename,
+    sx1_init(ram_size, boot_device, kernel_filename,
                 kernel_cmdline, initrd_filename, cpu_model, 1);
 }
 
-static void sx1_init_v2(ram_addr_t ram_size, int vga_ram_size,
+static void sx1_init_v2(ram_addr_t ram_size,
                 const char *boot_device,
                 const char *kernel_filename, const char *kernel_cmdline,
                 const char *initrd_filename, const char *cpu_model)
 {
-    sx1_init(ram_size, vga_ram_size, boot_device, kernel_filename,
+    sx1_init(ram_size, boot_device, kernel_filename,
                 kernel_cmdline, initrd_filename, cpu_model, 2);
 }
 
@@ -227,12 +227,10 @@ QEMUMachine sx1_machine_v2 = {
     .name = "sx1",
     .desc = "Siemens SX1 (OMAP310) V2",
     .init = sx1_init_v2,
-    .ram_require = total_ram_v2 | RAMSIZE_FIXED,
 };
 
 QEMUMachine sx1_machine_v1 = {
     .name = "sx1-v1",
     .desc = "Siemens SX1 (OMAP310) V1",
     .init = sx1_init_v1,
-    .ram_require = total_ram_v1 | RAMSIZE_FIXED,
 };

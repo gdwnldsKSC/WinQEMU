@@ -27,17 +27,6 @@
 
    More information in target-sh4/README.sh4
 */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
 #include "hw.h"
 #include "pc.h"
 #include "sh.h"
@@ -57,7 +46,7 @@ void pic_info(Monitor *mon)
     /* XXXXX */
 }
 
-static void shix_init(ram_addr_t ram_size, int vga_ram_size,
+static void shix_init(ram_addr_t ram_size,
                const char *boot_device,
 	       const char *kernel_filename, const char *kernel_cmdline,
 	       const char *initrd_filename, const char *cpu_model)
@@ -99,18 +88,8 @@ static void shix_init(ram_addr_t ram_size, int vga_ram_size,
     fprintf(stderr, "initialization terminated\n");
 }
 
-#ifndef _MSC_VER
 QEMUMachine shix_machine = {
     .name = "shix",
     .desc = "shix card",
     .init = shix_init,
-    .ram_require = (0x00004000 + 0x01000000 + 0x01000000) | RAMSIZE_FIXED,
 };
-#else
-QEMUMachine shix_machine = {
-	"shix",
-	"shix card",
-	shix_init,
-	(0x00004000 + 0x01000000 + 0x01000000) | RAMSIZE_FIXED,
-};
-#endif

@@ -4897,7 +4897,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     cpu_model = NULL;
     initrd_filename = NULL;
     ram_size = 0;
-    vga_ram_size = VGA_RAM_SIZE;
     snapshot = 0;
     nographic = 0;
     curses = 0;
@@ -5763,7 +5762,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     /* FIXME: This is a nasty hack because kqemu can't cope with dynamic
        guest ram allocation.  It needs to go away.  */
     if (kqemu_allowed) {
-        kqemu_phys_ram_size = ram_size + VGA_RAM_SIZE + 4 * 1024 * 1024;
+        kqemu_phys_ram_size = ram_size + 8 * 1024 * 1024 + 4 * 1024 * 1024;
         kqemu_phys_ram_base = qemu_vmalloc(kqemu_phys_ram_size);
         if (!kqemu_phys_ram_base) {
             fprintf(stderr, "Could not allocate physical memory\n");
@@ -5925,7 +5924,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         }
     }
 
-    machine->init(ram_size, vga_ram_size, boot_devices,
+    machine->init(ram_size, boot_devices,
                   kernel_filename, kernel_cmdline, initrd_filename, cpu_model);
 
 

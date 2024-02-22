@@ -253,8 +253,6 @@ enum {
 
 #ifdef VERBOSE
 # define GUEST_OS_BASE		0x5001
-
-#ifndef _MSC_VER
 static const char *vmsvga_guest_id[] = {
     [0x00] = "Dos",
     [0x01] = "Windows 3.1",
@@ -279,33 +277,6 @@ static const char *vmsvga_guest_id[] = {
     [0x14] = "an unknown OS",
     [0x15] = "Windows 2003",
 };
-#else
-static const char *vmsvga_guest_id[0x16] = {
-	 "Dos",
-	 "Windows 3.1",
-	 "Windows 95",
-	 "Windows 98",
-	 "Windows ME",
-	 "Windows NT",
-	 "Windows 2000",
-	 "Linux",
-	 "OS/2",
-	"an unknown OS",
-	 "BSD",
-	 "Whistler",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	"an unknown OS",
-	 "Windows 2003",
-};
-#endif
-
 #endif
 
 enum {
@@ -1299,7 +1270,7 @@ static void pci_vmsvga_map_mem(PCIDevice *pci_dev, int region_num,
                     iomemtype);
 }
 
-void pci_vmsvga_init(PCIBus *bus, int vga_ram_size)
+void pci_vmsvga_init(PCIBus *bus)
 {
     struct pci_vmsvga_state_s *s;
 
@@ -1322,10 +1293,10 @@ void pci_vmsvga_init(PCIBus *bus, int vga_ram_size)
 
     pci_register_io_region(&s->card, 0, 0x10,
                     PCI_ADDRESS_SPACE_IO, pci_vmsvga_map_ioport);
-    pci_register_io_region(&s->card, 1, vga_ram_size,
+    pci_register_io_region(&s->card, 1, VGA_RAM_SIZE,
                     PCI_ADDRESS_SPACE_MEM_PREFETCH, pci_vmsvga_map_mem);
 
-    vmsvga_init(&s->chip, vga_ram_size);
+    vmsvga_init(&s->chip, VGA_RAM_SIZE);
 
     register_savevm("vmware_vga", 0, 0, pci_vmsvga_save, pci_vmsvga_load, s);
 }
