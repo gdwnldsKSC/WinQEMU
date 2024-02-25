@@ -167,6 +167,7 @@ int main(int argc, char **argv)
 #include "migration.h"
 #include "kvm.h"
 #include "balloon.h"
+#include "qemu-option.h"
 
 #include "disas.h"
 
@@ -1820,43 +1821,6 @@ static int socket_init(void)
 }
 #endif
 
-const char *get_opt_name(char *buf, int buf_size, const char *p, char delim)
-{
-    char *q;
-
-    q = buf;
-    while (*p != '\0' && *p != delim) {
-        if (q && (q - buf) < buf_size - 1)
-            *q++ = *p;
-        p++;
-    }
-    if (q)
-        *q = '\0';
-
-    return p;
-}
-
-const char *get_opt_value(char *buf, int buf_size, const char *p)
-{
-    char *q;
-
-    q = buf;
-    while (*p != '\0') {
-        if (*p == ',') {
-            if (*(p + 1) != ',')
-                break;
-            p++;
-        }
-        if (q && (q - buf) < buf_size - 1)
-            *q++ = *p;
-        p++;
-    }
-    if (q)
-        *q = '\0';
-
-    return p;
-}
-
 int get_param_value(char *buf, int buf_size,
                     const char *tag, const char *str)
 {
@@ -3245,6 +3209,7 @@ static int ram_save_block(QEMUFile *f)
 }
 
 static ram_addr_t ram_save_threshold = 10;
+static uint64_t bytes_transferred = 0;
 
 static ram_addr_t ram_save_remaining(void)
 {
@@ -3259,9 +3224,29 @@ static ram_addr_t ram_save_remaining(void)
     return count;
 }
 
+uint64_t ram_bytes_remaining(void)
+{
+    return ram_save_remaining() * TARGET_PAGE_SIZE;
+}
+
+uint64_t ram_bytes_transferred(void)
+{
+    return bytes_transferred;
+}
+
+uint64_t ram_bytes_total(void)
+{
+    return last_ram_offset;
+}
+
 static int ram_save_live(QEMUFile *f, int stage, void *opaque)
 {
     ram_addr_t addr;
+
+    if (cpu_physical_sync_dirty_bitmap(0, last_ram_offset) != 0) {
+        qemu_file_set_error(f);
+        return 0;
+    }
 
     if (stage == 1) {
         /* Make sure all dirty bits are set */
@@ -3280,6 +3265,7 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
         int ret;
 
         ret = ram_save_block(f);
+        bytes_transferred += ret * TARGET_PAGE_SIZE;
         if (ret == 0) /* no more blocks */
             break;
     }
@@ -3289,7 +3275,9 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
     if (stage == 3) {
 
         /* flush all remaining blocks regardless of rate limiting */
-        while (ram_save_block(f) != 0);
+        while (ram_save_block(f) != 0) {
+            bytes_transferred += TARGET_PAGE_SIZE;
+        }
         cpu_physical_memory_set_dirty_tracking(0);
     }
 
@@ -3602,6 +3590,7 @@ void vm_start(void)
 typedef struct QEMUResetEntry {
     QEMUResetHandler *func;
     void *opaque;
+    int order;
     struct QEMUResetEntry *next;
 } QEMUResetEntry;
 
@@ -3657,16 +3646,18 @@ static void do_vm_stop(int reason)
     }
 }
 
-void qemu_register_reset(QEMUResetHandler *func, void *opaque)
+void qemu_register_reset(QEMUResetHandler *func, int order, void *opaque)
 {
     QEMUResetEntry **pre, *re;
 
     pre = &first_reset_entry;
-    while (*pre != NULL)
+    while (*pre != NULL && (*pre)->order >= order) {
         pre = &(*pre)->next;
+    }
     re = qemu_mallocz(sizeof(QEMUResetEntry));
     re->func = func;
     re->opaque = opaque;
+    re->order = order;
     re->next = NULL;
     *pre = re;
 }
@@ -3679,10 +3670,6 @@ void qemu_system_reset(void)
     for(re = first_reset_entry; re != NULL; re = re->next) {
         re->func(re->opaque);
     }
-#ifndef _MSC_VER
-    if (kvm_enabled())
-        kvm_sync_vcpus();
-#endif
 }
 
 void qemu_system_reset_request(void)

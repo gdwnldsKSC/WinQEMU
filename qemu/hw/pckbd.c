@@ -109,8 +109,6 @@
 #define MOUSE_STATUS_ENABLED    0x20
 #define MOUSE_STATUS_SCALE21    0x10
 
-#define KBD_QUEUE_SIZE 256
-
 #define KBD_PENDING_KBD         1
 #define KBD_PENDING_AUX         2
 
@@ -383,7 +381,7 @@ void i8042_init(qemu_irq kbd_irq, qemu_irq mouse_irq, uint32_t io_base)
 #ifdef TARGET_I386
     vmmouse_init(s->mouse);
 #endif
-    qemu_register_reset(kbd_reset, s);
+    qemu_register_reset(kbd_reset, 0, s);
 }
 
 /* Memory mapped interface */
@@ -440,5 +438,5 @@ void i8042_mm_init(qemu_irq kbd_irq, qemu_irq mouse_irq,
 #ifdef TARGET_I386
     vmmouse_init(s->mouse);
 #endif
-    qemu_register_reset(kbd_reset, s);
+    qemu_register_reset(kbd_reset, 0, s);
 }

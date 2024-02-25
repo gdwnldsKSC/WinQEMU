@@ -16,7 +16,6 @@
 
 #include "hw/hw.h"
 
-typedef signed int ssize_t; // VS2017 hack
 typedef ssize_t (BufferedPutFunc)(void *opaque, const void *data, size_t size);
 typedef void (BufferedPutReadyFunc)(void *opaque);
 typedef void (BufferedWaitForUnfreezeFunc)(void *opaque);

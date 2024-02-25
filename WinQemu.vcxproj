@@ -169,6 +169,9 @@
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
     <ClCompile Include="qemu\block\cow.c" />
+    <ClCompile Include="qemu\block\curl.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\block\dmg.c" />
     <ClCompile Include="qemu\block\nbd.c" />
     <ClCompile Include="qemu\block\parallels.c" />
@@ -183,6 +186,7 @@
     <ClCompile Include="qemu\block\vvfat.c" />
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\qdev.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
@@ -192,6 +196,7 @@
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
     <ClCompile Include="qemu\module.c" />
+    <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1091,6 +1096,7 @@
     <ClInclude Include="qemu\hw\sysbus.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\module.h" />
+    <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">

@@ -23,6 +23,16 @@
  */
 
 #include "sysbus.h"
+ /* WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
+ * other than GPL is available it will apply instead, WinQEMU elects to use only the 
+ * General Public License version 3 (GPLv3) at this time for any software where a choice of 
+ * GPL license versions is made available with the language indicating that GPLv3 or any later
+ * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
+ * 
+ * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
+ */
+ 
+#include "hw.h"
 #include "scsi-disk.h"
 #include "scsi.h"
 
@@ -702,7 +712,7 @@ static void esp_init1(SysBusDevice *dev)
     esp_reset(s);
 
     register_savevm("esp", -1, 3, esp_save, esp_load, s);
-    qemu_register_reset(esp_reset, s);
+    qemu_register_reset(esp_reset, 0, s);
 
     qdev_init_irq_sink(&dev->qdev, parent_esp_reset, 1);
 

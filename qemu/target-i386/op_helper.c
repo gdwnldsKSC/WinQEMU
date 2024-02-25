@@ -4065,7 +4065,7 @@ void helper_fyl2x(void)
     fptemp = ST0;
 #ifndef _MSC_VER
     if (fptemp>0.0){
-		fptemp = log(fptemp) / log(2.0);	 /* log2(ST) */
+        fptemp = log(fptemp)/log(2.0);	 /* log2(ST) */
         ST1 *= fptemp;
 #else
 	if (fx80_isg_double(&fptemp, 0.0)){
@@ -4969,6 +4969,11 @@ void helper_debug(void)
     cpu_loop_exit();
 }
 
+void helper_reset_rf(void)
+{
+    env->eflags &= ~RF_MASK;
+}
+
 void helper_raise_interrupt(int intno, int next_eip_addend)
 {
     raise_interrupt(intno, 1, 0, next_eip_addend);
@@ -5581,7 +5586,6 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
             uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
             uint32_t t0, t1;
 #ifndef _MSC_VER
-			switch ((uint32_t)ECX) {
             case 0 ... 0x1fff:
                 t0 = (ECX * 2) % 8;
                 t1 = ECX / 8;

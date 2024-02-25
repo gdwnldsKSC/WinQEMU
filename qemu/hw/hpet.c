@@ -25,16 +25,6 @@
  * This driver attempts to emulate an HPET device in software.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "pc.h"
 #include "console.h"
@@ -299,7 +289,6 @@ static uint32_t hpet_ram_readl(void *opaque, target_phys_addr_t addr)
 {
     HPETState *s = (HPETState *)opaque;
     uint64_t cur_tick, index;
-	HPETTimer *timer = NULL;
 
     dprintf("qemu: Enter hpet_ram_readl at %" PRIx64 "\n", addr);
     index = addr;
@@ -310,7 +299,7 @@ static uint32_t hpet_ram_readl(void *opaque, target_phys_addr_t addr)
             printf("qemu: timer id out of range\n");
             return 0;
         }
-        timer = &s->timer[timer_id];
+        HPETTimer *timer = &s->timer[timer_id];
 
         switch ((addr - 0x100) % 0x20) {
             case HPET_TN_CFG:
@@ -384,7 +373,6 @@ static void hpet_ram_writel(void *opaque, target_phys_addr_t addr,
     int i;
     HPETState *s = (HPETState *)opaque;
     uint64_t old_val, new_val, index;
-	HPETTimer *timer = NULL;
 
     dprintf("qemu: Enter hpet_ram_writel at %" PRIx64 " = %#x\n", addr, value);
     index = addr;
@@ -395,7 +383,7 @@ static void hpet_ram_writel(void *opaque, target_phys_addr_t addr,
     if (index >= 0x100 && index <= 0x3ff) {
         uint8_t timer_id = (addr - 0x100) / 0x20;
         dprintf("qemu: hpet_ram_writel timer_id = %#x \n", timer_id);
-        timer = &s->timer[timer_id];
+        HPETTimer *timer = &s->timer[timer_id];
 
         switch ((addr - 0x100) % 0x20) {
             case HPET_TN_CFG:
@@ -592,7 +580,7 @@ void hpet_init(qemu_irq *irq) {
     }
     hpet_reset(s);
     register_savevm("hpet", -1, 1, hpet_save, hpet_load, s);
-    qemu_register_reset(hpet_reset, s);
+    qemu_register_reset(hpet_reset, 0, s);
     /* HPET Area */
     iomemtype = cpu_register_io_memory(0, hpet_ram_read,
                                        hpet_ram_write, s);

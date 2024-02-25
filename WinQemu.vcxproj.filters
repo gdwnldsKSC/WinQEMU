@@ -1152,6 +1152,15 @@
     <ClCompile Include="qemu\hw\virtio-pci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qemu-option.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\curl.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ioapic.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1743,6 +1752,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\poison.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-option.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1115,7 +1115,7 @@ static void vde_from_qemu(void *opaque, const uint8_t *buf, int size)
     VDEState *s = opaque;
     int ret;
     for(;;) {
-        ret = vde_send(s->vde, (char *)buf, size, 0);
+        ret = vde_send(s->vde, (const char *)buf, size, 0);
         if (ret < 0 && errno == EINTR) {
         } else {
             break;
@@ -1642,10 +1642,10 @@ static void dump_receive(void *opaque, const uint8_t *buf, int size)
         return;
     }
 
-    ts = muldiv64 (qemu_get_clock(vm_clock),1000000, ticks_per_sec);
+    ts = muldiv64(qemu_get_clock(vm_clock), 1000000, ticks_per_sec);
     caplen = size > s->pcap_caplen ? s->pcap_caplen : size;
 
-    hdr.ts.tv_sec = ts / 1000000000LL;
+    hdr.ts.tv_sec = ts / 1000000;
     hdr.ts.tv_usec = ts % 1000000;
     hdr.caplen = caplen;
     hdr.len = size;

@@ -11,16 +11,6 @@
  *
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "migration.h"
 #include "monitor.h"
@@ -94,6 +84,7 @@ void do_migrate_set_speed(Monitor *mon, const char *value)
 {
     double d;
     char *ptr;
+    FdMigrationState *s;
 
     d = strtod(value, &ptr);
     switch (*ptr) {
@@ -108,6 +99,12 @@ void do_migrate_set_speed(Monitor *mon, const char *value)
     }
 
     max_throttle = (uint32_t)d;
+    s = migrate_to_fms(current_migration);
+
+    if (s) {
+        qemu_file_set_rate_limit(s->file, max_throttle);
+    }
+    
 }
 
 void do_info_migrate(Monitor *mon)
@@ -119,6 +116,9 @@ void do_info_migrate(Monitor *mon)
         switch (s->get_status(s)) {
         case MIG_STATE_ACTIVE:
             monitor_printf(mon, "active\n");
+            monitor_printf(mon, "transferred ram: %" PRIu64 " kbytes\n", ram_bytes_transferred() >> 10);
+            monitor_printf(mon, "remaining ram: %" PRIu64 " kbytes\n", ram_bytes_remaining() >> 10);
+            monitor_printf(mon, "total ram: %" PRIu64 " kbytes\n", ram_bytes_total() >> 10);
             break;
         case MIG_STATE_COMPLETED:
             monitor_printf(mon, "completed\n");
@@ -222,9 +222,6 @@ void migrate_fd_connect(FdMigrationState *s)
 void migrate_fd_put_ready(void *opaque)
 {
     FdMigrationState *s = opaque;
-#ifdef _MSC_VER
-	int state = 0;
-#endif
 
     if (s->state != MIG_STATE_ACTIVE) {
         dprintf("put_ready returning because of non-active state\n");

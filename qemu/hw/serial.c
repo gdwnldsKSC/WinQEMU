@@ -22,17 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "qemu-char.h"
 #include "isa.h"
@@ -597,6 +586,8 @@ static int serial_can_receive(SerialState *s)
 static void serial_receive_break(SerialState *s)
 {
     s->rbr = 0;
+    /* When the LSR_DR is set a null byte is pushed into the fifo */
+    fifo_put(s, RECV_FIFO, '\0');
     s->lsr |= UART_LSR_BI | UART_LSR_DR;
     serial_update_irq(s);
 }
@@ -722,18 +713,14 @@ static void serial_init_core(SerialState *s, qemu_irq irq, int baudbase,
 {
     s->irq = irq;
     s->baudbase = baudbase;
-#ifndef _MSC_VER
-	s->chr = chr ?: qemu_chr_open("null", "null", NULL);
-#else
-    s->chr = chr ?chr: qemu_chr_open("null", "null", NULL);
-#endif
+    s->chr = chr ? chr : qemu_chr_open("null", "null", NULL);
 
     s->modem_status_poll = qemu_new_timer(vm_clock, (QEMUTimerCB *) serial_update_msl, s);
 
     s->fifo_timeout_timer = qemu_new_timer(vm_clock, (QEMUTimerCB *) fifo_timeout_int, s);
     s->transmit_timer = qemu_new_timer(vm_clock, (QEMUTimerCB *) serial_xmit, s);
 
-    qemu_register_reset(serial_reset, s);
+    qemu_register_reset(serial_reset, 0, s);
     serial_reset(s);
 
     qemu_chr_add_handlers(s->chr, serial_can_receive1, serial_receive1,
