@@ -28,11 +28,9 @@
 
 #define dolog(...) fprintf (stderr, "dma: " __VA_ARGS__)
 #ifdef DEBUG_DMA
-#define lwarn(...) fprintf (stderr, "dma: " __VA_ARGS__)
 #define linfo(...) fprintf (stderr, "dma: " __VA_ARGS__)
 #define ldebug(...) fprintf (stderr, "dma: " __VA_ARGS__)
 #else
-#define lwarn(...)
 #define linfo(...)
 #define ldebug(...)
 #endif
@@ -449,7 +447,7 @@ void DMA_schedule(int nchan)
 {
     CPUState *env = cpu_single_env;
     if (env)
-        cpu_interrupt(env, CPU_INTERRUPT_EXIT);
+        cpu_exit(env);
 }
 
 static void dma_reset(void *opaque)

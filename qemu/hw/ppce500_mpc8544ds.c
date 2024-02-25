@@ -220,7 +220,7 @@ static void mpc8544ds_init(ram_addr_t ram_size,
 
         /* Add virtio block devices. */
         while ((i = drive_get_index(IF_VIRTIO, 0, unit_id)) != -1) {
-            pci_create_simple(pci_bus, -1, "virtio-blk");
+            pci_create_simple(pci_bus, -1, "virtio-blk-pci");
             unit_id++;
         }
 
@@ -281,8 +281,15 @@ static void mpc8544ds_init(ram_addr_t ram_size,
     return;
 }
 
-QEMUMachine mpc8544ds_machine = {
+static QEMUMachine mpc8544ds_machine = {
     .name = "mpc8544ds",
     .desc = "mpc8544ds",
     .init = mpc8544ds_init,
 };
+
+static void mpc8544ds_machine_init(void)
+{
+    qemu_register_machine(&mpc8544ds_machine);
+}
+
+machine_init(mpc8544ds_machine_init);

@@ -37,14 +37,9 @@
 #include "audio/audio.h"
 #include "boards.h"
 #include "qemu-log.h"
+#include "mips-bios.h"
 
 //#define DEBUG_BOARD_INIT
-
-#ifdef TARGET_WORDS_BIGENDIAN
-#define BIOS_FILENAME "mips_bios.bin"
-#else
-#define BIOS_FILENAME "mipsel_bios.bin"
-#endif
 
 #ifdef TARGET_MIPS64
 #define PHYS_TO_VIRT(x) ((x) | ~0x7fffffffULL)
@@ -954,8 +949,15 @@ void mips_malta_init (ram_addr_t ram_size,
     }
 }
 
-QEMUMachine mips_malta_machine = {
+static QEMUMachine mips_malta_machine = {
     .name = "malta",
     .desc = "MIPS Malta Core LV",
     .init = mips_malta_init,
 };
+
+static void mips_malta_machine_init(void)
+{
+    qemu_register_machine(&mips_malta_machine);
+}
+
+machine_init(mips_malta_machine_init);

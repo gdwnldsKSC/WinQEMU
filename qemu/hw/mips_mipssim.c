@@ -31,12 +31,7 @@
 #include "net.h"
 #include "sysemu.h"
 #include "boards.h"
-
-#ifdef TARGET_WORDS_BIGENDIAN
-#define BIOS_FILENAME "mips_bios.bin"
-#else
-#define BIOS_FILENAME "mipsel_bios.bin"
-#endif
+#include "mips-bios.h"
 
 #ifdef TARGET_MIPS64
 #define PHYS_TO_VIRT(x) ((x) | ~0x7fffffffULL)
@@ -183,8 +178,15 @@ mips_mipssim_init (ram_addr_t ram_size,
         mipsnet_init(0x4200, env->irq[2], &nd_table[0]);
 }
 
-QEMUMachine mips_mipssim_machine = {
+static QEMUMachine mips_mipssim_machine = {
     .name = "mipssim",
     .desc = "MIPS MIPSsim platform",
     .init = mips_mipssim_init,
 };
+
+static void mips_mipssim_machine_init(void)
+{
+    qemu_register_machine(&mips_mipssim_machine);
+}
+
+machine_init(mips_mipssim_machine_init);

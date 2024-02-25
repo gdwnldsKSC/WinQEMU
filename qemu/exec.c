@@ -1584,7 +1584,7 @@ void cpu_interrupt(CPUState *env, int mask)
     if (use_icount) {
         env->icount_decr.u16.high = 0xffff;
 #ifndef CONFIG_USER_ONLY
-        if (!can_do_io(env)
+        if (!can_do_io_func(env)
             && (mask & ~old_mask) != 0) {
             cpu_abort(env, "Raised interrupt while not in I/O function");
         }

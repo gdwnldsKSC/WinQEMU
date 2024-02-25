@@ -43,17 +43,10 @@
 #endif
 #include "osdep.h"
 #include "sys-queue.h"
+#include "targphys.h"
 
 #ifndef TARGET_LONG_BITS
 #error TARGET_LONG_BITS must be defined before including this header
-#endif
-
-#ifndef TARGET_PHYS_ADDR_BITS
-#if TARGET_LONG_BITS >= HOST_LONG_BITS
-#define TARGET_PHYS_ADDR_BITS TARGET_LONG_BITS
-#else
-#define TARGET_PHYS_ADDR_BITS HOST_LONG_BITS
-#endif
 #endif
 
 #define TARGET_LONG_SIZE (TARGET_LONG_BITS / 8)
@@ -68,27 +61,11 @@ typedef uint32_t target_ulong;
 #elif TARGET_LONG_SIZE == 8
 typedef int64_t target_long;
 typedef uint64_t target_ulong;
-#define TARGET_FMT_lx "%016I64x" //fixme, direct substitution in use instead of "%016" PRIx64 due to current env limitations. 
+#define TARGET_FMT_lx "%016" PRIx64
 #define TARGET_FMT_ld "%" PRId64
 #define TARGET_FMT_lu "%" PRIu64
 #else
 #error TARGET_LONG_SIZE undefined
-#endif
-
-/* target_phys_addr_t is the type of a physical address (its size can
-   be different from 'target_ulong'). We have sizeof(target_phys_addr)
-   = max(sizeof(unsigned long),
-   sizeof(size_of_target_physical_address)) because we must pass a
-   host pointer to memory operations in some cases */
-
-#if TARGET_PHYS_ADDR_BITS == 32
-typedef uint32_t target_phys_addr_t;
-#define TARGET_FMT_plx "%08x"
-#elif TARGET_PHYS_ADDR_BITS == 64
-typedef uint64_t target_phys_addr_t;
-#define TARGET_FMT_plx "%016" PRIx64
-#else
-#error TARGET_PHYS_ADDR_BITS undefined
 #endif
 
 #define HOST_LONG_SIZE (HOST_LONG_BITS / 8)
@@ -132,10 +109,15 @@ typedef struct CPUTLBEntry {
        use the corresponding iotlb value.  */
 #if TARGET_PHYS_ADDR_BITS == 64
     /* on i386 Linux make sure it is aligned */
+#ifndef _MSC_VER
+    target_phys_addr_t addend __attribute__((aligned(8)));
+#else
     __declspec(align(8)) target_phys_addr_t addend;
+#endif
 #else
     target_phys_addr_t addend;
 #endif
+
 
 #ifndef _MSC_VER
     /* padding to get a power of two size */
@@ -191,8 +173,8 @@ typedef int sig_atomic_t;
     target_ulong mem_io_vaddr; /* target virtual addr at which the      \
                                      memory was accessed */             \
     uint32_t halted; /* Nonzero if the CPU is in suspend state */       \
-    uint32_t stop; /* Stop request */                                   \
-    uint32_t stopped; /* Artifically stopped */                         \
+    uint32_t stop;   /* Stop request */                                 \
+    uint32_t stopped; /* Artificially stopped */                        \
     uint32_t interrupt_request;                                         \
     volatile sig_atomic_t exit_request;                                 \
     /* The meaning of the MMU modes is defined in the target code. */   \
@@ -226,9 +208,9 @@ typedef int sig_atomic_t;
     jmp_buf jmp_env;                                                    \
     int exception_index;                                                \
                                                                         \
-    void *next_cpu; /* next CPU sharing TB cache */                     \
+    CPUState *next_cpu; /* next CPU sharing TB cache */                 \
     int cpu_index; /* CPU index (informative) */                        \
-    int numa_node; /* NUMA node this CPU is belonging to */             \
+    int numa_node; /* NUMA node this cpu is belonging to  */            \
     int running; /* Nonzero if cpu is currently running(usermode).  */  \
     /* user data */                                                     \
     void *opaque;                                                       \

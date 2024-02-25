@@ -86,7 +86,7 @@ static void verdex_init(ram_addr_t ram_size,
     uint32_t verdex_rom = 0x02000000;
     uint32_t verdex_ram = 0x10000000;
 
-    cpu = pxa270_init(verdex_ram, cpu_model ? cpu_model: "pxa270-c0"); // remove GCC-ism / trenary op
+    cpu = pxa270_init(verdex_ram, cpu_model ?: "pxa270-c0");
 
     index = drive_get_index(IF_PFLASH, 0, 0);
     if (index == -1) {
@@ -109,14 +109,22 @@ static void verdex_init(ram_addr_t ram_size,
                     pxa2xx_gpio_in_get(cpu->gpio)[99]);
 }
 
-QEMUMachine connex_machine = {
+static QEMUMachine connex_machine = {
     .name = "connex",
     .desc = "Gumstix Connex (PXA255)",
     .init = connex_init,
 };
 
-QEMUMachine verdex_machine = {
+static QEMUMachine verdex_machine = {
     .name = "verdex",
     .desc = "Gumstix Verdex (PXA270)",
     .init = verdex_init,
 };
+
+static void gumstix_machine_init(void)
+{
+    qemu_register_machine(&connex_machine);
+    qemu_register_machine(&verdex_machine);
+}
+
+machine_init(gumstix_machine_init);

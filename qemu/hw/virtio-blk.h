@@ -26,7 +26,6 @@
 
 #include "virtio.h"
 #include "block.h"
-#include "pci.h"
 
 /* from Linux's linux/virtio_blk.h */
 

@@ -23,7 +23,7 @@
  
 #include "qemu-common.h"
 #include "migration.h"
-#include "console.h"
+#include "monitor.h"
 #include "buffered_file.h"
 #include "sysemu.h"
 #include "block.h"
@@ -58,7 +58,7 @@ void qemu_start_incoming_migration(const char *uri)
         fprintf(stderr, "unknown migration protocol: %s\n", uri);
 }
 
-void do_migrate(int detach, const char *uri)
+void do_migrate(Monitor *mon, int detach, const char *uri)
 {
     MigrationState *s = NULL;
     const char *p;
@@ -70,10 +70,10 @@ void do_migrate(int detach, const char *uri)
         s = exec_start_outgoing_migration(p, max_throttle, detach);
 #endif
     else
-        monitor_printf("unknown migration protocol: %s\n", uri);
+        monitor_printf(mon, "unknown migration protocol: %s\n", uri);
 
     if (s == NULL)
-        monitor_printf("migration failed\n");
+        monitor_printf(mon, "migration failed\n");
     else {
         if (current_migration)
             current_migration->release(current_migration);
@@ -82,7 +82,7 @@ void do_migrate(int detach, const char *uri)
     }
 }
 
-void do_migrate_cancel(void)
+void do_migrate_cancel(Monitor *mon)
 {
     MigrationState *s = current_migration;
 
@@ -90,7 +90,7 @@ void do_migrate_cancel(void)
         s->cancel(s);
 }
 
-void do_migrate_set_speed(const char *value)
+void do_migrate_set_speed(Monitor *mon, const char *value)
 {
     double d;
     char *ptr;
@@ -110,30 +110,40 @@ void do_migrate_set_speed(const char *value)
     max_throttle = (uint32_t)d;
 }
 
-void do_info_migrate(void)
+void do_info_migrate(Monitor *mon)
 {
     MigrationState *s = current_migration;
-    
+
     if (s) {
-        monitor_printf("Migration status: ");
+        monitor_printf(mon, "Migration status: ");
         switch (s->get_status(s)) {
         case MIG_STATE_ACTIVE:
-            monitor_printf("active\n");
+            monitor_printf(mon, "active\n");
             break;
         case MIG_STATE_COMPLETED:
-            monitor_printf("completed\n");
+            monitor_printf(mon, "completed\n");
             break;
         case MIG_STATE_ERROR:
-            monitor_printf("failed\n");
+            monitor_printf(mon, "failed\n");
             break;
         case MIG_STATE_CANCELLED:
-            monitor_printf("cancelled\n");
+            monitor_printf(mon, "cancelled\n");
             break;
         }
     }
 }
 
 /* shared migration helpers */
+
+void migrate_fd_monitor_suspend(FdMigrationState *s)
+{
+    s->mon_resume = cur_mon;
+    if (monitor_suspend(cur_mon) == 0)
+        dprintf("suspending monitor\n");
+    else
+        monitor_printf(cur_mon, "terminal does not allow synchronous "
+                       "migration, continuing detached\n");
+}
 
 void migrate_fd_error(FdMigrationState *s)
 {
@@ -155,10 +165,8 @@ void migrate_fd_cleanup(FdMigrationState *s)
         close(s->fd);
 
     /* Don't resume monitor until we've flushed all of the buffers */
-    if (s->detach == 2) {
-        monitor_resume();
-        s->detach = 0;
-    }
+    if (s->mon_resume)
+        monitor_resume(s->mon_resume);
 
     s->fd = -1;
 }
@@ -178,7 +186,7 @@ ssize_t migrate_fd_put_buffer(void *opaque, const void *data, size_t size)
 
     do {
         ret = s->write(s, data, size);
-    } while (ret == -1 && ((s->get_error(s)) == EINTR || (s->get_error(s)) == EWOULDBLOCK));
+    } while (ret == -1 && ((s->get_error(s)) == EINTR));
 
     if (ret == -1)
         ret = -(s->get_error(s));

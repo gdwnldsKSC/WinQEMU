@@ -16,12 +16,7 @@
 #include "boards.h"
 #include "flash.h"
 #include "qemu-log.h"
-
-#ifdef TARGET_WORDS_BIGENDIAN
-#define BIOS_FILENAME "mips_bios.bin"
-#else
-#define BIOS_FILENAME "mipsel_bios.bin"
-#endif
+#include "mips-bios.h"
 
 #define PHYS_TO_VIRT(x) ((x) | ~(target_ulong)0x7fffffff)
 
@@ -280,8 +275,15 @@ void mips_r4k_init (ram_addr_t ram_size,
     i8042_init(i8259[1], i8259[12], 0x60);
 }
 
-QEMUMachine mips_machine = {
+static QEMUMachine mips_machine = {
     .name = "mips",
     .desc = "mips r4k platform",
     .init = mips_r4k_init,
 };
+
+static void mips_machine_init(void)
+{
+    qemu_register_machine(&mips_machine);
+}
+
+machine_init(mips_machine_init);

@@ -26,6 +26,7 @@
 #include "boards.h"
 #include "arm-misc.h"
 #include "sysemu.h"
+#include "net.h"
 
 static struct arm_boot_info syborg_binfo;
 
@@ -76,6 +77,19 @@ static void syborg_init(ram_addr_t ram_size,
     sysbus_create_simple("syborg,serial", 0xC0008000, pic[7]);
     sysbus_create_simple("syborg,serial", 0xC0009000, pic[8]);
 
+    if (nd_table[0].vlan) {
+        DeviceState *dev;
+        SysBusDevice *s;
+
+        qemu_check_nic_model(&nd_table[0], "virtio");
+        dev = qdev_create(NULL, "syborg,virtio-net");
+        qdev_set_netdev(dev, &nd_table[0]);
+        qdev_init(dev);
+        s = sysbus_from_qdev(dev);
+        sysbus_mmio_map(s, 0, 0xc000c000);
+        sysbus_connect_irq(s, 0, pic[9]);
+    }
+
     syborg_binfo.ram_size = ram_size;
     syborg_binfo.kernel_filename = kernel_filename;
     syborg_binfo.kernel_cmdline = kernel_cmdline;
@@ -84,8 +98,15 @@ static void syborg_init(ram_addr_t ram_size,
     arm_load_kernel(env, &syborg_binfo);
 }
 
-QEMUMachine syborg_machine = {
+static QEMUMachine syborg_machine = {
     .name = "syborg",
     .desc = "Syborg (Symbian Virtual Platform)",
     .init = syborg_init,
 };
+
+static void syborg_machine_init(void)
+{
+    qemu_register_machine(&syborg_machine);
+}
+
+machine_init(syborg_machine_init);
