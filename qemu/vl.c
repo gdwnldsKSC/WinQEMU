@@ -210,12 +210,9 @@ static IOPortWriteFunc *ioport_write_table[3][MAX_IOPORTS];
    to store the VM snapshots */
 DriveInfo drives_table[MAX_DRIVES+1];
 int nb_drives;
-static int vga_ram_size;
 enum vga_retrace_method vga_retrace_method = VGA_RETRACE_DUMB;
 static DisplayState *display_state;
-int nographic;
-static int curses;
-static int sdl;
+DisplayType display_type = DT_DEFAULT;
 const char* keyboard_layout = NULL;
 int64_t ticks_per_sec;
 ram_addr_t ram_size;
@@ -1554,7 +1551,7 @@ static int dynticks_start_timer(struct qemu_alarm_timer *t)
 
     sigaction(SIGALRM, &act, NULL);
 
-    /*
+    /* 
      * Initialize ev struct to 0 to avoid valgrind complaining
      * about uninitialized data in timer_create call
      */
@@ -3511,6 +3508,18 @@ static QEMUMachine *find_machine(const char *name)
     return NULL;
 }
 
+static QEMUMachine *find_default_machine(void)
+{
+    QEMUMachine *m;
+
+    for(m = first_machine; m != NULL; m = m->next) {
+        if (m->is_default) {
+            return m;
+        }
+    }
+    return NULL;
+}
+
 /***********************************************************/
 /* main execution loop */
 
@@ -4865,6 +4874,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     const char *run_as = NULL;
 #endif
     CPUState *env;
+    int show_vnc_port = 0;
 
     qemu_cache_utils_init(envp);
 
@@ -4900,13 +4910,11 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 #endif
 
     module_call_init(MODULE_INIT_MACHINE);
-    machine = first_machine;
+    machine = find_default_machine();
     cpu_model = NULL;
     initrd_filename = NULL;
     ram_size = 0;
     snapshot = 0;
-    nographic = 0;
-    curses = 0;
     kernel_filename = NULL;
     kernel_cmdline = "";
     cyls = heads = secs = 0;
@@ -4993,7 +5001,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     for(m = first_machine; m != NULL; m = m->next) {
                         printf("%-10s %s%s\n",
                                m->name, m->desc,
-                               m == first_machine ? " (default)" : "");
+                               m->is_default ? " (default)" : "");
                     }
                     exit(*optarg != '?');
                 }
@@ -5098,11 +5106,11 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 numa_add(optarg);
                 break;
             case QEMU_OPTION_nographic:
-                nographic = 1;
+                display_type = DT_NOGRAPHIC;
                 break;
 #ifdef CONFIG_CURSES
             case QEMU_OPTION_curses:
-                curses = 1;
+                display_type = DT_CURSES;
                 break;
 #endif
             case QEMU_OPTION_portrait:
@@ -5381,7 +5389,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 no_quit = 1;
                 break;
             case QEMU_OPTION_sdl:
-                sdl = 1;
+                display_type = DT_SDL;
                 break;
 #endif
             case QEMU_OPTION_pidfile:
@@ -5443,6 +5451,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 }
                 break;
 	    case QEMU_OPTION_vnc:
+                display_type = DT_VNC;
 		vnc_display = optarg;
 		break;
 #ifdef TARGET_I386
@@ -5601,7 +5610,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
     }
 
-    if (nographic) {
+    if (display_type == DT_NOGRAPHIC) {
        if (serial_device_index == 0)
            serial_devices[0] = "stdio";
        if (parallel_device_index == 0)
@@ -5973,33 +5982,46 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         dumb_display_init();
     /* just use the first displaystate for the moment */
     ds = display_state;
-    /* terminal init */
-    if (nographic) {
-        if (curses) {
-            fprintf(stderr, "fatal: -nographic can't be used with -curses\n");
-            exit(1);
-        }
-    } else { 
+
+    if (display_type == DT_DEFAULT) {
+#if defined(CONFIG_SDL) || defined(CONFIG_COCOA)
+        display_type = DT_SDL;
+#else
+        display_type = DT_VNC;
+        vnc_display = "localhost:0,to=99";
+        show_vnc_port = 1;
+#endif
+    }
+        
+
+    switch (display_type) {
+    case DT_NOGRAPHIC:
+        break;
 #if defined(CONFIG_CURSES)
-            if (curses) {
-                /* At the moment curses cannot be used with other displays */
-                curses_display_init(ds, full_screen);
-            } else
+    case DT_CURSES:
+        curses_display_init(ds, full_screen);
+        break;
 #endif
-            {
-                if (vnc_display != NULL) {
-                    vnc_display_init(ds);
-                    if (vnc_display_open(ds, vnc_display) < 0)
-                        exit(1);
-                }
 #if defined(CONFIG_SDL)
-                if (sdl || !vnc_display)
-                    sdl_display_init(ds, full_screen, no_frame);
+    case DT_SDL:
+        sdl_display_init(ds, full_screen, no_frame);
+        break;
 #elif defined(CONFIG_COCOA)
-                if (sdl || !vnc_display)
-                    cocoa_display_init(ds, full_screen);
+    case DT_SDL:
+        cocoa_display_init(ds, full_screen);
+        break;
 #endif
-            }
+    case DT_VNC:
+        vnc_display_init(ds);
+        if (vnc_display_open(ds, vnc_display) < 0)
+            exit(1);
+
+        if (show_vnc_port) {
+            printf("VNC server running on `%s'\n", vnc_display_local_addr(ds));
+        }
+        break;
+    default:
+        break;
     }
     dpy_resize(ds);
 
@@ -6012,7 +6034,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         dcl = dcl->next;
     }
 
-    if (nographic || (vnc_display && !sdl)) {
+    if (display_type == DT_NOGRAPHIC || display_type == DT_VNC) {
         nographic_timer = qemu_new_timer(rt_clock, nographic_update, NULL);
         qemu_mod_timer(nographic_timer, qemu_get_clock(rt_clock));
     }
