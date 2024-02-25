@@ -5,7 +5,6 @@
 
 /* VLANs support */
 
-typedef signed int ssize_t; // VS2017 hack
 typedef ssize_t (IOReadvHandler)(void *, const struct iovec *, int);
 
 typedef struct VLANClientState VLANClientState;
@@ -33,8 +32,8 @@ struct VLANClientState {
 typedef struct VLANPacket VLANPacket;
 
 struct VLANPacket {
-    struct VLANPacket* next;
-    VLANClientState* sender;
+    struct VLANPacket *next;
+    VLANClientState *sender;
     int size;
     uint8_t data[0];
 };
@@ -44,7 +43,7 @@ struct VLANState {
     VLANClientState *first_client;
     struct VLANState *next;
     unsigned int nb_guest_devs, nb_host_devs;
-    VLANPacket* send_queue;
+    VLANPacket *send_queue;
     int delivering;
 };
 
@@ -127,5 +126,12 @@ void net_host_device_remove(Monitor *mon, int vlan_id, const char *device);
 #else
 #define SMBD_COMMAND "/usr/sbin/smbd"
 #endif
+
+void qdev_get_macaddr(DeviceState *dev, uint8_t *macaddr);
+VLANClientState *qdev_get_vlan_client(DeviceState *dev,
+                                      IOReadHandler *fd_read,
+                                      IOCanRWHandler *fd_can_read,
+                                      NetCleanup *cleanup,
+                                      void *opaque);
 
 #endif

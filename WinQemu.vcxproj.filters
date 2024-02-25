@@ -1140,6 +1140,15 @@
     <ClCompile Include="qemu\block\vvfat.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\qdev.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\sysbus.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ssi.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1714,6 +1723,15 @@
     </ClInclude>
     <ClInclude Include="qemu\module.h">
       <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\qdev.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\sysbus.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ssi.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

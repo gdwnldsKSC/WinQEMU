@@ -2577,6 +2577,8 @@ int drive_init(struct drive_opt *arg, int snapshot, void *opaque)
     case IF_MTD:
     case IF_VIRTIO:
         break;
+    case IF_COUNT:
+        abort();
     }
     if (!file[0])
         return -2;
@@ -5923,6 +5925,8 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             }
         }
     }
+
+    module_call_init(MODULE_INIT_DEVICE);
 
     machine->init(ram_size, boot_devices,
                   kernel_filename, kernel_cmdline, initrd_filename, cpu_model);

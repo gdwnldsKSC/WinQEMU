@@ -183,7 +183,10 @@
     <ClCompile Include="qemu\block\vvfat.c" />
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\qdev.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
+    <ClCompile Include="qemu\hw\ssi.c" />
+    <ClCompile Include="qemu\hw\sysbus.c" />
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
@@ -1079,7 +1082,10 @@
     <ClInclude Include="clock_gettime.h" />
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="qemu\acl.h" />
+    <ClInclude Include="qemu\hw\qdev.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
+    <ClInclude Include="qemu\hw\ssi.h" />
+    <ClInclude Include="qemu\hw\sysbus.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\module.h" />
     <ClInclude Include="qemu\qemu-options.h" />

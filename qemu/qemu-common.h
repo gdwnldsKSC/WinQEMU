@@ -97,6 +97,10 @@ static inline char *realpath(const char *path, char *resolved_path)
 #define strcasecmp _stricmp
 #endif
 
+#ifdef _MSC_VER
+typedef signed int ssize_t;
+#endif
+
 /* FIXME: Remove NEED_CPU_H.  */
 #ifndef NEED_CPU_H
 
@@ -217,6 +221,7 @@ typedef struct MouseTransformInfo MouseTransformInfo;
 typedef struct uWireSlave uWireSlave;
 typedef struct I2SCodec I2SCodec;
 typedef struct DeviceState DeviceState;
+typedef struct SSIBus SSIBus;
 
 /* CPU save/load.  */
 void cpu_save(QEMUFile *f, void *opaque);
