@@ -47,25 +47,25 @@ typedef struct {
 
 static void sh_pci_reg_write (void *p, target_phys_addr_t addr, uint32_t val)
 {
-	SHPCIC *pcic = p;
+    SHPCIC *pcic = p;
 #ifndef _MSC_VER
-	switch(addr) {
-	case 0 ... 0xfc:
-		cpu_to_le32w((uint32_t*)(pcic->dev->config + addr), val);
-		break;
-	case 0x1c0:
-		pcic->par = val;
-		break;
-	case 0x1c4:
-		pcic->mbr = val;
-		break;
-	case 0x1c8:
-		pcic->iobr = val;
-		break;
-	case 0x220:
-		pci_data_write(pcic->bus, pcic->par, val, 4);
-		break;
-	}
+    switch(addr) {
+    case 0 ... 0xfc:
+        cpu_to_le32w((uint32_t*)(pcic->dev->config + addr), val);
+        break;
+    case 0x1c0:
+        pcic->par = val;
+        break;
+    case 0x1c4:
+        pcic->mbr = val;
+        break;
+    case 0x1c8:
+        pcic->iobr = val;
+        break;
+    case 0x220:
+        pci_data_write(pcic->bus, pcic->par, val, 4);
+        break;
+    }
 #else
 	if (addr >= 0 && addr <= 0xfc)
 		cpu_to_le32w((uint32_t*)(pcic->dev->config + addr), val);
@@ -86,7 +86,7 @@ static void sh_pci_reg_write (void *p, target_phys_addr_t addr, uint32_t val)
 			pci_data_write(pcic->bus, pcic->par, val, 4);
 			break;
 		}
-	}
+}
 #endif
 }
 
@@ -222,7 +222,8 @@ PCIBus *sh_pci_register_bus(pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
     int mem, reg, iop;
 
     p = qemu_mallocz(sizeof(SHPCIC));
-    p->bus = pci_register_bus(set_irq, map_irq, pic, devfn_min, nirq);
+    p->bus = pci_register_bus(NULL, "pci",
+                              set_irq, map_irq, pic, devfn_min, nirq);
 
     p->dev = pci_register_device(p->bus, "SH PCIC", sizeof(PCIDevice),
                                  -1, NULL, NULL);
@@ -237,7 +238,7 @@ PCIBus *sh_pci_register_bus(pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
     cpu_register_physical_memory(0xfd000000, 0x1000000, mem);
 
     pci_config_set_vendor_id(p->dev->config, PCI_VENDOR_ID_HITACHI);
-    pci_config_set_device_id(p->dev->config, 0x350e); // SH7751R
+    pci_config_set_device_id(p->dev->config, PCI_DEVICE_ID_HITACHI_SH7751R);
     p->dev->config[0x04] = 0x80;
     p->dev->config[0x05] = 0x00;
     p->dev->config[0x06] = 0x90;

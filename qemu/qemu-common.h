@@ -98,8 +98,24 @@ static inline char *realpath(const char *path, char *resolved_path)
 #endif
 
 #ifdef _MSC_VER
+// this type isn't provided in MSVC 17/VS 2022.... 
 typedef signed int ssize_t;
+
+/*these are for block devices, and otherwise missing posix attributes / defines for posix properties
+ * throwing these here enables us to more closely use upstream files instead of deviating every file
+ * that requires them */
+#define S_IWUSR 00200
+
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif
+
+// more posixyness
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+
+#endif // end MSVC sections
 
 /* FIXME: Remove NEED_CPU_H.  */
 #ifndef NEED_CPU_H

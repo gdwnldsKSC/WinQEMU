@@ -127,6 +127,9 @@ case "$cpu" in
   m68k)
     cpu="m68k"
   ;;
+  microblaze)
+    cpu="microblaze"
+  ;;
   mips)
     cpu="mips"
   ;;
@@ -179,6 +182,7 @@ bsd_user="no"
 build_docs="yes"
 uname_release=""
 curses="yes"
+curl="yes"
 pthread="yes"
 aio="yes"
 io_thread="no"
@@ -474,6 +478,8 @@ for opt do
   ;;
   --disable-curses) curses="no"
   ;;
+  --disable-curl) curl="no"
+  ;;
   --disable-nptl) nptl="no"
   ;;
   --enable-mixemu) mixemu="yes"
@@ -599,6 +605,7 @@ echo "  --disable-brlapi         disable BrlAPI"
 echo "  --disable-vnc-tls        disable TLS encryption for VNC server"
 echo "  --disable-vnc-sasl       disable SASL encryption for VNC server"
 echo "  --disable-curses         disable curses output"
+echo "  --disable-curl           disable curl connectivity"
 echo "  --disable-bluez          disable bluez stack connectivity"
 echo "  --disable-kvm            disable KVM acceleration support"
 echo "  --disable-nptl           disable usermode NPTL support"
@@ -676,6 +683,7 @@ x86_64-softmmu \
 arm-softmmu \
 cris-softmmu \
 m68k-softmmu \
+microblaze-softmmu \
 mips-softmmu \
 mipsel-softmmu \
 mips64-softmmu \
@@ -698,6 +706,7 @@ arm-linux-user \
 armeb-linux-user \
 cris-linux-user \
 m68k-linux-user \
+microblaze-linux-user \
 mips-linux-user \
 mipsel-linux-user \
 ppc-linux-user \
@@ -1061,6 +1070,21 @@ EOF
 fi # test "$curses"
 
 ##########################################
+# curl probe
+
+if test "$curl" = "yes" ; then
+  curl=no
+  cat > $TMPC << EOF
+#include <curl/curl.h>
+int main(void) { return curl_easy_init(); }
+EOF
+  curl_libs=`curl-config --libs 2>/dev/null`
+ if $cc $ARCH_CFLAGS $curl_libs -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+    curl=yes
+  fi
+fi # test "$curl"
+
+##########################################
 # bluez support probe
 if test "$bluez" = "yes" ; then
   `pkg-config bluez 2> /dev/null` || bluez="no"
@@ -1309,6 +1333,7 @@ if test "$sdl" != "no" ; then
     echo "SDL static link   $sdl_static"
 fi
 echo "curses support    $curses"
+echo "curl support      $curl"
 echo "mingw32 support   $mingw32"
 echo "Audio drivers     $audio_drv_list"
 echo "Extra audio cards $audio_card_list"
@@ -1422,6 +1447,10 @@ case "$cpu" in
   m68k)
     echo "ARCH=m68k" >> $config_mak
     echo "#define HOST_M68K 1" >> $config_h
+  ;;
+  microblaze)
+    echo "ARCH=microblaze" >> $config_mak
+    echo "#define HOST_MICROBLAZE 1" >> $config_h
   ;;
   mips)
     echo "ARCH=mips" >> $config_mak
@@ -1627,6 +1656,11 @@ fi
 if test "$inotify" = "yes" ; then
   echo "#define CONFIG_INOTIFY 1" >> $config_h
 fi
+if test "$curl" = "yes" ; then
+  echo "CONFIG_CURL=yes" >> $config_mak
+  echo "CURL_LIBS=$curl_libs" >> $config_mak
+  echo "#define CONFIG_CURL 1" >> $config_h
+fi
 if test "$brlapi" = "yes" ; then
   echo "CONFIG_BRLAPI=yes" >> $config_mak
   echo "#define CONFIG_BRLAPI 1" >> $config_h
@@ -1722,7 +1756,14 @@ if test `expr "$target_list" : ".*softmmu.*"` != 0 ; then
 fi
 echo "TOOLS=$tools" >> $config_mak
 
-test -f ${config_h}~ && cmp -s $config_h ${config_h}~ && mv ${config_h}~ $config_h
+if test -f ${config_h}~ ; then
+  if cmp -s $config_h ${config_h}~ ; then
+    mv ${config_h}~ $config_h
+  else
+    rm ${config_h}~
+  fi
+fi
+
 config_host_mak=${config_mak}
 
 for target in $target_list; do
@@ -1733,6 +1774,7 @@ target_cpu=`echo $target | cut -d '-' -f 1`
 target_bigendian="no"
 [ "$target_cpu" = "armeb" ] && target_bigendian=yes
 [ "$target_cpu" = "m68k" ] && target_bigendian=yes
+[ "$target_cpu" = "microblaze" ] && target_bigendian=yes
 [ "$target_cpu" = "mips" ] && target_bigendian=yes
 [ "$target_cpu" = "mipsn32" ] && target_bigendian=yes
 [ "$target_cpu" = "mips64" ] && target_bigendian=yes
@@ -1889,7 +1931,15 @@ case "$target_cpu" in
     gdb_xml_files="cf-core.xml cf-fp.xml"
     target_phys_bits=32
   ;;
-  mips|mipsel)
+  microblaze)
+    echo "TARGET_ARCH=microblaze" >> $config_mak
+    echo "#define TARGET_ARCH \"microblaze\"" >> $config_h
+    echo "#define TARGET_MICROBLAZE 1" >> $config_h
+    bflt="yes"
+    target_nptl="yes"
+    target_phys_bits=32
+  ;;
+ mips|mipsel)
     echo "TARGET_ARCH=mips" >> $config_mak
     echo "#define TARGET_ARCH \"mips\"" >> $config_h
     echo "#define TARGET_MIPS 1" >> $config_h
@@ -2026,6 +2076,7 @@ echo "TARGET_XML_FILES=$list" >> $config_mak
 if test "$target_cpu" = "arm" \
      -o "$target_cpu" = "armeb" \
      -o "$target_cpu" = "m68k" \
+     -o "$target_cpu" = "microblaze" \
      -o "$target_cpu" = "mips" \
      -o "$target_cpu" = "mipsel" \
      -o "$target_cpu" = "mipsn32" \

@@ -29,14 +29,8 @@ typedef void *PTR;
 typedef uint64_t bfd_vma;
 typedef int64_t bfd_signed_vma;
 typedef uint8_t bfd_byte;
-
-#ifndef _MSC_VER
 #define sprintf_vma(s,x) sprintf (s, "%0" PRIx64, x)
 #define snprintf_vma(s,ss,x) snprintf (s, ss, "%0" PRIx64, x)
-#else
-#define sprintf_vma(s,x) sprintf (s, "%0I64x", x)
-#define snprintf_vma(s,ss,x) snprintf (s, ss, "%0I64x", x)
-#endif
 
 #define BFD64
 
@@ -237,6 +231,7 @@ enum bfd_architecture
 #define bfd_mach_cris_v0_v10   255
 #define bfd_mach_cris_v32      32
 #define bfd_mach_cris_v10_v32  1032
+  bfd_arch_microblaze, /* Xilinx MicroBlaze.  */
   bfd_arch_last
   };
 #define bfd_mach_s390_31 31
@@ -419,6 +414,7 @@ extern int print_insn_tic30		PARAMS ((bfd_vma, disassemble_info*));
 extern int print_insn_ppc		PARAMS ((bfd_vma, disassemble_info*));
 extern int print_insn_s390		PARAMS ((bfd_vma, disassemble_info*));
 extern int print_insn_crisv32           PARAMS ((bfd_vma, disassemble_info*));
+extern int print_insn_microblaze        PARAMS ((bfd_vma, disassemble_info*));
 
 #if 0
 /* Fetch the disassembler for a given BFD, if that support is available.  */
@@ -491,7 +487,6 @@ extern int generic_symbol_at_address
 #define ATTRIBUTE_UNUSED
 #define inline __inline
 #endif
-
 
 /* from libbfd */
 
