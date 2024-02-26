@@ -69,9 +69,6 @@
     <ClCompile Include="WinQemu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="XGetopt.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\aes.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1080,9 +1077,6 @@
     <ClCompile Include="qemu\qemu-thread.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="clock_gettime.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\watchdog.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1166,6 +1160,15 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
       <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="outside_qemu_tree_custom\XGetopt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1730,9 +1733,6 @@
     <ClInclude Include="qemu\qemu-thread.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="clock_gettime.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\watchdog.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -1761,6 +1761,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-option.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>

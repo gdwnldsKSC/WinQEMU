@@ -110,6 +110,10 @@ typedef signed int ssize_t;
 #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif
 
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
 // more posixyness
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH

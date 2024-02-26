@@ -44,20 +44,6 @@
 #include "kvm.h"
 #include "acl.h"
 
-#ifdef _MSC_VER
-#define S_IWUSR 00200
-#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
-#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-#endif
-#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
-#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#endif
-#ifndef PATH_MAX
-#define PATH_MAX MAX_PATH
-#endif
-
-#endif
-
 //#define DEBUG
 //#define DEBUG_COMPLETION
 
@@ -1773,8 +1759,9 @@ static const mon_cmd_t mon_cmds[] = {
     { "host_net_remove", "is", net_host_device_remove,
       "vlan_id name", "remove host VLAN client" },
 #ifdef CONFIG_SLIRP
-    { "host_net_redir", "s", net_slirp_redir,
-      "[tcp|udp]:host-port:[guest-host]:guest-port", "redirect TCP or UDP connections from host to guest (requires -net user)" },
+    { "host_net_redir", "ss?", net_slirp_redir,
+      "[tcp|udp]:host-port:[guest-host]:guest-port", "redirect TCP or UDP connections from host to guest (requires -net user)\n"
+      "host_net_redir remove [tcp:|udp:]host-port -- remove redirection" },
 #endif
     { "balloon", "i", do_balloon,
       "target", "request VM to change it's memory allocation (in MB)" },

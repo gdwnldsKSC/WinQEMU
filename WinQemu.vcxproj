@@ -153,7 +153,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="clock_gettime.c" />
     <ClCompile Include="dllmain.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -165,6 +164,9 @@
       </PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
+    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c" />
+    <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
     <ClCompile Include="qemu\acl.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
@@ -234,7 +236,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="WinQemu.cpp" />
-    <ClCompile Include="XGetopt.c" />
     <ClCompile Include="qemu\aes.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">CompileAsC</CompileAs>
@@ -1091,8 +1092,8 @@
     <ClCompile Include="qemu\slirp\udp.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="clock_gettime.h" />
     <ClInclude Include="float80-port.h" />
+    <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\hw\poison.h" />

@@ -341,7 +341,7 @@ static inline target_ulong get_phys_addr_code(CPUState *env1, target_ulong addr)
 
 /* Deterministic execution requires that IO only be performed on the last
    instruction of a TB so that interrupts take effect immediately.  */
-static inline int can_do_io_func(CPUState *env)
+static inline int can_do_io(CPUState *env)
 {
     if (!use_icount)
         return 1;

@@ -2,7 +2,7 @@
 #define __QEMU_THREAD_H 1
 #include "semaphore.h"
 #include "pthread.h"
-#include "clock_gettime.h"
+#include "..\outside_qemu_tree_custom\clock_gettime.h"
 
 struct QemuMutex {
     pthread_mutex_t lock;

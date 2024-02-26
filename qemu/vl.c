@@ -822,7 +822,7 @@ static int64_t cpu_get_icount(void)
     CPUState *env = cpu_single_env;;
     icount = qemu_icount;
     if (env) {
-        if (!can_do_io_func(env))
+        if (!can_do_io(env))
             fprintf(stderr, "Bad clock read\n");
         icount -= (env->icount_decr.u16.low + env->icount_extra);
     }
@@ -2238,7 +2238,7 @@ int drive_init(struct drive_opt *arg, int snapshot, void *opaque)
                                            NULL };
 
     if (check_params(params, str) < 0) {
-         fprintf(stderr, "qemu: unknown parameter '%s' in '%s'\n", str);
+         fprintf(stderr, "qemu: unknown parameter in '%s'\n", str);
          return -1;
     }
 
@@ -3253,7 +3253,7 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
             if (!cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG))
                 cpu_physical_memory_set_dirty(addr);
         }
-        
+
         /* Enable dirty memory tracking */
         cpu_physical_memory_set_dirty_tracking(1);
 
@@ -3966,10 +3966,8 @@ void qemu_cpu_kick(void *_env)
 {
     CPUState *env = _env;
     qemu_cond_broadcast(env->halt_cond);
-#ifndef _MSC_VER
     if (kvm_enabled())
         qemu_thread_signal(env->thread, SIGUSR1);
-#endif
 }
 
 int qemu_cpu_self(void *env)
@@ -5172,7 +5170,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 break;
 #endif
             case QEMU_OPTION_redir:
-                net_slirp_redir(NULL, optarg);
+                net_slirp_redir(NULL, optarg, NULL);
                 break;
 #endif
             case QEMU_OPTION_bt:
@@ -5777,7 +5775,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     cpu_exec_init_all(tb_size * 1024 * 1024);
 
     bdrv_init();
-    dma_helper_init();
 
     /* we always create the cdrom drive, even if no disk is there */
 
@@ -5864,7 +5861,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             }
         }
     }
-#ifndef _MSC_VER
+
     if (kvm_enabled()) {
         int ret;
 
@@ -5874,7 +5871,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             exit(1);
         }
     }
-#endif
 
     if (monitor_device) {
         monitor_hd = qemu_chr_open("monitor", monitor_device, NULL);
@@ -5941,7 +5937,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
 
     current_machine = machine;
-#ifndef _MSC_VER
+
     /* Set KVM's vcpu state to qemu's initial CPUState. */
     if (kvm_enabled()) {
         int ret;
@@ -5952,7 +5948,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             exit(1);
         }
     }
-#endif
 
     /* init USB devices */
     if (usb_enabled) {
