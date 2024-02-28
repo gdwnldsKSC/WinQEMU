@@ -7,16 +7,6 @@
  * This code is licensed under the GPLv2.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "console.h"
 #include "pxa.h"
@@ -78,22 +68,12 @@ struct PXA2xxLCDState {
     int orientation;
 };
 
-#ifdef _MSC_VER
-#pragma pack (push, 1)
-#endif
-#ifndef _MSC_VER
-struct __attribute__ ((__packed__)) pxa_frame_descriptor_s {
-#else
-struct pxa_frame_descriptor_s {
-#endif
+typedef struct __attribute__ ((__packed__)) {
     uint32_t fdaddr;
     uint32_t fsaddr;
     uint32_t fidr;
     uint32_t ldcmd;
-};
-#ifdef _MSC_VER
-#pragma pack (pop)
-#endif
+} PXAFrameDescriptor;
 
 #define LCCR0	0x000	/* LCD Controller Control register 0 */
 #define LCCR1	0x004	/* LCD Controller Control register 1 */
@@ -948,7 +928,7 @@ PXA2xxLCDState *pxa2xx_lcdc_init(target_phys_addr_t base, qemu_irq irq)
 
     pxa2xx_lcdc_orientation(s, graphic_rotate);
 
-    iomemtype = cpu_register_io_memory(0, pxa2xx_lcdc_readfn,
+    iomemtype = cpu_register_io_memory(pxa2xx_lcdc_readfn,
                     pxa2xx_lcdc_writefn, s);
     cpu_register_physical_memory(base, 0x00100000, iomemtype);
 

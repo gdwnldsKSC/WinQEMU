@@ -58,6 +58,9 @@
     <Filter Include="qemu\block\src">
       <UniqueIdentifier>{dc3c6453-7eb5-4bee-9978-4786f6958ca8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\block\inc">
+      <UniqueIdentifier>{039344ec-5e63-44cd-94d8-cde2ccf4dffb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -1170,6 +1173,15 @@
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\block\qcow2-refcount.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qcow2-cluster.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qcow2-snapshot.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1765,6 +1777,9 @@
     </ClInclude>
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h">
       <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\block\qcow2.h">
+      <Filter>qemu\block\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

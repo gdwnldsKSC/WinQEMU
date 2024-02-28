@@ -177,7 +177,7 @@ struct __declspec(align(8)) vmcb_control_area {
 };
 
 #ifndef _MSC_VER
-	struct __attribute__ ((__packed__)) vmcb_seg {
+struct __attribute__ ((__packed__)) vmcb_seg {
 #else
 	struct __declspec(align(8)) vmcb_seg {
 #endif
@@ -188,7 +188,7 @@ struct __declspec(align(8)) vmcb_control_area {
 };
 
 #ifndef _MSC_VER
-	struct __attribute__ ((__packed__)) vmcb_save_area {
+struct __attribute__ ((__packed__)) vmcb_save_area {
 #else
 	struct __declspec(align(8)) vmcb_save_area {
 #endif
@@ -237,7 +237,7 @@ struct __declspec(align(8)) vmcb_control_area {
 };
 
 #ifndef _MSC_VER
-	struct __attribute__ ((__packed__)) vmcb {
+struct __attribute__ ((__packed__)) vmcb {
 #else
 	struct __declspec(align(8)) vmcb {
 #endif

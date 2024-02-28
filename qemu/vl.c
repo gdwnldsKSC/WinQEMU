@@ -3199,7 +3199,6 @@ static int ram_save_block(QEMUFile *f)
     return found;
 }
 
-static ram_addr_t ram_save_threshold = 10;
 static uint64_t bytes_transferred = 0;
 
 static ram_addr_t ram_save_remaining(void)
@@ -3233,6 +3232,9 @@ uint64_t ram_bytes_total(void)
 static int ram_save_live(QEMUFile *f, int stage, void *opaque)
 {
     ram_addr_t addr;
+    uint64_t bytes_transferred_last;
+    double bwidth = 0;
+    uint64_t expected_time = 0;
 
     if (cpu_physical_sync_dirty_bitmap(0, TARGET_PHYS_ADDR_MAX) != 0) {
         qemu_file_set_error(f);
@@ -3252,6 +3254,9 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
         qemu_put_be64(f, last_ram_offset | RAM_SAVE_FLAG_MEM_SIZE);
     }
 
+    bytes_transferred_last = bytes_transferred;
+    bwidth = get_clock();
+
     while (!qemu_file_rate_limit(f)) {
         int ret;
 
@@ -3260,6 +3265,14 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
         if (ret == 0) /* no more blocks */
             break;
     }
+
+    bwidth = get_clock() - bwidth;
+    bwidth = (bytes_transferred - bytes_transferred_last) / bwidth;
+
+    /* if we haven't transferred anything this round, force expected_time to a
+     * a very high value, but without crashing */
+    if (bwidth == 0)
+        bwidth = 0.000001;
 
     /* try transferring iterative blocks of memory */
 
@@ -3274,7 +3287,9 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
 
     qemu_put_be64(f, RAM_SAVE_FLAG_EOS);
 
-    return (stage == 2) && (ram_save_remaining() < ram_save_threshold);
+    expected_time = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
+
+    return (stage == 2) && (expected_time <= migrate_max_downtime());
 }
 
 static int ram_load_dead(QEMUFile *f, void *opaque)
@@ -6172,8 +6187,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     for(i = 0; i < MAX_SERIAL_PORTS; i++) {
         const char *devname = serial_devices[i];
         if (devname && strcmp(devname, "none")) {
-            char label[32];
-            snprintf(label, sizeof(label), "serial%d", i);
             if (strstart(devname, "vc", 0))
                 qemu_chr_printf(serial_hds[i], "serial%d console\r\n", i);
         }
@@ -6182,8 +6195,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     for(i = 0; i < MAX_PARALLEL_PORTS; i++) {
         const char *devname = parallel_devices[i];
         if (devname && strcmp(devname, "none")) {
-            char label[32];
-            snprintf(label, sizeof(label), "parallel%d", i);
             if (strstart(devname, "vc", 0))
                 qemu_chr_printf(parallel_hds[i], "parallel%d console\r\n", i);
         }
@@ -6192,8 +6203,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     for(i = 0; i < MAX_VIRTIO_CONSOLES; i++) {
         const char *devname = virtio_consoles[i];
         if (virtcon_hds[i] && devname) {
-            char label[32];
-            snprintf(label, sizeof(label), "virtcon%d", i);
             if (strstart(devname, "vc", 0))
                 qemu_chr_printf(virtcon_hds[i], "virtio console%d\r\n", i);
         }

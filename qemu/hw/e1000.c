@@ -22,6 +22,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
 
+ /*
+  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
+  * other than GPL is available it will apply instead, WinQEMU elects to use only the
+  * General Public License version 3 (GPLv3) at this time for any software where a choice of
+  * GPL license versions is made available with the language indicating that GPLv3 or any later
+  * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
+  *
+  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
+  */
 
 #include "hw.h"
 #include "pci.h"
@@ -1113,13 +1122,13 @@ static void pci_e1000_init(PCIDevice *pci_dev)
 
     pci_conf[0x3d] = 1; // interrupt pin 0
 
-    d->mmio_index = cpu_register_io_memory(0, e1000_mmio_read,
+    d->mmio_index = cpu_register_io_memory(e1000_mmio_read,
             e1000_mmio_write, d);
 
-    pci_register_io_region((PCIDevice *)d, 0, PNPMMIO_SIZE,
+    pci_register_bar((PCIDevice *)d, 0, PNPMMIO_SIZE,
                            PCI_ADDRESS_SPACE_MEM, e1000_mmio_map);
 
-    pci_register_io_region((PCIDevice *)d, 1, IOPORT_SIZE,
+    pci_register_bar((PCIDevice *)d, 1, IOPORT_SIZE,
                            PCI_ADDRESS_SPACE_IO, ioport_map);
 
     memmove(d->eeprom_data, e1000_eeprom_template,

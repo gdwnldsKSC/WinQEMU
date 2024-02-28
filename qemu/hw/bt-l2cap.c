@@ -19,16 +19,6 @@
  * MA  02110-1301  USA
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "qemu-timer.h"
 #include "bt.h"
@@ -231,18 +221,10 @@ static void l2cap_command_reject(struct l2cap_instance_s *l2cap, int id,
 static void l2cap_command_reject_cid(struct l2cap_instance_s *l2cap, int id,
                 uint16_t reason, uint16_t dcid, uint16_t scid)
 {
-#ifndef _MSC_VER
     l2cap_cmd_rej_cid params = {
         .dcid = dcid,
         .scid = scid,
     };
-#else
-	l2cap_cmd_rej_cid params;
-    memset (&params, 0, sizeof (params));
-		params.dcid = dcid;
-		params.scid = scid;
-
-#endif
 
     l2cap_command_reject(l2cap, id, reason, &params, L2CAP_CMD_REJ_CID_SIZE);
 }
@@ -427,7 +409,7 @@ static inline struct bt_l2cap_psm_s *l2cap_psm(
 static struct l2cap_chan_s *l2cap_channel_open(struct l2cap_instance_s *l2cap,
                 int psm, int source_cid)
 {
-    struct l2cap_chan_s *ch = 0;
+    struct l2cap_chan_s *ch = NULL;
     struct bt_l2cap_psm_s *psm_info;
     int result, status;
     int cid = l2cap_cid_new(l2cap);
@@ -478,7 +460,7 @@ static struct l2cap_chan_s *l2cap_channel_open(struct l2cap_instance_s *l2cap,
 static void l2cap_channel_close(struct l2cap_instance_s *l2cap,
                 int cid, int source_cid)
 {
-    struct l2cap_chan_s *ch = 0;
+    struct l2cap_chan_s *ch = NULL;
 
     /* According to Volume 3, section 6.1.1, pg 1048 of BT Core V2.0, a
      * connection in CLOSED state still responds with a L2CAP_DisconnectRsp
@@ -498,7 +480,7 @@ static void l2cap_channel_close(struct l2cap_instance_s *l2cap,
             return;
         }
 
-        l2cap->cid[cid] = 0;
+        l2cap->cid[cid] = NULL;
 
         ch->params.close(ch->params.opaque);
         qemu_free(ch);
@@ -510,7 +492,7 @@ static void l2cap_channel_close(struct l2cap_instance_s *l2cap,
 static void l2cap_channel_config_null(struct l2cap_instance_s *l2cap,
                 struct l2cap_chan_s *ch)
 {
-    l2cap_configuration_request(l2cap, ch->remote_cid, 0, 0, 0);
+    l2cap_configuration_request(l2cap, ch->remote_cid, 0, NULL, 0);
     ch->config_req_id = l2cap->last_id;
     ch->config &= ~L2CAP_CFG_INIT;
 }
@@ -709,9 +691,6 @@ static int l2cap_channel_config(struct l2cap_instance_s *l2cap,
     l2cap_configuration_response(l2cap, ch->remote_cid,
                     flag, result, rsp, len);
 
-#ifdef _MSC_VER
-	free (rsp);
-#endif
     return result == L2CAP_CONF_SUCCESS && !flag;
 }
 

@@ -50,4 +50,8 @@ int kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr, target_phys_ad
     return 0;
 }
 
+int kvm_log_start(target_phys_addr_t phys_addr, ram_addr_t size) {
+    return 0;
+}
+
 #endif

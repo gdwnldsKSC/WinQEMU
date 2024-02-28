@@ -18,16 +18,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "net.h"
 #include "bt.h"
@@ -124,11 +114,7 @@ void bt_device_done(struct bt_device_s *dev)
         p = &(*p)->next;
     if (*p != dev) {
         fprintf(stderr, "%s: bad bt device \"%s\"\n", __FUNCTION__,
-#ifndef _MSC_VER
-						dev->lmp_name ?: "(null)");
-#else
-                        dev->lmp_name ?dev->lmp_name: "(null)");
-#endif
+                        dev->lmp_name ? dev->lmp_name : "(null)");
         exit(-1);
     }
 

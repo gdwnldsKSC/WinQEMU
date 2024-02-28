@@ -18,20 +18,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "bt.h"
-
-typedef signed int ssize_t;
 
 struct bt_l2cap_sdp_state_s {
     struct bt_l2cap_conn_params_s *channel;
@@ -121,7 +109,6 @@ static int sdp_uuid_match(struct sdp_service_record_s *record,
 #define PDU_HEADER_SIZE		5
 #define MAX_RSP_PARAM_SIZE	(MAX_PDU_OUT_SIZE - PDU_HEADER_SIZE - \
                 CONTINUATION_PARAM_SIZE)
-
 
 static int sdp_svc_match(struct bt_l2cap_sdp_state_s *sdp,
                 const uint8_t **req, ssize_t *len)
@@ -778,7 +765,6 @@ static void sdp_service_db_build(struct bt_l2cap_sdp_state_s *sdp,
     }
 }
 
-#ifndef _MSC_VER
 #define LAST { .type = 0 }
 #define SERVICE(name, attrs)				\
     static struct sdp_def_service_s glue(glue(sdp_service_, name), _s) = { \
@@ -953,23 +939,17 @@ SERVICE(pnp,
     ATTRIBUTE(VERSION,         UINT16(0x0100))
     ATTRIBUTE(PRIMARY_RECORD,  TRUE)
 )
-#endif
 
 static int bt_l2cap_sdp_new_ch(struct bt_l2cap_device_s *dev,
                 struct bt_l2cap_conn_params_s *params)
 {
     struct bt_l2cap_sdp_state_s *sdp = qemu_mallocz(sizeof(*sdp));
-
-#ifndef _MSC_VER
     struct sdp_def_service_s *services[] = {
         &sdp_service_sdp_s,
         &sdp_service_hid_s,
         &sdp_service_pnp_s,
-        0,
+        NULL,
     };
-#else
-	struct sdp_def_service_s *services[] = {NULL};
-#endif
 
     sdp->channel = params;
     sdp->channel->opaque = sdp;
@@ -986,4 +966,3 @@ void bt_l2cap_sdp_init(struct bt_l2cap_device_s *dev)
     bt_l2cap_psm_register(dev, BT_PSM_SDP,
                     MAX_PDU_OUT_SIZE, bt_l2cap_sdp_new_ch);
 }
-

@@ -20,16 +20,6 @@
  */
 
 /*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-/*
  * For now, this code can emulate flashes of 1, 2 or 4 bytes width.
  * Supported commands/modes are:
  * - flash read
@@ -200,11 +190,7 @@ static void pflash_update(pflash_t *pfl, int offset,
         /* round to sectors */
         offset = offset >> 9;
         offset_end = (offset_end + 511) >> 9;
-#ifndef _MSC_VER
-        bdrv_write(pfl->bs, offset, pfl->storage + (offset << 9),
-#else
-		bdrv_write(pfl->bs, offset, (char*)pfl->storage + (offset << 9),
-#endif
+        bdrv_write(pfl->bs, offset, (char *)pfl->storage + (offset << 9),
                    offset_end - offset);
     }
 }
@@ -536,7 +522,7 @@ pflash_t *pflash_cfi01_register(target_phys_addr_t base, ram_addr_t off,
 
     /* FIXME: Allocate ram ourselves.  */
     pfl->storage = qemu_get_ram_ptr(off);
-    pfl->fl_mem = cpu_register_io_memory(0,
+    pfl->fl_mem = cpu_register_io_memory(
                     pflash_read_ops, pflash_write_ops, pfl);
     pfl->off = off;
     cpu_register_physical_memory(base, total_len,

@@ -561,7 +561,7 @@ static uint32_t uhci_ioport_readw(void *opaque, uint32_t addr)
         val = s->frnum;
         break;
 #ifndef _MSC_VER
-	case 0x10 ... 0x1f:
+    case 0x10 ... 0x1f:
 #else
 	case 0x10:
 	case 0x11:
@@ -1146,7 +1146,7 @@ void usb_uhci_piix3_init(PCIBus *bus, int devfn)
 
     /* Use region 4 for consistency with real hardware.  BSD guests seem
        to rely on this.  */
-    pci_register_io_region(&s->dev, 4, 0x20,
+    pci_register_bar(&s->dev, 4, 0x20,
                            PCI_ADDRESS_SPACE_IO, uhci_map);
 
     register_savevm("uhci", 0, 1, uhci_save, uhci_load, s);
@@ -1180,7 +1180,7 @@ void usb_uhci_piix4_init(PCIBus *bus, int devfn)
 
     /* Use region 4 for consistency with real hardware.  BSD guests seem
        to rely on this.  */
-    pci_register_io_region(&s->dev, 4, 0x20,
+    pci_register_bar(&s->dev, 4, 0x20,
                            PCI_ADDRESS_SPACE_IO, uhci_map);
 
     register_savevm("uhci", 0, 1, uhci_save, uhci_load, s);

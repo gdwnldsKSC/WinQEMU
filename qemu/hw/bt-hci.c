@@ -457,7 +457,7 @@ static inline uint8_t *bt_hci_event_start(struct bt_hci_s *hci,
     mask_byte = (evt - 1) >> 3;
     mask = 1 << ((evt - 1) & 3);
     if (mask & bt_event_reserved_mask[mask_byte] & ~hci->event_mask[mask_byte])
-        return 0;
+        return NULL;
 
     packet = hci->evt_packet(hci->opaque);
     packet[0] = evt;
@@ -482,19 +482,11 @@ static inline void bt_hci_event(struct bt_hci_s *hci, int evt,
 
 static inline void bt_hci_event_status(struct bt_hci_s *hci, int status)
 {
-#ifndef _MSC_VER
-	evt_cmd_status params = {
-		.status	= status,
-		.ncmd	= 1,
-		.opcode	= hci->last_cmd,
-	};
-#else
-	evt_cmd_status params;
-	memset (&params, 0, sizeof (params));
-		params.status	= status;
-		params.ncmd	= 1;
-		params.opcode	= hci->last_cmd;
-#endif
+    evt_cmd_status params = {
+        .status	= status,
+        .ncmd	= 1,
+        .opcode	= hci->last_cmd,
+    };
 
     bt_hci_event(hci, EVT_CMD_STATUS, &params, EVT_CMD_STATUS_SIZE);
 }
@@ -536,7 +528,6 @@ static void bt_hci_inquiry_done(void *opaque)
 static void bt_hci_inquiry_result_standard(struct bt_hci_s *hci,
                 struct bt_device_s *slave)
 {
-#ifndef _MSC_VER
     inquiry_info params = {
         .num_responses		= 1,
         .bdaddr			= BAINIT(&slave->bd_addr),
@@ -549,34 +540,13 @@ static void bt_hci_inquiry_result_standard(struct bt_hci_s *hci,
         /* TODO: return the clkoff *differenece* */
         .clock_offset		= slave->clkoff,	/* Note: no swapping */
     };
-#else
-	inquiry_info params;
 
-    memset (&params, 0, sizeof (params));
-		params.num_responses		= 1;
-#ifndef _MSC_VER
-		params.bdaddr			= BAINIT(&slave->bd_addr);
-#else
-		memcpy (&slave->bd_addr.b, (&slave->bd_addr)->b, sizeof (slave->bd_addr.b));
-		memcpy (&params.bdaddr, &slave->bd_addr.b, sizeof (params.bdaddr));
-#endif
-		params.pscan_rep_mode		= 0x00;	/* R0 */
-		params.pscan_period_mode	= 0x00;	/* P0 - deprecated */
-		params.pscan_mode		= 0x00;	/* Standard scan - deprecated */
-		params.dev_class[0]		= slave->class[0];
-		params.dev_class[1]		= slave->class[1];
-		params.dev_class[2]		= slave->class[2];
-		/* TODO: return the clkoff *differenece* */
-		params.clock_offset		= slave->clkoff;	/* Note: no swapping */
-
-#endif
     bt_hci_event(hci, EVT_INQUIRY_RESULT, &params, INQUIRY_INFO_SIZE);
 }
 
 static void bt_hci_inquiry_result_with_rssi(struct bt_hci_s *hci,
                 struct bt_device_s *slave)
 {
-#ifndef _MSC_VER
     inquiry_info_with_rssi params = {
         .num_responses		= 1,
         .bdaddr			= BAINIT(&slave->bd_addr),
@@ -589,25 +559,7 @@ static void bt_hci_inquiry_result_with_rssi(struct bt_hci_s *hci,
         .clock_offset		= slave->clkoff,	/* Note: no swapping */
         .rssi			= DEFAULT_RSSI_DBM,
     };
-#else
-	inquiry_info_with_rssi params;
-	memset (&params, 0, sizeof (params));
-		params.num_responses		= 1;
-#ifndef _MSC_VER
-		params.bdaddr			= BAINIT(&slave->bd_addr);
-#else
-		memcpy (&slave->bd_addr.b, (&slave->bd_addr)->b, sizeof (slave->bd_addr.b));
-		memcpy (&params.bdaddr, &slave->bd_addr.b, sizeof (params.bdaddr));
-#endif
-		params.pscan_rep_mode		= 0x00;	/* R0 */
-		params.pscan_period_mode	= 0x00;	/* P0 - deprecated */
-		params.dev_class[0]		= slave->class[0];
-		params.dev_class[1]		= slave->class[1];
-		params.dev_class[2]		= slave->class[2];
-		/* TODO: return the clkoff *differenece* */
-		params.clock_offset		= slave->clkoff;	/* Note: no swapping */
-		params.rssi			= DEFAULT_RSSI_DBM;
-#endif
+
     bt_hci_event(hci, EVT_INQUIRY_RESULT_WITH_RSSI,
                     &params, INQUIRY_INFO_WITH_RSSI_SIZE);
 }
@@ -624,10 +576,10 @@ static void bt_hci_inquiry_result(struct bt_hci_s *hci,
     switch (hci->lm.inquiry_mode) {
     case 0x00:
         bt_hci_inquiry_result_standard(hci, slave);
-		return;
+        return;
     case 0x01:
         bt_hci_inquiry_result_with_rssi(hci, slave);
-		return;
+        return;
     default:
         fprintf(stderr, "%s: bad inquiry mode %02x\n", __FUNCTION__,
                         hci->lm.inquiry_mode);
@@ -725,7 +677,7 @@ static void bt_hci_lmp_link_establish(struct bt_hci_s *hci,
 static void bt_hci_lmp_link_teardown(struct bt_hci_s *hci, uint16_t handle)
 {
     handle &= ~HCI_HANDLE_OFFSET;
-    hci->lm.handle[handle].link = 0;
+    hci->lm.handle[handle].link = NULL;
 
     if (bt_hci_role_master(hci, handle)) {
         qemu_del_timer(hci->lm.handle[handle].acl_mode_timer);
@@ -756,19 +708,11 @@ static int bt_hci_connect(struct bt_hci_s *hci, bdaddr_t *bdaddr)
 static void bt_hci_connection_reject(struct bt_hci_s *hci,
                 struct bt_device_s *host, uint8_t because)
 {
-#ifndef _MSC_VER
     struct bt_link_s link = {
         .slave	= &hci->device,
         .host	= host,
         /* Rest uninitialised */
     };
-#else
-	struct bt_link_s link;
-	memset (&link, 0, sizeof (link));
-		link.slave	= &hci->device;
-		link.host	= host;
-		/* Rest uninitialised */
-#endif
 
     host->reject_reason = because;
     host->lmp_connection_complete(&link);
@@ -840,11 +784,11 @@ static void bt_hci_lmp_connection_request(struct bt_link_s *link)
     struct bt_hci_s *hci = hci_from_device(link->slave);
     evt_conn_request params;
 
-	if (hci->conn_req_host) {
-		bt_hci_connection_reject(hci, link->host,
-			HCI_REJECTED_LIMITED_RESOURCES);
-		return;
-	}
+    if (hci->conn_req_host) {
+        bt_hci_connection_reject(hci, link->host,
+                                 HCI_REJECTED_LIMITED_RESOURCES);
+        return;
+    }
     hci->conn_req_host = link->host;
     /* TODO: if masked and auto-accept, then auto-accept,
      * if masked and not auto-accept, then auto-reject */
@@ -1025,7 +969,7 @@ static int bt_hci_name_req(struct bt_hci_s *hci, bdaddr_t *bdaddr)
     params.status       = HCI_SUCCESS;
     bacpy(&params.bdaddr, &slave->bd_addr);
     len = snprintf(params.name, sizeof(params.name),
-                    "%s", slave->lmp_name ?slave->lmp_name: "");
+                    "%s", slave->lmp_name ? slave->lmp_name : "");
     memset(params.name + len, 0, sizeof(params.name) - len);
     bt_hci_event(hci, EVT_REMOTE_NAME_REQ_COMPLETE,
                     &params, EVT_REMOTE_NAME_REQ_COMPLETE_SIZE);
@@ -1109,23 +1053,12 @@ static int bt_hci_clkoffset_req(struct bt_hci_s *hci, uint16_t handle)
 static void bt_hci_event_mode(struct bt_hci_s *hci, struct bt_link_s *link,
                 uint16_t handle)
 {
-#ifndef _MSC_VER
     evt_mode_change params = {
         .status		= HCI_SUCCESS,
         .handle		= HNDL(handle),
         .mode		= link->acl_mode,
         .interval	= cpu_to_le16(link->acl_interval),
     };
-#else
-	evt_mode_change params;
- 
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_SUCCESS;
-		params.handle		= HNDL(handle);
-		params.mode		= link->acl_mode;
-		params.interval	= cpu_to_le16(link->acl_interval);
-
-#endif
 
     bt_hci_event(hci, EVT_MODE_CHANGE, &params, EVT_MODE_CHANGE_SIZE);
 }
@@ -1220,7 +1153,7 @@ static void bt_hci_reset(struct bt_hci_s *hci)
     hci->device.page_scan = 0;
     if (hci->device.lmp_name)
         qemu_free((void *) hci->device.lmp_name);
-    hci->device.lmp_name = 0;
+    hci->device.lmp_name = NULL;
     hci->device.class[0] = 0x00;
     hci->device.class[1] = 0x00;
     hci->device.class[2] = 0x00;
@@ -1239,7 +1172,6 @@ static void bt_hci_reset(struct bt_hci_s *hci)
 
 static void bt_hci_read_local_version_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_local_version_rp lv = {
         .status		= HCI_SUCCESS,
         .hci_ver	= 0x03,
@@ -1248,25 +1180,12 @@ static void bt_hci_read_local_version_rp(struct bt_hci_s *hci)
         .manufacturer	= cpu_to_le16(0xa000),
         .lmp_subver	= cpu_to_le16(0xa607),
     };
-#else
-	read_local_version_rp lv;
-	
-	memset (&lv, 0, sizeof (lv));
-		lv.status		= HCI_SUCCESS;
-		lv.hci_ver	= 0x03;
-		lv.hci_rev	= cpu_to_le16(0xa607);
-		lv.lmp_ver	= 0x03;
-		lv.manufacturer	= cpu_to_le16(0xa000);
-		lv.lmp_subver	= cpu_to_le16(0xa607);
-
-#endif
 
     bt_hci_event_complete(hci, &lv, READ_LOCAL_VERSION_RP_SIZE);
 }
 
 static void bt_hci_read_local_commands_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_local_commands_rp lc = {
         .status		= HCI_SUCCESS,
         .commands	= {
@@ -1282,32 +1201,12 @@ static void bt_hci_read_local_commands_rp(struct bt_hci_s *hci)
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         },
     };
-#else
-	static uint8_t	commands[64] = {
-		/* Keep updated! */
-		/* Also, keep in sync with hci->device.lmp_caps in bt_new_hci */
-		0xbf, 0x80, 0xf9, 0x03, 0xb2, 0xc0, 0x03, 0xc3,
-		0x00, 0x0f, 0x80, 0x00, 0xc0, 0x00, 0xe8, 0x13,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	};
-	read_local_commands_rp lc;
-		memset (&lc, 0, sizeof (lc));
-		lc.status		= HCI_SUCCESS;
-		memcpy (lc.commands, commands, sizeof (commands));
-
-#endif
 
     bt_hci_event_complete(hci, &lc, READ_LOCAL_COMMANDS_RP_SIZE);
 }
 
 static void bt_hci_read_local_features_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_local_features_rp lf = {
         .status		= HCI_SUCCESS,
         .features	= {
@@ -1321,31 +1220,12 @@ static void bt_hci_read_local_features_rp(struct bt_hci_s *hci)
             (hci->device.lmp_caps >> 56) & 0xff,
         },
     };
-#else
-	read_local_features_rp lf;
-	uint8_t features [8];
-	
-	features [0] = (hci->device.lmp_caps >>  0) & 0xff;
-		features [1] = (hci->device.lmp_caps >>  8) & 0xff;
-		features [2] = (hci->device.lmp_caps >> 16) & 0xff;
-		features [3] = (hci->device.lmp_caps >> 24) & 0xff;
-		features [4] = (hci->device.lmp_caps >> 32) & 0xff;
-		features [5] = (hci->device.lmp_caps >> 40) & 0xff;
-		features [6] = (hci->device.lmp_caps >> 48) & 0xff;
-		features [7] = (hci->device.lmp_caps >> 56) & 0xff;
-	
-	memset (&lf, 0, sizeof (lf));
-	lf.status		= HCI_SUCCESS;
-	memcpy (lf.features, features, sizeof (features));
-
-#endif
 
     bt_hci_event_complete(hci, &lf, READ_LOCAL_FEATURES_RP_SIZE);
 }
 
 static void bt_hci_read_local_ext_features_rp(struct bt_hci_s *hci, int page)
 {
-#ifndef _MSC_VER
     read_local_ext_features_rp lef = {
         .status		= HCI_SUCCESS,
         .page_num	= page,
@@ -1355,20 +1235,6 @@ static void bt_hci_read_local_ext_features_rp(struct bt_hci_s *hci, int page)
             0x5f, 0x35, 0x85, 0x7e, 0x9b, 0x19, 0x00, 0x80,
         },
     };
-#else
-	static uint8_t	features[8]	= {
-		/* Keep updated! */
-		0x5f, 0x35, 0x85, 0x7e, 0x9b, 0x19, 0x00, 0x80,
-	};
-	read_local_ext_features_rp lef;
-	memset (&lef, 0, sizeof (lef));
-		lef.status		= HCI_SUCCESS;
-		lef.page_num	= page;
-		lef.max_page_num	= 0x00;
-		memcpy (lef.features, features, sizeof (features));
-
-#endif
-
     if (page)
         memset(lef.features, 0, sizeof(lef.features));
 
@@ -1377,7 +1243,6 @@ static void bt_hci_read_local_ext_features_rp(struct bt_hci_s *hci, int page)
 
 static void bt_hci_read_buffer_size_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_buffer_size_rp bs = {
         /* This can be made configurable, for one standard USB dongle HCI
          * the four values are cpu_to_le16(0x0180), 0x40,
@@ -1388,21 +1253,6 @@ static void bt_hci_read_buffer_size_rp(struct bt_hci_s *hci)
         .acl_max_pkt	= cpu_to_le16(0x0001),
         .sco_max_pkt	= cpu_to_le16(0x0000),
     };
-#else
-	read_buffer_size_rp bs;
-
-	memset (&bs, 0, sizeof (bs));
-
-		/* This can be made configurable, for one standard USB dongle HCI
-		* the four values are cpu_to_le16(0x0180), 0x40,
-		* cpu_to_le16(0x0008), cpu_to_le16(0x0008).  */
-		bs.status		= HCI_SUCCESS;
-		bs.acl_mtu	= cpu_to_le16(0x0200);
-		bs.sco_mtu	= 0;
-		bs.acl_max_pkt	= cpu_to_le16(0x0001);
-		bs.sco_max_pkt	= cpu_to_le16(0x0000);
-	
-#endif
 
     bt_hci_event_complete(hci, &bs, READ_BUFFER_SIZE_RP_SIZE);
 }
@@ -1410,18 +1260,10 @@ static void bt_hci_read_buffer_size_rp(struct bt_hci_s *hci)
 /* Deprecated in V2.0 (page 661) */
 static void bt_hci_read_country_code_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_country_code_rp cc ={
         .status		= HCI_SUCCESS,
         .country_code	= 0x00,	/* North America & Europe^1 and Japan */
     };
-#else
-	read_country_code_rp cc;
-
-	memset (&cc, 0, sizeof (cc));
-		cc.status		= HCI_SUCCESS;
-		cc.country_code	= 0x00;	/* North America & Europe^1 and Japan */
-#endif
 
     bt_hci_event_complete(hci, &cc, READ_COUNTRY_CODE_RP_SIZE);
 
@@ -1430,38 +1272,21 @@ static void bt_hci_read_country_code_rp(struct bt_hci_s *hci)
 
 static void bt_hci_read_bd_addr_rp(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_bd_addr_rp ba = {
         .status = HCI_SUCCESS,
         .bdaddr = BAINIT(&hci->device.bd_addr),
     };
-#else
-	read_bd_addr_rp ba;
-	
-memset (&ba, 0, sizeof (ba));
-		ba.status = HCI_SUCCESS;
-	memcpy (&hci->device.bd_addr.b, (&hci->device.bd_addr)->b, sizeof (hci->device.bd_addr.b));
-	memcpy (&ba.bdaddr, &hci->device.bd_addr.b, sizeof (ba.bdaddr));
-#endif
+
     bt_hci_event_complete(hci, &ba, READ_BD_ADDR_RP_SIZE);
 }
 
 static int bt_hci_link_quality_rp(struct bt_hci_s *hci, uint16_t handle)
 {
-#ifndef _MSC_VER
     read_link_quality_rp lq = {
         .status		= HCI_SUCCESS,
         .handle		= HNDL(handle),
         .link_quality	= 0xff,
     };
-#else
-	read_link_quality_rp lq;
-	
-memset (&lq, 0, sizeof (lq));
-		lq.status		= HCI_SUCCESS;
-		lq.handle		= HNDL(handle);
-		lq.link_quality	= 0xff;
-#endif
 
     if (bt_hci_handle_bad(hci, handle))
         lq.status = HCI_NO_CONNECTION;
@@ -1480,20 +1305,10 @@ static inline void bt_hci_event_complete_status(struct bt_hci_s *hci,
 static inline void bt_hci_event_complete_conn_cancel(struct bt_hci_s *hci,
                 uint8_t status, bdaddr_t *bd_addr)
 {
-#ifndef _MSC_VER
     create_conn_cancel_rp params = {
         .status = status,
         .bdaddr = BAINIT(bd_addr),
     };
-#else
-	create_conn_cancel_rp params;
-
-	memset (&params, 0, sizeof (params));
-		params.status = status;
-		//memcpy (bd_addr.b, (bd_addr)->b, sizeof (bd_addr.b)); // NOTIFY
-		memcpy (&params.bdaddr, &bd_addr->b, sizeof (params.bdaddr));
-	
-#endif
 
     bt_hci_event_complete(hci, &params, CREATE_CONN_CANCEL_RP_SIZE);
 }
@@ -1501,57 +1316,33 @@ static inline void bt_hci_event_complete_conn_cancel(struct bt_hci_s *hci,
 static inline void bt_hci_event_auth_complete(struct bt_hci_s *hci,
                 uint16_t handle)
 {
-#ifndef _MSC_VER
     evt_auth_complete params = {
         .status = HCI_SUCCESS,
         .handle = HNDL(handle),
     };
-#else
-	evt_auth_complete params;
 
-	memset (&params, 0, sizeof (params));
-		params.status = HCI_SUCCESS;
-		params.handle = HNDL(handle);
-#endif
     bt_hci_event(hci, EVT_AUTH_COMPLETE, &params, EVT_AUTH_COMPLETE_SIZE);
 }
 
 static inline void bt_hci_event_encrypt_change(struct bt_hci_s *hci,
                 uint16_t handle, uint8_t mode)
 {
-#ifndef _MSC_VER
     evt_encrypt_change params = {
         .status		= HCI_SUCCESS,
         .handle		= HNDL(handle),
         .encrypt	= mode,
     };
-#else
-	evt_encrypt_change params;
 
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_SUCCESS;
-		params.handle		= HNDL(handle);
-		params.encrypt	= mode;
-#endif
     bt_hci_event(hci, EVT_ENCRYPT_CHANGE, &params, EVT_ENCRYPT_CHANGE_SIZE);
 }
 
 static inline void bt_hci_event_complete_name_cancel(struct bt_hci_s *hci,
                 bdaddr_t *bd_addr)
 {
-#ifndef _MSC_VER
     remote_name_req_cancel_rp params = {
         .status = HCI_INVALID_PARAMETERS,
         .bdaddr = BAINIT(bd_addr),
     };
-#else
-	remote_name_req_cancel_rp params;
-	
-	memset (&params, 0, sizeof (params));
-		params.status = HCI_INVALID_PARAMETERS;
-		memcpy (&params.bdaddr, &bd_addr->b, sizeof (params.bdaddr)); // NOTIFY
-
-#endif
 
     bt_hci_event_complete(hci, &params, REMOTE_NAME_REQ_CANCEL_RP_SIZE);
 }
@@ -1559,19 +1350,12 @@ static inline void bt_hci_event_complete_name_cancel(struct bt_hci_s *hci,
 static inline void bt_hci_event_read_remote_ext_features(struct bt_hci_s *hci,
                 uint16_t handle)
 {
-#ifndef _MSC_VER
     evt_read_remote_ext_features_complete params = {
         .status = HCI_UNSUPPORTED_FEATURE,
         .handle = HNDL(handle),
         /* Rest uninitialised */
     };
-#else
-	evt_read_remote_ext_features_complete params;
-		params.status = HCI_UNSUPPORTED_FEATURE;
-		params.handle = HNDL(handle);
-		/* Rest uninitialised */
 
-#endif
     bt_hci_event(hci, EVT_READ_REMOTE_EXT_FEATURES_COMPLETE,
                     &params, EVT_READ_REMOTE_EXT_FEATURES_COMPLETE_SIZE);
 }
@@ -1579,22 +1363,12 @@ static inline void bt_hci_event_read_remote_ext_features(struct bt_hci_s *hci,
 static inline void bt_hci_event_complete_lmp_handle(struct bt_hci_s *hci,
                 uint16_t handle)
 {
-#ifndef _MSC_VER
     read_lmp_handle_rp params = {
         .status		= HCI_NO_CONNECTION,
         .handle		= HNDL(handle),
         .reserved	= 0,
         /* Rest uninitialised */
     };
-#else
-	read_lmp_handle_rp params;
-
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_NO_CONNECTION;
-		params.handle		= HNDL(handle);
-		params.reserved	= 0;
-		/* Rest uninitialised */
-#endif
 
     bt_hci_event_complete(hci, &params, READ_LMP_HANDLE_RP_SIZE);
 }
@@ -1602,20 +1376,11 @@ static inline void bt_hci_event_complete_lmp_handle(struct bt_hci_s *hci,
 static inline void bt_hci_event_complete_role_discovery(struct bt_hci_s *hci,
                 int status, uint16_t handle, int master)
 {
-#ifndef _MSC_VER
     role_discovery_rp params = {
         .status		= status,
         .handle		= HNDL(handle),
         .role		= master ? 0x00 : 0x01,
     };
-#else
-	role_discovery_rp params;
-
-	memset (&params, 0, sizeof (params));
-		params.status		= status;
-		params.handle		= HNDL(handle);
-		params.role		= master ? 0x00 : 0x01;
-#endif
 
     bt_hci_event_complete(hci, &params, ROLE_DISCOVERY_RP_SIZE);
 }
@@ -1623,18 +1388,11 @@ static inline void bt_hci_event_complete_role_discovery(struct bt_hci_s *hci,
 static inline void bt_hci_event_complete_flush(struct bt_hci_s *hci,
                 int status, uint16_t handle)
 {
-#ifndef _MSC_VER
     flush_rp params = {
         .status		= status,
         .handle		= HNDL(handle),
     };
-#else
-	flush_rp params;
-	
-	memset (&params, 0, sizeof (params));
-		params.status		= status;
-		params.handle		= HNDL(handle);
-#endif
+
     bt_hci_event_complete(hci, &params, FLUSH_RP_SIZE);
 }
 
@@ -1652,40 +1410,22 @@ static inline void bt_hci_event_complete_read_local_name(struct bt_hci_s *hci)
 static inline void bt_hci_event_complete_read_conn_accept_timeout(
                 struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_conn_accept_timeout_rp params = {
         .status		= HCI_SUCCESS,
         .timeout	= cpu_to_le16(hci->conn_accept_tout),
     };
-#else
-	read_conn_accept_timeout_rp params;
 
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_SUCCESS;
-		params.timeout	= cpu_to_le16(hci->conn_accept_tout);
-#endif
     bt_hci_event_complete(hci, &params, READ_CONN_ACCEPT_TIMEOUT_RP_SIZE);
 }
 
 static inline void bt_hci_event_complete_read_scan_enable(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_scan_enable_rp params = {
         .status = HCI_SUCCESS,
         .enable =
                 (hci->device.inquiry_scan ? SCAN_INQUIRY : 0) |
                 (hci->device.page_scan ? SCAN_PAGE : 0),
     };
-#else
-	read_scan_enable_rp params;
-
-	memset (&params, 0, sizeof (params));
-		params.status = HCI_SUCCESS;
-		params.enable =
-		(hci->device.inquiry_scan ? SCAN_INQUIRY : 0) |
-		(hci->device.page_scan ? SCAN_PAGE : 0);
-
-#endif
 
     bt_hci_event_complete(hci, &params, READ_SCAN_ENABLE_RP_SIZE);
 }
@@ -1702,19 +1442,10 @@ static inline void bt_hci_event_complete_read_local_class(struct bt_hci_s *hci)
 
 static inline void bt_hci_event_complete_voice_setting(struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_voice_setting_rp params = {
         .status		= HCI_SUCCESS,
         .voice_setting	= hci->voice_setting,	/* Note: no swapping */
     };
-#else
-	read_voice_setting_rp params;
-
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_SUCCESS;
-		params.voice_setting	= hci->voice_setting;	/* Note: no swapping */
-
-#endif
 
     bt_hci_event_complete(hci, &params, READ_VOICE_SETTING_RP_SIZE);
 }
@@ -1722,18 +1453,10 @@ static inline void bt_hci_event_complete_voice_setting(struct bt_hci_s *hci)
 static inline void bt_hci_event_complete_read_inquiry_mode(
                 struct bt_hci_s *hci)
 {
-#ifndef _MSC_VER
     read_inquiry_mode_rp params = {
         .status		= HCI_SUCCESS,
         .mode		= hci->lm.inquiry_mode,
     };
-#else
-	read_inquiry_mode_rp params;
-	
-	memset (&params, 0, sizeof (params));
-		params.status		= HCI_SUCCESS;
-		params.mode		= hci->lm.inquiry_mode;
-#endif
 
     bt_hci_event_complete(hci, &params, READ_INQUIRY_MODE_RP_SIZE);
 }
@@ -1791,11 +1514,7 @@ static void bt_submit_hci(struct HCIInfo *info,
 
         hci->lm.inquire = 1;
         hci->lm.periodic = 0;
-#ifndef _MSC_VER
- 		hci->lm.responses_left = PARAM(inquiry, num_rsp) ?: INT_MAX;
-#else
-        hci->lm.responses_left = PARAM(inquiry, num_rsp) ?PARAM(inquiry, num_rsp): INT_MAX;
-#endif
+        hci->lm.responses_left = PARAM(inquiry, num_rsp) ? PARAM(inquiry, num_rsp) : INT_MAX;
         hci->lm.responses = 0;
         bt_hci_event_status(hci, HCI_SUCCESS);
         bt_hci_inquiry_start(hci, PARAM(inquiry, length));
@@ -1913,7 +1632,7 @@ static void bt_submit_hci(struct HCIInfo *info,
 
         bt_hci_event_status(hci, HCI_SUCCESS);
         bt_hci_connection_accept(hci, hci->conn_req_host);
-        hci->conn_req_host = 0;
+        hci->conn_req_host = NULL;
         break;
 
     case cmd_opcode_pack(OGF_LINK_CTL, OCF_REJECT_CONN_REQ):
@@ -1930,7 +1649,7 @@ static void bt_submit_hci(struct HCIInfo *info,
         bt_hci_connection_reject(hci, hci->conn_req_host,
                         PARAM(reject_conn_req, reason));
         bt_hci_connection_reject_event(hci, &hci->conn_req_host->bd_addr);
-        hci->conn_req_host = 0;
+        hci->conn_req_host = NULL;
         break;
 
     case cmd_opcode_pack(OGF_LINK_CTL, OCF_AUTH_REQUESTED):
@@ -2492,11 +2211,11 @@ static void bt_hci_done(struct HCIInfo *info)
     /* Be gentle and send DISCONNECT to all connected peers and those
      * currently waiting for us to accept or reject a connection request.
      * This frees the links.  */
-	if (hci->conn_req_host) {
-		bt_hci_connection_reject(hci,
-			hci->conn_req_host, HCI_OE_POWER_OFF);
-		return;
-	}
+    if (hci->conn_req_host) {
+        bt_hci_connection_reject(hci,
+                                 hci->conn_req_host, HCI_OE_POWER_OFF);
+        return;
+    }
 
     for (handle = HCI_HANDLE_OFFSET;
                     handle < (HCI_HANDLE_OFFSET | HCI_HANDLES_MAX); handle ++)

@@ -74,7 +74,7 @@ static inline void wm8750_out_flush(WM8750State *s)
     int sent = 0;
     while (sent < s->idx_out)
         sent += AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent)
-                ? AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent) : s->idx_out; // msvc expansion of ternary operator required here
+                ? AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent) : s->idx_out;
     s->idx_out = 0;
 }
 

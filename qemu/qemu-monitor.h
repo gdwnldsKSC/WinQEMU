@@ -124,6 +124,10 @@
 { "migrate_set_speed", "s", do_migrate_set_speed,
 "value", "set maximum speed (in bytes) for migrations" },
 
+{ "migrate_set_downtime", "s", do_migrate_set_downtime,
+"value", "set maximum tolerated downtime (in seconds) for migrations" },
+
+
 #if defined(TARGET_I386)
 { "drive_add", "ss", drive_hot_add, "pci_addr=[[<domain>:]<bus>:]<slot>\n"
 "[file=file][,if=type][,bus=n]\n"

@@ -1,13 +1,3 @@
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef __SH_INTC_H__
 #define __SH_INTC_H__
 
@@ -28,11 +18,8 @@ struct intc_group {
     intc_enum enum_ids[32];
 };
 
-#ifndef _MSC_VER
-#define INTC_GROUP(enum_id, ids...) { enum_id, { ids } }
-#else
-#define INTC_GROUP(enum_id, ids,...) { enum_id, { ids } }
-#endif
+#define INTC_GROUP(enum_id, ...) { enum_id, {  __VA_ARGS__ } }
+
 struct intc_mask_reg {
     unsigned long set_reg, clr_reg, reg_width;
     intc_enum enum_ids[32];

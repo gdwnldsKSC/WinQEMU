@@ -178,6 +178,9 @@
     <ClCompile Include="qemu\block\nbd.c" />
     <ClCompile Include="qemu\block\parallels.c" />
     <ClCompile Include="qemu\block\qcow.c" />
+    <ClCompile Include="qemu\block\qcow2-cluster.c" />
+    <ClCompile Include="qemu\block\qcow2-refcount.c" />
+    <ClCompile Include="qemu\block\qcow2-snapshot.c" />
     <ClCompile Include="qemu\block\qcow2.c" />
     <ClCompile Include="qemu\block\raw-posix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1095,6 +1098,7 @@
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
+    <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\hw\poison.h" />
     <ClInclude Include="qemu\hw\qdev.h" />

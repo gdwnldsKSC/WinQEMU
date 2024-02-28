@@ -261,13 +261,12 @@ static inline CPU86_LDouble helper_fldt(target_ulong ptr)
 
     temp.l.lower = ldq(ptr);
     temp.l.upper = lduw(ptr + 8);
-
     return temp.d;
 }
 
 static inline void helper_fstt(CPU86_LDouble f, target_ulong ptr)
 {
-	CPU86_LDoubleU temp = {0};
+    CPU86_LDoubleU temp;
 
     temp.d = f;
     stq(ptr, temp.l.lower);
@@ -301,18 +300,6 @@ static inline void load_eflags(int eflags, int update_mask)
     env->eflags = (env->eflags & ~update_mask) |
         (eflags & update_mask) | 0x2;
 }
-
-
-#ifdef _MSC_VER  // BUGBUG
-#define reg_EAX
-#define reg_ECX
-#define reg_EDX
-#define reg_EBX
-#define reg_ESP
-#define reg_EBP
-#define reg_ESI
-#define reg_EDI
-#endif
 
 static inline void env_to_regs(void)
 {
@@ -374,12 +361,12 @@ static __forceinline void regs_to_env(void)
 #endif
 }
 
-static inline int cpu_has_work(CPUState* env)
+static inline int cpu_has_work(CPUState *env)
 {
     int work;
 
     work = (env->interrupt_request & CPU_INTERRUPT_HARD) &&
-        (env->eflags & IF_MASK);
+           (env->eflags & IF_MASK);
     work |= env->interrupt_request & CPU_INTERRUPT_NMI;
 
     return work;

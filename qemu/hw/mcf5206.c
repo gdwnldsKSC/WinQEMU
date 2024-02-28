@@ -5,17 +5,6 @@
  *
  * This code is licenced under the GPL
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "mcf.h"
 #include "qemu-timer.h"
@@ -285,23 +274,7 @@ static uint32_t m5206_mbar_read(m5206_mbar_state *s, uint32_t offset)
     }
     switch (offset) {
     case 0x03: return s->scr;
-#ifndef _MSC_VER
-    case 0x14 ... 0x20:
-#else
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1d:
-	case 0x1e:
-	case 0x1f:
-	case 0x20:
-#endif
-		return s->icr[offset - 0x13];
+    case 0x14 ... 0x20: return s->icr[offset - 0x13];
     case 0x36: return s->imr;
     case 0x3a: return s->ipr;
     case 0x40: return s->rsr;
@@ -345,22 +318,7 @@ static void m5206_mbar_write(m5206_mbar_state *s, uint32_t offset,
     case 0x03:
         s->scr = value;
         break;
-#ifndef _MSC_VER
     case 0x14 ... 0x20:
-#else
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1d:
-	case 0x1e:
-	case 0x1f:
-	case 0x20:
-#endif
         s->icr[offset - 0x13] = value;
         m5206_mbar_update(s);
         break;
@@ -566,7 +524,7 @@ qemu_irq *mcf5206_init(uint32_t base, CPUState *env)
     int iomemtype;
 
     s = (m5206_mbar_state *)qemu_mallocz(sizeof(m5206_mbar_state));
-    iomemtype = cpu_register_io_memory(0, m5206_mbar_readfn,
+    iomemtype = cpu_register_io_memory(m5206_mbar_readfn,
                                        m5206_mbar_writefn, s);
     cpu_register_physical_memory(base, 0x00001000, iomemtype);
 
