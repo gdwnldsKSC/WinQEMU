@@ -75,7 +75,7 @@ static char *addr_to_string(const char *format,
     }
 
     /* Enough for the existing format + the 2 vars we're
-     * subsituting in. */
+     * substituting in. */
     addrlen = strlen(format) + strlen(host) + strlen(serv);
     addr = qemu_malloc(addrlen + 1);
     snprintf(addr, addrlen, format, host, serv);
@@ -971,7 +971,7 @@ long vnc_client_write_buf(VncState *vs, const uint8_t *data, size_t datalen)
         }
     } else
 #endif /* CONFIG_VNC_TLS */
-        ret = send(vs->csock, data, datalen, 0);
+        ret = send(vs->csock, (const void *)data, datalen, 0);
     VNC_DEBUG("Wrote wire %p %zd -> %ld\n", data, datalen, ret);
     return vnc_client_io_error(vs, ret, socket_error());
 }
@@ -1076,7 +1076,7 @@ long vnc_client_read_buf(VncState *vs, uint8_t *data, size_t datalen)
         }
     } else
 #endif /* CONFIG_VNC_TLS */
-        ret = recv(vs->csock, data, datalen, 0);
+        ret = recv(vs->csock, (void *)data, datalen, 0);
     VNC_DEBUG("Read wire %p %zd -> %ld\n", data, datalen, ret);
     return vnc_client_io_error(vs, ret, socket_error());
 }
@@ -2081,7 +2081,7 @@ static void vnc_listen_read(void *opaque)
 
 void vnc_display_init(DisplayState *ds)
 {
-    VncDisplay* vs = qemu_mallocz(sizeof(*vs));;
+    VncDisplay *vs = qemu_mallocz(sizeof(*vs));
 
     dcl = qemu_mallocz(sizeof(DisplayChangeListener));
 

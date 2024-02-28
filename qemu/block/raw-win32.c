@@ -234,7 +234,11 @@ static int raw_create(const char *filename, QEMUOptionParameter *options)
 }
 
 static QEMUOptionParameter raw_create_options[] = {
-    { BLOCK_OPT_SIZE,           OPT_SIZE },
+    {
+        .name = BLOCK_OPT_SIZE,
+        .type = OPT_SIZE,
+        .help = "Virtual disk size"
+    },
     { NULL }
 };
 
@@ -300,6 +304,15 @@ static int find_device_type(BlockDriverState *bs, const char *filename)
     } else {
         return FTYPE_FILE;
     }
+}
+
+static int hdev_probe_device(const char *filename)
+{
+    if (strstart(filename, "/dev/cdrom", NULL))
+        return 100;
+    if (is_windows_drive(filename))
+        return 100;
+    return 0;
 }
 
 static int hdev_open(BlockDriverState *bs, const char *filename, int flags)
@@ -387,6 +400,7 @@ static int raw_set_locked(BlockDriverState *bs, int locked)
 static BlockDriver bdrv_host_device = {
     .format_name	= "host_device",
     .instance_size	= sizeof(BDRVRawState),
+    .bdrv_probe_device	= hdev_probe_device,
     .bdrv_open		= hdev_open,
     .bdrv_close		= raw_close,
     .bdrv_flush		= raw_flush,

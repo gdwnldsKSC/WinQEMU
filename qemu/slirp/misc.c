@@ -14,8 +14,6 @@
  *
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
-
-#define WANT_SYS_IOCTL_H
 #include <slirp.h>
 
 u_int curtime, time_fasttimo, last_slowtimo;
@@ -798,7 +796,7 @@ fd_nonblock(int fd)
 {
 #ifdef FIONBIO
 #ifdef _WIN32
-        long opt = 1;
+        unsigned long opt = 1;
 #else
         int opt = 1;
 #endif
@@ -817,7 +815,11 @@ void
 fd_block(int fd)
 {
 #ifdef FIONBIO
+#ifdef _WIN32
+        unsigned long opt = 0;
+#else
 	int opt = 0;
+#endif
 
 	ioctlsocket(fd, FIONBIO, &opt);
 #else

@@ -7,16 +7,6 @@
  * This file is licensed under GNU GPL.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "i2c.h"
 #include "audio/audio.h"
@@ -82,19 +72,9 @@ static inline void wm8750_in_load(WM8750State *s)
 static inline void wm8750_out_flush(WM8750State *s)
 {
     int sent = 0;
-
-#ifndef _MSC_VER
     while (sent < s->idx_out)
         sent += AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent)
-                ?: s->idx_out;
-#else
-	int write = 0;
-	while (sent < s->idx_out)
-	{
-		write = AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent);
-		sent += write?write: s->idx_out;
-	}
-#endif
+                ? AUD_write(*s->out[0], s->data_out + sent, s->idx_out - sent) : s->idx_out; // msvc expansion of ternary operator required here
     s->idx_out = 0;
 }
 
@@ -746,6 +726,8 @@ void wm8750_set_bclk_in(void *opaque, int new_hz)
 }
 
 static I2CSlaveInfo wm8750_info = {
+    .qdev.name = "wm8750",
+    .qdev.size = sizeof(WM8750State),
     .init = wm8750_init,
     .event = wm8750_event,
     .recv = wm8750_rx,
@@ -754,7 +736,7 @@ static I2CSlaveInfo wm8750_info = {
 
 static void wm8750_register_devices(void)
 {
-    i2c_register_slave("wm8750", sizeof(WM8750State), &wm8750_info);
+    i2c_register_slave(&wm8750_info);
 }
 
 device_init(wm8750_register_devices);

@@ -9,7 +9,6 @@
 //#define LOG_ENABLED
 
 # include <winsock2.h> // for build order, lets just make sure this is always first....
-
 #ifdef LOG_ENABLED
 #define STAT(expr) expr
 #else
@@ -32,6 +31,7 @@ typedef uint64_t u_int64_t;
 typedef char *caddr_t;
 
 # include <windows.h>
+# include <winsock2.h>
 # include <ws2tcpip.h>
 # include <sys/timeb.h>
 # include <iphlpapi.h>

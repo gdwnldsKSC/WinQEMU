@@ -17,17 +17,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the
- * General Public License version 3 (GPLv3) at this time for any software where a choice of
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- *
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
 #include "config.h"
 #ifdef _WIN32
 #include <windows.h>
@@ -1495,13 +1484,12 @@ void cpu_single_step(CPUState *env, int enabled)
 
 #endif
     }
-    else {
-        /* must flush all the translated code to avoid inconsistencies */
-        /* XXX: only flush what is necessary */
-        tb_flush(env);
+        else {
+            /* must flush all the translated code to avoid inconsistencies */
+            /* XXX: only flush what is necessary */
+            tb_flush(env);
+        }
     }
-}
-
 
 /* enable or disable low levels log */
 void cpu_set_log(int log_flags)
@@ -2160,36 +2148,36 @@ int tlb_set_page_exec(CPUState *env, target_ulong vaddr,
     return 0;
 }
 
-/* dump memory mappings */
-void page_dump(FILE *f)
+/*
+ * Walks guest process memory "regions" one by one
+ * and calls callback function 'fn' for each region.
+ */
+int walk_memory_regions(void *priv,
+    int (*fn)(void *, unsigned long, unsigned long, unsigned long))
 {
     unsigned long start, end;
+    PageDesc *p = NULL;
     int i, j, prot, prot1;
-    PageDesc *p;
+    int rc = 0;
 
-    fprintf(f, "%-8s %-8s %-8s %s\n",
-            "start", "end", "size", "prot");
-    start = -1;
-    end = -1;
+    start = end = -1;
     prot = 0;
-    for(i = 0; i <= L1_SIZE; i++) {
-        if (i < L1_SIZE)
-            p = l1_map[i];
-        else
-            p = NULL;
-        for(j = 0;j < L2_SIZE; j++) {
-            if (!p)
-                prot1 = 0;
-            else
-                prot1 = p[j].flags;
+
+    for (i = 0; i <= L1_SIZE; i++) {
+        p = (i < L1_SIZE) ? l1_map[i] : NULL;
+        for (j = 0; j < L2_SIZE; j++) {
+            prot1 = (p == NULL) ? 0 : p[j].flags;
+            /*
+             * "region" is one continuous chunk of memory
+             * that has same protection flags set.
+             */
             if (prot1 != prot) {
                 end = (i << (32 - L1_BITS)) | (j << TARGET_PAGE_BITS);
                 if (start != -1) {
-                    fprintf(f, "%08lx-%08lx %08lx %c%c%c\n",
-                            start, end, end - start,
-                            prot & PAGE_READ ? 'r' : '-',
-                            prot & PAGE_WRITE ? 'w' : '-',
-                            prot & PAGE_EXEC ? 'x' : '-');
+                    rc = (*fn)(priv, start, end, prot);
+                    /* callback can stop iteration by returning != 0 */
+                    if (rc != 0)
+                        return (rc);
                 }
                 if (prot1 != 0)
                     start = end;
@@ -2197,10 +2185,33 @@ void page_dump(FILE *f)
                     start = -1;
                 prot = prot1;
             }
-            if (!p)
+            if (p == NULL)
                 break;
         }
     }
+    return (rc);
+}
+
+static int dump_region(void *priv, unsigned long start,
+    unsigned long end, unsigned long prot)
+{
+    FILE *f = (FILE *)priv;
+
+    (void) fprintf(f, "%08lx-%08lx %08lx %c%c%c\n",
+        start, end, end - start,
+        ((prot & PAGE_READ) ? 'r' : '-'),
+        ((prot & PAGE_WRITE) ? 'w' : '-'),
+        ((prot & PAGE_EXEC) ? 'x' : '-'));
+
+    return (0);
+}
+
+/* dump memory mappings */
+void page_dump(FILE *f)
+{
+    (void) fprintf(f, "%-8s %-8s %-8s %s\n",
+            "start", "end", "size", "prot");
+    walk_memory_regions(f, dump_region);
 }
 
 int page_get_flags(target_ulong address)
@@ -3233,13 +3244,8 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
                 }
             } else {
                 /* RAM case */
-/*	another MSVC hack deviating from upstream
-                ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+                ptr = (char *)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
                     (addr & ~TARGET_PAGE_MASK);
-*/
-				char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
-				ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
-				// end MSVC hack
                 memcpy(buf, ptr, l);
             }
         }
@@ -3456,13 +3462,8 @@ uint32_t ldl_phys(target_phys_addr_t addr)
         val = io_mem_read[io_index][2](io_mem_opaque[io_index], addr);
     } else {
         /* RAM case */
-/*	another MSVC hack deviating from upstream
-        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+        ptr = (char *)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
             (addr & ~TARGET_PAGE_MASK);
-*/
-		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
-		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
-		// end MSVC hack
         val = ldl_p(ptr);
     }
     return val;
@@ -3499,13 +3500,8 @@ uint64_t ldq_phys(target_phys_addr_t addr)
 #endif
     } else {
         /* RAM case */
-/*	another MSVC hack deviating from upstream
-        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+        ptr = (char *)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
             (addr & ~TARGET_PAGE_MASK);
-*/
-		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
-		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
-// end MSVC hack
         val = ldq_p(ptr);
     }
     return val;
@@ -3592,13 +3588,8 @@ void stq_phys_notdirty(target_phys_addr_t addr, uint64_t val)
         io_mem_write[io_index][2](io_mem_opaque[io_index], addr + 4, val >> 32);
 #endif
     } else {
-/*	another MSVC hack deviating from upstream
-        ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
+        ptr = (char *)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
             (addr & ~TARGET_PAGE_MASK);
-*/
-		char *base_ptr = (char*)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
-		ptr = base_ptr + (addr & ~TARGET_PAGE_MASK);
-// end MSVC hack
         stq_p(ptr, val);
     }
 }

@@ -173,6 +173,11 @@ DEF("no-hpet", 0, QEMU_OPTION_no_hpet,
 #endif
 
 #ifdef TARGET_I386
+DEF("no-virtio-balloon", 0, QEMU_OPTION_no_virtio_balloon,
+"-no-virtio-balloon disable virtio balloon device\n")
+#endif
+
+#ifdef TARGET_I386
 DEF("acpitable", HAS_ARG, QEMU_OPTION_acpitable,
 "-acpitable [sig=str][,rev=n][,oem_id=str][,oem_table_id=str][,oem_rev=n][,asl_compiler_id=str][,asl_compiler_rev=n][,data=file1[:file2]...]\n"
 "                ACPI table description\n")
@@ -194,24 +199,22 @@ DEFHEADING()
 #endif
 
 DEFHEADING(Network options:)
-
-// this section here is removed from the generated QEMU_OPTION_net due to MSVC macro expansion/C preprocessor issues
-// so far this is the only change required to the generated qemu-options.h
+// heavily modified from hxtool output for MSVC compatibility
 #ifdef CONFIG_SLIRP
-#define NET_USER_SECTION \
+#define SLIRP_NET_OPTIONS \
 "-net user[,vlan=n][,name=str][,hostname=host]\n" \
 "                connect the user mode network stack to VLAN 'n' and send\n" \
 "                hostname 'host' to DHCP clients\n"
 #else
-#define NET_SLIRP_SECTION ""
+#define SLIRP_NET_OPTIONS ""
 #endif
 
 #ifdef _WIN32
-#define NET_TAP_SECTION \
+#define TAP_NET_OPTIONS \
 "-net tap[,vlan=n][,name=str],ifname=name\n" \
 "                connect the host TAP network interface to VLAN 'n'\n"
 #else
-#define NET_TAP_SECTION \
+#define TAP_NET_OPTIONS \
 "-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n" \
 "                connect the host TAP network interface to VLAN 'n' and use the\n" \
 "                network scripts 'file' (default=%s)\n" \
@@ -219,32 +222,33 @@ DEFHEADING(Network options:)
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n"
 #endif
+
 #ifdef CONFIG_VDE
-#define NET_VDE_SECTION \
-"-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n"
-"                connect the vlan 'n' to port 'n' of a vde switch running\n"
-"                on host and listening for incoming connections on 'socketpath'.\n"
-"                Use group 'groupname' and mode 'octalmode' to change default\n"
+#define VDE_NET_OPTIONS \
+"-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n" \
+"                connect the vlan 'n' to port 'n' of a vde switch running\n" \
+"                on host and listening for incoming connections on 'socketpath'.\n" \
+"                Use group 'groupname' and mode 'octalmode' to change default\n" \
 "                ownership and permissions for communication port.\n"
 #else
-#define NET_VDE_SECTION ""
+#define VDE_NET_OPTIONS ""
 #endif
-// above section here is removed from the generated QEMU_OPTION_net due to MSVC macro expansion/C preprocessor issues
 
-DEF("net", HAS_ARG, QEMU_OPTION_net, \
-"-net nic[,vlan=n][,macaddr=addr][,model=type][,name=str]\n"
-"                create a new Network Interface Card and connect it to VLAN 'n'\n"
-NET_USER_SECTION
-NET_TAP_SECTION
-"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n"
-"                connect the vlan 'n' to another VLAN using a socket connection\n"
-"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n"
-"                connect the vlan 'n' to multicast maddr and port\n"
-NET_VDE_SECTION
-"-net dump[,vlan=n][,file=f][,len=n]\n"
-"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n"
-"-net none       use it alone to have zero network devices; if no -net option\n"
-"                is provided, the default is '-net nic -net user'\n")
+DEF("net", HAS_ARG, QEMU_OPTION_net,
+	"-net nic[,vlan=n][,macaddr=addr][,model=type][,name=str]\n" \
+	"                create a new Network Interface Card and connect it to VLAN 'n'\n" \
+	SLIRP_NET_OPTIONS \
+	TAP_NET_OPTIONS \
+	"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n" \
+	"                connect the vlan 'n' to another VLAN using a socket connection\n" \
+	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
+	"                connect the vlan 'n' to multicast maddr and port\n" \
+	VDE_NET_OPTIONS \
+	"-net dump[,vlan=n][,file=f][,len=n]\n" \
+	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
+	"-net none       use it alone to have zero network devices; if no -net option\n" \
+	"                is provided, the default is '-net nic -net user'\n")
+// end heavily modified section
 
 #ifdef CONFIG_SLIRP
 DEF("tftp", HAS_ARG, QEMU_OPTION_tftp, \
