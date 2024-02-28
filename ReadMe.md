@@ -27,8 +27,8 @@ For a working debug environment, add to D:\Images\ (currently hard coded) vgabio
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
 be modified in project WinQemu\qemu\inc\config-host.h
 
-Add '-net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs'  to the
-command arguments part of the WinQemuTest project to reproduce the 'test' environment
+Add '-net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
+to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 
 vcpkg install pthreads:x64-windows will be required. acquire vcpkg from
 https://github.com/microsoft/vcpkg/ 
@@ -43,6 +43,7 @@ This will now automatically, after following those steps, build pthreadVC3.dll i
 debug target folder as well, which is now required to run. 
 
 From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.h
+As well do the same thing for qemu-monitor.hx > qemu-monitor.h
 
 Rebaselined on upstream vl.c which now (as of a few iterations ago) uses that header
 instead of declaring all the enum and help files in source to allow them to remain in 
@@ -64,6 +65,6 @@ VGABIOS - "current-cvs 17 Dec 2008"
 
 Working startup commandline:
 
-winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs
+winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images
 
 Adding alpha target bits on the side for OpenVMS, Tru64, and AXP Windows NT emulation over time. 

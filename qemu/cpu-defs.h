@@ -117,8 +117,6 @@ typedef struct CPUTLBEntry {
 #else
     target_phys_addr_t addend;
 #endif
-
-
 #ifndef _MSC_VER
     /* padding to get a power of two size */
     uint8_t dummy[(1 << CPU_TLB_ENTRY_BITS) - 
@@ -126,7 +124,6 @@ typedef struct CPUTLBEntry {
                    ((-sizeof(target_ulong) * 3) & (sizeof(target_phys_addr_t) - 1)) + 
                    sizeof(target_phys_addr_t))];
 #endif
-
 } CPUTLBEntry;
 
 #ifdef WORDS_BIGENDIAN
@@ -210,6 +207,7 @@ typedef int sig_atomic_t;
                                                                         \
     CPUState *next_cpu; /* next CPU sharing TB cache */                 \
     int cpu_index; /* CPU index (informative) */                        \
+    uint32_t host_tid; /* host thread ID */                             \
     int numa_node; /* NUMA node this cpu is belonging to  */            \
     int running; /* Nonzero if cpu is currently running(usermode).  */  \
     /* user data */                                                     \

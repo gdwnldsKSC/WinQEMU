@@ -238,6 +238,8 @@ libqemu_user.a: $(USER_OBJS)
 
 ######################################################################
 
+qemu-img.o: qemu-img-cmds.h
+
 qemu-img$(EXESUF): qemu-img.o qemu-tool.o tool-osdep.o $(BLOCK_OBJS)
 
 qemu-nbd$(EXESUF):  qemu-nbd.o qemu-tool.o tool-osdep.o $(BLOCK_OBJS)
@@ -245,6 +247,9 @@ qemu-nbd$(EXESUF):  qemu-nbd.o qemu-tool.o tool-osdep.o $(BLOCK_OBJS)
 qemu-io$(EXESUF):  qemu-io.o qemu-tool.o tool-osdep.o cmd.o $(BLOCK_OBJS)
 
 qemu-img$(EXESUF) qemu-nbd$(EXESUF) qemu-io$(EXESUF): LIBS += -lz
+
+qemu-img-cmds.h: $(SRC_PATH)/qemu-img-cmds.hx
+	$(call quiet-command,sh $(SRC_PATH)/hxtool -h < $< > $@,"  GEN   $@")
 
 clean:
 # avoid old build problems by removing potentially incorrect old files
@@ -257,7 +262,7 @@ clean:
         done
 
 distclean: clean
-	rm -f config-host.mak config-host.h $(DOCS) qemu-options.texi
+	rm -f config-host.mak config-host.h $(DOCS) qemu-options.texi qemu-img-cmds.texi
 	rm -f qemu-{doc,tech}.{info,aux,cp,dvi,fn,info,ky,log,pg,toc,tp,vr}
 	for d in $(TARGET_DIRS) libhw32 libhw64; do \
 	rm -rf $$d || exit 1 ; \
@@ -271,7 +276,7 @@ ifdef INSTALL_BLOBS
 BLOBS=bios.bin vgabios.bin vgabios-cirrus.bin ppc_rom.bin \
 video.x openbios-sparc32 openbios-sparc64 openbios-ppc \
 pxe-ne2k_pci.bin pxe-rtl8139.bin pxe-pcnet.bin pxe-e1000.bin \
-bamboo.dtb
+bamboo.dtb petalogix-s3adsp1800.dtb
 else
 BLOBS=
 endif
@@ -300,7 +305,7 @@ endif
 ifndef CONFIG_WIN32
 	$(INSTALL_DIR) "$(DESTDIR)$(datadir)/keymaps"
 	set -e; for x in $(KEYMAPS); do \
-		$(INSTALL_DATA) $(SRC_PATH)/keymaps/$$x "$(DESTDIR)$(datadir)/keymaps"; \
+		$(INSTALL_DATA) $(SRC_PATH)/pc-bios/keymaps/$$x "$(DESTDIR)$(datadir)/keymaps"; \
 	done
 endif
 	for d in $(TARGET_DIRS); do \
@@ -332,13 +337,19 @@ cscope:
 qemu-options.texi: $(SRC_PATH)/qemu-options.hx
 	$(call quiet-command,sh $(SRC_PATH)/hxtool -t < $< > $@,"  GEN   $@")
 
-qemu.1: qemu-doc.texi qemu-options.texi
+qemu-monitor.texi: $(SRC_PATH)/qemu-monitor.hx
+	$(call quiet-command,sh $(SRC_PATH)/hxtool -t < $< > $@,"  GEN   $@")
+
+qemu-img-cmds.texi: $(SRC_PATH)/qemu-img-cmds.hx
+	$(call quiet-command,sh $(SRC_PATH)/hxtool -t < $< > $@,"  GEN   $@")
+
+qemu.1: qemu-doc.texi qemu-options.texi qemu-monitor.texi
 	$(call quiet-command, \
 	  perl -Ww -- $(SRC_PATH)/texi2pod.pl $< qemu.pod && \
 	  pod2man --section=1 --center=" " --release=" " qemu.pod > $@, \
 	  "  GEN   $@")
 
-qemu-img.1: qemu-img.texi
+qemu-img.1: qemu-img.texi qemu-img-cmds.texi
 	$(call quiet-command, \
 	  perl -Ww -- $(SRC_PATH)/texi2pod.pl $< qemu-img.pod && \
 	  pod2man --section=1 --center=" " --release=" " qemu-img.pod > $@, \
@@ -356,7 +367,7 @@ dvi: qemu-doc.dvi qemu-tech.dvi
 
 html: qemu-doc.html qemu-tech.html
 
-qemu-doc.dvi qemu-doc.html qemu-doc.info: qemu-img.texi qemu-nbd.texi qemu-options.texi
+qemu-doc.dvi qemu-doc.html qemu-doc.info: qemu-img.texi qemu-nbd.texi qemu-options.texi qemu-monitor.texi qemu-img-cmds.texi
 
 VERSION ?= $(shell cat VERSION)
 FILE = qemu-$(VERSION)

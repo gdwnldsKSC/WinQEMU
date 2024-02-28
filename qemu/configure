@@ -157,6 +157,7 @@ case "$cpu" in
 esac
 gprof="no"
 debug_tcg="no"
+debug="no"
 sparse="no"
 strip_opt="yes"
 bigendian="no"
@@ -411,6 +412,12 @@ for opt do
   ;;
   --disable-debug-tcg) debug_tcg="no"
   ;;
+  --enable-debug)
+      # Enable debugging options that aren't excessively noisy
+      debug_tcg="yes"
+      debug="yes"
+      strip_opt="no"
+  ;;
   --enable-sparse) sparse="yes"
   ;;
   --disable-sparse) sparse="no"
@@ -504,7 +511,10 @@ for opt do
 done
 
 # default flags for all hosts
-CFLAGS="$CFLAGS -O2 -g -fno-strict-aliasing"
+CFLAGS="$CFLAGS -g -fno-strict-aliasing"
+if test "$debug" = "no" ; then
+  CFLAGS="$CFLAGS -O2"
+fi
 CFLAGS="$CFLAGS -Wall -Wundef -Wendif-labels -Wwrite-strings -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls"
 LDFLAGS="$LDFLAGS -g"
 if test "$werror" = "yes" ; then
@@ -589,6 +599,7 @@ echo "  --install=INSTALL        use specified install [$install]"
 echo "  --static                 enable static build [$static]"
 echo "  --enable-debug-tcg       enable TCG debugging"
 echo "  --disable-debug-tcg      disable TCG debugging (default)"
+echo "  --disable-debug          enable common debug build options"
 echo "  --enable-sparse          enable sparse checker"
 echo "  --disable-sparse         disable sparse checker (default)"
 echo "  --disable-strip          disable stripping binaries"
@@ -1147,7 +1158,9 @@ EOF
 	| grep "error: " \
 	| awk -F "error: " '{if (NR>1) printf(", "); printf("%s",$2);}'`
       if test "$kvmerr" != "" ; then
-        kvm="no - (${kvmerr})"
+        kvm="no - (${kvmerr})\n\
+    NOTE: To enable KVM support, update your kernel to 2.6.29+ or install \
+recent kvm-kmod from http://sourceforge.net/projects/kvm."
       fi
     fi
   fi
@@ -1155,18 +1168,22 @@ fi
 
 ##########################################
 # pthread probe
+PTHREADLIBS_LIST="-lpthread -lpthreadGC2"
 PTHREADLIBS=""
 
 if test "$pthread" = yes; then
   pthread=no
 cat > $TMPC << EOF
 #include <pthread.h>
-int main(void) { pthread_mutex_t lock;  return 0; }
+int main(void) { pthread_create(0,0,0,0); return 0; }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $PTHREADLIBS $TMPC 2> /dev/null > /dev/null ; then
-    pthread=yes
-    PTHREADLIBS="-lpthread"
-  fi
+  for pthread_lib in $PTHREADLIBS_LIST; do
+    if $cc $ARCH_CFLAGS -o $TMPE $TMPC $pthread_lib 2> /dev/null > /dev/null ; then
+      pthread=yes
+      PTHREADLIBS="$pthread_lib"
+      break
+    fi
+  done
 fi
 
 if test "$pthread" = no; then
@@ -1362,7 +1379,7 @@ echo "vde support       $vde"
 echo "AIO support       $aio"
 echo "IO thread         $io_thread"
 echo "Install blobs     $blobs"
-echo "KVM support       $kvm"
+echo -e "KVM support       $kvm"
 echo "fdt support       $fdt"
 echo "preadv support    $preadv"
 
@@ -1487,6 +1504,9 @@ case "$cpu" in
 esac
 if test "$debug_tcg" = "yes" ; then
   echo "#define DEBUG_TCG 1" >> $config_h
+fi
+if test "$debug" = "yes" ; then
+  echo "#define DEBUG_EXEC 1" >> $config_h
 fi
 if test "$sparse" = "yes" ; then
   echo "CC      := REAL_CC=\"\$(CC)\" cgcc"       >> $config_mak
@@ -1844,17 +1864,18 @@ target_nptl="no"
 interp_prefix1=`echo "$interp_prefix" | sed "s/%M/$target_cpu/g"`
 echo "#define CONFIG_QEMU_PREFIX \"$interp_prefix1\"" >> $config_h
 gdb_xml_files=""
+target_kvm="$kvm"
 
 # Make sure the target and host cpus are compatible
-if test "$kvm" = "yes" -a ! \( "$target_cpu" = "$cpu" -o \
+if test ! \( "$target_cpu" = "$cpu" -o \
   \( "$target_cpu" = "ppcemb" -a "$cpu" = "ppc" \) -o \
   \( "$target_cpu" = "x86_64" -a "$cpu" = "i386"   \) -o \
   \( "$target_cpu" = "i386"   -a "$cpu" = "x86_64" \) \) ; then
-  kvm="no"
+  target_kvm="no"
 fi
 # Disable KVM for linux-user
-if test "$kvm" = "yes" -a "$target_softmmu" = "no" ; then
-  kvm="no"
+if test "$target_softmmu" = "no" ; then
+  target_kvm="no"
 fi
 
 case "$target_cpu" in
@@ -1867,7 +1888,7 @@ case "$target_cpu" in
       echo "CONFIG_KQEMU=yes" >> $config_mak
       echo "#define CONFIG_KQEMU 1" >> $config_h
     fi
-    if test "$kvm" = "yes" ; then
+    if test "$target_kvm" = "yes" ; then
       echo "CONFIG_KVM=yes" >> $config_mak
       echo "KVM_CFLAGS=$kvm_cflags" >> $config_mak
       echo "#define CONFIG_KVM 1" >> $config_h
@@ -1889,7 +1910,7 @@ case "$target_cpu" in
       echo "CONFIG_KQEMU=yes" >> $config_mak
       echo "#define CONFIG_KQEMU 1" >> $config_h
     fi
-    if test "$kvm" = "yes" ; then
+    if test "$target_kvm" = "yes" ; then
       echo "CONFIG_KVM=yes" >> $config_mak
       echo "KVM_CFLAGS=$kvm_cflags" >> $config_mak
       echo "#define CONFIG_KVM 1" >> $config_h
@@ -1974,7 +1995,7 @@ case "$target_cpu" in
     echo "#define TARGET_ARCH \"ppcemb\"" >> $config_h
     echo "#define TARGET_PPC 1" >> $config_h
     echo "#define TARGET_PPCEMB 1" >> $config_h
-    if test "$kvm" = "yes" ; then
+    if test "$target_kvm" = "yes" ; then
       echo "CONFIG_KVM=yes" >> $config_mak
       echo "KVM_CFLAGS=$kvm_cflags" >> $config_mak
       echo "#define CONFIG_KVM 1" >> $config_h

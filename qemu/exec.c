@@ -574,7 +574,7 @@ void cpu_exec_init(CPUState *env)
     penv = &first_cpu;
     cpu_index = 0;
     while (*penv != NULL) {
-        penv = (CPUState **)&(*penv)->next_cpu;
+        penv = &(*penv)->next_cpu;
         cpu_index++;
     }
     env->cpu_index = cpu_index;
@@ -1483,7 +1483,7 @@ void cpu_breakpoint_remove_all(CPUState *env, int mask)
 
 /* enable or disable single step mode. EXCP_DEBUG is returned by the
    CPU loop after each instruction */
-void cpu_single_step(CPUState* env, int enabled)
+void cpu_single_step(CPUState *env, int enabled)
 {
 #if defined(TARGET_HAS_ICE)
     if (env->singlestep_enabled != enabled) {
@@ -1955,11 +1955,9 @@ void cpu_physical_memory_reset_dirty(ram_addr_t start, ram_addr_t end,
 int cpu_physical_memory_set_dirty_tracking(int enable)
 {
     in_migration = enable;
-#ifndef _MSC_VER
     if (kvm_enabled()) {
         return kvm_set_migration_log(enable);
     }
-#endif
     return 0;
 }
 
@@ -1971,11 +1969,11 @@ int cpu_physical_memory_get_dirty_tracking(void)
 int cpu_physical_sync_dirty_bitmap(target_phys_addr_t start_addr,
                                    target_phys_addr_t end_addr)
 {
-#ifndef _MSC_VER
+    int ret = 0;
 
     if (kvm_enabled())
-        kvm_physical_sync_dirty_bitmap(start_addr, end_addr);
-#endif
+        ret = kvm_physical_sync_dirty_bitmap(start_addr, end_addr);
+    return ret;
 }
 
 static inline void tlb_update_dirty(CPUTLBEntry *tlb_entry)
@@ -2388,10 +2386,8 @@ void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
         kqemu_set_phys_mem(start_addr, size, phys_offset);
     }
 #endif
-#ifndef _MSC_VER //MSVC hack again
     if (kvm_enabled())
         kvm_set_phys_mem(start_addr, size, phys_offset);
-#endif
 
     if (phys_offset == IO_MEM_UNASSIGNED) {
         region_offset = start_addr;
@@ -2474,18 +2470,14 @@ ram_addr_t cpu_get_physical_page_desc(target_phys_addr_t addr)
 
 void qemu_register_coalesced_mmio(target_phys_addr_t addr, ram_addr_t size)
 {
-#ifndef _MSC_VER
     if (kvm_enabled())
         kvm_coalesce_mmio_region(addr, size);
-#endif
 }
 
 void qemu_unregister_coalesced_mmio(target_phys_addr_t addr, ram_addr_t size)
 {
-#ifndef _MSC_VER
     if (kvm_enabled())
         kvm_uncoalesce_mmio_region(addr, size);
-#endif
 }
 
 #ifdef CONFIG_KQEMU
@@ -2531,10 +2523,8 @@ ram_addr_t qemu_ram_alloc(ram_addr_t size)
 
     last_ram_offset += size;
 
-#ifndef _MSC_VER
     if (kvm_enabled())
         kvm_setup_guest_memory(new_block->host, size);
-#endif
 
     return new_block->offset;
 }
