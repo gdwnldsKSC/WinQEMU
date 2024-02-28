@@ -1,26 +1,14 @@
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
 #define CONFIG_QEMU
 
-#ifdef _MSC_VER
-#include <config.h>
-#endif
-
 //#define DEBUG 1
 
 // Uncomment the following line to enable SLIRP statistics printing in Qemu
 //#define LOG_ENABLED
+
+# include <winsock2.h> // for build order, lets just make sure this is always first....
 
 #ifdef LOG_ENABLED
 #define STAT(expr) expr
@@ -43,9 +31,7 @@ typedef uint32_t u_int32_t;
 typedef uint64_t u_int64_t;
 typedef char *caddr_t;
 
-#define WIN32_LEAN_AND_MEAN
 # include <windows.h>
-# include <winsock2.h>
 # include <ws2tcpip.h>
 # include <sys/timeb.h>
 # include <iphlpapi.h>
@@ -207,10 +193,8 @@ int inet_aton _P((const char *cp, struct in_addr *ia));
 
 /* Avoid conflicting with the libc insque() and remque(), which
    have different prototypes. */
-#ifndef _MSC_VER
 #define insque slirp_insque
 #define remque slirp_remque
-#endif
 
 #ifdef HAVE_SYS_STROPTS_H
 #include <sys/stropts.h>

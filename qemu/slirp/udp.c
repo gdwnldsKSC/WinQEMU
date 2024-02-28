@@ -72,7 +72,7 @@ udp_init(void)
  * ip->ip_len length data (IPDU)
  */
 void
-udp_input(register struct mbuf* m, int iphlen)
+udp_input(register struct mbuf *m, int iphlen)
 {
 	register struct ip *ip;
 	register struct udphdr *uh;
@@ -328,7 +328,7 @@ int udp_output(struct socket *so, struct mbuf *m,
 }
 
 int
-udp_attach(struct socket* so)
+udp_attach(struct socket *so)
 {
   struct sockaddr_in addr;
 
@@ -360,7 +360,7 @@ udp_attach(struct socket* so)
 }
 
 void
-udp_detach(struct socket* so)
+udp_detach(struct socket *so)
 {
 	closesocket(so->s);
 	/* if (so->so_m) m_free(so->so_m);    done by sofree */

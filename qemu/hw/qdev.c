@@ -49,7 +49,7 @@ struct DeviceType {
 };
 
 /* This is a nasty hack to allow passing a NULL bus to qdev_create.  */
-BusState *main_system_bus;
+static BusState *main_system_bus;
 
 static DeviceType *device_type_list;
 
@@ -258,15 +258,16 @@ void qdev_connect_gpio_out(DeviceState * dev, int n, qemu_irq pin)
 }
 
 VLANClientState *qdev_get_vlan_client(DeviceState *dev,
-                                      IOReadHandler *fd_read,
-                                      IOCanRWHandler *fd_can_read,
+                                      NetCanReceive *can_receive,
+                                      NetReceive *receive,
+                                      NetReceiveIOV *receive_iov,
                                       NetCleanup *cleanup,
                                       void *opaque)
 {
     NICInfo *nd = dev->nd;
     assert(nd);
-    return qemu_new_vlan_client(nd->vlan, nd->model, nd->name,
-                                fd_read, fd_can_read, cleanup, opaque);
+    return qemu_new_vlan_client(nd->vlan, nd->model, nd->name, can_receive,
+                                receive, receive_iov, cleanup, opaque);
 }
 
 
@@ -340,11 +341,11 @@ BusState *qbus_create(BusType type, size_t size,
 }
 
 static const char *bus_type_names[] = {
-    "System",
-    "PCI",
-    "SCSI",
-    "I2C",
-    "SSI"
+    [ BUS_TYPE_SYSTEM ] = "System",
+    [ BUS_TYPE_PCI ]    = "PCI",
+    [ BUS_TYPE_SCSI ]   = "SCSI",
+    [ BUS_TYPE_I2C ]    = "I2C",
+    [ BUS_TYPE_SSI ]    = "SSI",
 };
 
 #define qdev_printf(fmt, ...) monitor_printf(mon, "%*s" fmt, indent, "", ## __VA_ARGS__)

@@ -113,7 +113,7 @@ tpgone:
  * Cancel all timers for TCP tp.
  */
 void
-tcp_canceltimers(struct tcpcb* tp)
+tcp_canceltimers(struct tcpcb *tp)
 {
 	register int i;
 

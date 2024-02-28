@@ -27,18 +27,18 @@ int x_screen = 0;
 
 int
 show_x(buff, inso)
-char *buff;
-struct socket *inso;
+	char *buff;
+	struct socket *inso;
 {
 	if (x_port < 0) {
 		lprint("X Redir: X not being redirected.\r\n");
 	} else {
 		lprint("X Redir: In sh/bash/zsh/etc. type: DISPLAY=%s:%d.%d; export DISPLAY\r\n",
-			inet_ntoa(our_addr), x_port, x_screen);
+		      inet_ntoa(our_addr), x_port, x_screen);
 		lprint("X Redir: In csh/tcsh/etc. type:    setenv DISPLAY %s:%d.%d\r\n",
-			inet_ntoa(our_addr), x_port, x_screen);
+		      inet_ntoa(our_addr), x_port, x_screen);
 		if (x_display)
-			lprint("X Redir: Redirecting to display %d\r\n", x_display);
+		   lprint("X Redir: Redirecting to display %d\r\n", x_display);
 	}
 
 	return CFG_OK;
@@ -50,10 +50,10 @@ struct socket *inso;
  */
 void
 redir_x(inaddr, start_port, display, screen)
-u_int32_t inaddr;
-int start_port;
-int display;
-int screen;
+	u_int32_t inaddr;
+	int start_port;
+	int display;
+	int screen;
 {
 	int i;
 
@@ -85,12 +85,12 @@ getouraddr(void)
 	char buff[256];
 	struct hostent *he = NULL;
 
-	if (gethostname(buff, 256) == 0)
-		he = gethostbyname(buff);
-	if (he)
-		our_addr = *(struct in_addr *)he->h_addr;
-	if (our_addr.s_addr == 0)
-		our_addr.s_addr = loopback_addr.s_addr;
+	if (gethostname(buff,256) == 0)
+            he = gethostbyname(buff);
+        if (he)
+            our_addr = *(struct in_addr *)he->h_addr;
+        if (our_addr.s_addr == 0)
+            our_addr.s_addr = loopback_addr.s_addr;
 }
 
 struct quehead {
@@ -112,7 +112,7 @@ void insque(void *a, void*b)
 	head->qh_link = (struct quehead *)element;
 	element->qh_rlink = (struct quehead *)head;
 	((struct quehead *)(element->qh_link))->qh_rlink
-		= (struct quehead *)element;
+	= (struct quehead *)element;
 }
 #ifndef _MSC_VER
 inline void
@@ -122,11 +122,11 @@ void *a;
 void remque(void *a)
 #endif
 {
-	register struct quehead *element = (struct quehead *) a;
-	((struct quehead *)(element->qh_link))->qh_rlink = element->qh_rlink;
-	((struct quehead *)(element->qh_rlink))->qh_link = element->qh_link;
-	element->qh_rlink = NULL;
-	/*  element->qh_link = NULL;  TCP FIN1 crashes if you do this.  Why ? */
+  register struct quehead *element = (struct quehead *) a;
+  ((struct quehead *)(element->qh_link))->qh_rlink = element->qh_rlink;
+  ((struct quehead *)(element->qh_rlink))->qh_link = element->qh_link;
+  element->qh_rlink = NULL;
+  /*  element->qh_link = NULL;  TCP FIN1 crashes if you do this.  Why ? */
 }
 
 /* #endif */
@@ -140,7 +140,7 @@ add_exec(struct ex_list **ex_ptr, int do_pty, char *exec, int addr, int port)
 	/* First, check if the port is "bound" */
 	for (tmp_ptr = *ex_ptr; tmp_ptr; tmp_ptr = tmp_ptr->ex_next) {
 		if (port == tmp_ptr->ex_fport && addr == tmp_ptr->ex_addr)
-			return -1;
+		   return -1;
 	}
 
 	tmp_ptr = *ex_ptr;
@@ -164,12 +164,12 @@ extern char *sys_errlist[];
 
 char *
 strerror(error)
-int error;
+	int error;
 {
 	if (error < sys_nerr)
-		return sys_errlist[error];
+	   return sys_errlist[error];
 	else
-		return "Unknown error.";
+	   return "Unknown error.";
 }
 
 #endif
@@ -180,8 +180,8 @@ int error;
 int
 fork_exec(struct socket *so, const char *ex, int do_pty)
 {
-	/* not implemented */
-	return 0;
+    /* not implemented */
+    return 0;
 }
 
 #else
@@ -189,7 +189,7 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 #ifndef CONFIG_QEMU
 int
 slirp_openpty(amaster, aslave)
-int *amaster, *aslave;
+     int *amaster, *aslave;
 {
 	register int master, slave;
 
@@ -197,17 +197,17 @@ int *amaster, *aslave;
 	char *ptr;
 
 	if ((master = open("/dev/ptmx", O_RDWR)) < 0 ||
-		grantpt(master) < 0 ||
-		unlockpt(master) < 0 ||
-		(ptr = ptsname(master)) == NULL)  {
+	    grantpt(master) < 0 ||
+	    unlockpt(master) < 0 ||
+	    (ptr = ptsname(master)) == NULL)  {
 		close(master);
 		return -1;
 	}
 
 	if ((slave = open(ptr, O_RDWR)) < 0 ||
-		ioctl(slave, I_PUSH, "ptem") < 0 ||
-		ioctl(slave, I_PUSH, "ldterm") < 0 ||
-		ioctl(slave, I_PUSH, "ttcompat") < 0) {
+	    ioctl(slave, I_PUSH, "ptem") < 0 ||
+	    ioctl(slave, I_PUSH, "ldterm") < 0 ||
+	    ioctl(slave, I_PUSH, "ttcompat") < 0) {
 		close(master);
 		close(slave);
 		return -1;
@@ -228,7 +228,7 @@ int *amaster, *aslave;
 			line[9] = *cp2;
 			if ((master = open(line, O_RDWR, 0)) == -1) {
 				if (errno == ENOENT)
-					return (-1);    /* out of ptys */
+				   return (-1);    /* out of ptys */
 			} else {
 				line[5] = 't';
 				/* These will fail */
@@ -271,7 +271,7 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 	struct sockaddr_in addr;
 	socklen_t addrlen = sizeof(addr);
 	int opt;
-	int master = -1;
+        int master = -1;
 	const char *argv[256];
 #if 0
 	char buff[256];
@@ -293,7 +293,7 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 			return 0;
 		}
 #else
-		return 0;
+                return 0;
 #endif
 	} else {
 		addr.sin_family = AF_INET;
@@ -301,8 +301,8 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 		addr.sin_addr.s_addr = INADDR_ANY;
 
 		if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
-			bind(s, (struct sockaddr *)&addr, addrlen) < 0 ||
-			listen(s, 1) < 0) {
+		    bind(s, (struct sockaddr *)&addr, addrlen) < 0 ||
+		    listen(s, 1) < 0) {
 			lprint("Error: inet socket: %s\n", strerror(errno));
 			closesocket(s);
 
@@ -311,14 +311,14 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 	}
 
 	switch(fork()) {
-	case -1:
+	 case -1:
 		lprint("Error: fork failed: %s\n", strerror(errno));
 		close(s);
 		if (do_pty == 2)
-			close(master);
+		   close(master);
 		return 0;
 
-	case 0:
+	 case 0:
 		/* Set the DISPLAY */
 		if (do_pty == 2) {
 			(void) close(master);
@@ -332,12 +332,12 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 			/*
 			 * Connect to the socket
 			 * XXX If any of these fail, we're in trouble!
-			 */
+	 		 */
 			s = socket(AF_INET, SOCK_STREAM, 0);
 			addr.sin_addr = loopback_addr;
-			do {
-				ret = connect(s, (struct sockaddr *)&addr, addrlen);
-			} while (ret < 0 && errno == EINTR);
+                        do {
+                            ret = connect(s, (struct sockaddr *)&addr, addrlen);
+                        } while (ret < 0 && errno == EINTR);
 		}
 
 #if 0
@@ -355,7 +355,7 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 		dup2(s, 1);
 		dup2(s, 2);
 		for (s = getdtablesize() - 1; s >= 3; s--)
-			close(s);
+		   close(s);
 
 		i = 0;
 		bptr = strdup(ex); /* No need to free() this */
@@ -365,32 +365,32 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 			argv[i++] = "-x";
 			argv[i++] = bptr;
 		} else
-			do {
-				/* Change the string into argv[] */
-				curarg = bptr;
-				while (*bptr != ' ' && *bptr != (char)0)
-					bptr++;
-				c = *bptr;
-				*bptr++ = (char)0;
-				argv[i++] = strdup(curarg);
-			} while (c);
+		   do {
+			/* Change the string into argv[] */
+			curarg = bptr;
+			while (*bptr != ' ' && *bptr != (char)0)
+			   bptr++;
+			c = *bptr;
+			*bptr++ = (char)0;
+			argv[i++] = strdup(curarg);
+		   } while (c);
 
-			argv[i] = NULL;
-			execvp(argv[0], (char **)argv);
+                argv[i] = NULL;
+		execvp(argv[0], (char **)argv);
 
-			/* Ooops, failed, let's tell the user why */
-			{
-				char buff[256];
+		/* Ooops, failed, let's tell the user why */
+		  {
+			  char buff[256];
 
-				snprintf(buff, sizeof(buff),
-					"Error: execvp of %s failed: %s\n",
-					argv[0], strerror(errno));
-				write(2, buff, strlen(buff)+1);
-			}
-			close(0); close(1); close(2); /* XXX */
-			exit(1);
+			  snprintf(buff, sizeof(buff),
+                                   "Error: execvp of %s failed: %s\n",
+                                   argv[0], strerror(errno));
+			  write(2, buff, strlen(buff)+1);
+		  }
+		close(0); close(1); close(2); /* XXX */
+		exit(1);
 
-	default:
+	 default:
 		if (do_pty == 2) {
 			close(s);
 			so->s = master;
@@ -398,14 +398,14 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 			/*
 			 * XXX this could block us...
 			 * XXX Should set a timer here, and if accept() doesn't
-			 * return after X seconds, declare it a failure
-			 * The only reason this will block forever is if socket()
-			 * of connect() fail in the child process
-			 */
-			do {
-				so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
-			} while (so->s < 0 && errno == EINTR);
-			closesocket(s);
+		 	 * return after X seconds, declare it a failure
+		 	 * The only reason this will block forever is if socket()
+		 	 * of connect() fail in the child process
+		 	 */
+                        do {
+                            so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
+                        } while (so->s < 0 && errno == EINTR);
+                        closesocket(s);
 			opt = 1;
 			setsockopt(so->s,SOL_SOCKET,SO_REUSEADDR,(char *)&opt,sizeof(int));
 			opt = 1;
@@ -414,9 +414,9 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 		fd_nonblock(so->s);
 
 		/* Append the telnet options now */
-		if (so->so_m != NULL && do_pty == 1)  {
+                if (so->so_m != NULL && do_pty == 1)  {
 			sbappend(so, so->so_m);
-			so->so_m = NULL;
+                        so->so_m = NULL;
 		}
 
 		return 1;
@@ -427,7 +427,7 @@ fork_exec(struct socket *so, const char *ex, int do_pty)
 #ifndef HAVE_STRDUP
 char *
 strdup(str)
-const char *str;
+	const char *str;
 {
 	char *bptr;
 
@@ -441,7 +441,7 @@ const char *str;
 #if 0
 void
 snooze_hup(num)
-int num;
+	int num;
 {
 	int s, ret;
 #ifndef NO_UNIX_SOCKETS
@@ -454,25 +454,25 @@ int num;
 	if (slirp_socket_passwd) {
 		s = socket(AF_INET, SOCK_STREAM, 0);
 		if (s < 0)
-			slirp_exit(1);
+		   slirp_exit(1);
 		sock_in.sin_family = AF_INET;
 		sock_in.sin_addr.s_addr = slirp_socket_addr;
 		sock_in.sin_port = htons(slirp_socket_port);
 		if (connect(s, (struct sockaddr *)&sock_in, sizeof(sock_in)) != 0)
-			slirp_exit(1); /* just exit...*/
+		   slirp_exit(1); /* just exit...*/
 		sprintf(buff, "kill %s:%d", slirp_socket_passwd, slirp_socket_unit);
 		write(s, buff, strlen(buff)+1);
 	}
 #ifndef NO_UNIX_SOCKETS
-	else {
+	  else {
 		s = socket(AF_UNIX, SOCK_STREAM, 0);
 		if (s < 0)
-			slirp_exit(1);
+		   slirp_exit(1);
 		sock_un.sun_family = AF_UNIX;
 		strcpy(sock_un.sun_path, socket_path);
 		if (connect(s, (struct sockaddr *)&sock_un,
-			sizeof(sock_un.sun_family) + sizeof(sock_un.sun_path)) != 0)
-			slirp_exit(1);
+			      sizeof(sock_un.sun_family) + sizeof(sock_un.sun_path)) != 0)
+		   slirp_exit(1);
 		sprintf(buff, "kill none:%d", slirp_socket_unit);
 		write(s, buff, strlen(buff)+1);
 	}
@@ -489,11 +489,11 @@ snooze()
 
 	/* Don't need our data anymore */
 	/* XXX This makes SunOS barf */
-	/*	brk(0); */
+/*	brk(0); */
 
 	/* Close all fd's */
 	for (i = 255; i >= 0; i--)
-		close(i);
+	   close(i);
 
 	signal(SIGQUIT, slirp_exit);
 	signal(SIGHUP, snooze_hup);
@@ -508,7 +508,7 @@ snooze()
 
 void
 relay(s)
-int s;
+	int s;
 {
 	char buf[8192];
 	int n;
@@ -517,18 +517,18 @@ int s;
 
 	/* Don't need our data anymore */
 	/* XXX This makes SunOS barf */
-	/*	brk(0); */
+/*	brk(0); */
 
 	signal(SIGQUIT, slirp_exit);
 	signal(SIGHUP, slirp_exit);
-	signal(SIGINT, slirp_exit);
+        signal(SIGINT, slirp_exit);
 	signal(SIGTERM, slirp_exit);
 
 	/* Fudge to get term_raw and term_restore to work */
 	if (NULL == (ttyp = tty_attach (0, slirp_tty))) {
-		lprint ("Error: tty_attach failed in misc.c:relay()\r\n");
-		slirp_exit (1);
-	}
+         lprint ("Error: tty_attach failed in misc.c:relay()\r\n");
+         slirp_exit (1);
+    }
 	ttyp->fd = 0;
 	ttyp->flags |= TTY_CTTY;
 	term_raw(ttyp);
@@ -542,24 +542,24 @@ int s;
 		n = select(s+1, &readfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
 
 		if (n <= 0)
-			slirp_exit(0);
+		   slirp_exit(0);
 
 		if (FD_ISSET(0, &readfds)) {
 			n = read(0, buf, 8192);
 			if (n <= 0)
-				slirp_exit(0);
+			   slirp_exit(0);
 			n = writen(s, buf, n);
 			if (n <= 0)
-				slirp_exit(0);
+			   slirp_exit(0);
 		}
 
 		if (FD_ISSET(s, &readfds)) {
 			n = read(s, buf, 8192);
 			if (n <= 0)
-				slirp_exit(0);
+			   slirp_exit(0);
 			n = writen(0, buf, n);
 			if (n <= 0)
-				slirp_exit(0);
+			   slirp_exit(0);
 		}
 	}
 
@@ -573,11 +573,11 @@ int s;
 
 void lprint(const char *format, ...)
 {
-	va_list args;
+    va_list args;
 
-	va_start(args, format);
-	monitor_vprintf(cur_mon, format, args);
-	va_end(args);
+    va_start(args, format);
+    monitor_vprintf(cur_mon, format, args);
+    va_end(args);
 }
 #else
 int (*lprint_print) _P((void *, const char *, va_list));
@@ -593,24 +593,24 @@ lprint(va_alist) va_dcl
 	va_list args;
 
 #ifdef __STDC__
-	va_start(args, format);
+        va_start(args, format);
 #else
-	char *format;
-	va_start(args);
-	format = va_arg(args, char *);
+        char *format;
+        va_start(args);
+        format = va_arg(args, char *);
 #endif
 #if 0
 	/* If we're printing to an sbuf, make sure there's enough room */
 	/* XXX +100? */
 	if (lprint_sb) {
 		if ((lprint_ptr - lprint_sb->sb_wptr) >=
-			(lprint_sb->sb_datalen - (strlen(format) + 100))) {
+		    (lprint_sb->sb_datalen - (strlen(format) + 100))) {
 			int deltaw = lprint_sb->sb_wptr - lprint_sb->sb_data;
 			int deltar = lprint_sb->sb_rptr - lprint_sb->sb_data;
 			int deltap = lprint_ptr -         lprint_sb->sb_data;
 
 			lprint_sb->sb_data = (char *)realloc(lprint_sb->sb_data,
-				lprint_sb->sb_datalen + TCP_SNDSPACE);
+							     lprint_sb->sb_datalen + TCP_SNDSPACE);
 
 			/* Adjust all values */
 			lprint_sb->sb_wptr = lprint_sb->sb_data + deltaw;
@@ -622,7 +622,7 @@ lprint(va_alist) va_dcl
 	}
 #endif
 	if (lprint_print)
-		lprint_ptr += (*lprint_print)(*lprint_arg, format, args);
+	   lprint_ptr += (*lprint_print)(*lprint_arg, format, args);
 
 	/* Check if they want output to be logged to file as well */
 	if (lfd) {
@@ -637,9 +637,9 @@ lprint(va_alist) va_dcl
 
 		while (len--) {
 			if (*bptr1 == '\r')
-				memcpy(bptr1, bptr1+1, len+1);
+			   memcpy(bptr1, bptr1+1, len+1);
 			else
-				bptr1++;
+			   bptr1++;
 		}
 		vfprintf(lfd, bptr2, args);
 		free(bptr2);
@@ -649,7 +649,7 @@ lprint(va_alist) va_dcl
 
 void
 add_emu(buff)
-char *buff;
+	char *buff;
 {
 	u_int lport, fport;
 	u_int8_t tos = 0, emu = 0;
@@ -681,9 +681,9 @@ char *buff;
 
 	if (buff3) {
 		if (strcmp(buff3, "lowdelay") == 0)
-			tos = IPTOS_LOWDELAY;
+		   tos = IPTOS_LOWDELAY;
 		else if (strcmp(buff3, "throughput") == 0)
-			tos = IPTOS_THROUGHPUT;
+		   tos = IPTOS_THROUGHPUT;
 		else {
 			lprint("Error: Expecting \"lowdelay\"/\"throughput\"\r\n");
 			return;
@@ -691,11 +691,11 @@ char *buff;
 	}
 
 	if (strcmp(buff1, "ftp") == 0)
-		emu = EMU_FTP;
+	   emu = EMU_FTP;
 	else if (strcmp(buff1, "irc") == 0)
-		emu = EMU_IRC;
+	   emu = EMU_IRC;
 	else if (strcmp(buff1, "none") == 0)
-		emu = EMU_NONE; /* ie: no emulation */
+	   emu = EMU_NONE; /* ie: no emulation */
 	else {
 		lprint("Error: Unknown service\r\n");
 		return;
@@ -721,11 +721,11 @@ char *buff;
 	/* And finally, mark all current sessions, if any, as being emulated */
 	for (so = tcb.so_next; so != &tcb; so = so->so_next) {
 		if ((lport && lport == ntohs(so->so_lport)) ||
-			(fport && fport == ntohs(so->so_fport))) {
+		    (fport && fport == ntohs(so->so_fport))) {
 			if (emu)
-				so->so_emu = emu;
+			   so->so_emu = emu;
 			if (tos)
-				so->so_iptos = tos;
+			   so->so_iptos = tos;
 		}
 	}
 
@@ -744,9 +744,9 @@ char *buff;
 
 int
 vsprintf_len(string, format, args)
-char *string;
-const char *format;
-va_list args;
+	char *string;
+	const char *format;
+	va_list args;
 {
 	vsprintf(string, format, args);
 	return strlen(string);
@@ -798,9 +798,9 @@ fd_nonblock(int fd)
 {
 #ifdef FIONBIO
 #ifdef _WIN32
-	long opt = 1;
+        long opt = 1;
 #else
-	int opt = 1;
+        int opt = 1;
 #endif
 
 	ioctlsocket(fd, FIONBIO, &opt);
@@ -836,11 +836,11 @@ fd_block(int fd)
  */
 int
 rsh_exec(so,ns, user, host, args)
-struct socket *so;
-struct socket *ns;
-char *user;
-char *host;
-char *args;
+	struct socket *so;
+	struct socket *ns;
+	char *user;
+	char *host;
+	char *args;
 {
 	int fd[2];
 	int fd0[2];
@@ -851,73 +851,73 @@ char *args;
 	DEBUG_ARG("so = %lx", (long)so);
 
 	if (pipe(fd)<0) {
-		lprint("Error: pipe failed: %s\n", strerror(errno));
-		return 0;
+          lprint("Error: pipe failed: %s\n", strerror(errno));
+          return 0;
 	}
-	/* #ifdef HAVE_SOCKETPAIR */
+/* #ifdef HAVE_SOCKETPAIR */
 #if 1
-	if (socketpair(PF_UNIX,SOCK_STREAM,0, fd0) == -1) {
-		close(fd[0]);
-		close(fd[1]);
-		lprint("Error: openpty failed: %s\n", strerror(errno));
-		return 0;
-	}
+        if (socketpair(PF_UNIX,SOCK_STREAM,0, fd0) == -1) {
+          close(fd[0]);
+          close(fd[1]);
+          lprint("Error: openpty failed: %s\n", strerror(errno));
+          return 0;
+        }
 #else
-	if (slirp_openpty(&fd0[0], &fd0[1]) == -1) {
-		close(fd[0]);
-		close(fd[1]);
-		lprint("Error: openpty failed: %s\n", strerror(errno));
-		return 0;
-	}
+        if (slirp_openpty(&fd0[0], &fd0[1]) == -1) {
+          close(fd[0]);
+          close(fd[1]);
+          lprint("Error: openpty failed: %s\n", strerror(errno));
+          return 0;
+        }
 #endif
 
 	switch(fork()) {
-	case -1:
-		lprint("Error: fork failed: %s\n", strerror(errno));
-		close(fd[0]);
-		close(fd[1]);
-		close(fd0[0]);
-		close(fd0[1]);
-		return 0;
+	 case -1:
+           lprint("Error: fork failed: %s\n", strerror(errno));
+           close(fd[0]);
+           close(fd[1]);
+           close(fd0[0]);
+           close(fd0[1]);
+           return 0;
 
-	case 0:
-		close(fd[0]);
-		close(fd0[0]);
+	 case 0:
+           close(fd[0]);
+           close(fd0[0]);
 
 		/* Set the DISPLAY */
-		if (x_port >= 0) {
+           if (x_port >= 0) {
 #ifdef HAVE_SETENV
-			sprintf(buff, "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
-			setenv("DISPLAY", buff, 1);
+             sprintf(buff, "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+             setenv("DISPLAY", buff, 1);
 #else
-			sprintf(buff, "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
-			putenv(buff);
+             sprintf(buff, "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+             putenv(buff);
 #endif
-		}
+           }
 
-		dup2(fd0[1], 0);
-		dup2(fd0[1], 1);
-		dup2(fd[1], 2);
-		for (s = 3; s <= 255; s++)
-			close(s);
+           dup2(fd0[1], 0);
+           dup2(fd0[1], 1);
+           dup2(fd[1], 2);
+           for (s = 3; s <= 255; s++)
+             close(s);
 
-		execlp("rsh","rsh","-l", user, host, args, NULL);
+           execlp("rsh","rsh","-l", user, host, args, NULL);
 
-		/* Ooops, failed, let's tell the user why */
+           /* Ooops, failed, let's tell the user why */
 
-		sprintf(buff, "Error: execlp of %s failed: %s\n",
-			"rsh", strerror(errno));
-		write(2, buff, strlen(buff)+1);
-		close(0); close(1); close(2); /* XXX */
-		exit(1);
+           sprintf(buff, "Error: execlp of %s failed: %s\n",
+                   "rsh", strerror(errno));
+           write(2, buff, strlen(buff)+1);
+           close(0); close(1); close(2); /* XXX */
+           exit(1);
 
-	default:
-		close(fd[1]);
-		close(fd0[1]);
-		ns->s=fd[0];
-		so->s=fd0[0];
+        default:
+          close(fd[1]);
+          close(fd0[1]);
+          ns->s=fd[0];
+          so->s=fd0[0];
 
-		return 1;
+          return 1;
 	}
 }
 #endif
