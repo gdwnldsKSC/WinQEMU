@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -421,7 +420,7 @@ int cpu_exec(CPUState *env1)
                             env->hflags2 |= HF2_NMI_MASK;
                             do_interrupt(EXCP02_NMI, 0, 0, 0, 1);
                             next_tb = 0;
-                        } else if (interrupt_request & CPU_INTERRUPT_MCE) {
+			} else if (interrupt_request & CPU_INTERRUPT_MCE) {
                             env->interrupt_request &= ~CPU_INTERRUPT_MCE;
                             do_interrupt(EXCP12_MCHK, 0, 0, 0, 0);
                             next_tb = 0;
@@ -496,7 +495,7 @@ int cpu_exec(CPUState *env1)
                     }
 #elif defined(TARGET_SPARC)
                     if ((interrupt_request & CPU_INTERRUPT_HARD) &&
-			(env->psret != 0)) {
+			cpu_interrupts_enabled(env)) {
 			int pil = env->interrupt_index & 15;
 			int type = env->interrupt_index & 0xf0;
 
@@ -507,7 +506,7 @@ int cpu_exec(CPUState *env1)
                             env->exception_index = env->interrupt_index;
                             do_interrupt(env);
 			    env->interrupt_index = 0;
-#if !defined(TARGET_SPARC64) && !defined(CONFIG_USER_ONLY)
+#if !defined(CONFIG_USER_ONLY)
                             cpu_check_irqs(env);
 #endif
                         next_tb = 0;

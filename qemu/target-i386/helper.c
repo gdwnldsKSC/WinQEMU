@@ -145,8 +145,7 @@ static x86_def_t x86_defs[] = {
             CPUID_PSE36,
         .ext_features = CPUID_EXT_SSE3,
         .ext2_features = (PPRO_FEATURES & 0x0183F3FF) | 
-            CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX |
-            CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT,
+            CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX,
         .ext3_features = CPUID_EXT3_SVM,
         .xlevel = 0x8000000A,
         .model_id = "QEMU Virtual CPU version " QEMU_VERSION,
@@ -1807,6 +1806,35 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
         *edx = 0;
         break;
     }
+}
+
+int cpu_x86_get_descr_debug(CPUX86State* env, unsigned int selector,
+    target_ulong* base, unsigned int* limit,
+    unsigned int* flags)
+{
+    SegmentCache* dt;
+    target_ulong ptr;
+    uint32_t e1, e2;
+    int index;
+
+    if (selector & 0x4)
+        dt = &env->ldt;
+    else
+        dt = &env->gdt;
+    index = selector & ~7;
+    ptr = dt->base + index;
+    if ((index + 7) > dt->limit
+        || cpu_memory_rw_debug(env, ptr, (uint8_t*)&e1, sizeof(e1), 0) != 0
+        || cpu_memory_rw_debug(env, ptr + 4, (uint8_t*)&e2, sizeof(e2), 0) != 0)
+        return 0;
+
+    *base = ((e1 >> 16) | ((e2 & 0xff) << 16) | (e2 & 0xff000000));
+    *limit = (e1 & 0xffff) | (e2 & 0x000f0000);
+    if (e2 & DESC_G_MASK)
+        *limit = (*limit << 12) | 0xfff;
+    *flags = e2;
+
+    return 1;
 }
 
 CPUX86State *cpu_x86_init(const char *cpu_model)

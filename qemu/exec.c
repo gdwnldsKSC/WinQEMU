@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "config.h"
 #ifdef _WIN32
@@ -1508,7 +1507,6 @@ void cpu_single_step(CPUState *env, int enabled)
         }
     }
 
-
 /* enable or disable low levels log */
 void cpu_set_log(int log_flags)
 {
@@ -1770,6 +1768,13 @@ static inline void tlb_flush_jmp_cache(CPUState *env, target_ulong addr)
 	    TB_JMP_PAGE_SIZE * sizeof(TranslationBlock *));
 }
 
+static CPUTLBEntry s_cputlb_empty_entry = {
+    .addr_read  = -1,
+    .addr_write = -1,
+    .addr_code  = -1,
+    .addend     = -1,
+};
+
 /* NOTE: if flush_global is true, also flush global entries (not
    implemented yet) */
 void tlb_flush(CPUState *env, int flush_global)
@@ -1786,9 +1791,7 @@ void tlb_flush(CPUState *env, int flush_global)
     for(i = 0; i < CPU_TLB_SIZE; i++) {
         int mmu_idx;
         for (mmu_idx = 0; mmu_idx < NB_MMU_MODES; mmu_idx++) {
-            env->tlb_table[mmu_idx][i].addr_read = -1;
-            env->tlb_table[mmu_idx][i].addr_write = -1;
-            env->tlb_table[mmu_idx][i].addr_code = -1;
+            env->tlb_table[mmu_idx][i] = s_cputlb_empty_entry;
         }
     }
 
@@ -1810,9 +1813,7 @@ static inline void tlb_flush_entry(CPUTLBEntry *tlb_entry, target_ulong addr)
                  (TARGET_PAGE_MASK | TLB_INVALID_MASK)) ||
         addr == (tlb_entry->addr_code &
                  (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {
-        tlb_entry->addr_read = -1;
-        tlb_entry->addr_write = -1;
-        tlb_entry->addr_code = -1;
+        *tlb_entry = s_cputlb_empty_entry;
     }
 }
 

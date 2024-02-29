@@ -723,7 +723,7 @@ static BlockDriverAIOCB *qcow_aio_writev(BlockDriverState *bs,
 
     s->cluster_cache_offset = -1; /* disable compressed cache */
 
-    acb = qcow_aio_setup(bs, sector_num, qiov, nb_sectors, cb, opaque, 0);
+    acb = qcow_aio_setup(bs, sector_num, qiov, nb_sectors, cb, opaque, 1);
     if (!acb)
         return NULL;
 
@@ -909,9 +909,21 @@ static int qcow_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)
 
 
 static QEMUOptionParameter qcow_create_options[] = {
-    { BLOCK_OPT_SIZE,           OPT_SIZE },
-    { BLOCK_OPT_BACKING_FILE,   OPT_STRING },
-    { BLOCK_OPT_ENCRYPT,        OPT_FLAG },
+    {
+        .name = BLOCK_OPT_SIZE,
+        .type = OPT_SIZE,
+        .help = "Virtual disk size"
+    },
+    {
+        .name = BLOCK_OPT_BACKING_FILE,
+        .type = OPT_STRING,
+        .help = "File name of a base image"
+    },
+    {
+        .name = BLOCK_OPT_ENCRYPT,
+        .type = OPT_FLAG,
+        .help = "Encrypt the image"
+    },
     { NULL }
 };
 

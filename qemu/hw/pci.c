@@ -28,6 +28,11 @@
 #include "sysemu.h"
 
 //#define DEBUG_PCI
+#ifdef DEBUG_PCI
+# define PCI_DPRINTF(format, ...)       printf(format, __VA_ARGS__)
+#else
+# define PCI_DPRINTF(format, ...)       do { } while (0)
+#endif
 
 struct PCIBus {
     BusState qbus;
@@ -54,6 +59,15 @@ static struct BusInfo pci_bus_info = {
     .name       = "PCI",
     .size       = sizeof(PCIBus),
     .print_dev  = pcibus_dev_print,
+    .props      = (Property[]) {
+        {
+            .name   = "devfn",
+            .info   = &qdev_prop_uint32,
+            .offset = offsetof(PCIDevice, devfn),
+            .defval = (uint32_t[]) { -1 },
+        },
+        {/* end of list */}
+    }
 };
 
 static void pci_update_mappings(PCIDevice *d);
@@ -123,7 +137,7 @@ PCIBus *pci_register_bus(DeviceState *parent, const char *name,
     bus->irq_opaque = pic;
     bus->devfn_min = devfn_min;
     bus->nirq = nirq;
-    bus->irq_count = qemu_malloc(nirq * sizeof(bus->irq_count[0]));
+    bus->irq_count = qemu_mallocz(nirq * sizeof(bus->irq_count[0]));
     bus->next = first_bus;
     first_bus = bus;
     register_savevm("PCIBUS", nbus++, 1, pcibus_save, pcibus_load, bus);
@@ -135,7 +149,7 @@ static PCIBus *pci_register_secondary_bus(PCIDevice *dev, pci_map_irq_fn map_irq
 {
     PCIBus *bus;
 
-    bus = FROM_QBUS(PCIBus, qbus_create(&pci_bus_info, &dev->qdev, NULL));
+    bus = qemu_mallocz(sizeof(PCIBus));
     bus->map_irq = map_irq;
     bus->parent_dev = dev;
     bus->next = dev->bus->next;
@@ -548,9 +562,9 @@ void pci_data_write(void *opaque, uint32_t addr, uint32_t val, int len)
     PCIDevice *pci_dev;
     int config_addr, bus_num;
 
-#if defined(DEBUG_PCI) && 0
-    printf("pci_data_write: addr=%08x val=%08x len=%d\n",
-           addr, val, len);
+#if 0
+    PCI_DPRINTF("pci_data_write: addr=%08x val=%08x len=%d\n",
+                addr, val, len);
 #endif
     bus_num = (addr >> 16) & 0xff;
     while (s && s->bus_num != bus_num)
@@ -561,10 +575,8 @@ void pci_data_write(void *opaque, uint32_t addr, uint32_t val, int len)
     if (!pci_dev)
         return;
     config_addr = addr & 0xff;
-#if defined(DEBUG_PCI)
-    printf("pci_config_write: %s: addr=%02x val=%08x len=%d\n",
-           pci_dev->name, config_addr, val, len);
-#endif
+    PCI_DPRINTF("pci_config_write: %s: addr=%02x val=%08x len=%d\n",
+                pci_dev->name, config_addr, val, len);
     pci_dev->config_write(pci_dev, config_addr, val, len);
 }
 
@@ -599,14 +611,12 @@ uint32_t pci_data_read(void *opaque, uint32_t addr, int len)
     }
     config_addr = addr & 0xff;
     val = pci_dev->config_read(pci_dev, config_addr, len);
-#if defined(DEBUG_PCI)
-    printf("pci_config_read: %s: addr=%02x val=%08x len=%d\n",
-           pci_dev->name, config_addr, val, len);
-#endif
+    PCI_DPRINTF("pci_config_read: %s: addr=%02x val=%08x len=%d\n",
+                pci_dev->name, config_addr, val, len);
  the_end:
-#if defined(DEBUG_PCI) && 0
-    printf("pci_data_read: addr=%08x val=%08x len=%d\n",
-           addr, val, len);
+#if 0
+    PCI_DPRINTF("pci_data_read: addr=%08x val=%08x len=%d\n",
+                addr, val, len);
 #endif
     return val;
 }
@@ -728,6 +738,7 @@ static void pci_info_device(PCIDevice *d)
             }
         }
     }
+    monitor_printf(mon, "      id \"%s\"\n", d->qdev.id ? d->qdev.id : "");
     if (class == 0x0604 && d->config[0x19] != 0) {
         pci_for_each_device(d->config[0x19], pci_info_device);
     }
@@ -769,7 +780,7 @@ PCIDevice *pci_create(const char *name, const char *devaddr)
     }
 
     dev = qdev_create(&bus->qbus, name);
-    qdev_set_prop_int(dev, "devfn", devfn);
+    qdev_prop_set_uint32(dev, "devfn", devfn);
     return (PCIDevice *)dev;
 }
 
@@ -812,7 +823,9 @@ PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
         if (strcmp(nd->model, pci_nic_models[i]) == 0) {
             pci_dev = pci_create(pci_nic_names[i], devaddr);
             dev = &pci_dev->qdev;
-            qdev_set_netdev(dev, nd);
+            if (nd->id)
+                dev->id = qemu_strdup(nd->id);
+            dev->nd = nd;
             qdev_init(dev);
             nd->private = dev;
             return pci_dev;
@@ -890,7 +903,7 @@ static void pci_qdev_init(DeviceState *qdev, DeviceInfo *base)
     int devfn;
 
     bus = FROM_QBUS(PCIBus, qdev_get_parent_bus(qdev));
-    devfn = qdev_get_prop_int(qdev, "devfn", -1);
+    devfn = pci_dev->devfn;
     pci_dev = do_pci_register_device(pci_dev, bus, base->name, devfn,
                                      info->config_read, info->config_write);
     assert(pci_dev);
@@ -917,7 +930,7 @@ PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name)
     DeviceState *dev;
 
     dev = qdev_create(&bus->qbus, name);
-    qdev_set_prop_int(dev, "devfn", devfn);
+    qdev_prop_set_uint32(dev, "devfn", devfn);
     qdev_init(dev);
 
     return (PCIDevice *)dev;

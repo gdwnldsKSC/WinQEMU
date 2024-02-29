@@ -16,8 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdarg.h>
@@ -1174,19 +1173,18 @@ static void gen_st_cond (DisasContext *ctx, uint32_t opc, int rt,
 #if defined(TARGET_MIPS64)
     case OPC_SCD:
         save_cpu_state(ctx, 0);
-        op_ldst_scd(t0, t1, t0, ctx);
+        op_ldst_scd(t1, t0, rt, ctx);
         opn = "scd";
         break;
 #endif
     case OPC_SC:
         save_cpu_state(ctx, 0);
-        op_ldst_sc(t0, t1, t0, ctx);
+        op_ldst_sc(t1, t0, rt, ctx);
         opn = "sc";
         break;
     }
     MIPS_DEBUG("%s %s, %d(%s)", opn, regnames[rt], offset, regnames[base]);
     tcg_temp_free(t1);
-    gen_store_gpr(t0, rt);
     tcg_temp_free(t0);
 }
 
