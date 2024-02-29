@@ -1182,6 +1182,9 @@
     <ClCompile Include="qemu\block\qcow2-snapshot.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\msix.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1780,6 +1783,9 @@
     </ClInclude>
     <ClInclude Include="qemu\block\qcow2.h">
       <Filter>qemu\block\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\msix.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

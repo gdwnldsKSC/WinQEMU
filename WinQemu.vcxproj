@@ -195,6 +195,7 @@
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\msix.c" />
     <ClCompile Include="qemu\hw\qdev.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
@@ -1100,6 +1101,7 @@
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\poison.h" />
     <ClInclude Include="qemu\hw\qdev.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
