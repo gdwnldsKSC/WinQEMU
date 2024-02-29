@@ -37,6 +37,7 @@ DEF("drive", HAS_ARG, QEMU_OPTION_drive,
 "-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]\n"
 "       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]\n"
 "       [,cache=writethrough|writeback|none][,format=f][,serial=s]\n"
+"       [,addr=A]\n"
 "                use 'file' as a drive image\n")
 
 DEF("mtdblock", HAS_ARG, QEMU_OPTION_mtdblock,
@@ -173,8 +174,10 @@ DEF("no-hpet", 0, QEMU_OPTION_no_hpet,
 #endif
 
 #ifdef TARGET_I386
-DEF("no-virtio-balloon", 0, QEMU_OPTION_no_virtio_balloon,
-"-no-virtio-balloon disable virtio balloon device\n")
+DEF("balloon", HAS_ARG, QEMU_OPTION_balloon,
+"-balloon none   disable balloon device\n"
+"-balloon virtio[,addr=str]\n"
+"                enable virtio balloon device (default)\n")
 #endif
 
 #ifdef TARGET_I386
@@ -199,77 +202,95 @@ DEFHEADING()
 #endif
 
 DEFHEADING(Network options:)
-// heavily modified from hxtool output for MSVC compatibility
+
+// BEGIN HEAVILY MODIFIED SECTION
+
 #ifdef CONFIG_SLIRP
-#define SLIRP_NET_OPTIONS \
-"-net user[,vlan=n][,name=str][,hostname=host]\n" \
-"                connect the user mode network stack to VLAN 'n' and send\n" \
-"                hostname 'host' to DHCP clients\n"
-#else
-#define SLIRP_NET_OPTIONS ""
+DEF("tftp", HAS_ARG, QEMU_OPTION_tftp, "")
+DEF("bootp", HAS_ARG, QEMU_OPTION_bootp, "")
+DEF("redir", HAS_ARG, QEMU_OPTION_redir, "")
+#ifndef _WIN32
+DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
+#endif
 #endif
 
+#ifdef CONFIG_SLIRP
 #ifdef _WIN32
-#define TAP_NET_OPTIONS \
+#define SLIRP_OPTIONS \
+"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
+"         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
+"         [,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]\n" \
+"                connect the user mode network stack to VLAN 'n', configure its\n" \
+"                DHCP server and enabled optional services\n"
+#else
+#define SLIRP_OPTIONS \
+"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
+"         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
+"         [,hostfwd=rule][,guestfwd=rule]" \
+"                connect the user mode network stack to VLAN 'n', configure its\n" \
+"                DHCP server and enabled optional services\n"
+#endif
+#else
+#define SLIRP_OPTIONS ""
+#endif
+
+// TAOP options
+#ifdef _WIN32
+#define TAP_OPTIONS \
 "-net tap[,vlan=n][,name=str],ifname=name\n" \
 "                connect the host TAP network interface to VLAN 'n'\n"
-#else
-#define TAP_NET_OPTIONS \
-"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n" \
+#else // Non-Windows TAP options - we don't really need it, but having it as reference will help future updates
+#ifdef TUNSETSNDBUF
+#define TAP_OPTIONS \
+"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes]\n" 
 "                connect the host TAP network interface to VLAN 'n' and use the\n" \
 "                network scripts 'file' (default=%s)\n" \
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
-"                use 'fd=h' to connect to an already opened TAP interface\n"
+"                use 'fd=h' to connect to an already opened TAP interface\n" \
+"                use 'sndbuf=nbytes' to limit the size of the send buffer\n" 
+#else
+#define TAP_OPTIONS \
+"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n"
+"                connect the host TAP network interface to VLAN 'n' and use the\n" \
+"                network scripts 'file' (default=%s)\n" \
+"                and 'dfile' (default=%s);\n" \
+"                use '[down]script=no' to disable script execution;\n" \
+"                use 'fd=h' to connect to an already opened TAP interface\n" 
+#endif 
 #endif
 
-#ifdef CONFIG_VDE
-#define VDE_NET_OPTIONS \
+#ifdef CONFIG_VDE 
+#define VDE_OPTIONS \
 "-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n" \
 "                connect the vlan 'n' to port 'n' of a vde switch running\n" \
 "                on host and listening for incoming connections on 'socketpath'.\n" \
 "                Use group 'groupname' and mode 'octalmode' to change default\n" \
-"                ownership and permissions for communication port.\n"
+"                ownership and permissions for communication port.\n" 
 #else
-#define VDE_NET_OPTIONS ""
+#define VDE_OPTIONS ""
 #endif
 
+
+// Put it all together... 
+DEFHEADING(Network options : )
+
 DEF("net", HAS_ARG, QEMU_OPTION_net,
-	"-net nic[,vlan=n][,macaddr=addr][,model=type][,name=str]\n" \
+	"-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]\n"
 	"                create a new Network Interface Card and connect it to VLAN 'n'\n" \
-	SLIRP_NET_OPTIONS \
-	TAP_NET_OPTIONS \
+	SLIRP_OPTIONS \
+	TAP_OPTIONS \
 	"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n" \
 	"                connect the vlan 'n' to another VLAN using a socket connection\n" \
 	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
 	"                connect the vlan 'n' to multicast maddr and port\n" \
-	VDE_NET_OPTIONS \
-	"-net dump[,vlan=n][,file=f][,len=n]\n" \
-	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
-	"-net none       use it alone to have zero network devices; if no -net option\n" \
-	"                is provided, the default is '-net nic -net user'\n")
-// end heavily modified section
+	VDE_OPTIONS \
+    "-net dump[,vlan=n][,file=f][,len=n]\n" \
+    "                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
+    "-net none       use it alone to have zero network devices; if no -net option\n" \
+    "                is provided, the default is '-net nic -net user'\n")
 
-#ifdef CONFIG_SLIRP
-DEF("tftp", HAS_ARG, QEMU_OPTION_tftp, \
-"-tftp dir       allow tftp access to files in dir [-net user]\n")
-#endif
-
-#ifdef CONFIG_SLIRP
-DEF("bootp", HAS_ARG, QEMU_OPTION_bootp, \
-"-bootp file     advertise file in BOOTP replies\n")
-#endif
-
-#ifndef _WIN32
-DEF("smb", HAS_ARG, QEMU_OPTION_smb, \
-"-smb dir        allow SMB access to files in 'dir' [-net user]\n")
-#endif
-
-#ifdef CONFIG_SLIRP
-DEF("redir", HAS_ARG, QEMU_OPTION_redir, \
-"-redir [tcp|udp]:host-port:[guest-host]:guest-port\n" \
-"                redirect TCP or UDP connections from host to guest [-net user]\n")
-#endif
+// END HEAVILY MODIFIED SECTION 
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "\n" \
@@ -285,7 +306,7 @@ DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 
 DEFHEADING()
 
-DEFHEADING(Linux boot specific:)
+DEFHEADING(Linux/Multiboot boot specific:)
 
 DEF("kernel", HAS_ARG, QEMU_OPTION_kernel, \
 "-kernel bzImage use 'bzImage' as kernel image\n")

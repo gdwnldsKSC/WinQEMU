@@ -1143,7 +1143,7 @@ void usb_uhci_piix3_init(PCIBus *bus, int devfn)
     }
     s->frame_timer = qemu_new_timer(vm_clock, uhci_frame_timer, s);
 
-    qemu_register_reset(uhci_reset, 0, s);
+    qemu_register_reset(uhci_reset, s);
     uhci_reset(s);
 
     /* Use region 4 for consistency with real hardware.  BSD guests seem
@@ -1178,7 +1178,7 @@ void usb_uhci_piix4_init(PCIBus *bus, int devfn)
     }
     s->frame_timer = qemu_new_timer(vm_clock, uhci_frame_timer, s);
 
-    qemu_register_reset(uhci_reset, 0, s);
+    qemu_register_reset(uhci_reset, s);
     uhci_reset(s);
 
     /* Use region 4 for consistency with real hardware.  BSD guests seem

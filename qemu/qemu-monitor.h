@@ -129,7 +129,7 @@
 
 
 #if defined(TARGET_I386)
-{ "drive_add", "ss", drive_hot_add, "pci_addr=[[<domain>:]<bus>:]<slot>\n"
+{ "drive_add", "ss", drive_hot_add, "[[<domain>:]<bus>:]<slot>\n"
 "[file=file][,if=type][,bus=n]\n"
 "[,unit=m][,media=d][index=i]\n"
 "[,cyls=c,heads=h,secs=s[,trans=t]]\n"
@@ -138,11 +138,11 @@
 #endif
 
 #if defined(TARGET_I386)
-{ "pci_add", "sss", pci_device_hot_add, "pci_addr=auto|[[<domain>:]<bus>:]<slot> nic|storage [[vlan=n][,macaddr=addr][,model=type]] [file=file][,if=type][,bus=nr]...", "hot-add PCI device" },
+{ "pci_add", "sss?", pci_device_hot_add, "auto|[[<domain>:]<bus>:]<slot> nic|storage [[vlan=n][,macaddr=addr][,model=type]] [file=file][,if=type][,bus=nr]...", "hot-add PCI device" },
 #endif
 
 #if defined(TARGET_I386)
-{ "pci_del", "s", pci_device_hot_remove, "pci_addr=[[<domain>:]<bus>:]<slot>", "hot remove PCI device" },
+{ "pci_del", "s", pci_device_hot_remove, "[[<domain>:]<bus>:]<slot>", "hot remove PCI device" },
 #endif
 
 { "host_net_add", "ss?", net_host_device_add,
@@ -152,10 +152,12 @@
 "vlan_id name", "remove host VLAN client" },
 
 #ifdef CONFIG_SLIRP
-{ "host_net_redir", "ss?", net_slirp_redir,
-"[tcp|udp]:host-port:[guest-host]:guest-port", "redirect TCP or UDP connections from host to guest (requires -net user)\n"
-"host_net_redir remove [tcp:|udp:]host-port -- remove redirection\n"
-"host_net_redir list -- show all redirections" },
+{ "hostfwd_add", "ss?s?", net_slirp_hostfwd_add,
+"[vlan_id name] [tcp|udp]:[hostaddr]:hostport-[guestaddr]:guestport",
+"redirect TCP or UDP connections from host to guest (requires -net user)" },
+{ "hostfwd_remove", "ss?s?", net_slirp_hostfwd_remove,
+"[vlan_id name] [tcp|udp]:[hostaddr]:hostport",
+"remove host-to-guest TCP or UDP redirection" },
 #endif
 
 { "balloon", "i", do_balloon,
@@ -167,10 +169,18 @@
 { "watchdog_action", "s", do_watchdog_action,
 "[reset|shutdown|poweroff|pause|debug|none]", "change watchdog action" },
 
-{ "acl", "sss?i?", do_acl, "<command> <aclname> [<match> [<index>]]\n",
-"acl show vnc.username\n"
-"acl policy vnc.username deny\n"
-"acl allow vnc.username fred\n"
-"acl deny vnc.username bob\n"
-"acl reset vnc.username\n" },
+{ "acl_show", "s", do_acl_show, "aclname",
+"list rules in the access control list" },
+
+{ "acl_policy", "ss", do_acl_policy, "aclname allow|deny",
+"set default access control list policy" },
+
+{ "acl_add", "sssi?", do_acl_add, "aclname match allow|deny [index]",
+"add a match rule to the access control list" },
+
+{ "acl_remove", "ss", do_acl_remove, "aclname match",
+"remove a match rule from the access control list" },
+
+{ "acl_reset", "s", do_acl_reset, "aclname",
+"reset the access control list" },
 

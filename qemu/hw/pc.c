@@ -84,7 +84,7 @@ static void option_rom_setup_reset(target_phys_addr_t addr, unsigned size)
     cpu_physical_memory_read(addr, rrd->data, size);
     rrd->addr = addr;
     rrd->size = size;
-    qemu_register_reset(option_rom_reset, 0, rrd);
+    qemu_register_reset(option_rom_reset, rrd);
 }
 
 static void ioport80_write(void *opaque, uint32_t addr, uint32_t data)
@@ -1062,6 +1062,25 @@ int cpu_is_bsp(CPUState *env)
 	return env->cpuid_apic_id == 0;
 }
 
+static CPUState *pc_new_cpu(const char *cpu_model)
+{
+    CPUState *env;
+
+    env = cpu_init(cpu_model);
+    if (!env) {
+        fprintf(stderr, "Unable to find x86 CPU definition\n");
+        exit(1);
+    }
+    if ((env->cpuid_features & CPUID_APIC) || smp_cpus > 1) {
+        env->cpuid_apic_id = env->cpu_index;
+        /* APIC reset callback resets cpu */
+        apic_init(env);
+    } else {
+        qemu_register_reset((QEMUResetHandler*)cpu_reset, env);
+    }
+    return env;
+}
+
 /* PC hardware initialisation */
 static void pc_init1(ram_addr_t ram_size,
                      const char *boot_device,
@@ -1103,20 +1122,9 @@ static void pc_init1(ram_addr_t ram_size,
         cpu_model = "qemu32";
 #endif
     }
-    
-    for(i = 0; i < smp_cpus; i++) {
-        env = cpu_init(cpu_model);
-        if (!env) {
-            fprintf(stderr, "Unable to find x86 CPU definition\n");
-            exit(1);
-        }
-        if ((env->cpuid_features & CPUID_APIC) || smp_cpus > 1) {
-            env->cpuid_apic_id = env->cpu_index;
-            /* APIC reset callback resets cpu */
-            apic_init(env);
-        } else {
-            qemu_register_reset((QEMUResetHandler*)cpu_reset, 0, env);
-        }
+
+    for (i = 0; i < smp_cpus; i++) {
+        env = pc_new_cpu(cpu_model);
     }
 
     vmport_init();
@@ -1400,8 +1408,9 @@ static void pc_init1(ram_addr_t ram_size,
     }
 
     /* Add virtio balloon device */
-    if (pci_enabled && !no_virtio_balloon) {
-        pci_create_simple(pci_bus, -1, "virtio-balloon-pci");
+    if (pci_enabled && virtio_balloon) {
+        pci_dev = pci_create("virtio-balloon-pci", virtio_balloon_devaddr);
+        qdev_init(&pci_dev->qdev);
     }
 
     /* Add virtio console devices */

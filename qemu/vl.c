@@ -253,7 +253,8 @@ int smp_cpus = 1;
 const char *vnc_display;
 int acpi_enabled = 1;
 int no_hpet = 0;
-int no_virtio_balloon = 0;
+int virtio_balloon = 1;
+const char *virtio_balloon_devaddr;
 int fd_bootchk = 1;
 int no_reboot = 0;
 int no_shutdown = 0;
@@ -3621,7 +3622,6 @@ void vm_start(void)
 typedef struct QEMUResetEntry {
     QEMUResetHandler *func;
     void *opaque;
-    int order;
     struct QEMUResetEntry *next;
 } QEMUResetEntry;
 
@@ -3677,18 +3677,16 @@ static void do_vm_stop(int reason)
     }
 }
 
-void qemu_register_reset(QEMUResetHandler *func, int order, void *opaque)
+void qemu_register_reset(QEMUResetHandler *func, void *opaque)
 {
     QEMUResetEntry **pre, *re;
 
     pre = &first_reset_entry;
-    while (*pre != NULL && (*pre)->order >= order) {
+    while (*pre != NULL)
         pre = &(*pre)->next;
-    }
     re = qemu_mallocz(sizeof(QEMUResetEntry));
     re->func = func;
     re->opaque = opaque;
-    re->order = order;
     re->next = NULL;
     *pre = re;
 }
@@ -4778,6 +4776,29 @@ static void select_vgahw (const char *p)
     }
 }
 
+#ifdef TARGET_I386
+static int balloon_parse(const char *arg)
+{
+    char buf[128];
+    const char *p;
+
+    if (!strcmp(arg, "none")) {
+        virtio_balloon = 0;
+    } else if (!strncmp(arg, "virtio", 6)) {
+        virtio_balloon = 1;
+        if (arg[6] == ',')  {
+            p = arg + 7;
+            if (get_param_value(buf, sizeof(buf), "addr", p)) {
+                virtio_balloon_devaddr = strdup(buf);
+            }
+        }
+    } else {
+        return -1;
+    }
+    return 0;
+}
+#endif
+
 #ifdef _WIN32
 static BOOL WINAPI qemu_ctrl_handler(DWORD type)
 {
@@ -5599,8 +5620,11 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             case QEMU_OPTION_no_hpet:
                 no_hpet = 1;
                 break;
-            case QEMU_OPTION_no_virtio_balloon:
-                no_virtio_balloon = 1;
+            case QEMU_OPTION_balloon:
+                if (balloon_parse(optarg) < 0) {
+                    fprintf(stderr, "Unknown -balloon argument %s\n", optarg);
+                    exit(1);
+                }
                 break;
 #endif
             case QEMU_OPTION_no_reboot:
@@ -6078,17 +6102,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
 
     current_machine = machine;
-
-    /* Set KVM's vcpu state to qemu's initial CPUState. */
-    if (kvm_enabled()) {
-        int ret;
-
-        ret = kvm_sync_vcpus();
-        if (ret < 0) {
-            fprintf(stderr, "failed to initialize vcpus\n");
-            exit(1);
-        }
-    }
 
     /* init USB devices */
     if (usb_enabled) {

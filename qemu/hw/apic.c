@@ -34,6 +34,7 @@
 #include "msix.h"
 #include "qemu-timer.h"
 #include "host-utils.h"
+#include "kvm.h"
 
 //#define DEBUG_APIC
 
@@ -1042,6 +1043,8 @@ static void apic_reset(void *opaque)
          */
         s->lvt[APIC_LVT_LINT0] = 0x700;
     }
+
+    cpu_synchronize_state(s->cpu_env, 1);
 }
 
 static CPUReadMemoryFunc *apic_mem_read[3] = {
@@ -1084,7 +1087,7 @@ int apic_init(CPUState *env)
     s->timer = qemu_new_timer(vm_clock, apic_timer, s);
 
     register_savevm("apic", s->idx, 2, apic_save, apic_load, s);
-    qemu_register_reset(apic_reset, 0, s);
+    qemu_register_reset(apic_reset, s);
 
     local_apics[s->idx] = s;
     return 0;
