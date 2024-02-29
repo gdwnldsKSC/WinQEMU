@@ -187,7 +187,7 @@ sdl_zoom.o: sdl_zoom.c sdl_zoom.h sdl_zoom_template.h
 
 sdl.o: sdl.c keymaps.h sdl_keysym.h sdl_zoom.h
 
-sdl.o audio/sdlaudio.o baum.o: CFLAGS += $(SDL_CFLAGS)
+sdl.o audio/sdlaudio.o sdl_zoom.o baum.o: CFLAGS += $(SDL_CFLAGS)
 
 acl.o: acl.h acl.c
 
@@ -301,7 +301,7 @@ test speed: all
 	$(MAKE) -C tests $@
 
 TAGS:
-	etags *.[ch] tests/*.[ch]
+	etags *.[ch] tests/*.[ch] block/*.[ch] hw/*.[ch]
 
 cscope:
 	rm -f ./cscope.*
