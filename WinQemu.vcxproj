@@ -204,6 +204,10 @@
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
+    <ClCompile Include="qemu\ioport-user.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ioport.c" />
     <ClCompile Include="qemu\microblaze-dis.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1108,6 +1112,7 @@
     <ClInclude Include="qemu\hw\ssi.h" />
     <ClInclude Include="qemu\hw\sysbus.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
+    <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\module.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />

@@ -184,3 +184,7 @@
 { "acl_reset", "s", do_acl_reset, "aclname",
 "reset the access control list" },
 
+#if defined(TARGET_I386)
+{ "mce", "iillll", do_inject_mce, "cpu bank status mcgstatus addr misc", "inject a MCE on the given CPU"},
+#endif
+

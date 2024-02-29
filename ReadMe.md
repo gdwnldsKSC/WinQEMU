@@ -27,7 +27,6 @@ For a working debug environment, add to D:\Images\ (currently hard coded) vgabio
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
 be modified in project WinQemu\qemu\inc\config-host.h
 
-## NOTE - USING WINDOWS PATHS IS CURRENTLY BROKEN. PLACE FILES INSIDE FOLDER WITH QEMU EXECUTABLES
 Add '-net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 

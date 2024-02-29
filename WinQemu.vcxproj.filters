@@ -1185,6 +1185,12 @@
     <ClCompile Include="qemu\sdl_zoom.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\ioport.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ioport-user.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1785,6 +1791,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\sdl_zoom_template.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ioport.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
