@@ -735,13 +735,28 @@ STEXI
 @table @option
 ETEXI
 
+HXCOMM Legacy slirp options (now moved to -net user):
+#ifdef CONFIG_SLIRP
+DEF("tftp", HAS_ARG, QEMU_OPTION_tftp, "")
+DEF("bootp", HAS_ARG, QEMU_OPTION_bootp, "")
+DEF("redir", HAS_ARG, QEMU_OPTION_redir, "")
+#ifndef _WIN32
+DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
+#endif
+#endif
+
 DEF("net", HAS_ARG, QEMU_OPTION_net,
     "-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]\n"
     "                create a new Network Interface Card and connect it to VLAN 'n'\n"
 #ifdef CONFIG_SLIRP
-    "-net user[,vlan=n][,name=str][,hostname=host]\n"
-    "                connect the user mode network stack to VLAN 'n' and send\n"
-    "                hostname 'host' to DHCP clients\n"
+    "-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n"
+    "         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n"
+    "         [,hostfwd=rule][,guestfwd=rule]"
+#ifndef _WIN32
+                                             "[,smb=dir[,smbserver=addr]]\n"
+#endif
+    "                connect the user mode network stack to VLAN 'n', configure its\n"
+    "                DHCP server and enabled optional services\n"
 #endif
 #ifdef _WIN32
     "-net tap[,vlan=n][,name=str],ifname=name\n"
@@ -794,13 +809,118 @@ Valid values for @var{type} are
 Not all devices are supported on all targets.  Use -net nic,model=?
 for a list of available devices for your target.
 
-@item -net user[,vlan=@var{n}][,hostname=@var{name}][,name=@var{name}]
+@item -net user[,@var{option}][,@var{option}][,...]
 Use the user mode network stack which requires no administrator
-privilege to run.  @option{hostname=name} can be used to specify the client
-hostname reported by the builtin DHCP server.
+privilege to run. Valid options are:
 
-@item -net channel,@var{port}:@var{dev}
-Forward @option{user} TCP connection to port @var{port} to character device @var{dev}
+@table @code
+@item vlan=@var{n}
+Connect user mode stack to VLAN @var{n} (@var{n} = 0 is the default).
+
+@item name=@var{name}
+Assign symbolic name for use in monitor commands.
+
+@item net=@var{addr}[/@var{mask}]
+Set IP network address the guest will see. Optionally specify the netmask,
+either in the form a.b.c.d or as number of valid top-most bits. Default is
+10.0.2.0/8.
+
+@item host=@var{addr}
+Specify the guest-visible address of the host. Default is the 2nd IP in the
+guest network, i.e. x.x.x.2.
+
+@item restrict=y|yes|n|no
+If this options is enabled, the guest will be isolated, i.e. it will not be
+able to contact the host and no guest IP packets will be routed over the host
+to the outside. This option does not affect explicitly set forwarding rule.
+
+@item hostname=@var{name}
+Specifies the client hostname reported by the builtin DHCP server.
+
+@item dhcpstart=@var{addr}
+Specify the first of the 16 IPs the built-in DHCP server can assign. Default
+is the 16th to 31st IP in the guest network, i.e. x.x.x.16 to x.x.x.31.
+
+@item dns=@var{addr}
+Specify the guest-visible address of the virtual nameserver. The address must
+be different from the host address. Default is the 3rd IP in the guest network,
+i.e. x.x.x.3.
+
+@item tftp=@var{dir}
+When using the user mode network stack, activate a built-in TFTP
+server. The files in @var{dir} will be exposed as the root of a TFTP server.
+The TFTP client on the guest must be configured in binary mode (use the command
+@code{bin} of the Unix TFTP client).
+
+@item bootfile=@var{file}
+When using the user mode network stack, broadcast @var{file} as the BOOTP
+filename. In conjunction with @option{tftp}, this can be used to network boot
+a guest from a local directory.
+
+Example (using pxelinux):
+@example
+qemu -hda linux.img -boot n -net user,tftp=/path/to/tftp/files,bootfile=/pxelinux.0
+@end example
+
+@item smb=@var{dir}[,smbserver=@var{addr}]
+When using the user mode network stack, activate a built-in SMB
+server so that Windows OSes can access to the host files in @file{@var{dir}}
+transparently. The IP address of the SMB server can be set to @var{addr}. By
+default the 4th IP in the guest network is used, i.e. x.x.x.4.
+
+In the guest Windows OS, the line:
+@example
+10.0.2.4 smbserver
+@end example
+must be added in the file @file{C:\WINDOWS\LMHOSTS} (for windows 9x/Me)
+or @file{C:\WINNT\SYSTEM32\DRIVERS\ETC\LMHOSTS} (Windows NT/2000).
+
+Then @file{@var{dir}} can be accessed in @file{\\smbserver\qemu}.
+
+Note that a SAMBA server must be installed on the host OS in
+@file{/usr/sbin/smbd}. QEMU was tested successfully with smbd versions from
+Red Hat 9, Fedora Core 3 and OpenSUSE 11.x.
+
+@item hostfwd=[tcp|udp]:[@var{hostaddr}]:@var{hostport}-[@var{guestaddr}]:@var{guestport}
+Redirect incoming TCP or UDP connections to the host port @var{hostport} to
+the guest IP address @var{guestaddr} on guest port @var{guestport}. If
+@var{guestaddr} is not specified, its value is x.x.x.15 (default first address
+given by the built-in DHCP server). By specifying @var{hostaddr}, the rule can
+be bound to a specific host interface. If no connection type is set, TCP is
+used. This option can be given multiple times.
+
+For example, to redirect host X11 connection from screen 1 to guest
+screen 0, use the following:
+
+@example
+# on the host
+qemu -net user,hostfwd=tcp:127.0.0.1:6001-:6000 [...]
+# this host xterm should open in the guest X11 server
+xterm -display :1
+@end example
+
+To redirect telnet connections from host port 5555 to telnet port on
+the guest, use the following:
+
+@example
+# on the host
+qemu -net user,hostfwd=tcp:5555::23 [...]
+telnet localhost 5555
+@end example
+
+Then when you use on the host @code{telnet localhost 5555}, you
+connect to the guest telnet server.
+
+@item guestfwd=[tcp]:@var{server}:@var{port}-@var{dev}
+Forward guest TCP connections to the IP address @var{server} on port @var{port}
+to the character device @var{dev}. This option can be given multiple times.
+
+@end table
+
+Note: Legacy stand-alone options -tftp, -bootp, -smb and -redir are still
+processed and applied to -net user. Mixing them with the new configuration
+syntax gives undefined results. Their use for new applications is discouraged
+as they will be removed from future versions.
 
 @item -net tap[,vlan=@var{n}][,name=@var{name}][,fd=@var{h}][,ifname=@var{name}][,script=@var{file}][,downscript=@var{dfile}]
 Connect the host TAP network interface @var{name} to VLAN @var{n}, use
@@ -906,96 +1026,6 @@ libpcap, so it can be analyzed with tools such as tcpdump or Wireshark.
 Indicate that no network devices should be configured. It is used to
 override the default configuration (@option{-net nic -net user}) which
 is activated if no @option{-net} options are provided.
-ETEXI
-
-#ifdef CONFIG_SLIRP
-DEF("tftp", HAS_ARG, QEMU_OPTION_tftp, \
-    "-tftp dir       allow tftp access to files in dir [-net user]\n")
-#endif
-STEXI
-@item -tftp @var{dir}
-When using the user mode network stack, activate a built-in TFTP
-server. The files in @var{dir} will be exposed as the root of a TFTP server.
-The TFTP client on the guest must be configured in binary mode (use the command
-@code{bin} of the Unix TFTP client). The host IP address on the guest is as
-usual 10.0.2.2.
-ETEXI
-
-#ifdef CONFIG_SLIRP
-DEF("bootp", HAS_ARG, QEMU_OPTION_bootp, \
-    "-bootp file     advertise file in BOOTP replies\n")
-#endif
-STEXI
-@item -bootp @var{file}
-When using the user mode network stack, broadcast @var{file} as the BOOTP
-filename.  In conjunction with @option{-tftp}, this can be used to network boot
-a guest from a local directory.
-
-Example (using pxelinux):
-@example
-qemu -hda linux.img -boot n -tftp /path/to/tftp/files -bootp /pxelinux.0
-@end example
-ETEXI
-
-#ifndef _WIN32
-DEF("smb", HAS_ARG, QEMU_OPTION_smb, \
-           "-smb dir        allow SMB access to files in 'dir' [-net user]\n")
-#endif
-STEXI
-@item -smb @var{dir}
-When using the user mode network stack, activate a built-in SMB
-server so that Windows OSes can access to the host files in @file{@var{dir}}
-transparently.
-
-In the guest Windows OS, the line:
-@example
-10.0.2.4 smbserver
-@end example
-must be added in the file @file{C:\WINDOWS\LMHOSTS} (for windows 9x/Me)
-or @file{C:\WINNT\SYSTEM32\DRIVERS\ETC\LMHOSTS} (Windows NT/2000).
-
-Then @file{@var{dir}} can be accessed in @file{\\smbserver\qemu}.
-
-Note that a SAMBA server must be installed on the host OS in
-@file{/usr/sbin/smbd}. QEMU was tested successfully with smbd version
-2.2.7a from the Red Hat 9 and version 3.0.10-1.fc3 from Fedora Core 3.
-ETEXI
-
-#ifdef CONFIG_SLIRP
-DEF("redir", HAS_ARG, QEMU_OPTION_redir, \
-    "-redir [tcp|udp]:host-port:[guest-host]:guest-port\n" \
-    "                redirect TCP or UDP connections from host to guest [-net user]\n")
-#endif
-STEXI
-@item -redir [tcp|udp]:@var{host-port}:[@var{guest-host}]:@var{guest-port}
-
-When using the user mode network stack, redirect incoming TCP or UDP
-connections to the host port @var{host-port} to the guest
-@var{guest-host} on guest port @var{guest-port}. If @var{guest-host}
-is not specified, its value is 10.0.2.15 (default address given by the
-built-in DHCP server). If no connection type is specified, TCP is used.
-
-For example, to redirect host X11 connection from screen 1 to guest
-screen 0, use the following:
-
-@example
-# on the host
-qemu -redir tcp:6001::6000 [...]
-# this host xterm should open in the guest X11 server
-xterm -display :1
-@end example
-
-To redirect telnet connections from host port 5555 to telnet port on
-the guest, use the following:
-
-@example
-# on the host
-qemu -redir tcp:5555::23 [...]
-telnet localhost 5555
-@end example
-
-Then when you use on the host @code{telnet localhost 5555}, you
-connect to the guest telnet server.
 
 @end table
 ETEXI
@@ -1070,10 +1100,11 @@ ETEXI
 
 DEFHEADING()
 
-DEFHEADING(Linux boot specific:)
+DEFHEADING(Linux/Multiboot boot specific:)
 STEXI
-When using these options, you can use a given
-Linux kernel without installing it in the disk image. It can be useful
+
+When using these options, you can use a given Linux or Multiboot
+kernel without installing it in the disk image. It can be useful
 for easier testing of various kernels.
 
 @table @option
@@ -1083,7 +1114,8 @@ DEF("kernel", HAS_ARG, QEMU_OPTION_kernel, \
     "-kernel bzImage use 'bzImage' as kernel image\n")
 STEXI
 @item -kernel @var{bzImage}
-Use @var{bzImage} as kernel image.
+Use @var{bzImage} as kernel image. The kernel can be either a Linux kernel
+or in multiboot format.
 ETEXI
 
 DEF("append", HAS_ARG, QEMU_OPTION_append, \
@@ -1098,6 +1130,13 @@ DEF("initrd", HAS_ARG, QEMU_OPTION_initrd, \
 STEXI
 @item -initrd @var{file}
 Use @var{file} as initial ram disk.
+
+@item -initrd "@var{file1} arg=foo,@var{file2}"
+
+This syntax is only available with multiboot.
+
+Use @var{file1} and @var{file2} as modules and pass arg=foo as parameter to the
+first module.
 ETEXI
 
 STEXI

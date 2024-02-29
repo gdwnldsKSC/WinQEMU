@@ -51,7 +51,7 @@ struct VLANState {
     int delivering;
 };
 
-VLANState *qemu_find_vlan(int id);
+VLANState *qemu_find_vlan(int id, int allocate);
 VLANClientState *qemu_new_vlan_client(VLANState *vlan,
                                       const char *model,
                                       const char *name,
@@ -80,6 +80,8 @@ void qemu_handler_true(void *opaque);
 
 void do_info_network(Monitor *mon);
 int do_set_link(Monitor *mon, const char *name, const char *up_or_down);
+
+void do_info_usernet(Monitor *mon);
 
 /* NIC info */
 
@@ -125,13 +127,19 @@ uint16_t net_checksum_tcpudp(uint16_t length, uint16_t proto,
 void net_checksum_calculate(uint8_t *data, int length);
 
 /* from net.c */
+extern const char *legacy_tftp_prefix;
+extern const char *legacy_bootp_filename;
+
 int net_client_init(Monitor *mon, const char *device, const char *p);
 void net_client_uninit(NICInfo *nd);
 int net_client_parse(const char *str);
 void net_slirp_smb(const char *exported_dir);
-void net_slirp_redir(Monitor *mon, const char *redir_str, const char *redir_opt2);
+void net_slirp_hostfwd_add(Monitor *mon, const char *arg1,
+                           const char *arg2, const char *arg3);
+void net_slirp_hostfwd_remove(Monitor *mon, const char *arg1,
+                              const char *arg2, const char *arg3);
+void net_slirp_redir(const char *redir_str);
 void net_cleanup(void);
-int slirp_is_inited(void);
 void net_client_check(void);
 void net_set_boot_mask(int boot_mask);
 void net_host_device_add(Monitor *mon, const char *device, const char *opts);

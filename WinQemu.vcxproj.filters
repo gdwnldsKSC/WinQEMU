@@ -996,9 +996,6 @@
     <ClCompile Include="qemu\slirp\cksum.c">
       <Filter>qemu\slirp</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\slirp\debug.c">
-      <Filter>qemu\slirp</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\slirp\if.c">
       <Filter>qemu\slirp</Filter>
     </ClCompile>
@@ -1184,6 +1181,9 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\msix.c">
       <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\sdl_zoom.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1649,13 +1649,7 @@
     <ClInclude Include="qemu\slirp\bootp.h">
       <Filter>qemu\slirp</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\slirp\ctl.h">
-      <Filter>qemu\slirp</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\slirp\debug.h">
-      <Filter>qemu\slirp</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\slirp\icmp_var.h">
       <Filter>qemu\slirp</Filter>
     </ClInclude>
     <ClInclude Include="qemu\slirp\if.h">
@@ -1786,6 +1780,12 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\msix.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\sdl_zoom.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\sdl_zoom_template.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

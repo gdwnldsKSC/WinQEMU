@@ -237,7 +237,7 @@ static BlockDriver *find_protocol(const char *filename)
 {
     BlockDriver *drv1;
     char protocol[128];
-    int len;
+    int len = strnlen(filename, 127)+1;
     const char *p;
 
 #ifdef _WIN32
@@ -245,14 +245,9 @@ static BlockDriver *find_protocol(const char *filename)
         is_windows_drive_prefix(filename))
         return bdrv_find_format("raw");
 #endif
-    p = strchr(filename, ':');
-    if (!p)
+    p = fill_token(protocol, len, filename, ':');
+    if (*p != ':')
         return bdrv_find_format("raw");
-    len = p - filename;
-    if (len > sizeof(protocol) - 1)
-        len = sizeof(protocol) - 1;
-    memcpy(protocol, filename, len);
-    protocol[len] = '\0';
     for(drv1 = first_drv; drv1 != NULL; drv1 = drv1->next) {
         if (drv1->protocol_name &&
             !strcmp(drv1->protocol_name, protocol))
@@ -426,9 +421,9 @@ int bdrv_open2(BlockDriverState *bs, const char *filename, int flags,
         open_flags = BDRV_O_RDWR | (flags & BDRV_O_CACHE_MASK);
     else
         open_flags = flags & ~(BDRV_O_FILE | BDRV_O_SNAPSHOT);
-    ret = drv->bdrv_open(bs, filename, open_flags);
+    ret = bdrv_open3(bs, filename, open_flags, drv);
     if ((ret == -EACCES || ret == -EPERM) && !(flags & BDRV_O_FILE)) {
-        ret = drv->bdrv_open(bs, filename, open_flags & ~BDRV_O_RDWR);
+        ret = bdrv_open3(bs, filename, open_flags & ~BDRV_O_RDWR, drv);
         bs->read_only = 1;
     }
     if (ret < 0) {
@@ -471,6 +466,18 @@ int bdrv_open2(BlockDriverState *bs, const char *filename, int flags,
             bs->change_cb(bs->change_opaque);
     }
     return 0;
+}
+
+int bdrv_open3(BlockDriverState *bs, const char *filename, int flags, BlockDriver *drv)
+{
+    char myfile[PATH_MAX];
+    const char *f;
+
+    if (!strstart(filename, "file:", &f)) {
+        fill_token(myfile, PATH_MAX, filename, '\0');
+        return drv->bdrv_open(bs,myfile,flags);
+    }
+    return drv->bdrv_open(bs,f,flags);
 }
 
 void bdrv_close(BlockDriverState *bs)
@@ -659,7 +666,7 @@ int bdrv_pread(BlockDriverState *bs, int64_t offset,
             return -EIO;
         sector_num += nb_sectors;
         len = nb_sectors << SECTOR_BITS;
-        (char *)buf += len;
+        (char*)buf += len;
         count -= len;
     }
 
@@ -695,7 +702,7 @@ int bdrv_pwrite(BlockDriverState *bs, int64_t offset,
         if (count == 0)
             return count1;
         sector_num++;
-        (char *)buf += len;
+        (char*)buf += len;
     }
 
     /* write the sectors "in place" */
@@ -705,7 +712,7 @@ int bdrv_pwrite(BlockDriverState *bs, int64_t offset,
             return -EIO;
         sector_num += nb_sectors;
         len = nb_sectors << SECTOR_BITS;
-        (char *)buf += len;
+        (char*)buf += len;
         count -= len;
     }
 

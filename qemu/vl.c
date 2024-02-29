@@ -176,9 +176,7 @@ int main(int argc, char **argv)
 
 #include "qemu_socket.h"
 
-#if defined(CONFIG_SLIRP)
-#include "libslirp.h"
-#endif
+#include "slirp/libslirp.h"
 
 //#define DEBUG_UNUSED_IOPORT
 //#define DEBUG_IOPORT
@@ -1823,20 +1821,23 @@ static int socket_init(void)
 }
 #endif
 
-int get_param_value(char *buf, int buf_size,
-                    const char *tag, const char *str)
+int get_next_param_value(char *buf, int buf_size,
+                         const char *tag, const char **pstr)
 {
     const char *p;
     char option[128];
 
-    p = str;
+    p = *pstr;
     for(;;) {
         p = get_opt_name(option, sizeof(option), p, '=');
         if (*p != '=')
             break;
         p++;
         if (!strcmp(tag, option)) {
-            (void)get_opt_value(buf, buf_size, p);
+            *pstr = get_opt_value(buf, buf_size, p);
+            if (**pstr == ',') {
+                (*pstr)++;
+            }
             return strlen(buf);
         } else {
             p = get_opt_value(NULL, 0, p);
@@ -1846,6 +1847,12 @@ int get_param_value(char *buf, int buf_size,
         p++;
     }
     return 0;
+}
+
+int get_param_value(char *buf, int buf_size,
+                    const char *tag, const char *str)
+{
+    return get_next_param_value(buf, buf_size, tag, &str);
 }
 
 int check_params(char *buf, int buf_size,
@@ -4270,11 +4277,8 @@ void main_loop_wait(int timeout)
     tv.tv_sec = timeout / 1000;
     tv.tv_usec = (timeout % 1000) * 1000;
 
-#if defined(CONFIG_SLIRP)
-    if (slirp_is_inited()) {
-        slirp_select_fill(&nfds, &rfds, &wfds, &xfds);
-    }
-#endif
+    slirp_select_fill(&nfds, &rfds, &wfds, &xfds);
+
     qemu_mutex_unlock_iothread();
     ret = select(nfds + 1, &rfds, &wfds, &xfds, &tv);
     qemu_mutex_lock_iothread();
@@ -4301,16 +4305,8 @@ void main_loop_wait(int timeout)
                 pioh = &ioh->next;
         }
     }
-#if defined(CONFIG_SLIRP)
-    if (slirp_is_inited()) {
-        if (ret < 0) {
-            FD_ZERO(&rfds);
-            FD_ZERO(&wfds);
-            FD_ZERO(&xfds);
-        }
-        slirp_select_poll(&rfds, &wfds, &xfds);
-    }
-#endif
+
+    slirp_select_poll(&rfds, &wfds, &xfds, (ret < 0));
 
     /* rearm timer, if not periodic */
     if (alarm_timer->flags & ALARM_FLAG_EXPIRED) {
@@ -5317,18 +5313,18 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 break;
 #ifdef CONFIG_SLIRP
             case QEMU_OPTION_tftp:
-		tftp_prefix = optarg;
+                legacy_tftp_prefix = optarg;
                 break;
             case QEMU_OPTION_bootp:
-                bootp_filename = optarg;
+                legacy_bootp_filename = optarg;
                 break;
 #ifndef _WIN32
             case QEMU_OPTION_smb:
-		net_slirp_smb(optarg);
+                net_slirp_smb(optarg);
                 break;
 #endif
             case QEMU_OPTION_redir:
-                net_slirp_redir(NULL, optarg, NULL);
+                net_slirp_redir(optarg);
                 break;
 #endif
             case QEMU_OPTION_bt:

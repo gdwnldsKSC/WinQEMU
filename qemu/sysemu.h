@@ -154,6 +154,8 @@ typedef enum {
     BLOCK_ERR_STOP_ANY
 } BlockInterfaceErrorAction;
 
+#define BLOCK_SERIAL_STRLEN 20
+
 typedef struct DriveInfo {
     BlockDriverState *bdrv;
     const char *devaddr;
@@ -163,7 +165,7 @@ typedef struct DriveInfo {
     int used;
     int drive_opt_idx;
     BlockInterfaceErrorAction onerror;
-    char serial[21];
+    char serial[BLOCK_SERIAL_STRLEN + 1];
 } DriveInfo;
 
 #define MAX_IDE_DEVS	2
@@ -273,6 +275,8 @@ void usb_info(Monitor *mon);
 
 int get_param_value(char *buf, int buf_size,
                     const char *tag, const char *str);
+int get_next_param_value(char *buf, int buf_size,
+                         const char *tag, const char **pstr);
 int check_params(char *buf, int buf_size,
                  const char * const *params, const char *str);
 
