@@ -50,7 +50,8 @@ DEF("pflash", HAS_ARG, QEMU_OPTION_pflash,
 "-pflash file    use 'file' as a parallel flash image\n")
 
 DEF("boot", HAS_ARG, QEMU_OPTION_boot,
-"-boot [a|c|d|n] boot on floppy (a), hard disk (c), CD-ROM (d), or network (n)\n")
+"-boot [order=drives][,once=drives][,menu=on|off]\n"
+"                'drives': floppy (a), hard disk (c), CD-ROM (d), network (n)\n")
 
 DEF("snapshot", 0, QEMU_OPTION_snapshot,
 "-snapshot       write to temporary files instead of disk image files\n")
@@ -83,7 +84,8 @@ DEF("usbdevice", HAS_ARG, QEMU_OPTION_usbdevice,
 "-usbdevice name add the host or guest USB device 'name'\n")
 
 DEF("name", HAS_ARG, QEMU_OPTION_name,
-"-name string    set the name of the guest\n")
+"-name string1[,process=string2]    set the name of the guest\n"
+"            string1 sets the window title and string2 the process name (on Linux)\n")
 
 DEF("uuid", HAS_ARG, QEMU_OPTION_uuid,
 "-uuid %%08x-%%04x-%%04x-%%04x-%%012x\n"
@@ -234,7 +236,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 #define SLIRP_OPTIONS ""
 #endif
 
-// TAOP options
+// TAP options
 #ifdef _WIN32
 #define TAP_OPTIONS \
 "-net tap[,vlan=n][,name=str],ifname=name\n" \
@@ -248,7 +250,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n" \
-"                use 'sndbuf=nbytes' to limit the size of the send buffer\n" 
+"                use 'sndbuf=nbytes' to limit the size of the send buffer\n"
 #else
 #define TAP_OPTIONS \
 "-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n"
@@ -256,7 +258,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "                network scripts 'file' (default=%s)\n" \
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
-"                use 'fd=h' to connect to an already opened TAP interface\n" 
+"                use 'fd=h' to connect to an already opened TAP interface\n"
 #endif 
 #endif
 
@@ -285,12 +287,12 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
 	"                connect the vlan 'n' to multicast maddr and port\n" \
 	VDE_OPTIONS \
-    "-net dump[,vlan=n][,file=f][,len=n]\n" \
-    "                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
-    "-net none       use it alone to have zero network devices; if no -net option\n" \
-    "                is provided, the default is '-net nic -net user'\n")
+	"-net dump[,vlan=n][,file=f][,len=n]\n" \
+	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
+	"-net none       use it alone to have zero network devices; if no -net option\n" \
+	"                is provided, the default is '-net nic -net user'\n")
 
-// END HEAVILY MODIFIED SECTION 
+	// END HEAVILY MODIFIED SECTION 
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "\n" \
@@ -367,8 +369,8 @@ DEF("kernel-kqemu", 0, QEMU_OPTION_kernel_kqemu, \
 #endif
 
 #ifdef CONFIG_KQEMU
-DEF("no-kqemu", 0, QEMU_OPTION_no_kqemu, \
-"-no-kqemu       disable KQEMU kernel module usage\n")
+DEF("enable-kqemu", 0, QEMU_OPTION_enable_kqemu, \
+"-enable-kqemu   enable KQEMU kernel module usage\n")
 #endif
 
 #ifdef CONFIG_KVM

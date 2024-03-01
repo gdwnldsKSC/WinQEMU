@@ -1,5 +1,5 @@
 ﻿Currently VS2022! TESTFILES build was created via fully updated
-VS2022 17.9.1 Windows 11 26058 with the latest 26058 SDK.
+VS2022 17.9.2 Windows 11 26063 with the Windows 10 20348 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
 just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
@@ -12,7 +12,12 @@ into the project and built alongside the entire solution.
 
 WinQemu buils the dll, WinQemuTest builds the exe to actually use it
 
-Hardcoded to use D:\Images\ for files.
+Hardcoded to use D:\Images\ for files. - this is not exactly true anymore as we now have
+functional parameters for everything. -L specifies where vgabios.bin is, -bios where... 
+the main bios is, and -hda where the disk image is. small.ffs is NetBSD 1.2
+
+Check "WinQemuTest.exe -help" for BIOS options, as by default it skips boot menu 
+per default configuration from upstream codebase. 
 
 # Building instructions
 
@@ -61,7 +66,7 @@ in MSVC C Preprocessor currently.
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
 but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.
 
-QEMU BIOS - build: 05/22/09
+QEMU BIOS - build: 07/11/09
 VGABIOS - "current-cvs 17 Dec 2008"
 
 Working startup commandline:
