@@ -912,14 +912,14 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
 		{
 			if (s->index >= SVGA_PALETTE_BASE && s->index <= SVGA_PALETTE_END)
 			{
-			}
+    }
 			else
 			{
 				if (s->index >= SVGA_SCRATCH_BASE &&
 					s->index < SVGA_SCRATCH_BASE + s->scratch_size) 
 				{
 						s->scratch[s->index - SVGA_SCRATCH_BASE] = value;
-				}
+}
 				else
         printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
     }
@@ -983,7 +983,7 @@ static void vmsvga_reset(struct vmsvga_state_s *s)
     s->width = -1;
     s->height = -1;
     s->svgaid = SVGA_ID;
-    s->depth = 24;
+    s->depth = ds_get_bits_per_pixel(s->vga.ds);
     s->bypp = (s->depth + 7) >> 3;
     s->cursor.on = 0;
     s->redraw_fifo_first = 0;
@@ -1186,8 +1186,6 @@ static void vmsvga_init(struct vmsvga_state_s *s, int vga_ram_size)
     s->scratch_size = SVGA_SCRATCH_SIZE;
     s->scratch = (uint32_t *) qemu_malloc(s->scratch_size * 4);
 
-    vmsvga_reset(s);
-
 #ifdef EMBED_STDVGA
     vga_common_init((VGAState *) s, vga_ram_size);
     vga_init((VGAState *) s);
@@ -1201,6 +1199,8 @@ static void vmsvga_init(struct vmsvga_state_s *s, int vga_ram_size)
                                      vmsvga_invalidate_display,
                                      vmsvga_screen_dump,
                                      vmsvga_text_update, &s->vga);
+
+    vmsvga_reset(s);
 
 #ifdef CONFIG_BOCHS_VBE
     /* XXX: use optimized standard vga accesses */

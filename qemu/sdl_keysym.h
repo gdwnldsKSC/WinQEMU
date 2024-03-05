@@ -1,3 +1,4 @@
+
 #include "keymaps.h"
 
 static const name2keysym_t name2keysym[]={
@@ -272,5 +273,5 @@ static const name2keysym_t name2keysym[]={
 {"Pause", SDLK_PAUSE},
 {"Escape", SDLK_ESCAPE},
 
-{0,0},
+{NULL, 0},
 };

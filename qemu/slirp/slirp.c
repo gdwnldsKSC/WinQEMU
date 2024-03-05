@@ -48,7 +48,7 @@ u_int curtime;
 static u_int time_fasttimo, last_slowtimo;
 static int do_slowtimo;
 
-TAILQ_HEAD(slirp_instances, Slirp) slirp_instances =
+static TAILQ_HEAD(slirp_instances, Slirp) slirp_instances =
     TAILQ_HEAD_INITIALIZER(slirp_instances);
 
 #ifdef _WIN32
@@ -244,29 +244,6 @@ void slirp_cleanup(Slirp *slirp)
 #define CONN_CANFSEND(so) (((so)->so_state & (SS_FCANTSENDMORE|SS_ISFCONNECTED)) == SS_ISFCONNECTED)
 #define CONN_CANFRCV(so) (((so)->so_state & (SS_FCANTRCVMORE|SS_ISFCONNECTED)) == SS_ISFCONNECTED)
 #define UPD_NFDS(x) if (nfds < (x)) nfds = (x)
-
-/*
- * curtime kept to an accuracy of 1ms
- */
-#ifdef _WIN32
-static void updtime(void)
-{
-    struct _timeb tb;
-
-    _ftime(&tb);
-
-    curtime = tb.time * 1000 + tb.millitm;
-}
-#else
-static void updtime(void)
-{
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-
-    curtime = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-}
-#endif
 
 void slirp_select_fill(int *pnfds,
                        fd_set *readfds, fd_set *writefds, fd_set *xfds)
