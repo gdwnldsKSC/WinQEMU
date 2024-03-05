@@ -41,6 +41,8 @@
 
 /* Needed early for HOST_BSD etc. */
 #include "config-host.h"
+/* Needed early to override system queue definitions on BSD */
+#include "sys-queue.h"
 
 #ifndef _WIN32
 #include <libgen.h>
@@ -3368,6 +3370,8 @@ static QEMUMachine *find_machine(const char *name)
     for(m = first_machine; m != NULL; m = m->next) {
         if (!strcmp(m->name, name))
             return m;
+        if (m->alias && !strcmp(m->alias, name))
+            return m;
     }
     return NULL;
 }
@@ -5011,6 +5015,9 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     QEMUMachine *m;
                     printf("Supported machines are:\n");
                     for(m = first_machine; m != NULL; m = m->next) {
+                        if (m->alias)
+                            printf("%-10s %s (alias of %s)\n",
+                                   m->alias, m->desc, m->name);
                         printf("%-10s %s%s\n",
                                m->name, m->desc,
                                m->is_default ? " (default)" : "");
@@ -6095,8 +6102,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     if (loadvm)
         do_loadvm(cur_mon, loadvm);
 
-    if (incoming)
+    if (incoming) {
+        autostart = 0;
         qemu_start_incoming_migration(incoming);
+    }
 
     if (autostart)
         vm_start();

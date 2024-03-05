@@ -83,7 +83,7 @@
 #ifdef DEBUG
 #define dprintf printf
 
-const char *pid2str(int pid)
+static const char *pid2str(int pid)
 {
     switch (pid) {
     case USB_TOKEN_SETUP: return "SETUP";

@@ -158,10 +158,6 @@ void qemu_thread_self(QemuThread *thread)
 
 int qemu_thread_equal(QemuThread *thread1, QemuThread *thread2)
 {
-#ifdef _MSC_VER
-    return pthread_equal(thread1->thread, thread2->thread);
-#else
-    return (thread1->thread == thread2->thread);
-#endif
+   return pthread_equal(thread1->thread, thread2->thread);
 }
 

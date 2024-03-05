@@ -23,53 +23,14 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program (see the file COPYING included with this
- *  distribution); if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  distribution); if not, see <http://www.gnu.org/licenses/>.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the
- * General Public License version 3 (GPLv3) at this time for any software where a choice of
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- *
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
 #include "qemu-common.h"
 #include "net.h"
 #include "sysemu.h"
 #include <stdio.h>
 #include <windows.h>
-
-/* NOTE: PCIBus is redefined in winddk.h */
-#define PCIBus _PCIBus
-
-#ifndef _MSC_VER
-#include <ddk/ntapi.h>
-#include <ddk/winddk.h>
-#include <ddk/ntddk.h>
-#else
-
-#include <WinIoCtl.h>
-
-#define TAP_CONTROL_CODE(request,method) \
-	CTL_CODE (FILE_DEVICE_UNKNOWN, request, method, FILE_ANY_ACCESS)
-
-#define TAP_IOCTL_GET_MAC               TAP_CONTROL_CODE (1, METHOD_BUFFERED)
-#define TAP_IOCTL_GET_VERSION           TAP_CONTROL_CODE (2, METHOD_BUFFERED)
-#define TAP_IOCTL_GET_MTU               TAP_CONTROL_CODE (3, METHOD_BUFFERED)
-#define TAP_IOCTL_GET_INFO              TAP_CONTROL_CODE (4, METHOD_BUFFERED)
-#define TAP_IOCTL_CONFIG_POINT_TO_POINT TAP_CONTROL_CODE (5, METHOD_BUFFERED)
-#define TAP_IOCTL_SET_MEDIA_STATUS      TAP_CONTROL_CODE (6, METHOD_BUFFERED)
-#define TAP_IOCTL_CONFIG_DHCP_MASQ      TAP_CONTROL_CODE (7, METHOD_BUFFERED)
-#define TAP_IOCTL_GET_LOG_LINE          TAP_CONTROL_CODE (8, METHOD_BUFFERED)
-#define TAP_IOCTL_CONFIG_DHCP_SET_OPT   TAP_CONTROL_CODE (9, METHOD_BUFFERED)
-
-#endif
-
-#undef PCIBus
+#include <winioctl.h>
 
 //=============
 // TAP IOCTLs

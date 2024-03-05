@@ -190,3 +190,9 @@
 { "mce", "iillll", do_inject_mce, "cpu bank status mcgstatus addr misc", "inject a MCE on the given CPU"},
 #endif
 
+{ "getfd", "s", do_getfd, "getfd name",
+"receive a file descriptor via SCM rights and assign it a name" },
+
+{ "closefd", "s", do_closefd, "closefd name",
+"close a file descriptor previously passed via SCM rights" },
+

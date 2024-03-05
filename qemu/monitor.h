@@ -20,6 +20,8 @@ void monitor_read_bdrv_key_start(Monitor *mon, BlockDriverState *bs,
                                  BlockDriverCompletionFunc *completion_cb,
                                  void *opaque);
 
+int monitor_get_fd(Monitor *mon, const char *fdname);
+
 void monitor_vprintf(Monitor *mon, const char *fmt, va_list ap);
 #ifndef _MSC_VER
 void monitor_printf(Monitor *mon, const char *fmt, ...)

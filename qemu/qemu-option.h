@@ -34,18 +34,18 @@ enum QEMUOptionParType {
 };
 
 typedef struct QEMUOptionParameter {
-    const char* name;
+    const char *name;
     enum QEMUOptionParType type;
     union {
         uint64_t n;
         char* s;
     } value;
-    const char* help;
+    const char *help;
 } QEMUOptionParameter;
 
 
-const char* get_opt_name(char* buf, int buf_size, const char* p, char delim);
-const char* get_opt_value(char* buf, int buf_size, const char* p);
+const char *get_opt_name(char *buf, int buf_size, const char *p, char delim);
+const char *get_opt_value(char *buf, int buf_size, const char *p);
 
 
 /*
@@ -54,16 +54,16 @@ const char* get_opt_value(char* buf, int buf_size, const char* p);
  * entry with entry->name == NULL.
  */
 
-QEMUOptionParameter* get_option_parameter(QEMUOptionParameter* list,
-    const char* name);
-int set_option_parameter(QEMUOptionParameter* list, const char* name,
-    const char* value);
-int set_option_parameter_int(QEMUOptionParameter* list, const char* name,
+QEMUOptionParameter *get_option_parameter(QEMUOptionParameter *list,
+    const char *name);
+int set_option_parameter(QEMUOptionParameter *list, const char *name,
+    const char *value);
+int set_option_parameter_int(QEMUOptionParameter *list, const char *name,
     uint64_t value);
-QEMUOptionParameter* parse_option_parameters(const char* param,
-    QEMUOptionParameter* list, QEMUOptionParameter* dest);
-void free_option_parameters(QEMUOptionParameter* list);
-void print_option_parameters(QEMUOptionParameter* list);
-void print_option_help(QEMUOptionParameter* list);
+QEMUOptionParameter *parse_option_parameters(const char *param,
+    QEMUOptionParameter *list, QEMUOptionParameter *dest);
+void free_option_parameters(QEMUOptionParameter *list);
+void print_option_parameters(QEMUOptionParameter *list);
+void print_option_help(QEMUOptionParameter *list);
 
 #endif
