@@ -26,6 +26,26 @@ static BlockDriverState *bs;
 static int misalign;
 
 /*
+ * Parse the pattern argument to various sub-commands.
+ *
+ * Because the pattern is used as an argument to memset it must evaluate
+ * to an unsigned integer that fits into a single byte.
+ */
+static int parse_pattern(const char *arg)
+{
+	char *endptr = NULL;
+	long pattern;
+
+	pattern = strtol(arg, &endptr, 0);
+	if (pattern < 0 || pattern > UCHAR_MAX || *endptr != '\0') {
+		printf("%s is not a valid pattern byte\n", arg);
+		return -1;
+	}
+
+	return pattern;
+}
+
+/*
  * Memory allocation helpers.
  *
  * Make sure memory is aligned by default, or purposefully misaligned if
@@ -304,7 +324,9 @@ read_f(int argc, char **argv)
 			break;
 		case 'P':
 			Pflag = 1;
-			pattern = atoi(optarg);
+			pattern = parse_pattern(optarg);
+			if (pattern < 0)
+				return 0;
 			break;
 		case 'q':
 			qflag = 1;
@@ -469,7 +491,9 @@ readv_f(int argc, char **argv)
 			break;
 		case 'P':
 			Pflag = 1;
-			pattern = atoi(optarg);
+			pattern = parse_pattern(optarg);
+			if (pattern < 0)
+				return 0;
 			break;
 		case 'q':
 			qflag = 1;
@@ -594,7 +618,9 @@ write_f(int argc, char **argv)
 			pflag = 1;
 			break;
 		case 'P':
-			pattern = atoi(optarg);
+			pattern = parse_pattern(optarg);
+			if (pattern < 0)
+				return 0;
 			break;
 		case 'q':
 			qflag = 1;
@@ -721,7 +747,9 @@ writev_f(int argc, char **argv)
 			qflag = 1;
 			break;
 		case 'P':
-			pattern = atoi(optarg);
+			pattern = parse_pattern(optarg);
+			if (pattern < 0)
+				return 0;
 			break;
 		default:
 			return command_usage(&writev_cmd);
@@ -895,7 +923,9 @@ aio_read_f(int argc, char **argv)
 			break;
 		case 'P':
 			ctx->Pflag = 1;
-			ctx->pattern = atoi(optarg);
+			ctx->pattern = parse_pattern(optarg);
+			if (ctx->pattern < 0)
+				return 0;
 			break;
 		case 'q':
 			ctx->qflag = 1;
@@ -995,7 +1025,9 @@ aio_write_f(int argc, char **argv)
 			ctx->qflag = 1;
 			break;
 		case 'P':
-			pattern = atoi(optarg);
+			pattern = parse_pattern(optarg);
+			if (pattern < 0)
+				return 0;
 			break;
 		default:
 			free(ctx);
@@ -1170,11 +1202,10 @@ static int
 alloc_f(int argc, char **argv)
 {
 	int64_t offset;
-	int nb_sectors;
+	int nb_sectors, remaining;
 	char s1[64];
-	int num;
+	int num, sum_alloc;
 	int ret;
-	const char *retstr;
 
 	offset = cvtnum(argv[1]);
 	if (offset & 0x1ff) {
@@ -1188,16 +1219,23 @@ alloc_f(int argc, char **argv)
 	else
 		nb_sectors = 1;
 
-	ret = bdrv_is_allocated(bs, offset >> 9, nb_sectors, &num);
+	remaining = nb_sectors;
+	sum_alloc = 0;
+	while (remaining) {
+		ret = bdrv_is_allocated(bs, offset >> 9, nb_sectors, &num);
+		remaining -= num;
+		if (ret) {
+			sum_alloc += num;
+		}
+	}
 
 	cvtstr(offset, s1, sizeof(s1));
 
-	retstr = ret ? "allocated" : "not allocated";
 	if (nb_sectors == 1)
-		printf("sector %s at offset %s\n", retstr, s1);
+		printf("sector allocated at offset %s\n", s1);
 	else
-		printf("%d/%d sectors %s at offset %s\n",
-			num, nb_sectors, retstr, s1);
+		printf("%d/%d sectors allocated at offset %s\n",
+			sum_alloc, nb_sectors, s1);
 	return 0;
 }
 
@@ -1376,17 +1414,17 @@ int main(int argc, char **argv)
 	int growable = 0;
 	const char *sopt = "hVc:Crsnmg";
 	struct option lopt[] = {
-		{ "help", 0, NULL, 'h' },
-		{ "version", 0, NULL, 'V' },
-		{ "offset", 1, NULL, 'o' },
-		{ "cmd", 1, NULL, 'c' },
-		{ "create", 0, NULL, 'C' },
-		{ "read-only", 0, NULL, 'r' },
-		{ "snapshot", 0, NULL, 's' },
-		{ "nocache", 0, NULL, 'n' },
-		{ "misalign", 0, NULL, 'm' },
-		{ "growable", 0, NULL, 'g' },
-		{ NULL, 0, NULL, 0 }
+		{ "help", 0, 0, 'h' },
+		{ "version", 0, 0, 'V' },
+		{ "offset", 1, 0, 'o' },
+		{ "cmd", 1, 0, 'c' },
+		{ "create", 0, 0, 'C' },
+		{ "read-only", 0, 0, 'r' },
+		{ "snapshot", 0, 0, 's' },
+		{ "nocache", 0, 0, 'n' },
+		{ "misalign", 0, 0, 'm' },
+		{ "growable", 0, 0, 'g' },
+		{ NULL, 0, 0, 0 }
 	};
 	int c;
 	int opt_index = 0;
