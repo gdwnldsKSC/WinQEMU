@@ -664,11 +664,6 @@ static void send_framebuffer_update(VncState *vs, int x, int y, int w, int h)
 
 static void vnc_copy(VncState *vs, int src_x, int src_y, int dst_x, int dst_y, int w, int h)
 {
-    uint8_t *src_row;
-    uint8_t *dst_row;
-    int y,pitch,depth;
-
-    /* send bitblit op to the vnc client */
     vnc_write_u8(vs, 0);  /* msg id */
     vnc_write_u8(vs, 0);
     vnc_write_u16(vs, 1); /* number of rects */
@@ -676,23 +671,6 @@ static void vnc_copy(VncState *vs, int src_x, int src_y, int dst_x, int dst_y, i
     vnc_write_u16(vs, src_x);
     vnc_write_u16(vs, src_y);
     vnc_flush(vs);
-
-    /* do bitblit op on the local surface too */
-    pitch = ds_get_linesize(vs->ds);
-    depth = ds_get_bytes_per_pixel(vs->ds);
-    src_row = vs->server.ds->data + pitch * src_y + depth * src_x;
-    dst_row = vs->server.ds->data + pitch * dst_y + depth * dst_x;
-    if (dst_y > src_y) {
-        /* copy backwards */
-        src_row += pitch * (h-1);
-        dst_row += pitch * (h-1);
-        pitch = -pitch;
-    }
-    for (y = 0; y < h; y++) {
-        memmove(dst_row, src_row, w * depth);
-        src_row += pitch;
-        dst_row += pitch;
-    }
 }
 
 static void vnc_dpy_copy(DisplayState *ds, int src_x, int src_y, int dst_x, int dst_y, int w, int h)
@@ -1726,7 +1704,7 @@ static void pixel_format_message (VncState *vs) {
     vnc_write_u8(vs, vs->ds->surface->pf.bits_per_pixel); /* bits-per-pixel */
     vnc_write_u8(vs, vs->ds->surface->pf.depth); /* depth */
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
     vnc_write_u8(vs, 1);             /* big-endian-flag */
 #else
     vnc_write_u8(vs, 0);             /* big-endian-flag */
@@ -2230,10 +2208,6 @@ int vnc_display_password(DisplayState *ds, const char *password)
 {
     VncDisplay *vs = ds ? (VncDisplay *)ds->opaque : vnc_display;
 
-    if (!vs) {
-        return -1;
-    }
-
     if (vs->password) {
         qemu_free(vs->password);
         vs->password = NULL;
@@ -2241,11 +2215,6 @@ int vnc_display_password(DisplayState *ds, const char *password)
     if (password && password[0]) {
         if (!(vs->password = qemu_strdup(password)))
             return -1;
-        if (vs->auth == VNC_AUTH_NONE) {
-            vs->auth = VNC_AUTH_VNC;
-        }
-    } else {
-        vs->auth = VNC_AUTH_NONE;
     }
 
     return 0;

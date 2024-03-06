@@ -14,9 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
- */
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
 
 /*
  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
@@ -540,7 +538,7 @@ typedef union {
     uint64_t q;
 } MMXReg;
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
 #define XMM_B(n) _b[15 - (n)]
 #define XMM_W(n) _w[7 - (n)]
 #define XMM_L(n) _l[3 - (n)]
@@ -785,9 +783,9 @@ static inline void cpu_x86_load_seg_cache(CPUX86State *env,
     }
 }
 
-int cpu_x86_get_descr_debug(CPUX86State* env, unsigned int selector,
-                            target_ulong* base, unsigned int* limit,
-                            unsigned int* flags);
+int cpu_x86_get_descr_debug(CPUX86State *env, unsigned int selector,
+                            target_ulong *base, unsigned int *limit,
+                            unsigned int *flags);
 
 /* wrapper, just in case memory mappings must be changed */
 static inline void cpu_x86_set_cpl(CPUX86State *s, int cpl)

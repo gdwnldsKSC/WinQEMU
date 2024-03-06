@@ -64,7 +64,7 @@ static SDL_Cursor *sdl_cursor_hidden;
 static int absolute_enabled = 0;
 static int guest_cursor = 0;
 static int guest_x, guest_y;
-static SDL_Cursor *guest_sprite = NULL;
+static SDL_Cursor *guest_sprite = 0;
 static uint8_t allocator;
 static SDL_PixelFormat host_format;
 static int scaling_active = 0;
@@ -196,7 +196,7 @@ static DisplaySurface* sdl_create_displaysurface(int width, int height)
             surface->linesize = width * host_format.BytesPerPixel;
             surface->pf = sdl_to_qemu_pixelformat(&host_format);
         }
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
         surface->flags = QEMU_ALLOCATED_FLAG | QEMU_BIG_ENDIAN_FLAG;
 #else
         surface->flags = QEMU_ALLOCATED_FLAG;
@@ -215,7 +215,7 @@ static DisplaySurface* sdl_create_displaysurface(int width, int height)
     surface->linesize = real_screen->pitch;
     surface->data = real_screen->pixels;
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
     surface->flags = QEMU_REALPIXELS_FLAG | QEMU_BIG_ENDIAN_FLAG;
 #else
     surface->flags = QEMU_REALPIXELS_FLAG;
@@ -743,10 +743,6 @@ static void sdl_refresh(DisplayState *ds)
                 bpp = 32;
             do_sdl_resize(rev->w, rev->h, bpp);
             scaling_active = 1;
-            if (!is_buffer_shared(ds->surface)) {
-                ds->surface = qemu_resize_displaysurface(ds, ds_get_width(ds), ds_get_height(ds));
-                dpy_resize(ds);
-            }
             vga_hw_invalidate();
             vga_hw_update();
             break;
@@ -794,9 +790,6 @@ static void sdl_mouse_define(int width, int height, int bpp,
         line = image;
         for (x = 0; x < width; x ++, dst ++) {
             switch (bpp) {
-            case 32:
-                src = *(line ++); src |= *(line ++); src |= *(line ++); line++;
-                break;
             case 24:
                 src = *(line ++); src |= *(line ++); src |= *(line ++);
                 break;

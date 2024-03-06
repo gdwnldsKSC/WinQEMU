@@ -58,6 +58,9 @@
 #ifndef ENOMEDIUM
 #define ENOMEDIUM ENODEV
 #endif
+#if !defined(ENOTSUP) && defined(__OpenBSD__)
+#define ENOTSUP 4096
+#endif
 
 #ifndef CONFIG_IOVEC
 #define CONFIG_IOVEC

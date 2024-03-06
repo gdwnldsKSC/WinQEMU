@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -309,7 +308,7 @@ static void host_cpuid(uint32_t function, uint32_t count, uint32_t *eax,
 
 static int cpu_x86_fill_model_id(char *str)
 {
-    uint32_t eax = 0, ebx = 0, ecx = 0, edx =0;
+    uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
     int i;
 
     for (i = 0; i < 3; i++) {
@@ -1807,11 +1806,12 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
     }
 }
 
-int cpu_x86_get_descr_debug(CPUX86State* env, unsigned int selector,
-    target_ulong* base, unsigned int* limit,
-    unsigned int* flags)
+
+int cpu_x86_get_descr_debug(CPUX86State *env, unsigned int selector,
+                            target_ulong *base, unsigned int *limit,
+                            unsigned int *flags)
 {
-    SegmentCache* dt;
+    SegmentCache *dt;
     target_ulong ptr;
     uint32_t e1, e2;
     int index;
@@ -1823,8 +1823,8 @@ int cpu_x86_get_descr_debug(CPUX86State* env, unsigned int selector,
     index = selector & ~7;
     ptr = dt->base + index;
     if ((index + 7) > dt->limit
-        || cpu_memory_rw_debug(env, ptr, (uint8_t*)&e1, sizeof(e1), 0) != 0
-        || cpu_memory_rw_debug(env, ptr + 4, (uint8_t*)&e2, sizeof(e2), 0) != 0)
+        || cpu_memory_rw_debug(env, ptr, (uint8_t *)&e1, sizeof(e1), 0) != 0
+        || cpu_memory_rw_debug(env, ptr+4, (uint8_t *)&e2, sizeof(e2), 0) != 0)
         return 0;
 
     *base = ((e1 >> 16) | ((e2 & 0xff) << 16) | (e2 & 0xff000000));

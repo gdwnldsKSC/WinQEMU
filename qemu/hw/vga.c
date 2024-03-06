@@ -85,19 +85,19 @@ const uint8_t gr_mask[16] = {
 		(((uint32_t)(__x) & (uint32_t)0x00ff0000UL) >>  8) | \
 		(((uint32_t)(__x) & (uint32_t)0xff000000UL) >> 24) ))
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
 #define PAT(x) cbswap_32(x)
 #else
 #define PAT(x) (x)
 #endif
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
 #define BIG 1
 #else
 #define BIG 0
 #endif
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
 #define GET_PLANE(data, p) (((data) >> (24 - (p) * 8)) & 0xff)
 #else
 #define GET_PLANE(data, p) (((data) >> ((p) * 8)) & 0xff)
@@ -124,7 +124,7 @@ static const uint32_t mask16[16] = {
 
 #undef PAT
 
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
 #define PAT(x) (x)
 #else
 #define PAT(x) cbswap_32(x)
@@ -161,8 +161,6 @@ static uint16_t expand2[256];
 static uint8_t expand4to8[16];
 
 static void vga_screen_dump(void *opaque, const char *filename);
-static char *screen_dump_filename;
-static DisplayChangeListener *screen_dump_dcl;
 
 static void vga_dumb_update_retrace_info(VGAState *s)
 {
@@ -1401,7 +1399,7 @@ static void vga_draw_text(VGAState *s, int full_update)
                 if (cx > cx_max)
                     cx_max = cx;
                 *ch_attr_ptr = ch_attr;
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
                 ch = ch_attr >> 8;
                 cattr = ch_attr & 0xff;
 #else
@@ -1664,7 +1662,7 @@ static void vga_draw_graphic(VGAState *s, int full_update)
         disp_width != s->last_width ||
         height != s->last_height ||
         s->last_depth != depth) {
-#if defined(WORDS_BIGENDIAN) == defined(TARGET_WORDS_BIGENDIAN)
+#if defined(HOST_WORDS_BIGENDIAN) == defined(TARGET_WORDS_BIGENDIAN)
         if (depth == 16 || depth == 32) {
 #else
         if (depth == 32) {
@@ -1673,7 +1671,7 @@ static void vga_draw_graphic(VGAState *s, int full_update)
             s->ds->surface = qemu_create_displaysurface_from(disp_width, height, depth,
                     s->line_offset,
                     s->vram_ptr + (s->start_addr * 4));
-#if defined(WORDS_BIGENDIAN) != defined(TARGET_WORDS_BIGENDIAN)
+#if defined(HOST_WORDS_BIGENDIAN) != defined(TARGET_WORDS_BIGENDIAN)
             s->ds->surface->pf = qemu_different_endianness_pixelformat(depth);
 #endif
             dpy_resize(s->ds);
@@ -1869,8 +1867,7 @@ static void vga_update_display(void *opaque)
     if (ds_get_bits_per_pixel(s->ds) == 0) {
         /* nothing to do */
     } else {
-        full_update = s->full_update;
-        s->full_update = 0;
+        full_update = 0;
         if (!(s->ar_index & 0x20)) {
             graphic_mode = GMODE_BLANK;
         } else {
@@ -1900,7 +1897,8 @@ static void vga_invalidate_display(void *opaque)
 {
     VGAState *s = (VGAState *)opaque;
 
-    s->full_update = 1;
+    s->last_width = -1;
+    s->last_height = -1;
 }
 
 void vga_reset(void *opaque)
@@ -2561,13 +2559,9 @@ int pci_vga_init(PCIBus *bus,
 /********************************************************/
 /* vga screen dump */
 
-static void vga_save_dpy_update(DisplayState *ds,
+static void vga_save_dpy_update(DisplayState *s,
                                 int x, int y, int w, int h)
 {
-    if (screen_dump_filename) {
-        ppm_save(screen_dump_filename, ds->surface);
-        screen_dump_filename = NULL;
-    }
 }
 
 static void vga_save_dpy_resize(DisplayState *s)
@@ -2616,16 +2610,70 @@ int ppm_save(const char *filename, struct DisplaySurface *ds)
     return 0;
 }
 
-static DisplayChangeListener* vga_screen_dump_init(DisplayState *ds)
+static void vga_screen_dump_blank(VGAState *s, const char *filename)
 {
-    DisplayChangeListener *dcl;
+    FILE *f;
+    unsigned int y, x, w, h;
+    unsigned char blank_sample[3] = { 0, 0, 0 };
 
-    dcl = qemu_mallocz(sizeof(DisplayChangeListener));
-    dcl->dpy_update = vga_save_dpy_update;
-    dcl->dpy_resize = vga_save_dpy_resize;
-    dcl->dpy_refresh = vga_save_dpy_refresh;
-    register_displaychangelistener(ds, dcl);
-    return dcl;
+    w = s->last_scr_width;
+    h = s->last_scr_height;
+
+    f = fopen(filename, "wb");
+    if (!f)
+        return;
+    fprintf(f, "P6\n%d %d\n%d\n", w, h, 255);
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            fwrite(blank_sample, 3, 1, f);
+        }
+    }
+    fclose(f);
+}
+
+static void vga_screen_dump_common(VGAState *s, const char *filename,
+                                   int w, int h)
+{
+    DisplayState *saved_ds, ds1, *ds = &ds1;
+    DisplayChangeListener dcl;
+
+    /* XXX: this is a little hackish */
+    vga_invalidate_display(s);
+    saved_ds = s->ds;
+
+    memset(ds, 0, sizeof(DisplayState));
+    memset(&dcl, 0, sizeof(DisplayChangeListener));
+    dcl.dpy_update = vga_save_dpy_update;
+    dcl.dpy_resize = vga_save_dpy_resize;
+    dcl.dpy_refresh = vga_save_dpy_refresh;
+    register_displaychangelistener(ds, &dcl);
+    ds->allocator = &default_allocator;
+    ds->surface = qemu_create_displaysurface(ds, w, h);
+
+    s->ds = ds;
+    s->graphic_mode = -1;
+    vga_update_display(s);
+
+    ppm_save(filename, ds->surface);
+
+    qemu_free_displaysurface(ds);
+    s->ds = saved_ds;
+}
+
+static void vga_screen_dump_graphic(VGAState *s, const char *filename)
+{
+    int w, h;
+
+    s->get_resolution(s, &w, &h);
+    vga_screen_dump_common(s, filename, w, h);
+}
+
+static void vga_screen_dump_text(VGAState *s, const char *filename)
+{
+    int w, h, cwidth, cheight;
+
+    vga_get_text_resolution(s, &w, &h, &cwidth, &cheight);
+    vga_screen_dump_common(s, filename, w * cwidth, h * cheight);
 }
 
 /* save the vga display in a PPM image even if no display is
@@ -2634,11 +2682,11 @@ static void vga_screen_dump(void *opaque, const char *filename)
 {
     VGAState *s = (VGAState *)opaque;
 
-    if (!screen_dump_dcl)
-        screen_dump_dcl = vga_screen_dump_init(s->ds);
-
-    screen_dump_filename = (char *)filename;
+    if (!(s->ar_index & 0x20))
+        vga_screen_dump_blank(s, filename);
+    else if (s->gr[6] & 1)
+        vga_screen_dump_graphic(s, filename);
+    else
+        vga_screen_dump_text(s, filename);
     vga_invalidate_display(s);
-    vga_hw_update();
 }
-

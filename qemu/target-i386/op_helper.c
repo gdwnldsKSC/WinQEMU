@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -4049,6 +4048,8 @@ void helper_fbld_ST0(target_ulong ptr)
 	tmp = fx80_from_int64(val);
 	if (ldub(ptr + 9) & 0x80)
 		tmp = fx80_chs(&tmp); // BUGBUG
+    fpush(); // adding in
+    ST0 = tmp;
 #endif
 }
 
@@ -4388,8 +4389,8 @@ void helper_fyl2xp1(void)
 
     fptemp = ST0;
 #ifndef _MSC_VER
-	if ((fptemp + 1.0)>0.0) {
-		fptemp = log(fptemp + 1.0) / log(2.0); /* log2(ST+1.0) */
+	if ((fptemp+1.0)>0.0) {
+		fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
         ST1 *= fptemp;
 #else
 	if ((fx80_to_longdouble(&fptemp) + 1.0)>0.0) {
@@ -4471,7 +4472,7 @@ void helper_fsin(void)
 
     fptemp = ST0;
 #ifndef _MSC_VER
-    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
 	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
 #endif
@@ -5620,6 +5621,7 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
             uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
             uint32_t t0, t1;
 #ifndef _MSC_VER
+            switch((uint32_t)ECX) {
             case 0 ... 0x1fff:
                 t0 = (ECX * 2) % 8;
                 t1 = ECX / 8;

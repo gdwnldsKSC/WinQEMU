@@ -43,7 +43,7 @@ these four paragraphs for those parts of this code that are retained.
 #ifndef SOFTFLOAT_H
 #define SOFTFLOAT_H
 
-#if defined(CONFIG_SOLARIS) && defined(NEEDS_LIBSUNMATH)
+#if defined(CONFIG_SOLARIS) && defined(CONFIG_NEEDS_LIBSUNMATH)
 #include <sunmath.h>
 #endif
 
@@ -159,7 +159,7 @@ typedef struct {
 #endif
 #ifdef FLOAT128
 typedef struct {
-#ifdef WORDS_BIGENDIAN
+#ifdef HOST_WORDS_BIGENDIAN
     uint64_t high, low;
 #else
     uint64_t low, high;
