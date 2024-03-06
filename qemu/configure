@@ -184,6 +184,7 @@ softmmu="yes"
 linux_user="no"
 darwin_user="no"
 bsd_user="no"
+guest_base=""
 build_docs="yes"
 uname_release=""
 curses="yes"
@@ -465,6 +466,10 @@ for opt do
   ;;
   --enable-bsd-user) bsd_user="yes"
   ;;
+  --enable-guest-base) guest_base="yes"
+  ;;
+  --disable-guest-base) guest_base="no"
+  ;;
   --enable-uname-release=*) uname_release="$optarg"
   ;;
   --sparc_cpu=*)
@@ -544,6 +549,7 @@ fi
 # If cpu ~= sparc and  sparc_cpu hasn't been defined, plug in the right
 # ARCH_CFLAGS/ARCH_LDFLAGS (assume sparc_v8plus for 32-bit and sparc_v9 for 64-bit)
 #
+host_guest_base="no"
 case "$cpu" in
     sparc) if test -z "$sparc_cpu" ; then
                ARCH_CFLAGS="-m32 -mcpu=ultrasparc -D__sparc_v8plus__"
@@ -576,12 +582,22 @@ case "$cpu" in
     i386)
            ARCH_CFLAGS="-m32"
            ARCH_LDFLAGS="-m32"
+           host_guest_base="yes"
            ;;
     x86_64)
            ARCH_CFLAGS="-m64"
            ARCH_LDFLAGS="-m64"
+           host_guest_base="yes"
+           ;;
+    arm*)
+           host_guest_base="yes"
+           ;;
+    ppc*)
+           host_guest_base="yes"
            ;;
 esac
+
+[ -z "$guest_base" ] && guest_base="$host_guest_base"
 
 if test x"$show_help" = x"yes" ; then
 cat << EOF
@@ -641,6 +657,9 @@ echo "  --enable-darwin-user     enable all darwin usermode emulation targets"
 echo "  --disable-darwin-user    disable all darwin usermode emulation targets"
 echo "  --enable-bsd-user        enable all BSD usermode emulation targets"
 echo "  --disable-bsd-user       disable all BSD usermode emulation targets"
+echo "  --enable-guest-base      enable GUEST_BASE support for usermode"
+echo "                           emulation targets"
+echo "  --disable-guest-base     disable GUEST_BASE support"
 echo "  --fmod-lib               path to FMOD library"
 echo "  --fmod-inc               path to FMOD includes"
 echo "  --oss-lib                path to OSS library"
@@ -1374,7 +1393,7 @@ fi
 
 if test "$mingw32" = "yes" ; then
   if test -z "$prefix" ; then
-      prefix="c:/Program Files/Qemu"
+      prefix="c:\\\\Program Files\\\\Qemu"
   fi
   mansuffix=""
   datasuffix=""
@@ -1446,6 +1465,7 @@ echo "Documentation     $build_docs"
 [ ! -z "$uname_release" ] && \
 echo "uname -r          $uname_release"
 echo "NPTL support      $nptl"
+echo "GUEST_BASE        $guest_base"
 echo "vde support       $vde"
 echo "AIO support       $aio"
 echo "IO thread         $io_thread"
@@ -1496,10 +1516,10 @@ echo "EXESUF=$EXESUF" >> $config_host_mak
 echo "PTHREADLIBS=$PTHREADLIBS" >> $config_host_mak
 echo "CLOCKLIBS=$CLOCKLIBS" >> $config_host_mak
 case "$cpu" in
-  i386|x86_64|alpha|cris|hppa|ia64|m68k|microbaze|mips|mips64|ppc|ppc64|s390|sparc|sparc64)
+  i386|x86_64|alpha|cris|hppa|ia64|m68k|microblaze|mips|mips64|ppc|ppc64|s390|sparc|sparc64)
     ARCH=$cpu
   ;;
-  armv4b|arm4l)
+  armv4b|armv4l)
     ARCH=arm
   ;;
   *)
@@ -1807,9 +1827,8 @@ fi
 echo "TOOLS=$tools" >> $config_host_mak
 
 roms=
-if test \( "$cpu" = "i386" -o "$cpu" = "x86_64" \) -a \
-        "$targetos" != "Darwin" ; then
-  roms="optionrom"
+if test "$cpu" = "i386" -o "$cpu" = "x86_64" ; then
+  roms="pc-bios/optionrom"
 fi
 echo "ROMS=$roms" >> $config_host_mak
 
@@ -2070,6 +2089,9 @@ fi
 # 32 bit ELF loader in addition to native 64 bit loader?
 if test "$target_user_only" = "yes" -a "$elfload32" = "yes"; then
   echo "TARGET_HAS_ELFLOAD32=y" >> $config_mak
+fi
+if test "$target_user_only" = "yes" -a "$guest_base" = "yes"; then
+  echo "CONFIG_USE_GUEST_BASE=y" >> $config_mak
 fi
 if test "$target_bsd_user" = "yes" ; then
   echo "CONFIG_BSD_USER=y" >> $config_mak

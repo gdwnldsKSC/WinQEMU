@@ -39,8 +39,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "qemu-common.h"
@@ -273,6 +272,9 @@ static void *load_at(int fd, int offset, int size)
     return ptr;
 }
 
+#ifdef ELF_CLASS
+#undef ELF_CLASS
+#endif
 
 #define ELF_CLASS   ELFCLASS32
 #include "elf.h"

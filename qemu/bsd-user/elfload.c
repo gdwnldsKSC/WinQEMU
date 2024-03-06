@@ -545,6 +545,8 @@ static inline void memcpy_fromfs(void * to, const void * from, unsigned long n)
         memcpy(to, from, n);
 }
 
+extern unsigned long x86_stack_size;
+
 static int load_aout_interp(void * exptr, int interp_fd);
 
 #ifdef BSWAP_NEEDED
@@ -1012,7 +1014,7 @@ static const char *lookup_symbolxx(struct syminfo *s, target_ulong orig_addr)
     key.st_value = orig_addr;
 
     sym = bsearch(&key, syms, s->disas_num_syms, sizeof(*syms), symfind);
-    if (sym != NULL) {
+    if (sym != 0) {
         return s->disas_strtab + sym->st_name;
     }
 
