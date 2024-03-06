@@ -326,7 +326,7 @@ static inline PageDesc *page_find_alloc(target_ulong index)
 #if defined(CONFIG_USER_ONLY)
         size_t len = sizeof(PageDesc) * L2_SIZE;
         /* Don't use qemu_malloc because it may recurse.  */
-        p = mmap(NULL, len, PROT_READ | PROT_WRITE,
+        p = mmap(0, len, PROT_READ | PROT_WRITE,
                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         *lp = p;
         if (h2g_valid(p)) {
@@ -351,9 +351,8 @@ static inline PageDesc *page_find(target_ulong index)
         return NULL;
 
     p = *lp;
-    if (!p) {
-        return NULL;
-    }
+    if (!p)
+        return 0;
     return p + (index & (L2_SIZE - 1));
 }
 
@@ -1470,7 +1469,7 @@ void cpu_breakpoint_remove_all(CPUState *env, int mask)
 
 /* enable or disable single step mode. EXCP_DEBUG is returned by the
    CPU loop after each instruction */
-void cpu_single_step(CPUState *env, int enabled)
+void cpu_single_step(CPUState* env, int enabled)
 {
 #if defined(TARGET_HAS_ICE)
     if (env->singlestep_enabled != enabled) {
@@ -1480,11 +1479,11 @@ void cpu_single_step(CPUState *env, int enabled)
             kvm_update_guest_debug(env, 0);
 #endif
     }
-        else {
-            /* must flush all the translated code to avoid inconsistencies */
-            /* XXX: only flush what is necessary */
-            tb_flush(env);
-        }
+    else {
+        /* must flush all the translated code to avoid inconsistencies */
+        /* XXX: only flush what is necessary */
+        tb_flush(env);
+    }
 #endif
 }
 
@@ -1505,12 +1504,9 @@ void cpu_set_log(int log_flags)
             static char logfile_buf[4096];
             setvbuf(logfile, logfile_buf, _IOLBF, sizeof(logfile_buf));
         }
-#else
-#ifndef _MSC_VER
+#elif !defined(_WIN32)
+        /* Win32 doesn't support line-buffering and requires size >= 2 */
         setvbuf(logfile, NULL, _IOLBF, 0);
-#else
-		setvbuf(stdout, NULL, _IONBF, 0);
-#endif
 #endif
         log_append = 1;
     }

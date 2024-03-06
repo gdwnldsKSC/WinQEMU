@@ -20,9 +20,7 @@ CPPFLAGS += -I. -I$(SRC_PATH) -MMD -MP -MT $@
 CPPFLAGS += -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
 CPPFLAGS += -U_FORTIFY_SOURCE
 LIBS=
-ifdef CONFIG_STATIC
-LDFLAGS += -static
-endif
+
 ifdef BUILD_DOCS
 DOCS=qemu-doc.html qemu-tech.html qemu.1 qemu-img.1 qemu-nbd.8
 else
@@ -40,7 +38,7 @@ ifdef CONFIG_WIN32
 LIBS+=-lwinmm -lws2_32 -liphlpapi
 endif
 
-build-all: $(TOOLS) $(DOCS) recurse-all
+build-all: $(TOOLS) $(DOCS) roms recurse-all
 
 config-host.mak: configure
 ifneq ($(wildcard config-host.mak),)
@@ -57,14 +55,7 @@ subdir-%:
 $(filter %-softmmu,$(SUBDIR_RULES)): libqemu_common.a
 $(filter %-user,$(SUBDIR_RULES)): libqemu_user.a
 
-
-ROMSUBDIR_RULES=$(patsubst %,romsubdir-%, $(ROMS))
-romsubdir-%:
-	$(call quiet-command,$(MAKE) $(SUBDIR_MAKEFLAGS) -C pc-bios/$* V="$(V)" TARGET_DIR="$*/",)
-
-ALL_SUBDIRS=$(TARGET_DIRS) $(patsubst %,pc-bios/%, $(ROMS))
-
-recurse-all: $(SUBDIR_RULES) $(ROMSUBDIR_RULES)
+recurse-all: $(SUBDIR_RULES)
 
 #######################################################################
 # block-obj-y is code used by both qemu system emulation and qemu-img
@@ -131,7 +122,7 @@ ifdef CONFIG_COREAUDIO
 AUDIO_PT = y
 endif
 ifdef CONFIG_FMOD
-audio/audio.o audio/fmodaudio.o: CPPFLAGS := -I$(CONFIG_FMOD_INC) $(CPPFLAGS)
+audio/audio.o audio/fmodaudio.o: CPPFLAGS := $(FMOD_CFLAGS) $(CPPFLAGS)
 endif
 ifdef CONFIG_ESD
 AUDIO_PT = y
@@ -200,7 +191,7 @@ vnc.h: vnc-tls.h vnc-auth-vencrypt.h vnc-auth-sasl.h keymaps.h
 
 vnc.o: vnc.c vnc.h vnc_keysym.h vnchextile.h d3des.c d3des.h acl.h
 
-vnc.o: CFLAGS += $(CONFIG_VNC_TLS_CFLAGS)
+vnc.o: CFLAGS += $(VNC_TLS_CFLAGS)
 
 vnc-tls.o: vnc-tls.c vnc.h
 
@@ -210,7 +201,7 @@ vnc-auth-sasl.o: vnc-auth-sasl.c vnc.h
 
 curses.o: curses.c keymaps.h curses_keys.h
 
-bt-host.o: CFLAGS += $(CONFIG_BLUEZ_CFLAGS)
+bt-host.o: CFLAGS += $(BLUEZ_CFLAGS)
 
 libqemu_common.a: $(obj-y)
 
@@ -242,7 +233,7 @@ clean:
 	rm -f slirp/*.o slirp/*.d audio/*.o audio/*.d block/*.o block/*.d
 	rm -f qemu-img-cmds.h
 	$(MAKE) -C tests clean
-	for d in $(ALL_SUBDIRS) libhw32 libhw64; do \
+	for d in $(TARGET_DIRS) $(ROMS) libhw32 libhw64; do \
 	$(MAKE) -C $$d $@ || exit 1 ; \
         done
 
@@ -266,6 +257,11 @@ multiboot.bin
 else
 BLOBS=
 endif
+
+roms:
+	for d in $(ROMS); do \
+	$(MAKE) -C $$d || exit 1 ; \
+        done
 
 install-doc: $(DOCS)
 	$(INSTALL_DIR) "$(DESTDIR)$(docdir)"

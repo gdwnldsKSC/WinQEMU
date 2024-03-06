@@ -1,6 +1,4 @@
 all: build-all
-# Dummy command so that make thinks it has done something
-	@true
 
 include ../../config-host.mak
 

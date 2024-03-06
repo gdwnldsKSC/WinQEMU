@@ -66,7 +66,7 @@ in MSVC C Preprocessor currently.
 Folder TESTFILES contains working bios image and 'small' BSD disk with not much on it
 but works with these. VGABIOS project for VGA BIOS, and a SeaBIOS image.
 
-QEMU BIOS - build: 07/11/09
+QEMU BIOS - build: 07/27/09
 VGABIOS - "current-cvs 17 Dec 2008"
 
 Working startup commandline:

@@ -43,7 +43,7 @@ these four paragraphs for those parts of this code that are retained.
 #ifndef SOFTFLOAT_H
 #define SOFTFLOAT_H
 
-#if defined(HOST_SOLARIS) && defined(NEEDS_LIBSUNMATH)
+#if defined(CONFIG_SOLARIS) && defined(NEEDS_LIBSUNMATH)
 #include <sunmath.h>
 #endif
 
@@ -62,12 +62,8 @@ typedef uint8_t flag;
 typedef uint8_t uint8;
 typedef int8_t int8;
 #ifndef _AIX
-
-#ifndef _MSC_VER
 typedef int uint16;
 typedef int int16;
-#endif
-
 #endif
 typedef unsigned int uint32;
 typedef signed int int32;
@@ -90,7 +86,7 @@ typedef uint64_t bits64;
 typedef int64_t sbits64;
 
 #define LIT64( a ) a##LL
-#define INLINE static __inline
+#define INLINE static inline
 
 /*----------------------------------------------------------------------------
 | The macro `FLOATX80' must be defined to enable the extended double-precision
@@ -105,7 +101,7 @@ typedef int64_t sbits64;
 #define FLOAT128
 #else
 /* native float support */
-#if (defined(__i386__) || defined(__x86_64__)) && !defined(_BSD)
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(CONFIG_BSD)
 #ifndef _MSC_VER
 #define FLOATX80
 #endif

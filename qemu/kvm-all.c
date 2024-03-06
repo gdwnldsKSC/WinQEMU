@@ -155,15 +155,6 @@ static void kvm_reset_vcpu(void *opaque)
     }
 }
 
-static void on_vcpu(CPUState *env, void (*func)(void *data), void *data)
-{
-    if (env == cpu_single_env) {
-        func(data);
-        return;
-    }
-    abort();
-}
-
 int kvm_irqchip_in_kernel(void)
 {
     return kvm_state->irqchip_in_kernel;
@@ -304,6 +295,11 @@ int kvm_set_migration_log(int enable)
     return 0;
 }
 
+static int test_le_bit(unsigned long nr, unsigned char *addr)
+{
+    return (addr[nr >> 3] >> (nr & 7)) & 1;
+}
+
 /**
  * kvm_physical_sync_dirty_bitmap - Grab dirty bitmap from kernel space
  * This function updates qemu's dirty bitmap using cpu_physical_memory_set_dirty().
@@ -357,12 +353,10 @@ int kvm_physical_sync_dirty_bitmap(target_phys_addr_t start_addr,
         for (phys_addr = mem->start_addr, addr = mem->phys_offset;
              phys_addr < mem->start_addr + mem->memory_size;
              phys_addr += TARGET_PAGE_SIZE, addr += TARGET_PAGE_SIZE) {
-            unsigned long *bitmap = (unsigned long *)d.dirty_bitmap;
+            unsigned char *bitmap = (unsigned char *)d.dirty_bitmap;
             unsigned nr = (phys_addr - mem->start_addr) >> TARGET_PAGE_BITS;
-            unsigned word = nr / (sizeof(*bitmap) * 8);
-            unsigned bit = nr % (sizeof(*bitmap) * 8);
 
-            if ((bitmap[word] >> bit) & 1) {
+            if (test_le_bit(nr, bitmap)) {
                 cpu_physical_memory_set_dirty(addr);
             } else if (r < 0) {
                 /* When our KVM implementation doesn't know about dirty logging
@@ -906,6 +900,15 @@ void kvm_setup_guest_memory(void *start, size_t size)
 }
 
 #ifdef KVM_CAP_SET_GUEST_DEBUG
+static void on_vcpu(CPUState *env, void (*func)(void *data), void *data)
+{
+    if (env == cpu_single_env) {
+        func(data);
+        return;
+    }
+    abort();
+}
+
 struct kvm_sw_breakpoint *kvm_find_sw_breakpoint(CPUState *env,
                                                  target_ulong pc)
 {

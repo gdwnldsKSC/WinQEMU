@@ -29,7 +29,7 @@
 #include <sys/time.h>
 #include <zlib.h>
 
-/* Needed early for HOST_BSD etc. */
+/* Needed early for CONFIG_BSD etc. */
 #include "config-host.h"
 
 #ifndef _WIN32
@@ -52,7 +52,7 @@
 #include <dirent.h>
 #include <netdb.h>
 #include <sys/select.h>
-#ifdef HOST_BSD
+#ifdef CONFIG_BSD
 #include <sys/stat.h>
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 #include <libutil.h>
@@ -99,16 +99,6 @@
 
 #if defined(CONFIG_VDE)
 #include <libvdeplug.h>
-#endif
-
-#ifdef _WIN32
-#include <WinSock2.h> // MSVC build requirement
-#include <windows.h>
-#include <malloc.h>
-#include <sys/timeb.h>
-#include <mmsystem.h>
-#define getopt_long_only getopt_long
-#define memalign(align, size) malloc(size)
 #endif
 
 #include "qemu-common.h"
@@ -279,26 +269,6 @@ int parse_host_port(struct sockaddr_in *saddr, const char *str)
     saddr->sin_port = htons(port);
     return 0;
 }
-
-#if !defined(_WIN32) && 0
-static int parse_unix_path(struct sockaddr_un *uaddr, const char *str)
-{
-    const char *p;
-    int len;
-
-    len = MIN(108, strlen(str));
-    p = strchr(str, ',');
-    if (p)
-	len = MIN(len, p - str);
-
-    memset(uaddr, 0, sizeof(*uaddr));
-
-    uaddr->sun_family = AF_UNIX;
-    memcpy(uaddr->sun_path, str, len);
-
-    return 0;
-}
-#endif
 
 void qemu_format_nic_info_str(VLANClientState *vc, uint8_t macaddr[6])
 {
@@ -1465,7 +1435,7 @@ static TAPState *net_tap_fd_init(VLANState *vlan,
     return s;
 }
 
-#if defined (HOST_BSD) || defined (__FreeBSD_kernel__)
+#if defined (CONFIG_BSD) || defined (__FreeBSD_kernel__)
 static int tap_open(char *ifname, int ifname_size)
 {
     int fd;
@@ -2935,7 +2905,7 @@ void do_info_network(Monitor *mon)
     }
 }
 
-void do_set_link(Monitor *mon, const char *name, const char *up_or_down)
+int do_set_link(Monitor *mon, const char *name, const char *up_or_down)
 {
     VLANState *vlan;
     VLANClientState *vc = NULL;
@@ -2947,8 +2917,8 @@ void do_set_link(Monitor *mon, const char *name, const char *up_or_down)
 done:
 
     if (!vc) {
-        monitor_printf(mon, "could not find network device '%s'\n", name);
-        return;
+        monitor_printf(mon, "could not find network device '%s'", name);
+        return 0;
     }
 
     if (strcmp(up_or_down, "up") == 0)
@@ -2961,6 +2931,8 @@ done:
 
     if (vc->link_status_changed)
         vc->link_status_changed(vc);
+
+    return 1;
 }
 
 void net_cleanup(void)

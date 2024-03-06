@@ -10,15 +10,9 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
-
-// keeping this here to make sure backported code is tracked properly, but VS2013+ does not need mathex.h anymore!
-//#ifdef _MSC_VER
-//#include <mathex.h>
-//#else
 #include <math.h>
-//#endif
 
-#if (defined(_BSD) && !defined(__APPLE__)) || defined(HOST_SOLARIS)
+#if (defined(CONFIG_BSD) && !defined(__APPLE__)) || defined(CONFIG_SOLARIS)
 #include <ieeefp.h>
 #define fabsf(f) ((float)fabs(f))
 #else
@@ -36,8 +30,9 @@
  *   Solaris 10 with GCC4 does not need these macros as they
  *   are defined in <iso/math_c99.h> with a compiler directive
  */
-#if defined(HOST_SOLARIS) && (( HOST_SOLARIS <= 9 ) || ((HOST_SOLARIS >= 10) \
-                                                        && (__GNUC__ < 4))) \
+#if defined(CONFIG_SOLARIS) && \
+           ((CONFIG_SOLARIS_VERSION <= 9 ) || \
+           ((CONFIG_SOLARIS_VERSION >= 10) && (__GNUC__ < 4))) \
     || (defined(__OpenBSD__) && (OpenBSD < 200811))
 /*
  * C99 7.12.3 classification macros
@@ -103,8 +98,6 @@ static inline int isinf_ld (long double x) { return isnan (x - x); }
 
 typedef float float32;
 typedef double float64;
-
-
 #ifdef FLOATX80
 
 #ifdef _MSC_VER
@@ -136,7 +129,7 @@ typedef union {
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE floating-point rounding mode.
 *----------------------------------------------------------------------------*/
-#if (defined(_BSD) && !defined(__APPLE__)) || defined(HOST_SOLARIS)
+#if (defined(CONFIG_BSD) && !defined(__APPLE__)) || defined(CONFIG_SOLARIS)
 #if defined(__OpenBSD__)
 #define FE_RM FP_RM
 #define FE_RP FP_RP
@@ -419,8 +412,6 @@ INLINE float64 float64_scalbn(float64 a, int n)
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE extended double-precision conversion routines.
 *----------------------------------------------------------------------------*/
-
-
 int floatx80_to_int32( floatx80 STATUS_PARAM );
 int floatx80_to_int32_round_to_zero( floatx80 STATUS_PARAM );
 int64_t floatx80_to_int64( floatx80 STATUS_PARAM);

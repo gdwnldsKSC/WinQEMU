@@ -14,10 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
- */
-
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
 /*
  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
  * other than GPL is available it will apply instead, WinQEMU elects to use only the 
@@ -27,7 +24,6 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
- 
 #if !defined(__DYNGEN_EXEC_H__)
 #define __DYNGEN_EXEC_H__
 
@@ -51,7 +47,7 @@
 /* XXX: This may be wrong for 64-bit ILP32 hosts.  */
 typedef void * host_reg_t;
 
-#ifdef HOST_BSD
+#ifdef CONFIG_BSD
 typedef struct __sFILE FILE;
 #else
 typedef struct FILE FILE;
@@ -87,7 +83,7 @@ extern int printf(const char *, ...);
 #define AREG1 "s0"
 #define AREG2 "s1"
 #elif defined(__sparc__)
-#ifdef HOST_SOLARIS
+#ifdef CONFIG_SOLARIS
 #define AREG0 "g2"
 #define AREG1 "g3"
 #define AREG2 "g4"

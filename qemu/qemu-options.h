@@ -14,7 +14,10 @@ DEF("cpu", HAS_ARG, QEMU_OPTION_cpu,
 "-cpu cpu        select CPU (-cpu ? for list)\n")
 
 DEF("smp", HAS_ARG, QEMU_OPTION_smp,
-"-smp n          set the number of CPUs to 'n' [default=1]\n")
+"-smp n[,maxcpus=cpus]\n"
+"                set the number of CPUs to 'n' [default=1]\n"
+"                maxcpus= maximum number of total cpus, including\n"
+"                offline CPUs for hotplug etc.\n")
 
 DEF("numa", HAS_ARG, QEMU_OPTION_numa,
 "-numa node[,mem=size][,cpus=cpu[-cpu]][,nodeid=node]\n")

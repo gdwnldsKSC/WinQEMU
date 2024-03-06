@@ -121,6 +121,7 @@ extern int usb_enabled;
 extern int virtio_balloon;
 extern const char *virtio_balloon_devaddr;
 extern int smp_cpus;
+extern int max_cpus;
 extern int cursor_hide;
 extern int graphic_rotate;
 extern int no_quit;
@@ -160,12 +161,6 @@ typedef enum {
 
 #define BLOCK_SERIAL_STRLEN 20
 
-typedef struct DriveOpt {
-    const char *file;
-    char opt[1024];
-    TAILQ_ENTRY(DriveOpt) next;
-} DriveOpt;
-
 typedef struct DriveInfo {
     BlockDriverState *bdrv;
     char *id;
@@ -173,7 +168,7 @@ typedef struct DriveInfo {
     BlockInterfaceType type;
     int bus;
     int unit;
-    DriveOpt *opt;
+    QemuOpts *opts;
     BlockInterfaceErrorAction onerror;
     char serial[BLOCK_SERIAL_STRLEN + 1];
     TAILQ_ENTRY(DriveInfo) next;
@@ -190,15 +185,13 @@ extern DriveInfo *drive_get(BlockInterfaceType type, int bus, int unit);
 extern DriveInfo *drive_get_by_id(char *id);
 extern int drive_get_max_bus(BlockInterfaceType type);
 extern void drive_uninit(BlockDriverState *bdrv);
-extern void drive_remove(DriveOpt *opt);
 extern const char *drive_get_serial(BlockDriverState *bdrv);
 extern BlockInterfaceErrorAction drive_get_onerror(BlockDriverState *bdrv);
 
 BlockDriverState *qdev_init_bdrv(DeviceState *dev, BlockInterfaceType type);
 
-extern DriveOpt *drive_add(const char *file, const char *fmt, ...);
-extern DriveInfo *drive_init(DriveOpt *arg, int snapshot, void *machine,
-                             int *fatal_error);
+extern QemuOpts *drive_add(const char *file, const char *fmt, ...);
+extern DriveInfo *drive_init(QemuOpts *arg, void *machine, int *fatal_error);
 
 /* acpi */
 typedef void (*qemu_system_device_hot_add_t)(int pcibus, int slot, int state);
