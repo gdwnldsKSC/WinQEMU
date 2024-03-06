@@ -4044,6 +4044,8 @@ void helper_fbld_ST0(target_ulong ptr)
     tmp = val;
     if (ldub(ptr + 9) & 0x80)
         tmp = -tmp;
+    fpush();
+    ST0 = tmp;
 #else
 	tmp = fx80_from_int64(val);
 	if (ldub(ptr + 9) & 0x80)
