@@ -39,7 +39,7 @@
 
 #include "config.h"
 
-#ifndef DEBUG_TCG
+#ifndef CONFIG_DEBUG_TCG
 /* define it to suppress various consistency checks (faster) */
 #define NDEBUG
 #endif
