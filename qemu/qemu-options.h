@@ -83,6 +83,8 @@ DEF("usb", 0, QEMU_OPTION_usb,
 DEF("usbdevice", HAS_ARG, QEMU_OPTION_usbdevice,
 "-usbdevice name add the host or guest USB device 'name'\n")
 
+DEF("device", HAS_ARG, QEMU_OPTION_device,
+"-device driver[,options]  add device\n")
 DEF("name", HAS_ARG, QEMU_OPTION_name,
 "-name string1[,process=string2]    set the name of the guest\n"
 "            string1 sets the window title and string2 the process name (on Linux)\n")
@@ -259,16 +261,16 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n"
-#endif 
+#endif
 #endif
 
-#ifdef CONFIG_VDE 
+#ifdef CONFIG_VDE
 #define VDE_OPTIONS \
 "-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n" \
 "                connect the vlan 'n' to port 'n' of a vde switch running\n" \
 "                on host and listening for incoming connections on 'socketpath'.\n" \
 "                Use group 'groupname' and mode 'octalmode' to change default\n" \
-"                ownership and permissions for communication port.\n" 
+"                ownership and permissions for communication port.\n"
 #else
 #define VDE_OPTIONS ""
 #endif
@@ -290,7 +292,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net dump[,vlan=n][,file=f][,len=n]\n" \
 	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
 	"-net none       use it alone to have zero network devices; if no -net option\n" \
-	"                is provided, the default is '-net nic -net user'\n")
+"                is provided, the default is '-net nic -net user'\n")
 
 	// END HEAVILY MODIFIED SECTION 
 
