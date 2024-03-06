@@ -3,6 +3,8 @@
 /* Misc. things related to the system emulator.  */
 
 #include "qemu-common.h"
+#include "qemu-option.h"
+#include "sys-queue.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -158,45 +160,45 @@ typedef enum {
 
 #define BLOCK_SERIAL_STRLEN 20
 
+typedef struct DriveOpt {
+    const char *file;
+    char opt[1024];
+    TAILQ_ENTRY(DriveOpt) next;
+} DriveOpt;
+
 typedef struct DriveInfo {
     BlockDriverState *bdrv;
+    char *id;
     const char *devaddr;
     BlockInterfaceType type;
     int bus;
     int unit;
-    int used;
-    int drive_opt_idx;
+    DriveOpt *opt;
     BlockInterfaceErrorAction onerror;
     char serial[BLOCK_SERIAL_STRLEN + 1];
+    TAILQ_ENTRY(DriveInfo) next;
 } DriveInfo;
 
 #define MAX_IDE_DEVS	2
 #define MAX_SCSI_DEVS	7
 #define MAX_DRIVES 32
 
-extern int nb_drives;
-extern DriveInfo drives_table[MAX_DRIVES+1];
+extern TAILQ_HEAD(drivelist, DriveInfo) drives;
+extern TAILQ_HEAD(driveoptlist, DriveOpt) driveopts;
 
-extern int drive_get_index(BlockInterfaceType type, int bus, int unit);
+extern DriveInfo *drive_get(BlockInterfaceType type, int bus, int unit);
+extern DriveInfo *drive_get_by_id(char *id);
 extern int drive_get_max_bus(BlockInterfaceType type);
 extern void drive_uninit(BlockDriverState *bdrv);
-extern void drive_remove(int index);
+extern void drive_remove(DriveOpt *opt);
 extern const char *drive_get_serial(BlockDriverState *bdrv);
 extern BlockInterfaceErrorAction drive_get_onerror(BlockDriverState *bdrv);
 
 BlockDriverState *qdev_init_bdrv(DeviceState *dev, BlockInterfaceType type);
 
-struct drive_opt {
-    const char *file;
-    char opt[1024];
-    int used;
-};
-
-extern struct drive_opt drives_opt[MAX_DRIVES];
-extern int nb_drives_opt;
-
-extern int drive_add(const char *file, const char *fmt, ...);
-extern int drive_init(struct drive_opt *arg, int snapshot, void *machine);
+extern DriveOpt *drive_add(const char *file, const char *fmt, ...);
+extern DriveInfo *drive_init(DriveOpt *arg, int snapshot, void *machine,
+                             int *fatal_error);
 
 /* acpi */
 typedef void (*qemu_system_device_hot_add_t)(int pcibus, int slot, int state);
@@ -207,7 +209,7 @@ void qemu_system_device_hot_add(int pcibus, int slot, int state);
 
 typedef int (dev_match_fn)(void *dev_private, void *arg);
 
-int add_init_drive(const char *opts);
+DriveInfo *add_init_drive(const char *opts);
 void destroy_nic(dev_match_fn *match_fn, void *arg);
 void destroy_bdrvs(dev_match_fn *match_fn, void *arg);
 
@@ -274,13 +276,6 @@ extern struct soundhw soundhw[];
 void do_usb_add(Monitor *mon, const char *devname);
 void do_usb_del(Monitor *mon, const char *devname);
 void usb_info(Monitor *mon);
-
-int get_param_value(char *buf, int buf_size,
-                    const char *tag, const char *str);
-int get_next_param_value(char *buf, int buf_size,
-                         const char *tag, const char **pstr);
-int check_params(char *buf, int buf_size,
-                 const char * const *params, const char *str);
 
 void register_devices(void);
 

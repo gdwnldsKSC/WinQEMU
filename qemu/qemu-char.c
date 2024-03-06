@@ -350,9 +350,9 @@ static int mux_proc_byte(CharDriverState *chr, MuxDriver *d, int ch)
             }
         case 's':
             {
-                int i;
-                for (i = 0; i < nb_drives; i++) {
-                        bdrv_commit(drives_table[i].bdrv);
+                DriveInfo *dinfo;
+                TAILQ_FOREACH(dinfo, &drives, next) {
+                    bdrv_commit(dinfo->bdrv);
                 }
             }
             break;
@@ -1947,7 +1947,7 @@ static void unix_process_msgfd(CharDriverState *chr, struct msghdr *msg)
 static ssize_t tcp_chr_recv(CharDriverState *chr, char *buf, size_t len)
 {
     TCPCharDriver *s = chr->opaque;
-    struct msghdr msg = { NULL, };
+    struct msghdr msg = { 0, };
     struct iovec iov[1];
     union {
         struct cmsghdr cmsg;
@@ -2212,7 +2212,7 @@ CharDriverState *qemu_chr_open(const char *label, const char *filename, void (*i
     CharDriverState *chr;
 
     if (!strcmp(filename, "vc")) {
-        chr = text_console_init(NULL);
+        chr = text_console_init(0);
     } else
     if (strstart(filename, "vc:", &p)) {
         chr = text_console_init(p);
