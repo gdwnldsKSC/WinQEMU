@@ -1197,6 +1197,9 @@
     <ClCompile Include="qemu\hw\qdev.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qemu-config.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1804,6 +1807,9 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\qdev-addr.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-config.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

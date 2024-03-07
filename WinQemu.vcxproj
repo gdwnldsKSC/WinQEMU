@@ -214,6 +214,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\module.c" />
+    <ClCompile Include="qemu\qemu-config.c" />
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
     <ClCompile Include="qemu\sdl_zoom.c" />
@@ -1117,6 +1118,7 @@
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\module.h" />
+    <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
