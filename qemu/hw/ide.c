@@ -418,7 +418,6 @@ typedef struct IDEState {
     /* ATAPI specific */
     uint8_t sense_key;
     uint8_t asc;
-    uint8_t cdrom_changed;
     int packet_transfer_size;
     int elementary_transfer_size;
     int io_buffer_index;
@@ -1661,10 +1660,9 @@ static void ide_atapi_cmd(IDEState *s)
     }
     switch(s->io_buffer[0]) {
     case GPCMD_TEST_UNIT_READY:
-        if (bdrv_is_inserted(s->bs) && !s->cdrom_changed) {
+        if (bdrv_is_inserted(s->bs)) {
             ide_atapi_cmd_ok(s);
         } else {
-            s->cdrom_changed = 0;
             ide_atapi_cmd_error(s, SENSE_NOT_READY,
                                 ASC_MEDIUM_NOT_PRESENT);
         }
@@ -2150,7 +2148,7 @@ static void cdrom_change_cb(void *opaque)
 
     s->sense_key = SENSE_UNIT_ATTENTION;
     s->asc = ASC_MEDIUM_MAY_HAVE_CHANGED;
-    s->cdrom_changed = 1;
+
     ide_set_irq(s);
 }
 
@@ -2914,12 +2912,11 @@ static void ide_save(QEMUFile* f, IDEState *s)
 
     qemu_put_8s(f, &s->sense_key);
     qemu_put_8s(f, &s->asc);
-    qemu_put_8s(f, &s->cdrom_changed);
     /* XXX: if a transfer is pending, we do not save it yet */
 }
 
 /* load per IDE drive data */
-static void ide_load(QEMUFile* f, IDEState *s, int version_id)
+static void ide_load(QEMUFile* f, IDEState *s)
 {
     s->mult_sectors=qemu_get_be32(f);
     s->identify_set=qemu_get_be32(f);
@@ -2943,13 +2940,6 @@ static void ide_load(QEMUFile* f, IDEState *s, int version_id)
 
     qemu_get_8s(f, &s->sense_key);
     qemu_get_8s(f, &s->asc);
-    if (version_id == 3) {
-        qemu_get_8s(f, &s->cdrom_changed);
-    } else {
-        if (s->sense_key == SENSE_UNIT_ATTENTION &&
-                       s->asc == ASC_MEDIUM_MAY_HAVE_CHANGED)
-            s->cdrom_changed = 1;
-    }
     /* XXX: if a transfer is pending, we do not save it yet */
 }
 
@@ -3271,7 +3261,7 @@ static int pci_ide_load(QEMUFile* f, void *opaque, int version_id)
     PCIIDEState *d = opaque;
     int ret, i;
 
-    if (version_id != 2 && version_id != 3)
+    if (version_id != 2)
         return -EINVAL;
     ret = pci_device_load(&d->dev, f);
     if (ret < 0)
@@ -3301,7 +3291,7 @@ static int pci_ide_load(QEMUFile* f, void *opaque, int version_id)
 
     /* per IDE drive data */
     for(i = 0; i < 4; i++) {
-        ide_load(f, &d->ide_if[i], version_id);
+        ide_load(f, &d->ide_if[i]);
     }
     return 0;
 }
@@ -3391,7 +3381,7 @@ void pci_cmd646_ide_init(PCIBus *bus, BlockDriverState **hd_table,
     ide_init2(&d->ide_if[0], hd_table[0], hd_table[1], irq[0]);
     ide_init2(&d->ide_if[2], hd_table[2], hd_table[3], irq[1]);
 
-    register_savevm("ide", 0, 3, pci_ide_save, pci_ide_load, d);
+    register_savevm("ide", 0, 2, pci_ide_save, pci_ide_load, d);
     qemu_register_reset(cmd646_reset, d);
     cmd646_reset(d);
 }
@@ -3450,7 +3440,7 @@ void pci_piix3_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
         if (hd_table[i])
             hd_table[i]->private = &d->dev;
 
-    register_savevm("ide", 0, 3, pci_ide_save, pci_ide_load, d);
+    register_savevm("ide", 0, 2, pci_ide_save, pci_ide_load, d);
 }
 
 /* hd_table must contain 4 block drivers */
@@ -3486,7 +3476,7 @@ void pci_piix4_ide_init(PCIBus *bus, BlockDriverState **hd_table, int devfn,
     ide_init_ioport(&d->ide_if[0], 0x1f0, 0x3f6);
     ide_init_ioport(&d->ide_if[2], 0x170, 0x376);
 
-    register_savevm("ide", 0, 3, pci_ide_save, pci_ide_load, d);
+    register_savevm("ide", 0, 2, pci_ide_save, pci_ide_load, d);
 }
 
 #if defined(TARGET_PPC)
@@ -3774,7 +3764,7 @@ static int pmac_ide_load(QEMUFile *f, void *opaque, int version_id)
     uint8_t drive1_selected;
     unsigned int i;
 
-    if (version_id != 1 && version_id != 3)
+    if (version_id != 1)
         return -EINVAL;
 
     /* per IDE interface data */
@@ -3784,7 +3774,7 @@ static int pmac_ide_load(QEMUFile *f, void *opaque, int version_id)
 
     /* per IDE drive data */
     for(i = 0; i < 2; i++) {
-        ide_load(f, &s[i], version_id);
+        ide_load(f, &s[i]);
     }
     return 0;
 }
@@ -3815,7 +3805,7 @@ int pmac_ide_init (BlockDriverState **hd_table, qemu_irq irq,
 
     pmac_ide_memory = cpu_register_io_memory(pmac_ide_read,
                                              pmac_ide_write, d);
-    register_savevm("ide", 0, 3, pmac_ide_save, pmac_ide_load, d);
+    register_savevm("ide", 0, 1, pmac_ide_save, pmac_ide_load, d);
     qemu_register_reset(pmac_ide_reset, d);
     pmac_ide_reset(d);
 
@@ -4208,9 +4198,6 @@ static int md_load(QEMUFile *f, void *opaque, int version_id)
     int i;
     uint8_t drive1_selected;
 
-    if (version_id != 0 && version_id != 3)
-        return -EINVAL;
-
     qemu_get_8s(f, &s->opt);
     qemu_get_8s(f, &s->stat);
     qemu_get_8s(f, &s->pins);
@@ -4224,7 +4211,7 @@ static int md_load(QEMUFile *f, void *opaque, int version_id)
     s->ide->cur_drive = &s->ide[(drive1_selected != 0)];
 
     for (i = 0; i < 2; i ++)
-        ide_load(f, &s->ide[i], version_id);
+        ide_load(f, &s->ide[i]);
 
     return 0;
 }
@@ -4455,7 +4442,7 @@ PCMCIACardState *dscm1xxxx_init(BlockDriverState *bdrv)
     md->ide->mdata_size = METADATA_SIZE;
     md->ide->mdata_storage = (uint8_t *) qemu_mallocz(METADATA_SIZE);
 
-    register_savevm("microdrive", -1, 3, md_save, md_load, md);
+    register_savevm("microdrive", -1, 0, md_save, md_load, md);
 
     return &md->card;
 }
