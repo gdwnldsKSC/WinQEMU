@@ -26,6 +26,13 @@ To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug 
 WinQEMU\Debug folder (fmod.dll and SDL.dll). You must launch WinQemuTest as the debug
 target as WinQemu is built as a DLL.
 
+3/7/2024 - as a change introduced in qemu around August 10, 2009 using typeof() in macros
+this feature wasn't supported/standardized in C until C23. Therefore, until we switch to
+/std:clatest in the build system (which is impossible to do currently in the VS GUI)
+we are using \_\_typeof\_\_ instead. Unfortunately, this means we must use at minimum 
+Visual Studio 2022 17.9 or higher, introduced in February 2024
+
+
 Only Debug/Win32 is currently "fixed up" and validated. 
 
 For a working debug environment, add to D:\Images\ (currently hard coded) vgabios-cirrus.bin, 
