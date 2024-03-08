@@ -29,8 +29,10 @@ target as WinQemu is built as a DLL.
 3/7/2024 - as a change introduced in qemu around August 10, 2009 using typeof() in macros
 this feature wasn't supported/standardized in C until C23. Therefore, until we switch to
 /std:clatest in the build system (which is impossible to do currently in the VS GUI)
-we are using \_\_typeof\_\_ instead. Unfortunately, this means we must use at minimum 
-Visual Studio 2022 17.9 or higher, introduced in February 2024
+we are using \_\_typeof\_\_ instead, which allows us to use this new implementation 
+regardless of current set C language STD. Unfortunately, this means we must use at minimum 
+Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and 
+\_\_typeof\_\_ support were added.
 
 
 Only Debug/Win32 is currently "fixed up" and validated. 
