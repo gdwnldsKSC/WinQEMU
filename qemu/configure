@@ -14,16 +14,25 @@ fi
 TMPC="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPO="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPE="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}"
-TMPS="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.S"
-TMPI="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.i"
-TMPSDLLOG="${TMPDIR1}/qemu-conf-sdl-$$-${RANDOM}.log"
 
-trap "rm -f $TMPC $TMPO $TMPE $TMPS $TMPI $TMPSDLLOG; exit" 0 2 3 15
+trap "rm -f $TMPC $TMPO $TMPE ; exit" 0 2 3 15
+
+compile_object() {
+  $cc $QEMU_CFLAGS -c -o $TMPO $TMPC > /dev/null 2> /dev/null
+}
+
+compile_prog() {
+  local_cflags="$1"
+  local_ldflags="$2"
+  $cc $QEMU_CFLAGS $local_cflags -o $TMPE $TMPC $LDFLAGS $local_ldflags > /dev/null 2> /dev/null
+}
 
 # default parameters
+cpu=""
 prefix=""
 interp_prefix="/usr/gnemul/qemu-%M"
 static="no"
+sparc_cpu=""
 cross_prefix=""
 cc="gcc"
 audio_drv_list=""
@@ -33,7 +42,6 @@ host_cc="gcc"
 ar="ar"
 make="make"
 install="install"
-strip="strip"
 objcopy="objcopy"
 ld="ld"
 
@@ -45,16 +53,35 @@ for opt do
   ;;
   --cc=*) cc="$optarg"
   ;;
+  --cpu=*) cpu="$optarg"
+  ;;
+  --extra-cflags=*) QEMU_CFLAGS="$optarg $QEMU_CFLAGS"
+  ;;
+  --extra-ldflags=*) LDFLAGS="$optarg $LDFLAGS"
+  ;;
+  --sparc_cpu=*)
+    sparc_cpu="$optarg"
+    case $sparc_cpu in
+    v7|v8|v8plus|v8plusa)
+      cpu="sparc"
+    ;;
+    v9)
+      cpu="sparc64"
+    ;;
+    *)
+      echo "undefined SPARC architecture. Exiting";
+      exit 1
+    ;;
+    esac
+  ;;
   esac
 done
-
 # OS specific
 # Using uname is really, really broken.  Once we have the right set of checks
 # we can eliminate it's usage altogether
 
 cc="${cross_prefix}${cc}"
 ar="${cross_prefix}${ar}"
-strip="${cross_prefix}${strip}"
 objcopy="${cross_prefix}${objcopy}"
 ld="${cross_prefix}${ld}"
 
@@ -63,7 +90,7 @@ cat > $TMPC <<EOF
 int main(void) {}
 EOF
 
-if $cc $ARCH_CFLAGS -c -o $TMPO $TMPC > /dev/null 2> /dev/null ; then
+if compile_object ; then
   : C compiler works ok
 else
     echo "ERROR: \"$cc\" either does not exist or does not work"
@@ -77,10 +104,13 @@ cat > $TMPC <<EOF
 #endif
 int main(void) { return 0; }
 EOF
-  $cc $ARCH_CFLAGS -c -o $TMPO $TMPC > /dev/null 2> /dev/null
+  compile_object
 }
 
-if check_define __i386__ ; then
+if test ! -z "$cpu" ; then
+  # command line argument
+  :
+elif check_define __i386__ ; then
   cpu="i386"
 elif check_define __x86_64__ ; then
   cpu="x86_64"
@@ -104,14 +134,14 @@ fi
 
 target_list=""
 case "$cpu" in
+  alpha|cris|ia64|m68k|microblaze|mips|mips64|ppc|ppc64|sparc64)
+    cpu="$cpu"
+  ;;
   i386|i486|i586|i686|i86pc|BePC)
     cpu="i386"
   ;;
   x86_64|amd64)
     cpu="x86_64"
-  ;;
-  alpha)
-    cpu="alpha"
   ;;
   armv*b)
     cpu="armv4b"
@@ -119,41 +149,14 @@ case "$cpu" in
   armv*l)
     cpu="armv4l"
   ;;
-  cris)
-    cpu="cris"
-  ;;
   parisc|parisc64)
     cpu="hppa"
-  ;;
-  ia64)
-    cpu="ia64"
-  ;;
-  m68k)
-    cpu="m68k"
-  ;;
-  microblaze)
-    cpu="microblaze"
-  ;;
-  mips)
-    cpu="mips"
-  ;;
-  mips64)
-    cpu="mips64"
-  ;;
-  ppc)
-    cpu="ppc"
-  ;;
-  ppc64)
-    cpu="ppc64"
   ;;
   s390*)
     cpu="s390"
   ;;
   sparc|sun4[cdmuv])
     cpu="sparc"
-  ;;
-  sparc64)
-    cpu="sparc64"
   ;;
   *)
     cpu="unknown"
@@ -217,127 +220,124 @@ elif check_define __sun__ ; then
 else
   targetos=`uname -s`
 fi
+
 case $targetos in
 CYGWIN*)
-mingw32="yes"
-OS_CFLAGS="-mno-cygwin"
-if [ "$cpu" = "i386" ] ; then
-    kqemu="yes"
-fi
-audio_possible_drivers="sdl"
+  mingw32="yes"
+  QEMU_CFLAGS="-mno-cygwin $QEMU_CFLAGS"
+  audio_possible_drivers="sdl"
 ;;
 MINGW32*)
-mingw32="yes"
-if [ "$cpu" = "i386" ] ; then
-    kqemu="yes"
-fi
-audio_possible_drivers="dsound sdl fmod"
+  mingw32="yes"
+  audio_possible_drivers="dsound sdl fmod"
 ;;
 GNU/kFreeBSD)
-audio_drv_list="oss"
-audio_possible_drivers="oss sdl esd pa"
-if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
+  audio_drv_list="oss"
+  audio_possible_drivers="oss sdl esd pa"
+  if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
     kqemu="yes"
-fi
+  fi
 ;;
 FreeBSD)
-bsd="yes"
-audio_drv_list="oss"
-audio_possible_drivers="oss sdl esd pa"
-if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
+  bsd="yes"
+  audio_drv_list="oss"
+  audio_possible_drivers="oss sdl esd pa"
+  if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
     kqemu="yes"
-fi
+  fi
 ;;
 DragonFly)
-bsd="yes"
-audio_drv_list="oss"
-audio_possible_drivers="oss sdl esd pa"
-if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
+  bsd="yes"
+  audio_drv_list="oss"
+  audio_possible_drivers="oss sdl esd pa"
+  if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
     kqemu="yes"
-fi
-aio="no"
+  fi
+  aio="no"
 ;;
 NetBSD)
-bsd="yes"
-audio_drv_list="oss"
-audio_possible_drivers="oss sdl esd"
-oss_lib="-lossaudio"
+  bsd="yes"
+  audio_drv_list="oss"
+  audio_possible_drivers="oss sdl esd"
+  oss_lib="-lossaudio"
 ;;
 OpenBSD)
-bsd="yes"
-audio_drv_list="oss"
-audio_possible_drivers="oss sdl esd"
-oss_lib="-lossaudio"
+  bsd="yes"
+  audio_drv_list="oss"
+  audio_possible_drivers="oss sdl esd"
+  oss_lib="-lossaudio"
 ;;
 Darwin)
-bsd="yes"
-darwin="yes"
-# on Leopard most of the system is 32-bit, so we have to ask the kernel it if we can run 64-bit userspace code
-if [ "$cpu" = "i386" ] ; then
+  bsd="yes"
+  darwin="yes"
+  # on Leopard most of the system is 32-bit, so we have to ask the kernel it if we can
+  # run 64-bit userspace code
+  if [ "$cpu" = "i386" ] ; then
     is_x86_64=`sysctl -n hw.optional.x86_64`
     [ "$is_x86_64" = "1" ] && cpu=x86_64
-fi
-if [ "$cpu" = "x86_64" ] ; then
-    OS_CFLAGS="-arch x86_64"
-    LDFLAGS="-arch x86_64"
-else
-    OS_CFLAGS="-mdynamic-no-pic"
-fi
-darwin_user="yes"
-cocoa="yes"
-audio_drv_list="coreaudio"
-audio_possible_drivers="coreaudio sdl fmod"
-OS_LDFLAGS="-framework CoreFoundation -framework IOKit"
+  fi
+  if [ "$cpu" = "x86_64" ] ; then
+    QEMU_CFLAGS="-arch x86_64 $QEMU_CFLAGS"
+    LDFLAGS="-arch x86_64 $LDFLAGS"
+  else
+    QEMU_CFLAGS="-mdynamic-no-pic $QEMU_CFLAGS"
+  fi
+  darwin_user="yes"
+  cocoa="yes"
+  audio_drv_list="coreaudio"
+  audio_possible_drivers="coreaudio sdl fmod"
+  LDFLAGS="-framework CoreFoundation -framework IOKit $LDFLAGS"
 ;;
 SunOS)
-    solaris="yes"
-    make="gmake"
-    install="ginstall"
-    needs_libsunmath="no"
-    solarisrev=`uname -r | cut -f2 -d.`
-    # have to select again, because `uname -m` returns i86pc
-    # even on an x86_64 box.
-    solariscpu=`isainfo -k`
-    if test "${solariscpu}" = "amd64" ; then
-        cpu="x86_64"
+  solaris="yes"
+  make="gmake"
+  install="ginstall"
+  needs_libsunmath="no"
+  solarisrev=`uname -r | cut -f2 -d.`
+  # have to select again, because `uname -m` returns i86pc
+  # even on an x86_64 box.
+  solariscpu=`isainfo -k`
+  if test "${solariscpu}" = "amd64" ; then
+    cpu="x86_64"
+  fi
+  if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
+    if test "$solarisrev" -le 9 ; then
+      if test -f /opt/SUNWspro/prod/lib/libsunmath.so.1; then
+        needs_libsunmath="yes"
+      else
+        echo "QEMU will not link correctly on Solaris 8/X86 or 9/x86 without"
+        echo "libsunmath from the Sun Studio compilers tools, due to a lack of"
+        echo "C99 math features in libm.so in Solaris 8/x86 and Solaris 9/x86"
+        echo "Studio 11 can be downloaded from www.sun.com."
+        exit 1
+      fi
     fi
-    if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
-        if test "$solarisrev" -le 9 ; then
-            if test -f /opt/SUNWspro/prod/lib/libsunmath.so.1; then
-                needs_libsunmath="yes"
-            else
-                echo "QEMU will not link correctly on Solaris 8/X86 or 9/x86 without"
-                echo "libsunmath from the Sun Studio compilers tools, due to a lack of"
-                echo "C99 math features in libm.so in Solaris 8/x86 and Solaris 9/x86"
-                echo "Studio 11 can be downloaded from www.sun.com."
-                exit 1
-            fi
-        fi
-        if test "$solarisrev" -ge 9 ; then
-            kqemu="yes"
-        fi
+    if test "$solarisrev" -ge 9 ; then
+      kqemu="yes"
     fi
-    if test -f /usr/include/sys/soundcard.h ; then
-        audio_drv_list="oss"
-    fi
-    audio_possible_drivers="oss sdl"
-    OS_CFLAGS=-std=gnu99
+  fi
+  if test -f /usr/include/sys/soundcard.h ; then
+    audio_drv_list="oss"
+  fi
+  audio_possible_drivers="oss sdl"
+  QEMU_CFLAGS="-std=gnu99 $QEMU_CFLAGS"
+  LIBS="-lsocket -lnsl -lresolv $LIBS"
 ;;
 AIX)
-aix="yes"
-make="gmake"
+  aix="yes"
+  make="gmake"
 ;;
 *)
-audio_drv_list="oss"
-audio_possible_drivers="oss alsa sdl esd pa"
-linux="yes"
-linux_user="yes"
-usb="linux"
-kvm="yes"
-if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
+  audio_drv_list="oss"
+  audio_possible_drivers="oss alsa sdl esd pa"
+  linux="yes"
+  linux_user="yes"
+  usb="linux"
+  kvm="yes"
+  if [ "$cpu" = "i386" -o "$cpu" = "x86_64" ] ; then
     kqemu="yes"
     audio_possible_drivers="$audio_possible_drivers fmod"
-fi
+  fi
 ;;
 esac
 
@@ -347,6 +347,15 @@ if [ "$bsd" = "yes" ] ; then
     usb="bsd"
   fi
   bsd_user="yes"
+fi
+
+if test "$mingw32" = "yes" ; then
+  if [ "$cpu" = "i386" ] ; then
+    kqemu="yes"
+  fi
+  EXESUF=".exe"
+  QEMU_CFLAGS="-DWIN32_LEAN_AND_MEAN -DWINVER=0x501 $QEMU_CFLAGS"
+  LIBS="-lwinmm -lws2_32 -liphlpapi $LIBS"
 fi
 
 # find source path
@@ -384,11 +393,11 @@ for opt do
   ;;
   --install=*) install="$optarg"
   ;;
-  --extra-cflags=*) EXTRA_CFLAGS="$optarg"
+  --extra-cflags=*)
   ;;
-  --extra-ldflags=*) EXTRA_LDFLAGS="$optarg"
+  --extra-ldflags=*)
   ;;
-  --cpu=*) cpu="$optarg"
+  --cpu=*)
   ;;
   --target-list=*) target_list="$optarg"
   ;;
@@ -472,28 +481,6 @@ for opt do
   --enable-uname-release=*) uname_release="$optarg"
   ;;
   --sparc_cpu=*)
-      sparc_cpu="$optarg"
-      case $sparc_cpu in
-        v7|v8)
-          ARCH_CFLAGS="-m32 -mcpu=${sparc_cpu} -D__sparc_${sparc_cpu}__"
-          ARCH_LDFLAGS="-m32"
-          cpu="sparc"
-        ;;
-        v8plus|v8plusa)
-          ARCH_CFLAGS="-m32 -mcpu=ultrasparc -D__sparc_${sparc_cpu}__"
-          ARCH_LDFLAGS="-m32"
-          cpu="sparc"
-        ;;
-        v9)
-          ARCH_CFLAGS="-m64 -mcpu=ultrasparc -D__sparc_${sparc_cpu}__"
-          ARCH_LDFLAGS="-m64"
-          cpu="sparc64"
-        ;;
-        *)
-          echo "undefined SPARC architecture. Exiting";
-          exit 1
-        ;;
-      esac
   ;;
   --enable-werror) werror="yes"
   ;;
@@ -526,72 +513,47 @@ for opt do
   esac
 done
 
-# default flags for all hosts
-CFLAGS="$CFLAGS -g -fno-strict-aliasing"
-if test "$debug" = "no" ; then
-  CFLAGS="$CFLAGS -O2"
-fi
-CFLAGS="$CFLAGS -Wall -Wundef -Wendif-labels -Wwrite-strings -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls"
-LDFLAGS="$LDFLAGS -g"
-
-# Consult white-list to determine whether to enable werror
-# by default.  Only enable by default for git builds
-if test -z "$werror" ; then
-    z_version=`cut -f3 -d. $source_path/VERSION`
-    if test "$z_version" = "50" -a \
-        "$linux" = "yes" ; then
-        werror="yes"
-    else
-        werror="no"
-    fi
-fi
-
-if test "$werror" = "yes" ; then
-    CFLAGS="$CFLAGS -Werror"
-fi
-
-if test "$solaris" = "no" ; then
-    if ld --version 2>/dev/null | grep "GNU ld" >/dev/null 2>/dev/null ; then
-        LDFLAGS="$LDFLAGS -Wl,--warn-common"
-    fi
-fi
-
 #
 # If cpu ~= sparc and  sparc_cpu hasn't been defined, plug in the right
-# ARCH_CFLAGS/ARCH_LDFLAGS (assume sparc_v8plus for 32-bit and sparc_v9 for 64-bit)
+# QEMU_CFLAGS/LDFLAGS (assume sparc_v8plus for 32-bit and sparc_v9 for 64-bit)
 #
 host_guest_base="no"
 case "$cpu" in
-    sparc) if test -z "$sparc_cpu" ; then
-               ARCH_CFLAGS="-m32 -mcpu=ultrasparc -D__sparc_v8plus__"
-               ARCH_LDFLAGS="-m32"
-           fi
-           ARCH_CFLAGS="$ARCH_CFLAGS -ffixed-g2 -ffixed-g3"
+    sparc) case $sparc_cpu in
+           v7|v8)
+             QEMU_CFLAGS="-mcpu=${sparc_cpu} -D__sparc_${sparc_cpu}__ $QEMU_CFLAGS"
+           ;;
+           v8plus|v8plusa)
+             QEMU_CFLAGS="-mcpu=ultrasparc -D__sparc_${sparc_cpu}__ $QEMU_CFLAGS"
+           ;;
+           *) # sparc_cpu not defined in the command line
+             QEMU_CFLAGS="-mcpu=ultrasparc -D__sparc_v8plus__ $QEMU_CFLAGS"
+           esac
+           LDFLAGS="-m32 $LDFLAGS"
+           QEMU_CFLAGS="-m32 -ffixed-g2 -ffixed-g3 $QEMU_CFLAGS"
            if test "$solaris" = "no" ; then
-               ARCH_CFLAGS="$ARCH_CFLAGS -ffixed-g1 -ffixed-g6"
+             QEMU_CFLAGS="-ffixed-g1 -ffixed-g6 $QEMU_CFLAGS"
            fi
            ;;
-    sparc64) if test -z "$sparc_cpu" ; then
-               ARCH_CFLAGS="-m64 -mcpu=ultrasparc -D__sparc_v9__"
-               ARCH_LDFLAGS="-m64"
-           fi
-           if test "$solaris" = "no" ; then
-               ARCH_CFLAGS="$ARCH_CFLAGS -ffixed-g5 -ffixed-g6 -ffixed-g7"
-           else
-               ARCH_CFLAGS="$ARCH_CFLAGS -ffixed-g1 -ffixed-g5 -ffixed-g6 -ffixed-g7"
+    sparc64)
+           QEMU_CFLAGS="-m64 -mcpu=ultrasparc -D__sparc_v9__ $QEMU_CFLAGS"
+           LDFLAGS="-m64 $LDFLAGS"
+           QEMU_CFLAGS="-ffixed-g5 -ffixed-g6 -ffixed-g7 $QEMU_CFLAGS"
+           if test "$solaris" != "no" ; then
+             QEMU_CFLAGS="-ffixed-g1 $QEMU_CFLAGS"
            fi
            ;;
     s390)
-           ARCH_CFLAGS="-march=z900"
+           QEMU_CFLAGS="-march=z900 $QEMU_CFLAGS"
            ;;
     i386)
-           ARCH_CFLAGS="-m32"
-           ARCH_LDFLAGS="-m32"
+           QEMU_CFLAGS="-m32 $QEMU_CFLAGS"
+           LDFLAGS="-m32 $LDFLAGS"
            host_guest_base="yes"
            ;;
     x86_64)
-           ARCH_CFLAGS="-m64"
-           ARCH_LDFLAGS="-m64"
+           QEMU_CFLAGS="-m64 $QEMU_CFLAGS"
+           LDFLAGS="-m64 $LDFLAGS"
            host_guest_base="yes"
            ;;
     arm*)
@@ -626,7 +588,7 @@ echo "  --source-path=PATH       path of source code [$source_path]"
 echo "  --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
 echo "  --cc=CC                  use C compiler CC [$cc]"
 echo "  --host-cc=CC             use C compiler CC [$host_cc] for dyngen etc."
-echo "  --extra-cflags=CFLAGS    append extra C compiler flags CFLAGS"
+echo "  --extra-cflags=CFLAGS    append extra C compiler flags QEMU_CFLAGS"
 echo "  --extra-ldflags=LDFLAGS  append extra linker flags LDFLAGS"
 echo "  --make=MAKE              use specified make [$make]"
 echo "  --install=INSTALL        use specified install [$install]"
@@ -679,15 +641,6 @@ echo "  --kerneldir=PATH         look for kernel includes in PATH"
 echo ""
 echo "NOTE: The object files are built at the place where configure is launched"
 exit 1
-fi
-
-if test "$mingw32" = "yes" ; then
-    linux="no"
-    EXESUF=".exe"
-    oss="no"
-    linux_user="no"
-    bsd_user="no"
-    OS_CFLAGS="$OS_CFLAGS -DWIN32_LEAN_AND_MEAN -DWINVER=0x501"
 fi
 
 if test ! -x "$(which cgcc 2>/dev/null)"; then
@@ -801,7 +754,7 @@ int main(int argc, char ** argv){
 }
 EOF
 
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if compile_prog "" "" ; then
 $TMPE && bigendian="yes"
 else
 echo big/little test failed
@@ -810,30 +763,21 @@ fi
 else
 
 # if cross compiling, cannot launch a program, so make a static guess
-if test "$cpu" = "armv4b" \
-     -o "$cpu" = "hppa" \
-     -o "$cpu" = "m68k" \
-     -o "$cpu" = "mips" \
-     -o "$cpu" = "mips64" \
-     -o "$cpu" = "ppc" \
-     -o "$cpu" = "ppc64" \
-     -o "$cpu" = "s390" \
-     -o "$cpu" = "sparc" \
-     -o "$cpu" = "sparc64"; then
-    bigendian="yes"
-fi
+case "$cpu" in
+  armv4b|hppa|m68k|mips|mips64|ppc|ppc64|s390|sparc|sparc64)
+    bigendian=yes
+  ;;
+esac
 
 fi
 
 # host long bits test
 hostlongbits="32"
-if test "$cpu" = "x86_64" \
-     -o "$cpu" = "alpha" \
-     -o "$cpu" = "ia64" \
-     -o "$cpu" = "sparc64" \
-     -o "$cpu" = "ppc64"; then
-    hostlongbits="64"
-fi
+case "$cpu" in
+  x86_64|alpha|ia64|sparc64|ppc64)
+    hostlongbits=64
+  ;;
+esac
 
 # Check host NPTL support
 cat > $TMPC <<EOF
@@ -847,7 +791,7 @@ void foo()
 }
 EOF
 
-if $cc $ARCH_CFLAGS -c -o $TMPO $TMPC > /dev/null 2> /dev/null ; then
+if compile_object ; then
   :
 else
    nptl="no"
@@ -860,7 +804,7 @@ cat > $TMPC << EOF
 #include <zlib.h>
 int main(void) { zlibVersion(); return 0; }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $TMPC -lz > /dev/null 2> /dev/null ; then
+if compile_prog "" "-lz" ; then
     :
 else
     echo
@@ -880,7 +824,7 @@ if test "$xen" = "yes" ; then
 #include <xs.h>
 int main(void) { xs_daemon_open(); xc_interface_open(); return 0; }
 EOF
-  if $cc $CFLAGS $ARCH_CFLAGS $EXTRA_CFLAGS -c -o $TMPO $TMPC $LDFLAGS $EXTRA_LDFLAGS $xen_libs 2> /dev/null > /dev/null ; then
+  if compile_prog "" "$xen_libs" ; then
     :
   else
     xen="no"
@@ -901,7 +845,7 @@ int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
 EOF
   sdl_cflags=`sdl-config --cflags 2> /dev/null`
   sdl_libs=`sdl-config --libs 2> /dev/null`
-  if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $sdl_cflags $TMPC $sdl_libs > $TMPSDLLOG 2>&1 ; then
+  if compile_prog "$sdl_cflags" "$sdl_libs" ; then
     _sdlversion=`sdl-config --version | sed 's/[^0-9]//g'`
     if test "$_sdlversion" -lt 121 ; then
       sdl_too_old=yes
@@ -918,7 +862,7 @@ EOF
          sdl_libs="$sdl_libs `aalib-config --static-libs >2 /dev/null`"
          sdl_cflags="$sd_cflags `aalib-config --cflags >2 /dev/null`"
       fi
-      if $cc -o $TMPE ${OS_CFLAGS} $sdl_cflags $TMPC $sdl_libs > /dev/null 2> /dev/null; then
+      if compile_prog "$sdl_cflags" "$sdl_libs" ; then
 	:
       else
         sdl=no
@@ -937,7 +881,7 @@ if test "$sdl" = "yes" ; then
 #endif
 int main(void) { return 0; }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $sdl_cflags $TMPC $sdl_libs > /dev/null 2>&1 ; then
+  if compile_prog "$sdl_cflags" "$sdl_libs" ; then
     sdl_libs="$sdl_libs -lX11"
   fi
 fi
@@ -951,8 +895,7 @@ int main(void) { gnutls_session_t s; gnutls_init(&s, GNUTLS_SERVER); return 0; }
 EOF
     vnc_tls_cflags=`pkg-config --cflags gnutls 2> /dev/null`
     vnc_tls_libs=`pkg-config --libs gnutls 2> /dev/null`
-    if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $vnc_tls_cflags $TMPC \
-           $vnc_tls_libs > /dev/null 2> /dev/null ; then
+    if compile_prog "$vnc_tls_cflags" "$vnc_tls_libs" ; then
 	:
     else
 	vnc_tls="no"
@@ -970,8 +913,7 @@ EOF
     # Assuming Cyrus-SASL installed in /usr prefix
     vnc_sasl_cflags=""
     vnc_sasl_libs="-lsasl2"
-    if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $vnc_sasl_cflags $TMPC \
-           $vnc_sasl_libs 2> /dev/null > /dev/null ; then
+    if compile_prog "$vnc_sasl_cflags" "$vnc_sasl_libs" ; then
 	:
     else
 	vnc_sasl="no"
@@ -989,7 +931,7 @@ int main(void)
     return 0;
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if compile_prog "" "" ; then
    fnmatch="yes"
 fi
 
@@ -1007,7 +949,7 @@ int main(void)
     return 0;
 }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $TMPC $vde_libs > /dev/null 2> /dev/null ; then
+  if compile_prog "" "$vde_libs" ; then
     vde=yes
   fi
 fi
@@ -1026,7 +968,7 @@ audio_drv_probe()
 #include <$hdr>
 int main(void) { $exp }
 EOF
-    if $cc $ARCH_CFLAGS $cfl -o $TMPE $TMPC $lib > /dev/null 2> /dev/null ; then
+    if compile_prog "$cfl" "$lib" ; then
         :
     else
         echo
@@ -1091,7 +1033,7 @@ if test "$brlapi" = "yes" ; then
 #include <brlapi.h>
 int main( void ) { return brlapi__openConnection (NULL, NULL, NULL); }
 EOF
-  if $cc ${ARCH_CFLAGS} -o $TMPE ${OS_CFLAGS} $TMPC $brlapi_libs > /dev/null 2> /dev/null ; then
+  if compile_prog "" "$brlapi_libs" ; then
     brlapi=yes
   fi
 fi
@@ -1107,9 +1049,9 @@ if test "$curses" = "yes" ; then
 #endif
 int main(void) { resize_term(0, 0); return curses_version(); }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $TMPC -lncurses > /dev/null 2> /dev/null ; then
+  if compile_prog "" "-lncurses" ; then
     curses_libs="-lncurses"
-  elif $cc $ARCH_CFLAGS -o $TMPE $TMPC -lcurses > /dev/null 2> /dev/null ; then
+  elif compile_prog "" "-lcurses" ; then
     curses_libs="-lcurses"
   else
     curses=no
@@ -1125,8 +1067,9 @@ if test "$curl" = "yes" ; then
 #include <curl/curl.h>
 int main(void) { return curl_easy_init(); }
 EOF
+  curl_cflags=`curl-config --cflags 2>/dev/null`
   curl_libs=`curl-config --libs 2>/dev/null`
- if $cc $ARCH_CFLAGS $curl_libs -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+  if compile_prog "$curl_cflags" "$curl_libs" ; then
     curl=yes
   fi
 fi # test "$curl"
@@ -1143,8 +1086,7 @@ int main(void) { return bt_error(0); }
 EOF
   bluez_cflags=`pkg-config --cflags bluez 2> /dev/null`
   bluez_libs=`pkg-config --libs bluez 2> /dev/null`
-  if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $bluez_cflags $TMPC \
-      $bluez_libs > /dev/null 2> /dev/null ; then
+  if compile_prog "$bluez_cflags" "$bluez_libs" ; then
     :
   else
     bluez="no"
@@ -1183,14 +1125,13 @@ EOF
   else
       kvm_cflags=""
   fi
-  if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $kvm_cflags $TMPC \
-      > /dev/null 2>/dev/null ; then
+  if compile_prog "$kvm_cflags" "" ; then
     :
   else
     kvm="no";
     if [ -x "`which awk 2>/dev/null`" ] && \
        [ -x "`which grep 2>/dev/null`" ]; then
-      kvmerr=`LANG=C $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $kvm_cflags $TMPC 2>&1 \
+      kvmerr=`LANG=C $cc $QEMU_CFLAGS -o $TMPE $kvm_cflags $TMPC 2>&1 \
 	| grep "error: " \
 	| awk -F "error: " '{if (NR>1) printf(", "); printf("%s",$2);}'`
       if test "$kvmerr" != "" ; then
@@ -1205,7 +1146,6 @@ fi
 ##########################################
 # pthread probe
 PTHREADLIBS_LIST="-lpthread -lpthreadGC2"
-PTHREADLIBS=""
 
 if test "$pthread" = yes; then
   pthread=no
@@ -1214,9 +1154,9 @@ cat > $TMPC << EOF
 int main(void) { pthread_create(0,0,0,0); return 0; }
 EOF
   for pthread_lib in $PTHREADLIBS_LIST; do
-    if $cc $ARCH_CFLAGS -o $TMPE $TMPC $pthread_lib 2> /dev/null > /dev/null ; then
+    if compile_prog "" "$pthread_lib" ; then
       pthread=yes
-      PTHREADLIBS="$pthread_lib"
+      LIBS="$pthread_lib $LIBS"
       break
     fi
   done
@@ -1236,7 +1176,7 @@ cat > $TMPC <<EOF
 int main(void) { struct iovec iov; return 0; }
 EOF
 iovec=no
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if compile_prog "" "" ; then
   iovec=yes
 fi
 
@@ -1249,7 +1189,7 @@ cat > $TMPC <<EOF
 int main(void) { preadv; }
 EOF
 preadv=no
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if compile_prog "" "" ; then
   preadv=yes
 fi
 
@@ -1261,7 +1201,7 @@ if test "$fdt" = "yes" ; then
   cat > $TMPC << EOF
 int main(void) { return 0; }
 EOF
-  if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $TMPC $fdt_libs 2> /dev/null > /dev/null ; then
+  if compile_prog "" "$fdt_libs" ; then
     fdt=yes
   fi
 fi
@@ -1285,7 +1225,7 @@ main(void)
 	return (unlinkat(AT_FDCWD, "nonexistent_file", 0));
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC 2> /dev/null > /dev/null ; then
+if compile_prog "" "" ; then
   atfile=yes
 fi
 
@@ -1305,7 +1245,7 @@ main(void)
 	return inotify_init();
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC 2> /dev/null > /dev/null ; then
+if compile_prog "" "" ; then
   inotify=yes
 fi
 
@@ -1324,7 +1264,7 @@ int main(void)
     return 0;
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC 2> /dev/null ; then
+if compile_prog "" "" ; then
   utimens=yes
 fi
 
@@ -1342,7 +1282,7 @@ int main(void)
     return 0;
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC 2> /dev/null ; then
+if compile_prog "" "" ; then
   pipe2=yes
 fi
 
@@ -1362,7 +1302,7 @@ int main(void)
     return 0;
 }
 EOF
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC 2> /dev/null ; then
+if compile_prog "" "" ; then
   splice=yes
 fi
 
@@ -1371,29 +1311,111 @@ if test "$build_docs" = "yes" -a \( ! -x "`which texi2html 2>/dev/null`" -o ! -x
   build_docs="no"
 fi
 
+# Search for bsawp_32 function
+byteswap_h=no
+cat > $TMPC << EOF
+#include <byteswap.h>
+int main(void) { return bswap_32(0); }
+EOF
+if compile_prog "" "" ; then
+  byteswap_h=yes
+fi
+
+# Search for bsawp_32 function
+bswap_h=no
+cat > $TMPC << EOF
+#include <sys/endian.h>
+#include <sys/types.h>
+#include <machine/bswap.h>
+int main(void) { return bswap32(0); }
+EOF
+if compile_prog "" "" ; then
+  bswap_h=yes
+fi
+
 ##########################################
 # Do we need librt
-CLOCKLIBS=""
 cat > $TMPC <<EOF
 #include <signal.h>
 #include <time.h>
 int main(void) { clockid_t id; return clock_gettime(id, NULL); }
 EOF
 
-rt=no
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if compile_prog "" "" ; then
   :
-elif $cc $ARCH_CFLAGS -o $TMPE $TMPC -lrt > /dev/null 2> /dev/null ; then
-  rt=yes
+elif compile_prog "" "-lrt" ; then
+  LIBS="-lrt $LIBS"
 fi
 
-if test "$rt" = "yes" ; then
-  CLOCKLIBS="-lrt"
+# Determine what linker flags to use to force archive inclusion
+check_linker_flags()
+{
+    w2=
+    if test "$2" ; then
+	w2=-Wl,$2
+    fi
+    compile_prog "" "-Wl,$1 ${w2}"
+}
+
+cat > $TMPC << EOF
+int main(void) { }
+EOF
+if check_linker_flags --whole-archive --no-whole-archive ; then
+    # GNU ld
+    arlibs_begin="-Wl,--whole-archive"
+    arlibs_end="-Wl,--no-whole-archive"
+elif check_linker_flags -z,allextract -z,defaultextract ; then
+    # Solaris ld
+    arlibs_begin"=-Wl,-z,allextract"
+    arlibs_end="-Wl,-z,defaultextract"
+elif check_linker_flags -all_load ; then
+    # Mac OS X
+    arlibs_begin="-all_load"
+    arlibs_end=""
+else
+    echo "Error: your linker does not support --whole-archive or -z."
+    echo "Please report to qemu-devel@nongnu.org"
+    exit 1
+fi
+
+# End of CC checks
+# After here, no more $cc or $ld runs
+
+# default flags for all hosts
+QEMU_CFLAGS="-fno-strict-aliasing $QEMU_CFLAGS"
+CFLAGS="-g $CFLAGS"
+if test "$debug" = "no" ; then
+  CFLAGS="-O2 $CFLAGS"
+fi
+QEMU_CFLAGS="-Wall -Wundef -Wendif-labels -Wwrite-strings -Wmissing-prototypes $QEMU_CFLAGS"
+QEMU_CFLAGS="-Wstrict-prototypes -Wredundant-decls $QEMU_CFLAGS"
+LDFLAGS="-g $LDFLAGS"
+
+# Consult white-list to determine whether to enable werror
+# by default.  Only enable by default for git builds
+if test -z "$werror" ; then
+    z_version=`cut -f3 -d. $source_path/VERSION`
+    if test "$z_version" = "50" -a \
+        "$linux" = "yes" ; then
+        werror="yes"
+    else
+        werror="no"
+    fi
+fi
+
+if test "$werror" = "yes" ; then
+    QEMU_CFLAGS="-Werror $QEMU_CFLAGS"
+fi
+
+if test "$solaris" = "no" ; then
+    if $ld --version 2>/dev/null | grep "GNU ld" >/dev/null 2>/dev/null ; then
+        LDFLAGS="-Wl,--warn-common $LDFLAGS"
+    fi
 fi
 
 if test "$mingw32" = "yes" ; then
   if test -z "$prefix" ; then
-      prefix="c:\\\\Program Files\\\\Qemu"
+      prefix="c:/Program Files/Qemu"
   fi
   mansuffix=""
   datasuffix=""
@@ -1419,7 +1441,9 @@ fi
 echo "Source path       $source_path"
 echo "C compiler        $cc"
 echo "Host C compiler   $host_cc"
-echo "ARCH_CFLAGS       $ARCH_CFLAGS"
+echo "CFLAGS            $CFLAGS"
+echo "QEMU_CFLAGS       $QEMU_CFLAGS"
+echo "LDFLAGS           $LDFLAGS"
 echo "make              $make"
 echo "install           $install"
 echo "host CPU          $cpu"
@@ -1520,22 +1544,6 @@ if test "$mingw32" = "yes" ; then
   echo "CONFIG_WIN32=y" >> $config_host_mak
 else
   echo "CONFIG_POSIX=y" >> $config_host_mak
-  cat > $TMPC << EOF
-#include <byteswap.h>
-int main(void) { return bswap_32(0); }
-EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $TMPC >/dev/null 2> /dev/null ; then
-    echo "CONFIG_BYTESWAP_H=y" >> $config_host_mak
-  fi
-  cat > $TMPC << EOF
-#include <sys/endian.h>
-#include <sys/types.h>
-#include <machine/bswap.h>
-int main(void) { return bswap32(0); }
-EOF
-  if $cc $ARCH_CFLAGS -o $TMPE $TMPC >/dev/null 2> /dev/null ; then
-    echo "CONFIG_MACHINE_BSWAP_H=y" >> $config_host_mak
-  fi
 fi
 
 if test "$darwin" = "yes" ; then
@@ -1553,15 +1561,12 @@ if test "$solaris" = "yes" ; then
     echo "CONFIG_NEEDS_LIBSUNMATH=y" >> $config_host_mak
   fi
 fi
-if test -n "$sparc_cpu"; then
-  echo "CONFIG__sparc_${sparc_cpu}__=y" >> $config_host_mak
-fi
 if test "$gprof" = "yes" ; then
   echo "TARGET_GPROF=yes" >> $config_host_mak
 fi
 if test "$static" = "yes" ; then
   echo "CONFIG_STATIC=y" >> $config_host_mak
-  LDFLAGS="$LDFLAGS -static"
+  LDFLAGS="-static $LDFLAGS"
 fi
 if test $profiler = "yes" ; then
   echo "CONFIG_PROFILER=y" >> $config_host_mak
@@ -1642,8 +1647,15 @@ fi
 if test "$inotify" = "yes" ; then
   echo "CONFIG_INOTIFY=y" >> $config_host_mak
 fi
+if test "$byteswap_h" = "yes" ; then
+  echo "CONFIG_BYTESWAP_H=y" >> $config_host_mak
+fi
+if test "$bswap_h" = "yes" ; then
+  echo "CONFIG_MACHINE_BSWAP_H=y" >> $config_host_mak
+fi
 if test "$curl" = "yes" ; then
   echo "CONFIG_CURL=y" >> $config_host_mak
+  echo "CURL_CFLAGS=$curl_cflags" >> $config_host_mak
   echo "CURL_LIBS=$curl_libs" >> $config_host_mak
 fi
 if test "$brlapi" = "yes" ; then
@@ -1699,37 +1711,6 @@ bsd)
 ;;
 esac
 
-# Determine what linker flags to use to force archive inclusion
-check_linker_flags()
-{
-    w2=
-    if test "$2" ; then
-	w2=-Wl,$2
-    fi
-    $cc $ARCH_CFLAGS -o $TMPE $OS_CFLAGS $TMPC -Wl,$1 ${w2} >/dev/null 2>/dev/null
-}
-
-cat > $TMPC << EOF
-int main(void) { }
-EOF
-if check_linker_flags --whole-archive --no-whole-archive ; then
-    # GNU ld
-    echo "ARLIBS_BEGIN=-Wl,--whole-archive" >> $config_host_mak
-    echo "ARLIBS_END=-Wl,--no-whole-archive" >> $config_host_mak
-elif check_linker_flags -z,allextract -z,defaultextract ; then
-    # Solaris ld
-    echo "ARLIBS_BEGIN=-Wl,-z,allextract" >> $config_host_mak
-    echo "ARLIBS_END=-Wl,-z,defaultextract" >> $config_host_mak
-elif check_linker_flags -all_load ; then
-    # Mac OS X
-    echo "ARLIBS_BEGIN=-all_load" >> $config_host_mak
-    echo "ARLIBS_END=" >> $config_host_mak
-else
-    echo "Error: your linker does not support --whole-archive or -z."
-    echo "Please report to qemu-devel@nongnu.org"
-    exit 1
-fi
-
 tools=
 if test `expr "$target_list" : ".*softmmu.*"` != 0 ; then
   tools="qemu-img\$(EXESUF) $tools"
@@ -1762,16 +1743,18 @@ echo "HOST_CC=$host_cc" >> $config_host_mak
 if test "$sparse" = "yes" ; then
   echo "CC      := REAL_CC=\"\$(CC)\" cgcc"       >> $config_host_mak
   echo "HOST_CC := REAL_CC=\"\$(HOST_CC)\" cgcc"  >> $config_host_mak
-  echo "CFLAGS  += -Wbitwise -Wno-transparent-union -Wno-old-initializer -Wno-non-pointer-null" >> $config_host_mak
+  echo "QEMU_CFLAGS  += -Wbitwise -Wno-transparent-union -Wno-old-initializer -Wno-non-pointer-null" >> $config_host_mak
 fi
 echo "AR=$ar" >> $config_host_mak
 echo "OBJCOPY=$objcopy" >> $config_host_mak
 echo "LD=$ld" >> $config_host_mak
-echo "CFLAGS=$CFLAGS $OS_CFLAGS $ARCH_CFLAGS $EXTRA_CFLAGS" >> $config_host_mak
-echo "LDFLAGS=$LDFLAGS $OS_LDFLAGS $ARCH_LDFLAGS $EXTRA_LDFLAGS" >> $config_host_mak
+echo "CFLAGS=$CFLAGS" >> $config_host_mak
+echo "QEMU_CFLAGS=$QEMU_CFLAGS" >> $config_host_mak
+echo "LDFLAGS=$LDFLAGS" >> $config_host_mak
+echo "ARLIBS_BEGIN=$arlibs_begin" >> $config_host_mak
+echo "ARLIBS_END=$arlibs_end" >> $config_host_mak
+echo "LIBS=$LIBS" >> $config_host_mak
 echo "EXESUF=$EXESUF" >> $config_host_mak
-echo "PTHREADLIBS=$PTHREADLIBS" >> $config_host_mak
-echo "CLOCKLIBS=$CLOCKLIBS" >> $config_host_mak
 
 echo "/* Automatically generated by configure - do not modify */" > $config_host_h
 
@@ -2137,5 +2120,5 @@ for hwlib in 32 64; do
   rm -f $d/Makefile
   ln -s $source_path/Makefile.hw $d/Makefile
   echo "HWLIB=libqemuhw$hwlib.a" > $d/config.mak
-  echo "CPPFLAGS=-DTARGET_PHYS_ADDR_BITS=$hwlib" >> $d/config.mak
+  echo "QEMU_CFLAGS+=-DTARGET_PHYS_ADDR_BITS=$hwlib" >> $d/config.mak
 done

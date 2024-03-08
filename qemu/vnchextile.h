@@ -13,7 +13,8 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
                                              void *last_fg_,
                                              int *has_bg, int *has_fg)
 {
-    uint8_t *row = vs->server.ds->data + y * ds_get_linesize(vs->ds) + x * ds_get_bytes_per_pixel(vs->ds);
+    VncDisplay *vd = vs->vd;
+    uint8_t *row = vd->server->data + y * ds_get_linesize(vs->ds) + x * ds_get_bytes_per_pixel(vs->ds);
     pixel_t *irow = (pixel_t *)row;
     int j, i;
     pixel_t *last_bg = (pixel_t *)last_bg_;
@@ -25,8 +26,6 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
     int fg_count = 0;
     int flags = 0;
 	uint8_t* data = (uint8_t*)malloc((vs->clientds.pf.bytes_per_pixel + 2) * 16 * 16);
-	if (data == NULL) {
-	}
     int n_data = 0;
     int n_subtiles = 0;
 
@@ -203,7 +202,6 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
 	    row += ds_get_linesize(vs->ds);
 	}
     }
-	free(data);
 }
 
 #undef NAME

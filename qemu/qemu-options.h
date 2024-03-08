@@ -40,8 +40,12 @@ DEF("drive", HAS_ARG, QEMU_OPTION_drive,
 "-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]\n"
 "       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]\n"
 "       [,cache=writethrough|writeback|none][,format=f][,serial=s]\n"
-"       [,addr=A]\n"
+"       [,addr=A][,id=name]\n"
 "                use 'file' as a drive image\n")
+DEF("set", HAS_ARG, QEMU_OPTION_set,
+"-set group.id.arg=value\n"
+"                set <arg> parameter for item <id> of type <group>\n"
+"                i.e. -set drive.$id.file=/path/to/image\n")
 
 DEF("mtdblock", HAS_ARG, QEMU_OPTION_mtdblock,
 "-mtdblock file  use 'file' as on-board Flash memory image\n")
@@ -264,16 +268,16 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n"
-#endif
+#endif 
 #endif
 
-#ifdef CONFIG_VDE
+#ifdef CONFIG_VDE 
 #define VDE_OPTIONS \
 "-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n" \
 "                connect the vlan 'n' to port 'n' of a vde switch running\n" \
 "                on host and listening for incoming connections on 'socketpath'.\n" \
 "                Use group 'groupname' and mode 'octalmode' to change default\n" \
-"                ownership and permissions for communication port.\n"
+"                ownership and permissions for communication port.\n" 
 #else
 #define VDE_OPTIONS ""
 #endif
@@ -295,7 +299,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net dump[,vlan=n][,file=f][,len=n]\n" \
 	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
 	"-net none       use it alone to have zero network devices; if no -net option\n" \
-"                is provided, the default is '-net nic -net user'\n")
+	"                is provided, the default is '-net nic -net user'\n")
 
 	// END HEAVILY MODIFIED SECTION 
 
