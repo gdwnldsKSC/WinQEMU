@@ -41,7 +41,7 @@ For a working debug environment, add to D:\Images\ (currently hard coded) vgabio
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
 be modified in project WinQemu\qemu\inc\config-host.h
 
-Add '-net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
+Add '-net none -cpu coreduo -m 1024 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 
 
@@ -80,6 +80,6 @@ VGABIOS - "current-cvs 17 Dec 2008"
 
 Working startup commandline:
 
-winqemutest.exe -net none -cpu coreduo -m 480 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images
+winqemutest.exe -net none -cpu coreduo -m 1024 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images
 
 Adding alpha target bits on the side for OpenVMS, Tru64, and AXP Windows NT emulation over time. 

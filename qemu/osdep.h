@@ -41,15 +41,15 @@
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *) 0)->MEMBER)
 #endif
 #ifndef container_of
-
+// MSVC modficiation ..... similar result, no GCC syntax
 #ifndef _MSC_VER
 #define container_of(ptr, type, member) ({                      \
         const typeof(((type *) 0)->member) *__mptr = (ptr);     \
         (type *) ((char *) __mptr - offsetof(type, member));})
 #else
-#define container_of(ptr, type, member) ((type *) ((char *) ptr - offsetof(type, member)))
+#define container_of(ptr, type, member) \
+    ((type*)((char*)(ptr) - offsetof(type, member)))
 #endif
-
 #endif
 
 #ifndef MIN
@@ -64,12 +64,9 @@
 #endif
 
 #ifndef always_inline
-#if (__GNUC__ < 3) || defined(__APPLE__)
-#define always_inline inline
-#else
-#define always_inline __attribute__ (( always_inline )) __inline__
+#if !((__GNUC__ < 3) || defined(__APPLE__))
 #ifdef __OPTIMIZE__
-#define inline always_inline
+#define inline __attribute__ (( always_inline )) __inline__
 #endif
 #endif
 #else
@@ -104,8 +101,9 @@ void qemu_vfree(void *ptr);
 int qemu_create_pidfile(const char *filename);
 
 #ifdef _WIN32
-//int ffs(int i);
-
+#ifndef _MSC_VER
+int ffs(int i);
+#else
 __inline int ffs(int x)
 {
 	int r = 1;
@@ -134,6 +132,7 @@ __inline int ffs(int x)
 	}
 	return r;
 }
+#endif
 
 
 typedef struct {

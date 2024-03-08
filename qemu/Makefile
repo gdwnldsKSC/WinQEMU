@@ -73,7 +73,7 @@ block-obj-y +=  $(addprefix block/, $(block-nested-y))
 # CPUs and machines.
 
 obj-y = $(block-obj-y)
-obj-y += readline.o console.o
+obj-y += readline.o console.o host-utils.o
 
 obj-y += irq.o ptimer.o
 obj-y += i2c.o smbus.o smbus_eeprom.o max7310.o max111x.o wm8750.o
@@ -162,7 +162,7 @@ libqemu_common.a: $(obj-y)
 
 #######################################################################
 # user-obj-y is code used by qemu userspace emulation
-user-obj-y = cutils.o cache-utils.o path.o envlist.o
+user-obj-y = cutils.o cache-utils.o path.o envlist.o host-utils.o
 
 libqemu_user.a: $(user-obj-y)
 

@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exec.h"
@@ -201,7 +200,7 @@ uint64_t helper_cttz (uint64_t arg)
     return ctz64(arg);
 }
 
-static always_inline uint64_t byte_zap (uint64_t op, uint8_t mskb)
+static inline uint64_t byte_zap(uint64_t op, uint8_t mskb)
 {
     uint64_t mask;
 
@@ -323,7 +322,7 @@ uint64_t helper_cmpbge (uint64_t op1, uint64_t op2)
 /* Floating point helpers */
 
 /* F floating (VAX) */
-static always_inline uint64_t float32_to_f (float32 fa)
+static inline uint64_t float32_to_f(float32 fa)
 {
     uint64_t r, exp, mant, sig;
     CPU_FloatU a;
@@ -356,7 +355,7 @@ static always_inline uint64_t float32_to_f (float32 fa)
     return r;
 }
 
-static always_inline float32 f_to_float32 (uint64_t a)
+static inline float32 f_to_float32(uint64_t a)
 {
     uint32_t exp, mant_sig;
     CPU_FloatU r;
@@ -450,7 +449,7 @@ uint64_t helper_sqrtf (uint64_t t)
 
 
 /* G floating (VAX) */
-static always_inline uint64_t float64_to_g (float64 fa)
+static inline uint64_t float64_to_g(float64 fa)
 {
     uint64_t r, exp, mant, sig;
     CPU_DoubleU a;
@@ -483,7 +482,7 @@ static always_inline uint64_t float64_to_g (float64 fa)
     return r;
 }
 
-static always_inline float64 g_to_float64 (uint64_t a)
+static inline float64 g_to_float64(uint64_t a)
 {
     uint64_t exp, mant_sig;
     CPU_DoubleU r;
@@ -577,7 +576,7 @@ uint64_t helper_sqrtg (uint64_t a)
 
 
 /* S floating (single) */
-static always_inline uint64_t float32_to_s (float32 fa)
+static inline uint64_t float32_to_s(float32 fa)
 {
     CPU_FloatU a;
     uint64_t r;
@@ -590,7 +589,7 @@ static always_inline uint64_t float32_to_s (float32 fa)
     return r;
 }
 
-static always_inline float32 s_to_float32 (uint64_t a)
+static inline float32 s_to_float32(uint64_t a)
 {
     CPU_FloatU r;
     r.l = ((a >> 32) & 0xc0000000) | ((a >> 29) & 0x3fffffff);
@@ -661,7 +660,7 @@ uint64_t helper_sqrts (uint64_t a)
 
 
 /* T floating (double) */
-static always_inline float64 t_to_float64 (uint64_t a)
+static inline float64 t_to_float64(uint64_t a)
 {
     /* Memory format is the same as float64 */
     CPU_DoubleU r;
@@ -669,7 +668,7 @@ static always_inline float64 t_to_float64 (uint64_t a)
     return r.d;
 }
 
-static always_inline uint64_t float64_to_t (float64 fa)
+static inline uint64_t float64_to_t(float64 fa)
 {
     /* Memory format is the same as float64 */
     CPU_DoubleU r;
@@ -940,7 +939,7 @@ uint64_t helper_cvtlq (uint64_t a)
     return (int64_t)((int32_t)((a >> 32) | ((a >> 29) & 0x3FFFFFFF)));
 }
 
-static always_inline uint64_t __helper_cvtql (uint64_t a, int s, int v)
+static inline uint64_t __helper_cvtql(uint64_t a, int s, int v)
 {
     uint64_t r;
 
