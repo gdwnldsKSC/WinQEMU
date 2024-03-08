@@ -6058,12 +6058,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         do_loadvm(cur_mon, loadvm);
 
     if (incoming) {
-        autostart = 0;
         qemu_start_incoming_migration(incoming);
-    }
-
-    else if (autostart)
+    } else if (autostart) {
         vm_start();
+    }
 
 #ifndef _WIN32
     if (daemonize) {
