@@ -138,15 +138,15 @@ static int glue (dsound_lock_, TYPE) (
     *blen2p = blen2;
     return 0;
 
-fail:
+ fail:
 #ifndef _MSC_VER
-	*p1p = NULL - 1;
-	*p2p = NULL - 1;
+    *p1p = NULL - 1;
+    *p2p = NULL - 1;
 #else
 	*p1p = (char*)NULL - 1;
 	*p2p = (char*)NULL - 1;
 #endif
-	*blen1p = -1;
+    *blen1p = -1;
     *blen2p = -1;
     return -1;
 }

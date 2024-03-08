@@ -2015,7 +2015,7 @@ static void ide_atapi_cmd(IDEState *s)
 				ASC_INV_FIELD_IN_CMD_PACKET);
         }
 #endif
-	}
+        }
         break;
     case GPCMD_SET_SPEED:
         ide_atapi_cmd_ok(s);
@@ -2914,6 +2914,7 @@ static void ide_save(QEMUFile* f, IDEState *s)
 
     qemu_put_8s(f, &s->sense_key);
     qemu_put_8s(f, &s->asc);
+    qemu_put_8s(f, &s->cdrom_changed);
     /* XXX: if a transfer is pending, we do not save it yet */
 }
 
