@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef _CPU_SH4_H
 #define _CPU_SH4_H
@@ -164,6 +163,7 @@ int cpu_sh4_signal_handler(int host_signum, void *pinfo,
                            void *puc);
 int cpu_sh4_handle_mmu_fault(CPUSH4State * env, target_ulong address, int rw,
 			     int mmu_idx, int is_softmmu);
+#define cpu_handle_mmu_fault cpu_sh4_handle_mmu_fault
 void do_interrupt(CPUSH4State * env);
 
 void sh4_cpu_list(FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...));

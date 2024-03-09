@@ -73,19 +73,19 @@ static void sh_pci_reg_write (void *p, target_phys_addr_t addr, uint32_t val)
 	{
 		switch(addr) 
 		{
-		case 0x1c0:
-			pcic->par = val;
-			break;
-		case 0x1c4:
-			pcic->mbr = val;
-			break;
-		case 0x1c8:
-			pcic->iobr = val;
-			break;
-		case 0x220:
-			pci_data_write(pcic->bus, pcic->par, val, 4);
-			break;
-		}
+    case 0x1c0:
+        pcic->par = val;
+        break;
+    case 0x1c4:
+        pcic->mbr = val;
+        break;
+    case 0x1c8:
+        pcic->iobr = val;
+        break;
+    case 0x220:
+        pci_data_write(pcic->bus, pcic->par, val, 4);
+        break;
+    }
 }
 #endif
 }
@@ -108,11 +108,11 @@ static uint32_t sh_pci_reg_read (void *p, target_phys_addr_t addr)
 	else
 	{
 		switch(addr) {
-	case 0x1c0:
-		return pcic->par;
-	case 0x220:
-		return pci_data_read(pcic->bus, pcic->par, 4);
-		}
+    case 0x1c0:
+        return pcic->par;
+    case 0x220:
+        return pci_data_read(pcic->bus, pcic->par, 4);
+    }
 	}
 #endif
     return 0;
@@ -196,8 +196,8 @@ static uint32_t sh_pci_inl (void *p, target_phys_addr_t addr)
 }
 
 typedef struct {
-    CPUReadMemoryFunc *r[3];
-    CPUWriteMemoryFunc *w[3];
+    CPUReadMemoryFunc * const r[3];
+    CPUWriteMemoryFunc * const w[3];
 } MemOp;
 
 static MemOp sh_pci_reg = {

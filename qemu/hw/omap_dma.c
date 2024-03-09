@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "qemu-common.h"
 #include "qemu-timer.h"
@@ -1527,13 +1526,13 @@ static void omap_dma_write(void *opaque, target_phys_addr_t addr,
     OMAP_BAD_REG(addr);
 }
 
-static CPUReadMemoryFunc *omap_dma_readfn[] = {
+static CPUReadMemoryFunc * const omap_dma_readfn[] = {
     omap_badwidth_read16,
     omap_dma_read,
     omap_badwidth_read16,
 };
 
-static CPUWriteMemoryFunc *omap_dma_writefn[] = {
+static CPUWriteMemoryFunc * const omap_dma_writefn[] = {
     omap_badwidth_write16,
     omap_dma_write,
     omap_badwidth_write16,
@@ -2018,13 +2017,13 @@ static void omap_dma4_write(void *opaque, target_phys_addr_t addr,
     }
 }
 
-static CPUReadMemoryFunc *omap_dma4_readfn[] = {
+static CPUReadMemoryFunc * const omap_dma4_readfn[] = {
     omap_badwidth_read16,
     omap_dma4_read,
     omap_dma4_read,
 };
 
-static CPUWriteMemoryFunc *omap_dma4_writefn[] = {
+static CPUWriteMemoryFunc * const omap_dma4_writefn[] = {
     omap_badwidth_write16,
     omap_dma4_write,
     omap_dma4_write,

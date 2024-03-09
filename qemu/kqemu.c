@@ -266,7 +266,7 @@ void kqemu_flush(CPUState *env, int global)
 
 void kqemu_set_notdirty(CPUState *env, ram_addr_t ram_addr)
 {
-    LOG_INT("kqemu_set_notdirty: addr=%08lx\n", 
+    LOG_INT("kqemu_set_notdirty: addr=%08lx\n",
                 (unsigned long)ram_addr);
     /* we only track transitions to dirty state */
     if (phys_ram_dirty[ram_addr >> TARGET_PAGE_BITS] != 0xff)
@@ -320,7 +320,7 @@ void kqemu_modify_page(CPUState *env, ram_addr_t ram_addr)
     }
 }
 
-void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size, 
+void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size,
                         ram_addr_t phys_offset)
 {
     struct kqemu_phys_mem kphys_mem1, *kphys_mem = &kphys_mem1;
@@ -351,7 +351,7 @@ void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size,
 #ifdef _WIN32
     {
         DWORD temp;
-        ret = DeviceIoControl(kqemu_fd, KQEMU_SET_PHYS_MEM, 
+        ret = DeviceIoControl(kqemu_fd, KQEMU_SET_PHYS_MEM,
                               kphys_mem, sizeof(*kphys_mem),
                               NULL, 0, &temp, NULL) == TRUE ? 0 : -1;
     }
@@ -360,7 +360,7 @@ void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size,
 #endif
     if (ret < 0) {
         fprintf(stderr, "kqemu: KQEMU_SET_PHYS_PAGE error=%d: start_addr=0x%016" PRIx64 " size=0x%08lx phys_offset=0x%08lx\n",
-                ret, start_addr, 
+                ret, start_addr,
                 (unsigned long)size, (unsigned long)phys_offset);
     }
 }
@@ -921,7 +921,7 @@ void kqemu_cpu_interrupt(CPUState *env)
 #endif
 }
 
-/* 
+/*
    QEMU paravirtualization interface. The current interface only
    allows to modify the IF and IOPL flags when running in
    kqemu.
@@ -970,17 +970,17 @@ static void qpi_mem_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
     env = cpu_single_env;
     if (!env)
         return;
-    env->eflags = (env->eflags & ~(IF_MASK | IOPL_MASK)) | 
+    env->eflags = (env->eflags & ~(IF_MASK | IOPL_MASK)) |
         (val & (IF_MASK | IOPL_MASK));
 }
 
-static CPUReadMemoryFunc *qpi_mem_read[3] = {
+static CPUReadMemoryFunc * const qpi_mem_read[3] = {
     qpi_mem_readb,
     qpi_mem_readw,
     qpi_mem_readl,
 };
 
-static CPUWriteMemoryFunc *qpi_mem_write[3] = {
+static CPUWriteMemoryFunc * const qpi_mem_write[3] = {
     qpi_mem_writeb,
     qpi_mem_writew,
     qpi_mem_writel,
@@ -990,9 +990,9 @@ static void qpi_init(void)
 {
     kqemu_comm_base = 0xff000000 | 1;
     qpi_io_memory = cpu_register_io_memory(
-                                           qpi_mem_read, 
+                                           qpi_mem_read,
                                            qpi_mem_write, NULL);
-    cpu_register_physical_memory(kqemu_comm_base & ~0xfff, 
+    cpu_register_physical_memory(kqemu_comm_base & ~0xfff,
                                  0x1000, qpi_io_memory);
 }
 #endif

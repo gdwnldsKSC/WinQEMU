@@ -246,7 +246,6 @@
     <ClCompile Include="qemu\target-i386\translate.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\tool-osdep.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">Create</PrecompiledHeader>
@@ -321,9 +320,7 @@
     <ClCompile Include="qemu\nbd.c" />
     <ClCompile Include="qemu\net-checksum.c" />
     <ClCompile Include="qemu\net.c" />
-    <ClCompile Include="qemu\osdep.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="qemu\osdep.c" />
     <ClCompile Include="qemu\posix-aio-compat.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
@@ -1183,7 +1180,6 @@
     <ClInclude Include="qemu\host-utils.h" />
     <ClInclude Include="qemu\hostregs_helper.h" />
     <ClInclude Include="qemu\hpet.h" />
-    <ClInclude Include="qemu\kqemu.h" />
     <ClInclude Include="qemu\kvm.h" />
     <ClInclude Include="qemu\libfdt_env.h" />
     <ClInclude Include="qemu\mathex.h" />

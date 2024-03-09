@@ -17,8 +17,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Tested features (i82559):
  *      PXE boot (i386) no valid link
@@ -1410,13 +1409,13 @@ static uint32_t pci_mmio_readl(void *opaque, target_phys_addr_t addr)
     return eepro100_read4(s, addr);
 }
 
-static CPUWriteMemoryFunc *pci_mmio_write[] = {
+static CPUWriteMemoryFunc * const pci_mmio_write[] = {
     pci_mmio_writeb,
     pci_mmio_writew,
     pci_mmio_writel
 };
 
-static CPUReadMemoryFunc *pci_mmio_read[] = {
+static CPUReadMemoryFunc * const pci_mmio_read[] = {
     pci_mmio_readb,
     pci_mmio_readw,
     pci_mmio_readl

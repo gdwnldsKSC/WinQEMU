@@ -16,8 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "qemu-common.h"
 #include "qemu-timer.h"
@@ -287,8 +286,8 @@ static void tusb_gpio_intr_update(TUSBState *s)
     /* TODO: How is this signalled?  */
 }
 
-extern CPUReadMemoryFunc *musb_read[];
-extern CPUWriteMemoryFunc *musb_write[];
+extern CPUReadMemoryFunc * const musb_read[];
+extern CPUWriteMemoryFunc * const musb_write[];
 
 static uint32_t tusb_async_readb(void *opaque, target_phys_addr_t addr)
 {
@@ -650,13 +649,13 @@ static void tusb_async_writew(void *opaque, target_phys_addr_t addr,
     }
 }
 
-static CPUReadMemoryFunc *tusb_async_readfn[] = {
+static CPUReadMemoryFunc * const tusb_async_readfn[] = {
     tusb_async_readb,
     tusb_async_readh,
     tusb_async_readw,
 };
 
-static CPUWriteMemoryFunc *tusb_async_writefn[] = {
+static CPUWriteMemoryFunc * const tusb_async_writefn[] = {
     tusb_async_writeb,
     tusb_async_writeh,
     tusb_async_writew,

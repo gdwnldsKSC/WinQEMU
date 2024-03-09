@@ -1089,9 +1089,6 @@
     <ClCompile Include="qemu\gdbstub.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\tool-osdep.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\module.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1308,9 +1305,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hpet.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\kqemu.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\kvm.h">

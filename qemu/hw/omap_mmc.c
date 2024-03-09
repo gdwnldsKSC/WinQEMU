@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "hw.h"
 #include "omap.h"
@@ -541,13 +540,13 @@ static void omap_mmc_write(void *opaque, target_phys_addr_t offset,
     }
 }
 
-static CPUReadMemoryFunc *omap_mmc_readfn[] = {
+static CPUReadMemoryFunc * const omap_mmc_readfn[] = {
     omap_badwidth_read16,
     omap_mmc_read,
     omap_badwidth_read16,
 };
 
-static CPUWriteMemoryFunc *omap_mmc_writefn[] = {
+static CPUWriteMemoryFunc * const omap_mmc_writefn[] = {
     omap_badwidth_write16,
     omap_mmc_write,
     omap_badwidth_write16,

@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "hw.h"
 #include "console.h"
@@ -402,13 +401,13 @@ static void omap_lcdc_write(void *opaque, target_phys_addr_t addr,
     }
 }
 
-static CPUReadMemoryFunc *omap_lcdc_readfn[] = {
+static CPUReadMemoryFunc * const omap_lcdc_readfn[] = {
     omap_lcdc_read,
     omap_lcdc_read,
     omap_lcdc_read,
 };
 
-static CPUWriteMemoryFunc *omap_lcdc_writefn[] = {
+static CPUWriteMemoryFunc * const omap_lcdc_writefn[] = {
     omap_lcdc_write,
     omap_lcdc_write,
     omap_lcdc_write,

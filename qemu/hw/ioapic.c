@@ -17,8 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "hw.h"
@@ -230,21 +229,22 @@ static void ioapic_reset(void *opaque)
         s->ioredtbl[i] = 1 << 16; /* mask LVT */
 }
 
-static CPUReadMemoryFunc *ioapic_mem_read[3] = {
+static CPUReadMemoryFunc * const ioapic_mem_read[3] = {
     ioapic_mem_readl,
     ioapic_mem_readl,
     ioapic_mem_readl,
 };
 
-static CPUWriteMemoryFunc *ioapic_mem_write[3] = {
+static CPUWriteMemoryFunc * const ioapic_mem_write[3] = {
     ioapic_mem_writel,
     ioapic_mem_writel,
     ioapic_mem_writel,
 };
 
-IOAPICState *ioapic_init(void)
+qemu_irq *ioapic_init(void)
 {
     IOAPICState *s;
+    qemu_irq *irq;
     int io_memory;
 
     s = qemu_mallocz(sizeof(IOAPICState));
@@ -256,6 +256,7 @@ IOAPICState *ioapic_init(void)
 
     register_savevm("ioapic", 0, 1, ioapic_save, ioapic_load, s);
     qemu_register_reset(ioapic_reset, s);
+    irq = qemu_allocate_irqs(ioapic_set_irq, s, IOAPIC_NUM_PINS);
 
-    return s;
+    return irq;
 }

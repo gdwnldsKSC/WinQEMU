@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "hw.h"
 #include "audio/audio.h"
@@ -53,13 +52,13 @@ static void static_write(void *opaque, target_phys_addr_t offset,
 #endif
 }
 
-static CPUReadMemoryFunc *static_readfn[] = {
+static CPUReadMemoryFunc * const static_readfn[] = {
     static_readb,
     static_readh,
     static_readw,
 };
 
-static CPUWriteMemoryFunc *static_writefn[] = {
+static CPUWriteMemoryFunc * const static_writefn[] = {
     static_write,
     static_write,
     static_write,

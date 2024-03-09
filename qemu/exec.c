@@ -70,12 +70,11 @@
 #define TARGET_VIRT_ADDR_SPACE_BITS 42
 #elif defined(TARGET_PPC64)
 #define TARGET_PHYS_ADDR_SPACE_BITS 42
-#elif defined(TARGET_X86_64) && !defined(CONFIG_KQEMU)
+#elif defined(TARGET_X86_64)
 #define TARGET_PHYS_ADDR_SPACE_BITS 42
-#elif defined(TARGET_I386) && !defined(CONFIG_KQEMU)
+#elif defined(TARGET_I386)
 #define TARGET_PHYS_ADDR_SPACE_BITS 36
 #else
-/* Note: for compatibility with kqemu, we use 32 bits for x86_64 */
 #define TARGET_PHYS_ADDR_SPACE_BITS 32
 #endif
 
@@ -198,12 +197,7 @@ static int io_mem_watch;
 #endif
 
 /* log support */
-#ifndef _MSC_VER
 static const char *logfilename = "/tmp/qemu.log";
-#else
-static const char *logfilename = "qemu.log";
-#endif
-
 FILE *logfile;
 int loglevel;
 static int log_append = 0;
@@ -216,8 +210,8 @@ static int tb_phys_invalidate_count;
 #define SUBPAGE_IDX(addr) ((addr) & ~TARGET_PAGE_MASK)
 typedef struct subpage_t {
     target_phys_addr_t base;
-    CPUReadMemoryFunc **mem_read[TARGET_PAGE_SIZE][4];
-    CPUWriteMemoryFunc **mem_write[TARGET_PAGE_SIZE][4];
+    CPUReadMemoryFunc * const *mem_read[TARGET_PAGE_SIZE][4];
+    CPUWriteMemoryFunc * const *mem_write[TARGET_PAGE_SIZE][4];
     void *opaque[TARGET_PAGE_SIZE][2][4];
     ram_addr_t region_offset[TARGET_PAGE_SIZE][2][4];
 } subpage_t;
@@ -1775,11 +1769,6 @@ void tlb_flush(CPUState *env, int flush_global)
 
     memset (env->tb_jmp_cache, 0, TB_JMP_CACHE_SIZE * sizeof (void *));
 
-#ifdef CONFIG_KQEMU
-    if (env->kqemu_enabled) {
-        kqemu_flush(env, flush_global);
-    }
-#endif
     tlb_flush_count++;
 }
 
@@ -1813,12 +1802,6 @@ void tlb_flush_page(CPUState *env, target_ulong addr)
         tlb_flush_entry(&env->tlb_table[mmu_idx][i], addr);
 
     tlb_flush_jmp_cache(env, addr);
-
-#ifdef CONFIG_KQEMU
-    if (env->kqemu_enabled) {
-        kqemu_flush_page(env, addr);
-    }
-#endif
 }
 
 /* update the TLBs so that writes to code in the virtual page 'addr'
@@ -1866,18 +1849,6 @@ void cpu_physical_memory_reset_dirty(ram_addr_t start, ram_addr_t end,
     if (length == 0)
         return;
     len = length >> TARGET_PAGE_BITS;
-#ifdef CONFIG_KQEMU
-    /* XXX: should not depend on cpu context */
-    env = first_cpu;
-    if (env->kqemu_enabled) {
-        ram_addr_t addr;
-        addr = start;
-        for(i = 0; i < len; i++) {
-            kqemu_set_notdirty(env, addr);
-            addr += TARGET_PAGE_SIZE;
-        }
-    }
-#endif
     mask = ~dirty_flags;
     p = phys_ram_dirty + (start >> TARGET_PAGE_BITS);
     for(i = 0; i < len; i++)
@@ -2334,13 +2305,6 @@ void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
     ram_addr_t orig_size = size;
     void *subpage;
 
-#ifdef CONFIG_KQEMU
-    /* XXX: should not depend on cpu context */
-    env = first_cpu;
-    if (env->kqemu_enabled) {
-        kqemu_set_phys_mem(start_addr, size, phys_offset);
-    }
-#endif
     if (kvm_enabled())
         kvm_set_phys_mem(start_addr, size, phys_offset);
 
@@ -2435,31 +2399,9 @@ void qemu_unregister_coalesced_mmio(target_phys_addr_t addr, ram_addr_t size)
         kvm_uncoalesce_mmio_region(addr, size);
 }
 
-#ifdef CONFIG_KQEMU
-/* XXX: better than nothing */
-static ram_addr_t kqemu_ram_alloc(ram_addr_t size)
-{
-    ram_addr_t addr;
-    if ((last_ram_offset + size) > kqemu_phys_ram_size) {
-        fprintf(stderr, "Not enough memory (requested_size = %" PRIu64 ", max memory = %" PRIu64 ")\n",
-                (uint64_t)size, (uint64_t)kqemu_phys_ram_size);
-        abort();
-    }
-    addr = last_ram_offset;
-    last_ram_offset = TARGET_PAGE_ALIGN(last_ram_offset + size);
-    return addr;
-}
-#endif
-
 ram_addr_t qemu_ram_alloc(ram_addr_t size)
 {
     RAMBlock *new_block;
-
-#ifdef CONFIG_KQEMU
-    if (kqemu_phys_ram_base) {
-        return kqemu_ram_alloc(size);
-    }
-#endif
 
     size = TARGET_PAGE_ALIGN(size);
     new_block = qemu_malloc(sizeof(*new_block));
@@ -2503,12 +2445,6 @@ void *qemu_get_ram_ptr(ram_addr_t addr)
     RAMBlock **prevp;
     RAMBlock *block;
 
-#ifdef CONFIG_KQEMU
-    if (kqemu_phys_ram_base) {
-        return kqemu_phys_ram_base + addr;
-    }
-#endif
-
     prev = NULL;
     prevp = &ram_blocks;
     block = ram_blocks;
@@ -2540,12 +2476,6 @@ ram_addr_t qemu_ram_addr_from_host(void *ptr)
     RAMBlock **prevp;
     RAMBlock *block;
     uint8_t *host = ptr;
-
-#ifdef CONFIG_KQEMU
-    if (kqemu_phys_ram_base) {
-        return host - kqemu_phys_ram_base;
-    }
-#endif
 
     prev = NULL;
     prevp = &ram_blocks;
@@ -2627,13 +2557,13 @@ static void unassigned_mem_writel(void *opaque, target_phys_addr_t addr, uint32_
 #endif
 }
 
-static CPUReadMemoryFunc *unassigned_mem_read[3] = {
+static CPUReadMemoryFunc * const unassigned_mem_read[3] = {
     unassigned_mem_readb,
     unassigned_mem_readw,
     unassigned_mem_readl,
 };
 
-static CPUWriteMemoryFunc *unassigned_mem_write[3] = {
+static CPUWriteMemoryFunc * const unassigned_mem_write[3] = {
     unassigned_mem_writeb,
     unassigned_mem_writew,
     unassigned_mem_writel,
@@ -2651,11 +2581,6 @@ static void notdirty_mem_writeb(void *opaque, target_phys_addr_t ram_addr,
 #endif
     }
     stb_p(qemu_get_ram_ptr(ram_addr), val);
-#ifdef CONFIG_KQEMU
-    if (cpu_single_env->kqemu_enabled &&
-        (dirty_flags & KQEMU_MODIFY_PAGE_MASK) != KQEMU_MODIFY_PAGE_MASK)
-        kqemu_modify_page(cpu_single_env, ram_addr);
-#endif
     dirty_flags |= (0xff & ~CODE_DIRTY_FLAG);
     phys_ram_dirty[ram_addr >> TARGET_PAGE_BITS] = dirty_flags;
     /* we remove the notdirty callback only if the code has been
@@ -2676,11 +2601,6 @@ static void notdirty_mem_writew(void *opaque, target_phys_addr_t ram_addr,
 #endif
     }
     stw_p(qemu_get_ram_ptr(ram_addr), val);
-#ifdef CONFIG_KQEMU
-    if (cpu_single_env->kqemu_enabled &&
-        (dirty_flags & KQEMU_MODIFY_PAGE_MASK) != KQEMU_MODIFY_PAGE_MASK)
-        kqemu_modify_page(cpu_single_env, ram_addr);
-#endif
     dirty_flags |= (0xff & ~CODE_DIRTY_FLAG);
     phys_ram_dirty[ram_addr >> TARGET_PAGE_BITS] = dirty_flags;
     /* we remove the notdirty callback only if the code has been
@@ -2701,11 +2621,6 @@ static void notdirty_mem_writel(void *opaque, target_phys_addr_t ram_addr,
 #endif
     }
     stl_p(qemu_get_ram_ptr(ram_addr), val);
-#ifdef CONFIG_KQEMU
-    if (cpu_single_env->kqemu_enabled &&
-        (dirty_flags & KQEMU_MODIFY_PAGE_MASK) != KQEMU_MODIFY_PAGE_MASK)
-        kqemu_modify_page(cpu_single_env, ram_addr);
-#endif
     dirty_flags |= (0xff & ~CODE_DIRTY_FLAG);
     phys_ram_dirty[ram_addr >> TARGET_PAGE_BITS] = dirty_flags;
     /* we remove the notdirty callback only if the code has been
@@ -2714,13 +2629,13 @@ static void notdirty_mem_writel(void *opaque, target_phys_addr_t ram_addr,
         tlb_set_dirty(cpu_single_env, cpu_single_env->mem_io_vaddr);
 }
 
-static CPUReadMemoryFunc *error_mem_read[3] = {
+static CPUReadMemoryFunc * const error_mem_read[3] = {
     NULL, /* never used */
     NULL, /* never used */
     NULL, /* never used */
 };
 
-static CPUWriteMemoryFunc *notdirty_mem_write[3] = {
+static CPUWriteMemoryFunc * const notdirty_mem_write[3] = {
     notdirty_mem_writeb,
     notdirty_mem_writew,
     notdirty_mem_writel,
@@ -2813,13 +2728,13 @@ static void watch_mem_writel(void *opaque, target_phys_addr_t addr,
     stl_phys(addr, val);
 }
 
-static CPUReadMemoryFunc *watch_mem_read[3] = {
+static CPUReadMemoryFunc * const watch_mem_read[3] = {
     watch_mem_readb,
     watch_mem_readw,
     watch_mem_readl,
 };
 
-static CPUWriteMemoryFunc *watch_mem_write[3] = {
+static CPUWriteMemoryFunc * const watch_mem_write[3] = {
     watch_mem_writeb,
     watch_mem_writew,
     watch_mem_writel,
@@ -2911,13 +2826,13 @@ static void subpage_writel (void *opaque,
     subpage_writelen(opaque, addr, value, 2);
 }
 
-static CPUReadMemoryFunc *subpage_read[] = {
+static CPUReadMemoryFunc * const subpage_read[] = {
     &subpage_readb,
     &subpage_readw,
     &subpage_readl,
 };
 
-static CPUWriteMemoryFunc *subpage_write[] = {
+static CPUWriteMemoryFunc * const subpage_write[] = {
     &subpage_writeb,
     &subpage_writew,
     &subpage_writel,
@@ -2998,8 +2913,8 @@ static int get_free_io_mem_idx(void)
    value can be used with cpu_register_physical_memory(). (-1) is
    returned if error. */
 static int cpu_register_io_memory_fixed(int io_index,
-                                        CPUReadMemoryFunc **mem_read,
-                                        CPUWriteMemoryFunc **mem_write,
+                                        CPUReadMemoryFunc * const *mem_read,
+                                        CPUWriteMemoryFunc * const *mem_write,
                                         void *opaque)
 {
     int i, subwidth = 0;
@@ -3024,8 +2939,8 @@ static int cpu_register_io_memory_fixed(int io_index,
     return (io_index << IO_MEM_SHIFT) | subwidth;
 }
 
-int cpu_register_io_memory(CPUReadMemoryFunc **mem_read,
-                           CPUWriteMemoryFunc **mem_write,
+int cpu_register_io_memory(CPUReadMemoryFunc * const *mem_read,
+                           CPUWriteMemoryFunc * const *mem_write,
                            void *opaque)
 {
     return cpu_register_io_memory_fixed(0, mem_read, mem_write, opaque);
@@ -3056,13 +2971,6 @@ static void io_mem_init(void)
 
     io_mem_watch = cpu_register_io_memory(watch_mem_read,
                                           watch_mem_write, NULL);
-#ifdef CONFIG_KQEMU
-    if (kqemu_phys_ram_base) {
-        /* alloc dirty bits array */
-        phys_ram_dirty = qemu_vmalloc(kqemu_phys_ram_size >> TARGET_PAGE_BITS);
-        memset(phys_ram_dirty, 0xff, kqemu_phys_ram_size >> TARGET_PAGE_BITS);
-    }
-#endif
 }
 
 #endif /* !defined(CONFIG_USER_ONLY) */
