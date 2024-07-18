@@ -1,5 +1,5 @@
 ﻿Currently VS2022! TESTFILES build was created via fully updated
-VS2022 17.9.2 Windows 11 26063 with the Windows 10 20348 SDK.
+VS2022 17.10.4 Windows 11 26252 with the Windows 10 20348 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
 just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
@@ -19,7 +19,7 @@ the main bios is, and -hda where the disk image is. small.ffs is NetBSD 1.2
 Check "WinQemuTest.exe -help" for BIOS options, as by default it skips boot menu 
 per default configuration from upstream codebase. 
 
-# Building instructions
+# Progress Updates
 
 2/13/24 - Build system now fixed to output directories being correct for debug builds. 
 To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
@@ -34,6 +34,12 @@ regardless of current set C language STD. Unfortunately, this means we must use 
 Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and 
 \_\_typeof\_\_ support were added.
 
+7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
+use -m 512 while working on bringing in some finishes to currently incomplete changes.
+Changes to Visual Studio will necessitate upgrading to VS 2022 17.11 which is currently
+in preview, but can be installed side-by-side with release version. 
+
+# Building instructions
 
 Only Debug/Win32 is currently "fixed up" and validated. 
 
@@ -41,7 +47,7 @@ For a working debug environment, add to D:\Images\ (currently hard coded) vgabio
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
 be modified in project WinQemu\qemu\inc\config-host.h
 
-Add '-net none -cpu coreduo -m 1024 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
+Add '-net none -cpu coreduo -m 512 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 
 
