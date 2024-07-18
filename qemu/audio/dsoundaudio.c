@@ -1121,5 +1121,5 @@ struct audio_driver dsound_audio_driver = {
     .max_voices_out = INT_MAX,
     .max_voices_in  = 1,
     .voice_size_out = sizeof (DSoundVoiceOut),
-    .voice_size_in   = sizeof (DSoundVoiceIn)
+    .voice_size_in  = sizeof (DSoundVoiceIn)
 };
