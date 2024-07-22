@@ -1109,6 +1109,7 @@
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
+    <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\poison.h" />
