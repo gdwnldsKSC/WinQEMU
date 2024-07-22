@@ -73,7 +73,7 @@
 #define isunordered(x,y)        unordered(x, y)
 #endif
 
-#if defined(__sun__) && !defined(CONFIG_NEED_LIBSUNMATH)
+#if defined(__sun__) && !defined(CONFIG_NEEDS_LIBSUNMATH)
 
 #ifndef isnan
 # define isnan(x) \

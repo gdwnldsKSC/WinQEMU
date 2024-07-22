@@ -10,7 +10,7 @@ as it appears timeperiod appropriate for the included compiled libraries in the 
 to enable clean building. Eventually, that and other supporting libraries will be brought
 into the project and built alongside the entire solution.
 
-WinQemu buils the dll, WinQemuTest builds the exe to actually use it
+WinQemu builds the dll, WinQemuTest builds the exe to actually use it
 
 Hardcoded to use D:\Images\ for files. - this is not exactly true anymore as we now have
 functional parameters for everything. -L specifies where vgabios.bin is, -bios where... 
@@ -86,6 +86,6 @@ VGABIOS - "current-cvs 17 Dec 2008"
 
 Working startup commandline:
 
-winqemutest.exe -net none -cpu coreduo -m 1024 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images
+winqemutest.exe -net none -cpu coreduo -m 512 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images
 
 Adding alpha target bits on the side for OpenVMS, Tru64, and AXP Windows NT emulation over time. 
