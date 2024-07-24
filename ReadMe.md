@@ -1,5 +1,5 @@
 ﻿Currently VS2022! TESTFILES build was created via fully updated
-VS2022 17.10.4 Windows 11 26252 with the Windows 10 20348 SDK.
+VS2022 17.11 Preview Release 5 on Windows 11 26252 with the Windows 10 20348 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
 just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
