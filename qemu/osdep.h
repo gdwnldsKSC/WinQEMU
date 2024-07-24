@@ -12,6 +12,7 @@
 #define QEMU_OSDEP_H
 
 #include <stdarg.h>
+#include <stddef.h>
 #ifdef __OpenBSD__
 #include <sys/types.h>
 #include <sys/signal.h>
@@ -37,7 +38,7 @@
 #define unlikely(x)   __builtin_expect(!!(x), 0)
 #endif
 
-#ifndef offsetof
+#ifdef CONFIG_NEED_OFFSETOF
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *) 0)->MEMBER)
 #endif
 #ifndef container_of

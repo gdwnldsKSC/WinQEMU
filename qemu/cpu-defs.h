@@ -41,7 +41,7 @@
 #include <signal.h>
 #endif
 #include "osdep.h"
-#include "sys-queue.h"
+#include "qemu-queue.h"
 #include "targphys.h"
 
 #ifndef TARGET_LONG_BITS
@@ -143,14 +143,14 @@ struct KVMState;
 typedef struct CPUBreakpoint {
     target_ulong pc;
     int flags; /* BP_* */
-    TAILQ_ENTRY(CPUBreakpoint) entry;
+    QTAILQ_ENTRY(CPUBreakpoint) entry;
 } CPUBreakpoint;
 
 typedef struct CPUWatchpoint {
     target_ulong vaddr;
     target_ulong len_mask;
     int flags; /* BP_* */
-    TAILQ_ENTRY(CPUWatchpoint) entry;
+    QTAILQ_ENTRY(CPUWatchpoint) entry;
 } CPUWatchpoint;
 
 #ifdef _MSC_VER
@@ -192,10 +192,10 @@ typedef int sig_atomic_t;
                                                                         \
     /* from this point: preserved by CPU reset */                       \
     /* ice debug support */                                             \
-    TAILQ_HEAD(breakpoints_head, CPUBreakpoint) breakpoints;            \
+    QTAILQ_HEAD(breakpoints_head, CPUBreakpoint) breakpoints;            \
     int singlestep_enabled;                                             \
                                                                         \
-    TAILQ_HEAD(watchpoints_head, CPUWatchpoint) watchpoints;            \
+    QTAILQ_HEAD(watchpoints_head, CPUWatchpoint) watchpoints;            \
     CPUWatchpoint *watchpoint_hit;                                      \
                                                                         \
     struct GDBRegisterState *gdb_regs;                                  \

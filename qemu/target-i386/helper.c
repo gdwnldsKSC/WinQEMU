@@ -764,10 +764,7 @@ void cpu_dump_state(CPUState *env, FILE *f,
 	} tmp = {0};
 #endif
 
-#ifndef _MSC_VER
-    if (kvm_enabled())
         cpu_synchronize_state(env);
-#endif
 
     eflags = env->eflags;
 #ifdef TARGET_X86_64
@@ -1549,7 +1546,7 @@ static void breakpoint_handler(CPUState *env)
                 cpu_resume_from_signal(env, NULL);
         }
     } else {
-        TAILQ_FOREACH(bp, &env->breakpoints, entry)
+        QTAILQ_FOREACH(bp, &env->breakpoints, entry)
             if (bp->pc == env->eip) {
                 if (bp->flags & BP_CPU) {
                     check_hw_breakpoints(env, 1);

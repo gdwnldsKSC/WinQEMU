@@ -27,10 +27,6 @@
 #include "slirp.h"
 #include "hw/hw.h"
 
-/* host address */
-struct in_addr our_addr;
-/* host dns address */
-struct in_addr dns_addr;
 /* host loopback address */
 struct in_addr loopback_addr;
 
@@ -48,18 +44,26 @@ u_int curtime;
 static u_int time_fasttimo, last_slowtimo;
 static int do_slowtimo;
 
-static TAILQ_HEAD(slirp_instances, Slirp) slirp_instances =
-    TAILQ_HEAD_INITIALIZER(slirp_instances);
+static QTAILQ_HEAD(slirp_instances, Slirp) slirp_instances =
+    QTAILQ_HEAD_INITIALIZER(slirp_instances);
+
+static struct in_addr dns_addr;
+static u_int dns_addr_time;
 
 #ifdef _WIN32
 
-static int get_dns_addr(struct in_addr *pdns_addr)
+int get_dns_addr(struct in_addr *pdns_addr)
 {
     FIXED_INFO *FixedInfo=NULL;
     ULONG    BufLen;
     DWORD    ret;
     IP_ADDR_STRING *pIPAddr;
     struct in_addr tmp_addr;
+
+    if (dns_addr.s_addr != 0 && (curtime - dns_addr_time) < 1000) {
+        *pdns_addr = dns_addr;
+        return 0;
+    }
 
     FixedInfo = (FIXED_INFO *)GlobalAlloc(GPTR, sizeof(FIXED_INFO));
     BufLen = sizeof(FIXED_INFO);
@@ -84,6 +88,8 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     pIPAddr = &(FixedInfo->DnsServerList);
     inet_aton(pIPAddr->IpAddress.String, &tmp_addr);
     *pdns_addr = tmp_addr;
+    dns_addr = tmp_addr;
+    dns_addr_time = curtime;
     if (FixedInfo) {
         GlobalFree(FixedInfo);
         FixedInfo = NULL;
@@ -98,13 +104,33 @@ static void winsock_cleanup(void)
 
 #else
 
-static int get_dns_addr(struct in_addr *pdns_addr)
+static struct stat dns_addr_stat;
+
+int get_dns_addr(struct in_addr *pdns_addr)
 {
     char buff[512];
     char buff2[257];
     FILE *f;
     int found = 0;
     struct in_addr tmp_addr;
+
+    if (dns_addr.s_addr != 0) {
+        struct stat old_stat;
+        if ((curtime - dns_addr_time) < 1000) {
+            *pdns_addr = dns_addr;
+            return 0;
+        }
+        old_stat = dns_addr_stat;
+        if (stat("/etc/resolv.conf", &dns_addr_stat) != 0)
+            return -1;
+        if ((dns_addr_stat.st_dev == old_stat.st_dev)
+            && (dns_addr_stat.st_ino == old_stat.st_ino)
+            && (dns_addr_stat.st_size == old_stat.st_size)
+            && (dns_addr_stat.st_mtime == old_stat.st_mtime)) {
+            *pdns_addr = dns_addr;
+            return 0;
+        }
+    }
 
     f = fopen("/etc/resolv.conf", "r");
     if (!f)
@@ -117,11 +143,12 @@ static int get_dns_addr(struct in_addr *pdns_addr)
         if (sscanf(buff, "nameserver%*[ \t]%256s", buff2) == 1) {
             if (!inet_aton(buff2, &tmp_addr))
                 continue;
-            if (tmp_addr.s_addr == loopback_addr.s_addr)
-                tmp_addr = our_addr;
             /* If it's the first one, set it to dns_addr */
-            if (!found)
+            if (!found) {
                 *pdns_addr = tmp_addr;
+                dns_addr = tmp_addr;
+                dns_addr_time = curtime;
+            }
 #ifdef DEBUG
             else
                 lprint(", ");
@@ -149,8 +176,6 @@ static int get_dns_addr(struct in_addr *pdns_addr)
 static void slirp_init_once(void)
 {
     static int initialized;
-    struct hostent *he;
-    char our_name[256];
 #ifdef _WIN32
     WSADATA Data;
 #endif
@@ -166,22 +191,6 @@ static void slirp_init_once(void)
 #endif
 
     loopback_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    /* FIXME: This address may change during runtime */
-    if (gethostname(our_name, sizeof(our_name)) == 0) {
-        he = gethostbyname(our_name);
-        if (he) {
-            our_addr = *(struct in_addr *)he->h_addr;
-        }
-    }
-    if (our_addr.s_addr == 0) {
-        our_addr = loopback_addr;
-    }
-
-    /* FIXME: This address may change during runtime */
-    if (get_dns_addr(&dns_addr) < 0) {
-        dns_addr = loopback_addr;
-    }
 }
 
 static void slirp_state_save(QEMUFile *f, void *opaque);
@@ -225,14 +234,14 @@ Slirp *slirp_init(int restricted, struct in_addr vnetwork,
 
     register_savevm("slirp", 0, 3, slirp_state_save, slirp_state_load, slirp);
 
-    TAILQ_INSERT_TAIL(&slirp_instances, slirp, entry);
+    QTAILQ_INSERT_TAIL(&slirp_instances, slirp, entry);
 
     return slirp;
 }
 
 void slirp_cleanup(Slirp *slirp)
 {
-    TAILQ_REMOVE(&slirp_instances, slirp, entry);
+    QTAILQ_REMOVE(&slirp_instances, slirp, entry);
 
     unregister_savevm("slirp", slirp);
 
@@ -252,7 +261,7 @@ void slirp_select_fill(int *pnfds,
     struct socket *so, *so_next;
     int nfds;
 
-    if (TAILQ_EMPTY(&slirp_instances)) {
+    if (QTAILQ_EMPTY(&slirp_instances)) {
         return;
     }
 
@@ -267,7 +276,7 @@ void slirp_select_fill(int *pnfds,
 	 */
 	do_slowtimo = 0;
 
-	TAILQ_FOREACH(slirp, &slirp_instances, entry) {
+	QTAILQ_FOREACH(slirp, &slirp_instances, entry) {
 		/*
 		 * *_slowtimo needs calling if there are IP fragments
 		 * in the fragment queue, or there are TCP connections active
@@ -375,7 +384,7 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
     struct socket *so, *so_next;
     int ret;
 
-    if (TAILQ_EMPTY(&slirp_instances)) {
+    if (QTAILQ_EMPTY(&slirp_instances)) {
         return;
     }
 
@@ -385,7 +394,7 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
 
     curtime = qemu_get_clock(rt_clock);
 
-    TAILQ_FOREACH(slirp, &slirp_instances, entry) {
+    QTAILQ_FOREACH(slirp, &slirp_instances, entry) {
 	/*
 	 * See if anything has timed out
 	 */
