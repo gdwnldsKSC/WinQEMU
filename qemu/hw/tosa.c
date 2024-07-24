@@ -57,7 +57,7 @@ static void tosa_microdrive_attach(PXA2xxState *cpu)
         return;
     bs = dinfo->bdrv;
     if (bdrv_is_inserted(bs) && !bdrv_is_removable(bs)) {
-        md = dscm1xxxx_init(bs);
+        md = dscm1xxxx_init(dinfo);
         pxa2xx_pcmcia_attach(cpu->pcmcia[0], md);
     }
 }
@@ -121,9 +121,10 @@ static uint32_t tosa_ssp_tansfer(SSISlave *dev, uint32_t value)
     return 0;
 }
 
-static void tosa_ssp_init(SSISlave *dev)
+static int tosa_ssp_init(SSISlave *dev)
 {
     /* Nothing to do.  */
+    return 0;
 }
 
 typedef struct {
@@ -180,9 +181,10 @@ static int tosa_dac_recv(i2c_slave *s)
     return -1;
 }
 
-static void tosa_dac_init(i2c_slave *i2c)
+static int tosa_dac_init(i2c_slave *i2c)
 {
     /* Nothing to do.  */
+    return 0;
 }
 
 static void tosa_tg_init(PXA2xxState *cpu)

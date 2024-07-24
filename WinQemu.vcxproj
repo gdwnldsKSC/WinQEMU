@@ -194,6 +194,12 @@
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\ide\core.c" />
+    <ClCompile Include="qemu\hw\ide\isa.c" />
+    <ClCompile Include="qemu\hw\ide\macio.c" />
+    <ClCompile Include="qemu\hw\ide\microdrive.c" />
+    <ClCompile Include="qemu\hw\ide\mmio.c" />
+    <ClCompile Include="qemu\hw\ide\pci.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
     <ClCompile Include="qemu\hw\marvell_88w8618_audio.c" />
@@ -201,12 +207,19 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\msix.c" />
+    <ClCompile Include="qemu\hw\ne2000-isa.c" />
+    <ClCompile Include="qemu\hw\piix4.c" />
     <ClCompile Include="qemu\hw\qdev-addr.c" />
     <ClCompile Include="qemu\hw\qdev-properties.c" />
     <ClCompile Include="qemu\hw\qdev.c" />
+    <ClCompile Include="qemu\hw\scsi-bus.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
     <ClCompile Include="qemu\hw\sysbus.c" />
+    <ClCompile Include="qemu\hw\usb-bus.c" />
+    <ClCompile Include="qemu\hw\vga-isa-mm.c" />
+    <ClCompile Include="qemu\hw\vga-isa.c" />
+    <ClCompile Include="qemu\hw\vga-pci.c" />
     <ClCompile Include="qemu\hw\virtio-pci.c" />
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
@@ -219,9 +232,15 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\module.c" />
+    <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
+    <ClCompile Include="qemu\qemu-io.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qint.c" />
+    <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\sdl_zoom.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -579,7 +598,6 @@
     <ClCompile Include="qemu\hw\i2c.c" />
     <ClCompile Include="qemu\hw\i8254.c" />
     <ClCompile Include="qemu\hw\i8259.c" />
-    <ClCompile Include="qemu\hw\ide.c" />
     <ClCompile Include="qemu\hw\integratorcp.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
@@ -593,7 +611,6 @@
     <ClCompile Include="qemu\hw\lsi53c895a.c" />
     <ClCompile Include="qemu\hw\m48t59.c" />
     <ClCompile Include="qemu\hw\mac_dbdma.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1111,7 +1128,9 @@
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\msix.h" />
+    <ClInclude Include="qemu\hw\ne2000.h" />
     <ClInclude Include="qemu\hw\poison.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
     <ClInclude Include="qemu\hw\qdev.h" />
@@ -1121,10 +1140,14 @@
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\module.h" />
+    <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
+    <ClInclude Include="qemu\qint.h" />
+    <ClInclude Include="qemu\qobject.h" />
+    <ClInclude Include="qemu\qstring.h" />
     <ClInclude Include="qemu\sdl_zoom.h" />
     <ClInclude Include="qemu\sdl_zoom_template.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">

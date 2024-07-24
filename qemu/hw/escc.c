@@ -938,7 +938,7 @@ void slavio_serial_ms_kbd_init(target_phys_addr_t base, qemu_irq irq,
     sysbus_mmio_map(s, 0, base);
 }
 
-static void escc_init1(SysBusDevice *dev)
+static int escc_init1(SysBusDevice *dev)
 {
     SerialState *s = FROM_SYSBUS(SerialState, dev);
     int io;
@@ -972,6 +972,7 @@ static void escc_init1(SysBusDevice *dev)
     register_savevm("escc", -1, 2, escc_save, escc_load, s);
     qemu_register_reset(escc_reset, s);
     escc_reset(s);
+    return 0;
 }
 
 static SysBusDeviceInfo escc_info = {

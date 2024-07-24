@@ -39,8 +39,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 #if !defined (FLOATFORMAT_H)
 #define FLOATFORMAT_H 1
@@ -174,9 +173,8 @@ floatformat_is_valid (const struct floatformat *fmt, const char *from);
    the GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this file; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with this file; see the file COPYING.  If not,
+   see <http://www.gnu.org/licenses/>.  */
 
 /* These are used as bit flags for the arch field in the m68k_opcode
    structure.  */
@@ -555,9 +553,7 @@ extern const int m68k_numopcodes, m68k_numaliases;
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 /* Local function prototypes.  */
 
@@ -2062,9 +2058,8 @@ print_insn_m68k (bfd_vma memaddr, disassemble_info *info)
    the GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this file; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   along with this file; see the file COPYING.  If not,
+   see <http://www.gnu.org/licenses/>.  */
 
 #define one(x) ((unsigned int) (x) << 16)
 #define two(x, y) (((unsigned int) (x) << 16) + (y))
@@ -4486,8 +4481,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 /* This is needed to pick up the NAN macro on some systems.  */
 //#define _GNU_SOURCE

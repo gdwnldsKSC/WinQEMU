@@ -16,8 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Only host-mode and non-DMA accesses are currently supported.
  */
@@ -293,6 +292,7 @@ typedef struct {
 
 struct MUSBState {
     qemu_irq *irqs;
+    USBBus *bus;
     USBPort port;
 
     int idx;
@@ -342,7 +342,8 @@ struct MUSBState {
         s->ep[i].epnum = i;
     }
 
-    qemu_register_usb_port(&s->port, s, 0, musb_attach);
+    s->bus = usb_bus_new(NULL /* FIXME */);
+    usb_register_port(s->bus, &s->port, s, 0, musb_attach);
 
     return s;
 }
@@ -602,7 +603,7 @@ static inline void musb_packet(MUSBState *s, MUSBEndPoint *ep,
     ep->packey[dir].complete_opaque = ep;
 
     if (s->port.dev)
-        ret = s->port.dev->handle_packet(s->port.dev, &ep->packey[dir]);
+        ret = s->port.dev->info->handle_packet(s->port.dev, &ep->packey[dir]);
     else
         ret = USB_RET_NODEV;
 
@@ -1589,7 +1590,7 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
 			printf("%s: EP%i FIFO is now empty, stop reading\n",
 				__FUNCTION__, epnum);
 			return 0x00000000;
-		}
+}
 		/* In DMA mode clear RXPKTRDY and set REQPKT automatically
 		* (if AUTOREQ is set) */
 

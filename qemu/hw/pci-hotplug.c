@@ -30,6 +30,7 @@
 #include "pc.h"
 #include "monitor.h"
 #include "block_int.h"
+#include "scsi-disk.h"
 #include "virtio-blk.h"
 
 #if defined(TARGET_I386) || defined(TARGET_X86_64)
@@ -48,7 +49,7 @@ static PCIDevice *qemu_pci_hot_add_nic(Monitor *mon,
     return pci_nic_init(&nd_table[ret], "rtl8139", devaddr);
 }
 
-void drive_hot_add(Monitor *mon, const char *pci_addr, const char *opts)
+void drive_hot_add(Monitor *mon, const QDict *qdict)
 {
     int dom, pci_bus;
     unsigned slot;
@@ -56,6 +57,9 @@ void drive_hot_add(Monitor *mon, const char *pci_addr, const char *opts)
     int success = 0;
     PCIDevice *dev;
     DriveInfo *dinfo;
+    const char *pci_addr = qdict_get_str(qdict, "pci_addr");
+    const char *opts = qdict_get_str(qdict, "opts");
+    BusState *scsibus;
 
     if (pci_read_devaddr(mon, pci_addr, &dom, &pci_bus, &slot)) {
         return;
@@ -80,8 +84,9 @@ void drive_hot_add(Monitor *mon, const char *pci_addr, const char *opts)
     switch (type) {
     case IF_SCSI:
         success = 1;
-        lsi_scsi_attach(&dev->qdev, dinfo->bdrv,
-                        dinfo->unit);
+        scsibus = LIST_FIRST(&dev->qdev.child_bus);
+        scsi_bus_legacy_add_drive(DO_UPCAST(SCSIBus, qbus, scsibus),
+                                  dinfo, dinfo->unit);
         break;
     default:
         monitor_printf(mon, "Can't hot-add drive to type %d\n", type);
@@ -99,7 +104,7 @@ static PCIDevice *qemu_pci_hot_add_storage(Monitor *mon,
                                            const char *opts)
 {
     PCIDevice *dev;
-    DriveInfo *dinfo;
+    DriveInfo *dinfo = NULL;
     int type = -1;
     char buf[128];
 
@@ -149,10 +154,12 @@ static PCIDevice *qemu_pci_hot_add_storage(Monitor *mon,
     return dev;
 }
 
-void pci_device_hot_add(Monitor *mon, const char *pci_addr, const char *type,
-                        const char *opts)
+void pci_device_hot_add(Monitor *mon, const QDict *qdict)
 {
     PCIDevice *dev = NULL;
+    const char *pci_addr = qdict_get_str(qdict, "pci_addr");
+    const char *type = qdict_get_str(qdict, "type");
+    const char *opts = qdict_get_try_str(qdict, "opts");
 
     /* strip legacy tag */
     if (!strncmp(pci_addr, "pci_addr=", 9)) {
@@ -201,6 +208,11 @@ void pci_device_hot_remove(Monitor *mon, const char *pci_addr)
     }
 
     qemu_system_device_hot_add(bus, slot, 0);
+}
+
+void do_pci_device_hot_remove(Monitor *mon, const QDict *qdict)
+{
+    pci_device_hot_remove(mon, qdict_get_str(qdict, "pci_addr"));
 }
 
 static int pci_match_fn(void *dev_private, void *arg)

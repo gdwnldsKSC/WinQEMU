@@ -59,6 +59,7 @@ extern target_phys_addr_t pci_mem_base;
 
 /* Intel (0x8086) */
 #define PCI_DEVICE_ID_INTEL_82551IT      0x1209
+#define PCI_DEVICE_ID_INTEL_82557        0x1229
 
 /* Red Hat / Qumranet (for QEMU) -- see pci-ids.txt */
 #define PCI_VENDOR_ID_REDHAT_QUMRANET    0x1af4
@@ -209,6 +210,8 @@ struct PCIDevice {
     unsigned *msix_entry_used;
     /* Region including the MSI-X table */
     uint32_t msix_bar_size;
+    /* Version id needed for VMState */
+    int32_t version_id;
 };
 
 PCIDevice *pci_register_device(PCIBus *bus, const char *name,
@@ -237,11 +240,11 @@ void pci_default_write_config(PCIDevice *d,
 void pci_device_save(PCIDevice *s, QEMUFile *f);
 int pci_device_load(PCIDevice *s, QEMUFile *f);
 
-typedef void (*pci_set_irq_fn)(qemu_irq *pic, int irq_num, int level);
+typedef void (*pci_set_irq_fn)(void *opaque, int irq_num, int level);
 typedef int (*pci_map_irq_fn)(PCIDevice *pci_dev, int irq_num);
 PCIBus *pci_register_bus(DeviceState *parent, const char *name,
                          pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
-                         qemu_irq *pic, int devfn_min, int nirq);
+                         void *irq_opaque, int devfn_min, int nirq);
 
 PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
                         const char *default_devaddr);
@@ -313,7 +316,7 @@ pci_config_set_class(uint8_t *pci_config, uint16_t val)
     pci_set_word(&pci_config[PCI_CLASS_DEVICE], val);
 }
 
-typedef void (*pci_qdev_initfn)(PCIDevice *dev);
+typedef int (*pci_qdev_initfn)(PCIDevice *dev);
 typedef struct {
     DeviceInfo qdev;
     pci_qdev_initfn init;
@@ -329,7 +332,6 @@ PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name);
 
 /* lsi53c895a.c */
 #define LSI_MAX_DEVS 7
-void lsi_scsi_attach(DeviceState *host, BlockDriverState *bd, int id);
 
 /* vmware_vga.c */
 void pci_vmsvga_init(PCIBus *bus);
@@ -339,7 +341,7 @@ void usb_uhci_piix3_init(PCIBus *bus, int devfn);
 void usb_uhci_piix4_init(PCIBus *bus, int devfn);
 
 /* usb-ohci.c */
-void usb_ohci_init_pci(struct PCIBus *bus, int num_ports, int devfn);
+void usb_ohci_init_pci(struct PCIBus *bus, int devfn);
 
 /* prep_pci.c */
 PCIBus *pci_prep_init(qemu_irq *pic);
@@ -351,6 +353,6 @@ PCIBus *pci_apb_init(target_phys_addr_t special_base,
 
 /* sh_pci.c */
 PCIBus *sh_pci_register_bus(pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
-                            qemu_irq *pic, int devfn_min, int nirq);
+                            void *pic, int devfn_min, int nirq);
 
 #endif

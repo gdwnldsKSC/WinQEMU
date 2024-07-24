@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "console.h"
 #include "pc.h"
@@ -39,7 +28,6 @@
 #include "vga_int.h"
 #include "pixel_ops.h"
 #include "qemu-timer.h"
-#include "kvm.h"
 
 //#define DEBUG_VGA
 //#define DEBUG_VGA_MEM
@@ -164,12 +152,12 @@ static void vga_screen_dump(void *opaque, const char *filename);
 static char *screen_dump_filename;
 static DisplayChangeListener *screen_dump_dcl;
 
-static void vga_dumb_update_retrace_info(VGAState *s)
+static void vga_dumb_update_retrace_info(VGACommonState *s)
 {
     (void) s;
 }
 
-static void vga_precise_update_retrace_info(VGAState *s)
+static void vga_precise_update_retrace_info(VGACommonState *s)
 {
     int htotal_chars;
     int hretr_start_char;
@@ -260,7 +248,7 @@ static void vga_precise_update_retrace_info(VGAState *s)
 #endif
 }
 
-static uint8_t vga_precise_retrace(VGAState *s)
+static uint8_t vga_precise_retrace(VGACommonState *s)
 {
     struct vga_precise_retrace *r = &s->retrace_info.precise;
     uint8_t val = s->st01 & ~(ST01_V_RETRACE | ST01_DISP_ENABLE);
@@ -289,19 +277,28 @@ static uint8_t vga_precise_retrace(VGAState *s)
     }
 }
 
-static uint8_t vga_dumb_retrace(VGAState *s)
+static uint8_t vga_dumb_retrace(VGACommonState *s)
 {
     return s->st01 ^ (ST01_V_RETRACE | ST01_DISP_ENABLE);
 }
 
-static uint32_t vga_ioport_read(void *opaque, uint32_t addr)
+int vga_ioport_invalid(VGACommonState *s, uint32_t addr)
 {
-    VGAState *s = opaque;
+    if (s->msr & MSR_COLOR_EMULATION) {
+        /* Color */
+        return (addr >= 0x3b0 && addr <= 0x3bf);
+    } else {
+        /* Monochrome */
+        return (addr >= 0x3d0 && addr <= 0x3df);
+    }
+}
+
+uint32_t vga_ioport_read(void *opaque, uint32_t addr)
+{
+    VGACommonState *s = opaque;
     int val, index;
 
-    /* check port range access depending on color/monochrome mode */
-    if ((addr >= 0x3b0 && addr <= 0x3bf && (s->msr & MSR_COLOR_EMULATION)) ||
-        (addr >= 0x3d0 && addr <= 0x3df && !(s->msr & MSR_COLOR_EMULATION))) {
+    if (vga_ioport_invalid(s, addr)) {
         val = 0xff;
     } else {
         switch(addr) {
@@ -334,9 +331,9 @@ static uint32_t vga_ioport_read(void *opaque, uint32_t addr)
         case 0x3c7:
             val = s->dac_state;
             break;
-	case 0x3c8:
-	    val = s->dac_write_index;
-	    break;
+        case 0x3c8:
+            val = s->dac_write_index;
+            break;
         case 0x3c9:
             val = s->palette[s->dac_read_index * 3 + s->dac_sub_index];
             if (++s->dac_sub_index == 3) {
@@ -387,16 +384,15 @@ static uint32_t vga_ioport_read(void *opaque, uint32_t addr)
     return val;
 }
 
-static void vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
+void vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     int index;
 
     /* check port range access depending on color/monochrome mode */
-    if ((addr >= 0x3b0 && addr <= 0x3bf && (s->msr & MSR_COLOR_EMULATION)) ||
-        (addr >= 0x3d0 && addr <= 0x3df && !(s->msr & MSR_COLOR_EMULATION)))
+    if (vga_ioport_invalid(s, addr)) {
         return;
-
+    }
 #ifdef DEBUG_VGA
     printf("VGA: write addr=0x%04x data=0x%02x\n", addr, val);
 #endif
@@ -509,19 +505,7 @@ static void vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
                 s->cr[7] = (s->cr[7] & ~0x10) | (val & 0x10);
             return;
         }
-        switch(s->cr_index) {
-        case 0x01: /* horizontal display end */
-        case 0x07:
-        case 0x09:
-        case 0x0c:
-        case 0x0d:
-        case 0x12: /* vertical display end */
-            s->cr[s->cr_index] = val;
-            break;
-        default:
-            s->cr[s->cr_index] = val;
-            break;
-        }
+        s->cr[s->cr_index] = val;
 
         switch(s->cr_index) {
         case 0x00:
@@ -545,7 +529,7 @@ static void vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 #ifdef CONFIG_BOCHS_VBE
 static uint32_t vbe_ioport_read_index(void *opaque, uint32_t addr)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     uint32_t val;
     val = s->vbe_index;
     return val;
@@ -553,7 +537,7 @@ static uint32_t vbe_ioport_read_index(void *opaque, uint32_t addr)
 
 static uint32_t vbe_ioport_read_data(void *opaque, uint32_t addr)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     uint32_t val;
 
     if (s->vbe_index <= VBE_DISPI_INDEX_NB) {
@@ -587,13 +571,13 @@ static uint32_t vbe_ioport_read_data(void *opaque, uint32_t addr)
 
 static void vbe_ioport_write_index(void *opaque, uint32_t addr, uint32_t val)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     s->vbe_index = val;
 }
 
 static void vbe_ioport_write_data(void *opaque, uint32_t addr, uint32_t val)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
 
     if (s->vbe_index <= VBE_DISPI_INDEX_NB) {
 #ifdef DEBUG_BOCHS_VBE
@@ -739,7 +723,7 @@ static void vbe_ioport_write_data(void *opaque, uint32_t addr, uint32_t val)
 /* called for accesses between 0xa0000 and 0xc0000 */
 uint32_t vga_mem_readb(void *opaque, target_phys_addr_t addr)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     int memory_map_mode, plane;
     uint32_t ret;
 
@@ -826,7 +810,7 @@ static uint32_t vga_mem_readl(void *opaque, target_phys_addr_t addr)
 /* called for accesses between 0xa0000 and 0xc0000 */
 void vga_mem_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     int memory_map_mode, plane, write_mode, b, func_select, mask;
     uint32_t write_mask, bit_mask, set_mask;
 
@@ -990,7 +974,7 @@ typedef void vga_draw_glyph8_func(uint8_t *d, int linesize,
 typedef void vga_draw_glyph9_func(uint8_t *d, int linesize,
                                   const uint8_t *font_ptr, int h,
                                   uint32_t fgcol, uint32_t bgcol, int dup9);
-typedef void vga_draw_line_func(VGAState *s1, uint8_t *d,
+typedef void vga_draw_line_func(VGACommonState *s1, uint8_t *d,
                                 const uint8_t *s, int width);
 
 #define DEPTH 8
@@ -1075,7 +1059,7 @@ static unsigned int rgb_to_pixel32bgr_dup(unsigned int r, unsigned int g, unsign
 }
 
 /* return true if the palette was modified */
-static int update_palette16(VGAState *s)
+static int update_palette16(VGACommonState *s)
 {
     int full_update, i;
     uint32_t v, col, *palette;
@@ -1101,7 +1085,7 @@ static int update_palette16(VGAState *s)
 }
 
 /* return true if the palette was modified */
-static int update_palette256(VGAState *s)
+static int update_palette256(VGACommonState *s)
 {
     int full_update, i;
     uint32_t v, col, *palette;
@@ -1128,7 +1112,7 @@ static int update_palette256(VGAState *s)
     return full_update;
 }
 
-static void vga_get_offsets(VGAState *s,
+static void vga_get_offsets(VGACommonState *s,
                             uint32_t *pline_offset,
                             uint32_t *pstart_addr,
                             uint32_t *pline_compare)
@@ -1160,7 +1144,7 @@ static void vga_get_offsets(VGAState *s,
 }
 
 /* update start_addr and line_offset. Return TRUE if modified */
-static int update_basic_params(VGAState *s)
+static int update_basic_params(VGACommonState *s)
 {
     int full_update;
     uint32_t start_addr, line_offset, line_compare;
@@ -1249,7 +1233,7 @@ static const uint8_t cursor_glyph[32 * 4] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 };
 
-static void vga_get_text_resolution(VGAState *s, int *pwidth, int *pheight,
+static void vga_get_text_resolution(VGACommonState *s, int *pwidth, int *pheight,
                                     int *pcwidth, int *pcheight)
 {
     int width, cwidth, height, cheight;
@@ -1298,7 +1282,7 @@ static rgb_to_pixel_dup_func *rgb_to_pixel_dup_table[NB_DEPTHS] = {
  * - underline
  * - flashing
  */
-static void vga_draw_text(VGAState *s, int full_update)
+static void vga_draw_text(VGACommonState *s, int full_update)
 {
     int cx, cy, cheight, cw, ch, cattr, height, width, ch_attr;
     int cx_min, cx_max, linesize, x_incr;
@@ -1553,7 +1537,7 @@ static vga_draw_line_func *vga_draw_line_table[NB_DEPTHS * VGA_DRAW_LINE_NB] = {
     vga_draw_line32_16bgr,
 };
 
-static int vga_get_bpp(VGAState *s)
+static int vga_get_bpp(VGACommonState *s)
 {
     int ret;
 #ifdef CONFIG_BOCHS_VBE
@@ -1567,7 +1551,7 @@ static int vga_get_bpp(VGAState *s)
     return ret;
 }
 
-static void vga_get_resolution(VGAState *s, int *pwidth, int *pheight)
+static void vga_get_resolution(VGACommonState *s, int *pwidth, int *pheight)
 {
     int width, height;
 
@@ -1588,7 +1572,7 @@ static void vga_get_resolution(VGAState *s, int *pwidth, int *pheight)
     *pheight = height;
 }
 
-void vga_invalidate_scanlines(VGAState *s, int y1, int y2)
+void vga_invalidate_scanlines(VGACommonState *s, int y1, int y2)
 {
     int y;
     if (y1 >= VGA_MAX_HEIGHT)
@@ -1600,7 +1584,7 @@ void vga_invalidate_scanlines(VGAState *s, int y1, int y2)
     }
 }
 
-static void vga_sync_dirty_bitmap(VGAState *s)
+static void vga_sync_dirty_bitmap(VGACommonState *s)
 {
     if (s->map_addr)
         cpu_physical_sync_dirty_bitmap(s->map_addr, s->map_end);
@@ -1614,7 +1598,7 @@ static void vga_sync_dirty_bitmap(VGAState *s)
 /*
  * graphic modes
  */
-static void vga_draw_graphic(VGAState *s, int full_update)
+static void vga_draw_graphic(VGACommonState *s, int full_update)
 {
     int y1, y, update, linesize, y_start, double_scan, mask, depth;
     int width, height, shift_control, line_offset, bwidth, bits;
@@ -1831,7 +1815,7 @@ static void vga_draw_graphic(VGAState *s, int full_update)
     memset(s->invalidated_y_table, 0, ((height + 31) >> 5) * 4);
 }
 
-static void vga_draw_blank(VGAState *s, int full_update)
+static void vga_draw_blank(VGACommonState *s, int full_update)
 {
     int i, w, val;
     uint8_t *d;
@@ -1863,7 +1847,7 @@ static void vga_draw_blank(VGAState *s, int full_update)
 
 static void vga_update_display(void *opaque)
 {
-    VGAState *s = (VGAState *)opaque;
+    VGACommonState *s = opaque;
     int full_update, graphic_mode;
 
     if (ds_get_bits_per_pixel(s->ds) == 0) {
@@ -1898,15 +1882,13 @@ static void vga_update_display(void *opaque)
 /* force a full display refresh */
 static void vga_invalidate_display(void *opaque)
 {
-    VGAState *s = (VGAState *)opaque;
+    VGACommonState *s = opaque;
 
     s->full_update = 1;
 }
 
-void vga_reset(void *opaque)
+void vga_common_reset(VGACommonState *s)
 {
-    VGAState *s = (VGAState *) opaque;
-
     s->lfb_addr = 0;
     s->lfb_end = 0;
     s->map_addr = 0;
@@ -1972,6 +1954,12 @@ void vga_reset(void *opaque)
     }
 }
 
+static void vga_reset(void *opaque)
+{
+    VGACommonState *s =  opaque;
+    vga_common_reset(s);
+}
+
 #define TEXTMODE_X(x)	((x) % width)
 #define TEXTMODE_Y(x)	((x) / width)
 #define VMEM2CHTYPE(v)	((v & 0xff0007ff) | \
@@ -1980,7 +1968,7 @@ void vga_reset(void *opaque)
  * instead of doing a full vga_update_display() */
 static void vga_update_text(void *opaque, console_ch_t *chardata)
 {
-    VGAState *s = (VGAState *) opaque;
+    VGACommonState *s =  opaque;
     int graphic_mode, i, cursor_offset, cursor_visible;
     int cw, cheight, width, height, size, c_min, c_max;
     uint32_t *src;
@@ -2138,25 +2126,22 @@ static void vga_update_text(void *opaque, console_ch_t *chardata)
     dpy_update(s->ds, 0, 0, s->last_width, height);
 }
 
-static CPUReadMemoryFunc * const vga_mem_read[3] = {
+CPUReadMemoryFunc * const vga_mem_read[3] = {
     vga_mem_readb,
     vga_mem_readw,
     vga_mem_readl,
 };
 
-static CPUWriteMemoryFunc * const vga_mem_write[3] = {
+CPUWriteMemoryFunc * const vga_mem_write[3] = {
     vga_mem_writeb,
     vga_mem_writew,
     vga_mem_writel,
 };
 
-static void vga_save(QEMUFile *f, void *opaque)
+void vga_common_save(QEMUFile *f, void *opaque)
 {
-    VGAState *s = opaque;
+    VGACommonState *s = opaque;
     int i;
-
-    if (s->pci_dev)
-        pci_device_save(s->pci_dev, f);
 
     qemu_put_be32s(f, &s->latch);
     qemu_put_8s(f, &s->sr_index);
@@ -2194,19 +2179,13 @@ static void vga_save(QEMUFile *f, void *opaque)
 #endif
 }
 
-static int vga_load(QEMUFile *f, void *opaque, int version_id)
+int vga_common_load(QEMUFile *f, void *opaque, int version_id)
 {
-    VGAState *s = opaque;
-    int is_vbe, i, ret;
+    VGACommonState *s = opaque;
+    int is_vbe, i;
 
     if (version_id > 2)
         return -EINVAL;
-
-    if (s->pci_dev && version_id >= 2) {
-        ret = pci_device_load(s->pci_dev, f);
-        if (ret < 0)
-            return ret;
-    }
 
     qemu_get_be32s(f, &s->latch);
     qemu_get_8s(f, &s->sr_index);
@@ -2251,38 +2230,7 @@ static int vga_load(QEMUFile *f, void *opaque, int version_id)
     return 0;
 }
 
-typedef struct PCIVGAState {
-    PCIDevice dev;
-    VGAState vga_state;
-} PCIVGAState;
-
-void vga_dirty_log_start(VGAState *s)
-{
-    if (kvm_enabled() && s->map_addr)
-        kvm_log_start(s->map_addr, s->map_end - s->map_addr);
-
-    if (kvm_enabled() && s->lfb_vram_mapped) {
-        kvm_log_start(isa_mem_base + 0xa0000, 0x8000);
-        kvm_log_start(isa_mem_base + 0xa8000, 0x8000);
-    }
-}
-
-static void vga_map(PCIDevice *pci_dev, int region_num,
-                    uint32_t addr, uint32_t size, int type)
-{
-    PCIVGAState *d = (PCIVGAState *)pci_dev;
-    VGAState *s = &d->vga_state;
-    if (region_num == PCI_ROM_SLOT) {
-        cpu_register_physical_memory(addr, s->bios_size, s->bios_offset);
-    } else {
-        cpu_register_physical_memory(addr, s->vram_size, s->vram_offset);
-        s->map_addr = addr;
-        s->map_end = addr + s->vram_size;
-        vga_dirty_log_start(s);
-    }
-}
-
-void vga_common_init(VGAState *s, int vga_ram_size)
+void vga_common_init(VGACommonState *s, int vga_ram_size)
 {
     int i, j, v, b;
 
@@ -2334,12 +2282,11 @@ void vga_common_init(VGAState *s, int vga_ram_size)
 }
 
 /* used by both ISA and PCI */
-void vga_init(VGAState *s)
+void vga_init(VGACommonState *s)
 {
     int vga_io_memory;
 
     qemu_register_reset(vga_reset, s);
-    register_savevm("vga", 0, 2, vga_save, vga_load, s);
 
     register_ioport_write(0x3c0, 16, 1, vga_ioport_write, s);
 
@@ -2384,198 +2331,6 @@ void vga_init(VGAState *s)
                                  vga_io_memory);
     qemu_register_coalesced_mmio(isa_mem_base + 0x000a0000, 0x20000);
 }
-
-/* Memory mapped interface */
-static uint32_t vga_mm_readb (void *opaque, target_phys_addr_t addr)
-{
-    VGAState *s = opaque;
-
-    return vga_ioport_read(s, addr >> s->it_shift) & 0xff;
-}
-
-static void vga_mm_writeb (void *opaque,
-                           target_phys_addr_t addr, uint32_t value)
-{
-    VGAState *s = opaque;
-
-    vga_ioport_write(s, addr >> s->it_shift, value & 0xff);
-}
-
-static uint32_t vga_mm_readw (void *opaque, target_phys_addr_t addr)
-{
-    VGAState *s = opaque;
-
-    return vga_ioport_read(s, addr >> s->it_shift) & 0xffff;
-}
-
-static void vga_mm_writew (void *opaque,
-                           target_phys_addr_t addr, uint32_t value)
-{
-    VGAState *s = opaque;
-
-    vga_ioport_write(s, addr >> s->it_shift, value & 0xffff);
-}
-
-static uint32_t vga_mm_readl (void *opaque, target_phys_addr_t addr)
-{
-    VGAState *s = opaque;
-
-    return vga_ioport_read(s, addr >> s->it_shift);
-}
-
-static void vga_mm_writel (void *opaque,
-                           target_phys_addr_t addr, uint32_t value)
-{
-    VGAState *s = opaque;
-
-    vga_ioport_write(s, addr >> s->it_shift, value);
-}
-
-static CPUReadMemoryFunc * const vga_mm_read_ctrl[] = {
-    &vga_mm_readb,
-    &vga_mm_readw,
-    &vga_mm_readl,
-};
-
-static CPUWriteMemoryFunc * const vga_mm_write_ctrl[] = {
-    &vga_mm_writeb,
-    &vga_mm_writew,
-    &vga_mm_writel,
-};
-
-static void vga_mm_init(VGAState *s, target_phys_addr_t vram_base,
-                        target_phys_addr_t ctrl_base, int it_shift)
-{
-    int s_ioport_ctrl, vga_io_memory;
-
-    s->it_shift = it_shift;
-    s_ioport_ctrl = cpu_register_io_memory(vga_mm_read_ctrl, vga_mm_write_ctrl, s);
-    vga_io_memory = cpu_register_io_memory(vga_mem_read, vga_mem_write, s);
-
-    register_savevm("vga", 0, 2, vga_save, vga_load, s);
-
-    cpu_register_physical_memory(ctrl_base, 0x100000, s_ioport_ctrl);
-    s->bank_offset = 0;
-    cpu_register_physical_memory(vram_base + 0x000a0000, 0x20000, vga_io_memory);
-    qemu_register_coalesced_mmio(vram_base + 0x000a0000, 0x20000);
-}
-
-int isa_vga_init(void)
-{
-    VGAState *s;
-
-    s = qemu_mallocz(sizeof(VGAState));
-
-    vga_common_init(s, VGA_RAM_SIZE);
-    vga_init(s);
-
-    s->ds = graphic_console_init(s->update, s->invalidate,
-                                 s->screen_dump, s->text_update, s);
-
-#ifdef CONFIG_BOCHS_VBE
-    /* XXX: use optimized standard vga accesses */
-    cpu_register_physical_memory(VBE_DISPI_LFB_PHYSICAL_ADDRESS,
-                                 VGA_RAM_SIZE, s->vram_offset);
-#endif
-    return 0;
-}
-
-int isa_vga_mm_init(target_phys_addr_t vram_base,
-                    target_phys_addr_t ctrl_base, int it_shift)
-{
-    VGAState *s;
-
-    s = qemu_mallocz(sizeof(VGAState));
-
-    vga_common_init(s, VGA_RAM_SIZE);
-    vga_mm_init(s, vram_base, ctrl_base, it_shift);
-
-    s->ds = graphic_console_init(s->update, s->invalidate,
-                                 s->screen_dump, s->text_update, s);
-
-#ifdef CONFIG_BOCHS_VBE
-    /* XXX: use optimized standard vga accesses */
-    cpu_register_physical_memory(VBE_DISPI_LFB_PHYSICAL_ADDRESS,
-                                 VGA_RAM_SIZE, s->vram_offset);
-#endif
-    return 0;
-}
-
-static void pci_vga_write_config(PCIDevice *d,
-                                 uint32_t address, uint32_t val, int len)
-{
-    PCIVGAState *pvs = container_of(d, PCIVGAState, dev);
-    VGAState *s = &pvs->vga_state;
-
-    pci_default_write_config(d, address, val, len);
-    if (s->map_addr && pvs->dev.io_regions[0].addr == -1)
-        s->map_addr = 0;
-}
-
-static void pci_vga_initfn(PCIDevice *dev)
-{
-     PCIVGAState *d = DO_UPCAST(PCIVGAState, dev, dev);
-     VGAState *s = &d->vga_state;
-     uint8_t *pci_conf = d->dev.config;
-
-     // vga + console init
-     vga_common_init(s, VGA_RAM_SIZE);
-     vga_init(s);
-     s->pci_dev = &d->dev;
-     s->ds = graphic_console_init(s->update, s->invalidate,
-                                  s->screen_dump, s->text_update, s);
-
-     // dummy VGA (same as Bochs ID)
-     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_QEMU);
-     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_QEMU_VGA);
-     pci_config_set_class(pci_conf, PCI_CLASS_DISPLAY_VGA);
-     pci_conf[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_NORMAL; // header_type
-
-     /* XXX: VGA_RAM_SIZE must be a power of two */
-     pci_register_bar(&d->dev, 0, VGA_RAM_SIZE,
-                      PCI_ADDRESS_SPACE_MEM_PREFETCH, vga_map);
-
-     if (s->bios_size) {
-        unsigned int bios_total_size;
-        /* must be a power of two */
-        bios_total_size = 1;
-        while (bios_total_size < s->bios_size)
-            bios_total_size <<= 1;
-        pci_register_bar(&d->dev, PCI_ROM_SLOT, bios_total_size,
-                         PCI_ADDRESS_SPACE_MEM_PREFETCH, vga_map);
-    }
-}
-
-int pci_vga_init(PCIBus *bus,
-                 unsigned long vga_bios_offset, int vga_bios_size)
-{
-    PCIDevice *dev;
-
-    dev = pci_create("VGA", NULL);
-    qdev_prop_set_uint32(&dev->qdev, "bios-offset", vga_bios_offset);
-    qdev_prop_set_uint32(&dev->qdev, "bios-size", vga_bios_offset);
-    qdev_init(&dev->qdev);
-
-    return 0;
-}
-
-static PCIDeviceInfo vga_info = {
-    .qdev.name    = "VGA",
-    .qdev.size    = sizeof(PCIVGAState),
-    .init         = pci_vga_initfn,
-    .config_write = pci_vga_write_config,
-    .qdev.props   = (Property[]) {
-        DEFINE_PROP_HEX32("bios-offset", PCIVGAState, vga_state.bios_offset, 0),
-        DEFINE_PROP_HEX32("bios-size",   PCIVGAState, vga_state.bios_size,   0),
-        DEFINE_PROP_END_OF_LIST(),
-    }
-};
-
-static void vga_register(void)
-{
-    pci_qdev_register(&vga_info);
-}
-device_init(vga_register);
 
 /********************************************************/
 /* vga screen dump */
@@ -2651,7 +2406,7 @@ static DisplayChangeListener* vga_screen_dump_init(DisplayState *ds)
    available */
 static void vga_screen_dump(void *opaque, const char *filename)
 {
-    VGAState *s = (VGAState *)opaque;
+    VGACommonState *s = opaque;
 
     if (!screen_dump_dcl)
         screen_dump_dcl = vga_screen_dump_init(s->ds);

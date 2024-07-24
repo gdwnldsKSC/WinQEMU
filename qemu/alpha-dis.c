@@ -16,9 +16,8 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
 the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with this file; see the file COPYING.  If not, see
+<http://www.gnu.org/licenses/>. */
 
 #include <stdio.h>
 #include "dis-asm.h"
@@ -235,6 +234,10 @@ extern const unsigned alpha_num_operands;
 #define AXP_REG_GP	29
 #define AXP_REG_SP	30
 #define AXP_REG_ZERO	31
+
+#define bfd_mach_alpha_ev4  0x10
+#define bfd_mach_alpha_ev5  0x20
+#define bfd_mach_alpha_ev6  0x30
 
 enum bfd_reloc_code_real {
     BFD_RELOC_23_PCREL_S2,

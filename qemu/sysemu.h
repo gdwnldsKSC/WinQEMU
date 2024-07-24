@@ -5,6 +5,7 @@
 #include "qemu-common.h"
 #include "qemu-option.h"
 #include "sys-queue.h"
+#include "qdict.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -50,9 +51,9 @@ int qemu_powerdown_requested(void);
 extern qemu_irq qemu_system_powerdown;
 void qemu_system_reset(void);
 
-void do_savevm(Monitor *mon, const char *name);
-void do_loadvm(Monitor *mon, const char *name);
-void do_delvm(Monitor *mon, const char *name);
+void do_savevm(Monitor *mon, const QDict *qdict);
+int load_vmstate(Monitor *mon, const char *name);
+void do_delvm(Monitor *mon, const QDict *qdict);
 void do_info_snapshots(Monitor *mon);
 
 void qemu_announce_self(void);
@@ -65,6 +66,14 @@ int qemu_savevm_state_complete(QEMUFile *f);
 int qemu_savevm_state(QEMUFile *f);
 int qemu_loadvm_state(QEMUFile *f);
 
+void qemu_errors_to_file(FILE *fp);
+void qemu_errors_to_mon(Monitor *mon);
+void qemu_errors_to_previous(void);
+#ifndef _MSC_VER
+void qemu_error(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+#else
+void qemu_error(_Printf_format_string_ const char* fmt, ...);
+#endif
 #ifdef _WIN32
 /* Polling handling */
 
@@ -120,8 +129,6 @@ extern int win2k_install_hack;
 extern int rtc_td_hack;
 extern int alt_grab;
 extern int usb_enabled;
-extern int virtio_balloon;
-extern const char *virtio_balloon_devaddr;
 extern int smp_cpus;
 extern int max_cpus;
 extern int cursor_hide;
@@ -206,10 +213,10 @@ void destroy_nic(dev_match_fn *match_fn, void *arg);
 void destroy_bdrvs(dev_match_fn *match_fn, void *arg);
 
 /* pci-hotplug */
-void pci_device_hot_add(Monitor *mon, const char *pci_addr, const char *type,
-                        const char *opts);
-void drive_hot_add(Monitor *mon, const char *pci_addr, const char *opts);
+void pci_device_hot_add(Monitor *mon, const QDict *qdict);
+void drive_hot_add(Monitor *mon, const QDict *qdict);
 void pci_device_hot_remove(Monitor *mon, const char *pci_addr);
+void do_pci_device_hot_remove(Monitor *mon, const QDict *qdict);
 void pci_device_hot_remove_success(int pcibus, int slot);
 
 /* serial ports */
@@ -265,8 +272,8 @@ struct soundhw {
 extern struct soundhw soundhw[];
 #endif
 
-void do_usb_add(Monitor *mon, const char *devname);
-void do_usb_del(Monitor *mon, const char *devname);
+void do_usb_add(Monitor *mon, const QDict *qdict);
+void do_usb_del(Monitor *mon, const QDict *qdict);
 void usb_info(Monitor *mon);
 
 void register_devices(void);

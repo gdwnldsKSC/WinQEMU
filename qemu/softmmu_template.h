@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -87,9 +86,6 @@ static inline DATA_TYPE glue(io_read, SUFFIX)(target_phys_addr_t physaddr,
     res |= (uint64_t)io_mem_read[index][2](io_mem_opaque[index], physaddr + 4) << 32;
 #endif
 #endif /* SHIFT > 2 */
-#ifdef CONFIG_KQEMU
-    env->last_io_time = cpu_get_time_fast();
-#endif
     return res;
 }
 
@@ -314,9 +310,6 @@ static inline void glue(io_write, SUFFIX)(target_phys_addr_t physaddr,
     io_mem_write[index][2](io_mem_opaque[index], physaddr + 4, val >> 32);
 #endif
 #endif /* SHIFT > 2 */
-#ifdef CONFIG_KQEMU
-    env->last_io_time = cpu_get_time_fast();
-#endif
 }
 
 #ifndef _MSC_VER
@@ -324,10 +317,10 @@ void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
                                                  DATA_TYPE val,
                                                  int mmu_idx)
 {
-	target_phys_addr_t addend;
-	target_ulong tlb_addr;
-	void *retaddr;
-	int index;
+    target_phys_addr_t addend;
+    target_ulong tlb_addr;
+    void *retaddr;
+    int index;
 
     index = (addr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
  redo:
@@ -412,7 +405,7 @@ do_unaligned_access:
 #endif
 			addend = env->tlb_table[mmu_idx][index].addend;
 			glue(glue(st, SUFFIX), _raw)((uint8_t *)(long)(addr+addend), val);
-		}
+}
 	} else {
 		/* the page is not in the TLB : fill it */
 		retaddr = return_addr;

@@ -25,7 +25,7 @@
  */
 
 #include "qemu-common.h"
-#include "console.h"
+#include "monitor.h"
 #include "hw/usb.h"
 
 /* usb.h declares these */
@@ -34,7 +34,11 @@
 #undef USB_SPEED_LOW
 
 #include <sys/ioctl.h>
+#ifndef __DragonFly__
 #include <dev/usb/usb.h>
+#else
+#include <bus/usb/usb.h>
+#endif
 #include <signal.h>
 
 /* This value has maximum potential at 16.
@@ -68,7 +72,7 @@ static int ensure_ep_open(USBHostDevice *dev, int ep, int mode)
     ep = UE_GET_ADDR(ep);
 
     if (dev->ep_fd[ep] < 0) {
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
         snprintf(buf, sizeof(buf) - 1, "%s.%d", dev->devpath, ep);
 #else
         snprintf(buf, sizeof(buf) - 1, "%s.%02d", dev->devpath, ep);
@@ -321,7 +325,7 @@ USBDevice *usb_host_device_open(const char *devname)
         return NULL;
     }
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
     snprintf(ctlpath, PATH_MAX, "/dev/%s", bus_info.udi_devnames[0]);
 #else
     snprintf(ctlpath, PATH_MAX, "/dev/%s.00", bus_info.udi_devnames[0]);
@@ -411,7 +415,7 @@ static int usb_host_scan(void *opaque, USBScanFunc *func)
             if (strncmp(bus_info.udi_devnames[0], "ugen", 4) != 0)
                 continue;
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
             snprintf(devbuf, sizeof(devbuf) - 1, "/dev/%s", bus_info.udi_devnames[0]);
 #else
             snprintf(devbuf, sizeof(devbuf) - 1, "/dev/%s.00", bus_info.udi_devnames[0]);
@@ -548,7 +552,7 @@ static const char *usb_class_str(uint8_t class)
     return p->class_name;
 }
 
-static void usb_info_device(int bus_num, int addr, int class_id,
+static void usb_info_device(Monitor *mon, int bus_num, int addr, int class_id,
                             int vendor_id, int product_id,
                             const char *product_name,
                             int speed)
@@ -570,33 +574,36 @@ static void usb_info_device(int bus_num, int addr, int class_id,
         break;
     }
 
-    monitor_printf("  Device %d.%d, speed %s Mb/s\n",
-                bus_num, addr, speed_str);
+    monitor_printf(mon, "  Device %d.%d, speed %s Mb/s\n",
+                   bus_num, addr, speed_str);
     class_str = usb_class_str(class_id);
     if (class_str)
-        monitor_printf("    %s:", class_str);
+        monitor_printf(mon, "    %s:", class_str);
     else
-        monitor_printf("    Class %02x:", class_id);
-    monitor_printf(" USB device %04x:%04x", vendor_id, product_id);
+        monitor_printf(mon, "    Class %02x:", class_id);
+    monitor_printf(mon, " USB device %04x:%04x", vendor_id, product_id);
     if (product_name[0] != '\0')
-        monitor_printf(", %s", product_name);
-    monitor_printf("\n");
+        monitor_printf(mon, ", %s", product_name);
+    monitor_printf(mon, "\n");
 }
 
-static int usb_host_info_device(void *opaque, int bus_num, int addr,
+static int usb_host_info_device(void *opaque,
+                                int bus_num, int addr,
                                 int class_id,
                                 int vendor_id, int product_id,
                                 const char *product_name,
                                 int speed)
 {
-    usb_info_device(bus_num, addr, class_id, vendor_id, product_id,
+    Monitor *mon = opaque;
+
+    usb_info_device(mon, bus_num, addr, class_id, vendor_id, product_id,
                     product_name, speed);
     return 0;
 }
 
-void usb_host_info(void)
+void usb_host_info(Monitor *mon)
 {
-    usb_host_scan(NULL, usb_host_info_device);
+    usb_host_scan(mon, usb_host_info_device);
 }
 
 /* XXX add this */

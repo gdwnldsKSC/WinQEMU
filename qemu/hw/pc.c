@@ -36,6 +36,7 @@
 #include "hpet_emul.h"
 #include "watchdog.h"
 #include "smbios.h"
+#include "ide.h"
 
 /* output Bochs bios info messages */
 //#define DEBUG_BIOS
@@ -61,7 +62,7 @@
 static fdctrl_t *floppy_controller;
 static RTCState *rtc_state;
 static PITState *pit;
-static PCIDevice *i440fx_state;
+static PCII440FXState *i440fx_state;
 
 typedef struct rom_reset_data {
     uint8_t *data;
@@ -99,7 +100,8 @@ static void isa_irq_handler(void *opaque, int n, int level)
     if (n < 16) {
         qemu_set_irq(isa->i8259[n], level);
     }
-    qemu_set_irq(isa->ioapic[n], level);
+    if (isa->ioapic)
+        qemu_set_irq(isa->ioapic[n], level);
 };
 
 static void ioport80_write(void *opaque, uint32_t addr, uint32_t data)
@@ -263,7 +265,7 @@ static int pc_boot_set(void *opaque, const char *boot_device)
 
 /* hd_table must contain 4 block drivers */
 static void cmos_init(ram_addr_t ram_size, ram_addr_t above_4g_mem_size,
-                      const char *boot_device, BlockDriverState **hd_table)
+                      const char *boot_device, DriveInfo **hd_table)
 {
     RTCState *s = rtc_state;
     int nbds, bds[3] = { 0, };
@@ -354,9 +356,9 @@ static void cmos_init(ram_addr_t ram_size, ram_addr_t above_4g_mem_size,
 
     rtc_set_memory(s, 0x12, (hd_table[0] ? 0xf0 : 0) | (hd_table[1] ? 0x0f : 0));
     if (hd_table[0])
-        cmos_init_hd(0x19, 0x1b, hd_table[0]);
+        cmos_init_hd(0x19, 0x1b, hd_table[0]->bdrv);
     if (hd_table[1])
-        cmos_init_hd(0x1a, 0x24, hd_table[1]);
+        cmos_init_hd(0x1a, 0x24, hd_table[1]->bdrv);
 
     val = 0;
     for (i = 0; i < 4; i++) {
@@ -366,9 +368,9 @@ static void cmos_init(ram_addr_t ram_size, ram_addr_t above_4g_mem_size,
                 geometry.  It is always such that: 1 <= sects <= 63, 1
                 <= heads <= 16, 1 <= cylinders <= 16383. The BIOS
                 geometry can be different if a translation is done. */
-            translation = bdrv_get_translation_hint(hd_table[i]);
+            translation = bdrv_get_translation_hint(hd_table[i]->bdrv);
             if (translation == BIOS_ATA_TRANSLATION_AUTO) {
-                bdrv_get_geometry_hint(hd_table[i], &cylinders, &heads, &sectors);
+                bdrv_get_geometry_hint(hd_table[i]->bdrv, &cylinders, &heads, &sectors);
                 if (cylinders <= 1024 && heads <= 16 && sectors <= 63) {
                     /* No translation. */
                     translation = 0;
@@ -548,7 +550,7 @@ static void generate_bootsect(target_phys_addr_t option_rom,
     *p++ = 0x1f;		/* pop ds */
     *p++ = 0x58;		/* pop ax */
     *p++ = 0xcb;		/* lret */
-    
+
     /* Actual code */
     *reloc = (p - rom);
 
@@ -737,7 +739,7 @@ static int load_multiboot(void *fw_cfg,
             if ((next_space = strchr(initrd_filename, ' ')))
                 *next_space = '\0';
 #ifdef DEBUG_MULTIBOOT
-	     printf("multiboot loading module: %s\n", initrd_filename);
+            printf("multiboot loading module: %s\n", initrd_filename);
 #endif
             f = fopen(initrd_filename, "rb");
             if (f) {
@@ -857,7 +859,7 @@ static void load_linux(void *fw_cfg,
 	   treating it like a Linux kernel. */
 	if (load_multiboot(fw_cfg, f, kernel_filename,
                            initrd_filename, kernel_cmdline, header))
-	   return;
+            return;
 	protocol = 0;
     }
 
@@ -1043,48 +1045,49 @@ static void audio_init (PCIBus *pci_bus, qemu_irq *pic)
 }
 #endif
 
-static void pc_init_ne2k_isa(NICInfo *nd, qemu_irq *pic)
+static void pc_init_ne2k_isa(NICInfo *nd)
 {
     static int nb_ne2k = 0;
 
     if (nb_ne2k == NE2000_NB_MAX)
         return;
-    isa_ne2000_init(ne2000_io[nb_ne2k], pic[ne2000_irq[nb_ne2k]], nd);
+    isa_ne2000_init(ne2000_io[nb_ne2k],
+                    ne2000_irq[nb_ne2k], nd);
     nb_ne2k++;
 }
 
 static int load_option_rom(const char *oprom, target_phys_addr_t start,
                            target_phys_addr_t end)
 {
-        int size;
-        char *filename;
+    int size;
+    char *filename;
 
-        filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, oprom);
-        if (filename) {
-            size = get_image_size(filename);
-            if (size > 0 && start + size > end) {
-                fprintf(stderr, "Not enough space to load option rom '%s'\n",
-                        oprom);
-                exit(1);
-            }
-            size = load_image_targphys(filename, start, end - start);
-            qemu_free(filename);
-        } else {
-            size = -1;
-        }
-        if (size < 0) {
-            fprintf(stderr, "Could not load option rom '%s'\n", oprom);
+    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, oprom);
+    if (filename) {
+        size = get_image_size(filename);
+        if (size > 0 && start + size > end) {
+            fprintf(stderr, "Not enough space to load option rom '%s'\n",
+                    oprom);
             exit(1);
         }
-        /* Round up optiom rom size to the next 2k boundary */
-        size = (size + 2047) & ~2047;
-        option_rom_setup_reset(start, size);
-        return size;
+        size = load_image_targphys(filename, start, end - start);
+        qemu_free(filename);
+    } else {
+        size = -1;
+    }
+    if (size < 0) {
+        fprintf(stderr, "Could not load option rom '%s'\n", oprom);
+        exit(1);
+    }
+    /* Round up optiom rom size to the next 2k boundary */
+    size = (size + 2047) & ~2047;
+    option_rom_setup_reset(start, size);
+    return size;
 }
 
 int cpu_is_bsp(CPUState *env)
 {
-	return env->cpuid_apic_id == 0;
+    return env->cpuid_apic_id == 0;
 }
 
 static CPUState *pc_new_cpu(const char *cpu_model)
@@ -1121,7 +1124,6 @@ static void pc_init1(ram_addr_t ram_size,
     ram_addr_t below_4g_mem_size, above_4g_mem_size = 0;
     int bios_size, isa_bios_size, oprom_area_size;
     PCIBus *pci_bus;
-    PCIDevice *pci_dev;
     ISADevice *isa_dev;
     int piix3_devfn = -1;
     CPUState *env;
@@ -1130,7 +1132,7 @@ static void pc_init1(ram_addr_t ram_size,
     qemu_irq *i8259;
     IsaIrqState *isa_irq_state;
     DriveInfo *dinfo;
-    BlockDriverState *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
+    DriveInfo *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
     BlockDriverState *fd[MAX_FD];
     int using_vga = cirrus_vga_enabled || std_vga_enabled || vmsvga_enabled;
     void *fw_cfg;
@@ -1276,14 +1278,16 @@ static void pc_init1(ram_addr_t ram_size,
     isa_irq_state = qemu_mallocz(sizeof(*isa_irq_state));
     isa_irq_state->i8259 = i8259;
     isa_irq = qemu_allocate_irqs(isa_irq_handler, isa_irq_state, 24);
-    ferr_irq = isa_irq[13];
 
     if (pci_enabled) {
-        pci_bus = i440fx_init(&i440fx_state, isa_irq);
-        piix3_devfn = piix3_init(pci_bus, -1);
+        pci_bus = i440fx_init(&i440fx_state, &piix3_devfn, isa_irq);
     } else {
         pci_bus = NULL;
+        isa_bus_new(NULL);
     }
+    isa_bus_irqs(isa_irq);
+
+    ferr_irq = isa_reserve_irq(13);
 
     /* init basic PC hardware */
     register_ioport_write(0x80, 1, 1, ioport80_write, NULL);
@@ -1309,7 +1313,7 @@ static void pc_init1(ram_addr_t ram_size,
         }
     }
 
-    rtc_state = rtc_init(0x70, isa_irq[8], 2000);
+    rtc_state = rtc_init(2000);
 
     qemu_register_boot_set(pc_boot_set, rtc_state);
 
@@ -1319,7 +1323,7 @@ static void pc_init1(ram_addr_t ram_size,
     if (pci_enabled) {
         isa_irq_state->ioapic = ioapic_init();
     }
-    pit = pit_init(0x40, isa_irq[0]);
+    pit = pit_init(0x40, isa_reserve_irq(0));
     pcspk_init(pit);
     if (!no_hpet) {
         hpet_init(isa_irq);
@@ -1327,25 +1331,23 @@ static void pc_init1(ram_addr_t ram_size,
 
     for(i = 0; i < MAX_SERIAL_PORTS; i++) {
         if (serial_hds[i]) {
-            serial_init(serial_io[i], isa_irq[serial_irq[i]], 115200,
+            serial_init(serial_io[i], isa_reserve_irq(serial_irq[i]), 115200,
                         serial_hds[i]);
         }
     }
 
     for(i = 0; i < MAX_PARALLEL_PORTS; i++) {
         if (parallel_hds[i]) {
-            parallel_init(parallel_io[i], isa_irq[parallel_irq[i]],
+            parallel_init(parallel_io[i], isa_reserve_irq(parallel_irq[i]),
                           parallel_hds[i]);
         }
     }
-
-    watchdog_pc_init(pci_bus);
 
     for(i = 0; i < nb_nics; i++) {
         NICInfo *nd = &nd_table[i];
 
         if (!pci_enabled || (nd->model && strcmp(nd->model, "ne2k_isa") == 0))
-            pc_init_ne2k_isa(nd, isa_irq);
+            pc_init_ne2k_isa(nd);
         else
             pci_nic_init(nd, "e1000", NULL);
     }
@@ -1358,22 +1360,20 @@ static void pc_init1(ram_addr_t ram_size,
     }
 
     for(i = 0; i < MAX_IDE_BUS * MAX_IDE_DEVS; i++) {
-        dinfo = drive_get(IF_IDE, i / MAX_IDE_DEVS, i % MAX_IDE_DEVS);
-        hd[i] = dinfo ? dinfo->bdrv : NULL;
+        hd[i] = drive_get(IF_IDE, i / MAX_IDE_DEVS, i % MAX_IDE_DEVS);
     }
 
     if (pci_enabled) {
-        pci_piix3_ide_init(pci_bus, hd, piix3_devfn + 1, isa_irq);
+        pci_piix3_ide_init(pci_bus, hd, piix3_devfn + 1);
     } else {
         for(i = 0; i < MAX_IDE_BUS; i++) {
-            isa_ide_init(ide_iobase[i], ide_iobase2[i], isa_irq[ide_irq[i]],
+            isa_ide_init(ide_iobase[i], ide_iobase2[i],
+                         isa_reserve_irq(ide_irq[i]),
 	                 hd[MAX_IDE_DEVS * i], hd[MAX_IDE_DEVS * i + 1]);
         }
     }
 
-    isa_dev = isa_create_simple("i8042", 0x60, 0x64);
-    isa_connect_irq(isa_dev, 0, isa_irq[1]);
-    isa_connect_irq(isa_dev, 1, isa_irq[12]);
+    isa_dev = isa_create_simple("i8042");
     DMA_init(0);
 #ifdef HAS_AUDIO
     audio_init(pci_enabled ? pci_bus : NULL, isa_irq);
@@ -1383,7 +1383,7 @@ static void pc_init1(ram_addr_t ram_size,
         dinfo = drive_get(IF_FLOPPY, 0, i);
         fd[i] = dinfo ? dinfo->bdrv : NULL;
     }
-    floppy_controller = fdctrl_init(isa_irq[6], 2, 0, 0x3f0, fd);
+    floppy_controller = fdctrl_init_isa(fd);
 
     cmos_init(below_4g_mem_size, above_4g_mem_size, boot_device, hd);
 
@@ -1396,7 +1396,8 @@ static void pc_init1(ram_addr_t ram_size,
         i2c_bus *smbus;
 
         /* TODO: Populate SPD eeprom data.  */
-        smbus = piix4_pm_init(pci_bus, piix3_devfn + 3, 0xb100, isa_irq[9]);
+        smbus = piix4_pm_init(pci_bus, piix3_devfn + 3, 0xb100,
+                              isa_reserve_irq(9));
         for (i = 0; i < 8; i++) {
             DeviceState *eeprom;
             eeprom = qdev_create((BusState *)smbus, "smbus-eeprom");
@@ -1418,12 +1419,6 @@ static void pc_init1(ram_addr_t ram_size,
 	for (bus = 0; bus <= max_bus; bus++) {
             pci_create_simple(pci_bus, -1, "lsi53c895a");
         }
-    }
-
-    /* Add virtio balloon device */
-    if (pci_enabled && virtio_balloon) {
-        pci_dev = pci_create("virtio-balloon-pci", virtio_balloon_devaddr);
-        qdev_init(&pci_dev->qdev);
     }
 
     /* Add virtio console devices */
@@ -1455,6 +1450,8 @@ static void pc_init_isa(ram_addr_t ram_size,
                         const char *initrd_filename,
                         const char *cpu_model)
 {
+    if (cpu_model == NULL)
+        cpu_model = "486";
     pc_init1(ram_size, boot_device,
              kernel_filename, kernel_cmdline,
              initrd_filename, cpu_model, 0);

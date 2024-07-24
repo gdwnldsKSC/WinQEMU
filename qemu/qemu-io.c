@@ -7,10 +7,17 @@
  * This work is licensed under the terms of the GNU GPL, version 2 or later.
  * See the COPYING file in the top-level directory.
  */
+#include <sys/time.h>
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <getopt.h>
+#ifdef _MSC_VER
+#define basename(x) ((x))
+#include <WinSock2.h>
+#else
+#include <libgen.h>
+#endif
 
 #include "qemu-common.h"
 #include "block_int.h"
@@ -62,14 +69,14 @@ static void *qemu_io_alloc(size_t len, int pattern)
 	buf = qemu_memalign(512, len);
 	memset(buf, pattern, len);
 	if (misalign)
-		buf += MISALIGN_OFFSET;
+		(char *)buf += MISALIGN_OFFSET;
 	return buf;
 }
 
 static void qemu_io_free(void *p)
 {
 	if (misalign)
-		p -= MISALIGN_OFFSET;
+		(char *)p -= MISALIGN_OFFSET;
 	qemu_vfree(p);
 }
 
@@ -162,7 +169,7 @@ create_iovec(QEMUIOVector *qiov, char **argv, int nr_iov, int pattern)
 
 	for (i = 0; i < nr_iov; i++) {
 		qemu_iovec_add(qiov, p, sizes[i]);
-		p += sizes[i];
+		(char *)p += sizes[i];
 	}
 
 	free(sizes);
@@ -1401,6 +1408,7 @@ static void usage(const char *name)
 "  -n, --nocache        disable host cache\n"
 "  -g, --growable       allow file to grow (only applies to protocols)\n"
 "  -m, --misalign       misalign allocations for O_DIRECT\n"
+"  -k, --native-aio     use kernel AIO implementation (on Linux only)\n"
 "  -h, --help           display this help and exit\n"
 "  -V, --version        output version information and exit\n"
 "\n",
@@ -1412,7 +1420,7 @@ int main(int argc, char **argv)
 {
 	int readonly = 0;
 	int growable = 0;
-	const char *sopt = "hVc:Crsnmg";
+	const char *sopt = "hVc:Crsnmgk";
 	struct option lopt[] = {
 		{ "help", 0, NULL, 'h' },
 		{ "version", 0, NULL, 'V' },
@@ -1424,6 +1432,7 @@ int main(int argc, char **argv)
 		{ "nocache", 0, NULL, 'n' },
 		{ "misalign", 0, NULL, 'm' },
 		{ "growable", 0, NULL, 'g' },
+		{ "native-aio", 0, NULL, 'k' },
 		{ NULL, 0, NULL, 0 }
 	};
 	int c;
@@ -1454,6 +1463,9 @@ int main(int argc, char **argv)
 			break;
 		case 'g':
 			growable = 1;
+			break;
+		case 'k':
+			flags |= BDRV_O_NATIVE_AIO;
 			break;
 		case 'V':
 			printf("%s version %s\n", progname, VERSION);

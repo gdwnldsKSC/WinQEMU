@@ -524,7 +524,7 @@ static void cpu_common_save(QEMUFile *f, void *opaque)
 {
     CPUState *env = opaque;
 
-    cpu_synchronize_state(env, 0);
+    cpu_synchronize_state(env);
 
     qemu_put_be32s(f, &env->halted);
     qemu_put_be32s(f, &env->interrupt_request);
@@ -534,6 +534,7 @@ static int cpu_common_load(QEMUFile *f, void *opaque, int version_id)
 {
     CPUState *env = opaque;
 
+    cpu_synchronize_state(env);
     if (version_id != CPU_COMMON_SAVE_VERSION)
         return -EINVAL;
 
@@ -543,7 +544,6 @@ static int cpu_common_load(QEMUFile *f, void *opaque, int version_id)
        version_id is increased. */
     env->interrupt_request &= ~0x01;
     tlb_flush(env, 1);
-    cpu_synchronize_state(env, 1);
 
     return 0;
 }
@@ -2499,7 +2499,7 @@ static uint32_t unassigned_mem_readb(void *opaque, target_phys_addr_t addr)
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 0, 0, 0, 1);
 #endif
     return 0;
@@ -2510,7 +2510,7 @@ static uint32_t unassigned_mem_readw(void *opaque, target_phys_addr_t addr)
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 0, 0, 0, 2);
 #endif
     return 0;
@@ -2521,7 +2521,7 @@ static uint32_t unassigned_mem_readl(void *opaque, target_phys_addr_t addr)
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem read " TARGET_FMT_plx "\n", addr);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 0, 0, 0, 4);
 #endif
     return 0;
@@ -2532,7 +2532,7 @@ static void unassigned_mem_writeb(void *opaque, target_phys_addr_t addr, uint32_
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 1, 0, 0, 1);
 #endif
 }
@@ -2542,7 +2542,7 @@ static void unassigned_mem_writew(void *opaque, target_phys_addr_t addr, uint32_
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 1, 0, 0, 2);
 #endif
 }
@@ -2552,7 +2552,7 @@ static void unassigned_mem_writel(void *opaque, target_phys_addr_t addr, uint32_
 #ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem write " TARGET_FMT_plx " = 0x%x\n", addr, val);
 #endif
-#if defined(TARGET_SPARC)
+#if defined(TARGET_SPARC) || defined(TARGET_MICROBLAZE)
     do_unassigned_access(addr, 1, 0, 0, 4);
 #endif
 }

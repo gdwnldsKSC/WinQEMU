@@ -22,6 +22,7 @@
 
 #include "hw.h"
 #include "pci.h"
+#include "scsi.h"
 #include "scsi-disk.h"
 #include "block_int.h"
 
@@ -183,7 +184,7 @@ typedef struct {
 } lsi_queue;
 
 typedef struct {
-    PCIDevice pci_dev;
+    PCIDevice dev;
     int mmio_io_addr;
     int ram_io_addr;
     uint32_t script_ram_base;
@@ -200,7 +201,7 @@ typedef struct {
      * 2 if processing DMA from lsi_execute_script.
      * 3 if a DMA operation is in progress.  */
     int waiting;
-    SCSIDevice *scsi_dev[LSI_MAX_DEVS];
+    SCSIBus *bus;
     SCSIDevice *current_dev;
     int current_lun;
     /* The tag is a combination of the device ID and the SCSI tag.  */
@@ -418,7 +419,7 @@ static void lsi_update_irq(LSIState *s)
                 level, s->dstat, s->sist1, s->sist0);
         last_level = level;
     }
-    qemu_set_irq(s->pci_dev.irq[0], level);
+    qemu_set_irq(s->dev.irq[0], level);
 }
 
 /* Stop SCRIPTS execution and raise a SCSI interrupt.  */
@@ -518,8 +519,8 @@ static void lsi_do_dma(LSIState *s, int out)
     s->dbc -= count;
 
     if (s->dma_buf == NULL) {
-        s->dma_buf = s->current_dev->get_buf(s->current_dev,
-                                             s->current_tag);
+        s->dma_buf = s->current_dev->info->get_buf(s->current_dev,
+                                                   s->current_tag);
     }
 
     /* ??? Set SFBR to first data byte.  */
@@ -533,10 +534,10 @@ static void lsi_do_dma(LSIState *s, int out)
         s->dma_buf = NULL;
         if (out) {
             /* Write the data.  */
-            s->current_dev->write_data(s->current_dev, s->current_tag);
+            s->current_dev->info->write_data(s->current_dev, s->current_tag);
         } else {
             /* Request any remaining data.  */
-            s->current_dev->read_data(s->current_dev, s->current_tag);
+            s->current_dev->info->read_data(s->current_dev, s->current_tag);
         }
     } else {
         s->dma_buf += count;
@@ -592,7 +593,7 @@ static void lsi_reselect(LSIState *s, uint32_t tag)
     id = (tag >> 8) & 0xf;
     s->ssid = id | 0x80;
     DPRINTF("Reselected target %d\n", id);
-    s->current_dev = s->scsi_dev[id];
+    s->current_dev = s->bus->devs[id];
     s->current_tag = tag;
     s->scntl1 |= LSI_SCNTL1_CON;
     lsi_set_phase(s, PHASE_MI);
@@ -640,10 +641,10 @@ static int lsi_queue_tag(LSIState *s, uint32_t tag, uint32_t arg)
 }
 
 /* Callback to indicate that the SCSI layer has completed a transfer.  */
-static void lsi_command_complete(void *opaque, int reason, uint32_t tag,
+static void lsi_command_complete(SCSIBus *bus, int reason, uint32_t tag,
                                  uint32_t arg)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = DO_UPCAST(LSIState, dev.qdev, bus->qbus.parent);
     int out;
 
     out = (s->sstat1 & PHASE_MASK) == PHASE_DO;
@@ -688,14 +689,14 @@ static void lsi_do_command(LSIState *s)
     cpu_physical_memory_read(s->dnad, buf, s->dbc);
     s->sfbr = buf[0];
     s->command_complete = 0;
-    n = s->current_dev->send_command(s->current_dev, s->current_tag, buf,
-                                     s->current_lun);
+    n = s->current_dev->info->send_command(s->current_dev, s->current_tag, buf,
+                                           s->current_lun);
     if (n > 0) {
         lsi_set_phase(s, PHASE_DI);
-        s->current_dev->read_data(s->current_dev, s->current_tag);
+        s->current_dev->info->read_data(s->current_dev, s->current_tag);
     } else if (n < 0) {
         lsi_set_phase(s, PHASE_DO);
-        s->current_dev->write_data(s->current_dev, s->current_tag);
+        s->current_dev->info->write_data(s->current_dev, s->current_tag);
     }
 
     if (!s->command_complete) {
@@ -1067,7 +1068,7 @@ again:
                 }
                 s->sstat0 |= LSI_SSTAT0_WOA;
                 s->scntl1 &= ~LSI_SCNTL1_IARB;
-                if (id >= LSI_MAX_DEVS || !s->scsi_dev[id]) {
+                if (id >= LSI_MAX_DEVS || !s->bus->devs[id]) {
                     DPRINTF("Selected absent target %d\n", id);
                     lsi_script_scsi_interrupt(s, 0, LSI_SIST1_STO);
                     lsi_disconnect(s);
@@ -1078,7 +1079,7 @@ again:
                 /* ??? Linux drivers compain when this is set.  Maybe
                    it only applies in low-level mode (unimplemented).
                 lsi_script_scsi_interrupt(s, LSI_SIST0_CMP, 0); */
-                s->current_dev = s->scsi_dev[id];
+                s->current_dev = s->bus->devs[id];
                 s->current_tag = id << 8;
                 s->scntl1 |= LSI_SCNTL1_CON;
                 if (insn & (1 << 3)) {
@@ -1751,14 +1752,14 @@ static void lsi_reg_writeb(LSIState *s, int offset, uint8_t val)
 
 static void lsi_mmio_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     lsi_reg_writeb(s, addr & 0xff, val);
 }
 
 static void lsi_mmio_writew(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     addr &= 0xff;
     lsi_reg_writeb(s, addr, val & 0xff);
@@ -1767,7 +1768,7 @@ static void lsi_mmio_writew(void *opaque, target_phys_addr_t addr, uint32_t val)
 
 static void lsi_mmio_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     addr &= 0xff;
     lsi_reg_writeb(s, addr, val & 0xff);
@@ -1778,14 +1779,14 @@ static void lsi_mmio_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
 
 static uint32_t lsi_mmio_readb(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     return lsi_reg_readb(s, addr & 0xff);
 }
 
 static uint32_t lsi_mmio_readw(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
 
     addr &= 0xff;
@@ -1796,7 +1797,7 @@ static uint32_t lsi_mmio_readw(void *opaque, target_phys_addr_t addr)
 
 static uint32_t lsi_mmio_readl(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
     addr &= 0xff;
     val = lsi_reg_readb(s, addr);
@@ -1820,7 +1821,7 @@ static CPUWriteMemoryFunc * const lsi_mmio_writefn[3] = {
 
 static void lsi_ram_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t newval;
     int shift;
 
@@ -1834,7 +1835,7 @@ static void lsi_ram_writeb(void *opaque, target_phys_addr_t addr, uint32_t val)
 
 static void lsi_ram_writew(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t newval;
 
     addr &= 0x1fff;
@@ -1850,7 +1851,7 @@ static void lsi_ram_writew(void *opaque, target_phys_addr_t addr, uint32_t val)
 
 static void lsi_ram_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     addr &= 0x1fff;
     s->script_ram[addr >> 2] = val;
@@ -1858,7 +1859,7 @@ static void lsi_ram_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
 
 static uint32_t lsi_ram_readb(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
 
     addr &= 0x1fff;
@@ -1869,7 +1870,7 @@ static uint32_t lsi_ram_readb(void *opaque, target_phys_addr_t addr)
 
 static uint32_t lsi_ram_readw(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
 
     addr &= 0x1fff;
@@ -1881,7 +1882,7 @@ static uint32_t lsi_ram_readw(void *opaque, target_phys_addr_t addr)
 
 static uint32_t lsi_ram_readl(void *opaque, target_phys_addr_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
 
     addr &= 0x1fff;
     return le32_to_cpu(s->script_ram[addr >> 2]);
@@ -1901,13 +1902,13 @@ static CPUWriteMemoryFunc * const lsi_ram_writefn[3] = {
 
 static uint32_t lsi_io_readb(void *opaque, uint32_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     return lsi_reg_readb(s, addr & 0xff);
 }
 
 static uint32_t lsi_io_readw(void *opaque, uint32_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
     addr &= 0xff;
     val = lsi_reg_readb(s, addr);
@@ -1917,7 +1918,7 @@ static uint32_t lsi_io_readw(void *opaque, uint32_t addr)
 
 static uint32_t lsi_io_readl(void *opaque, uint32_t addr)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     uint32_t val;
     addr &= 0xff;
     val = lsi_reg_readb(s, addr);
@@ -1929,13 +1930,13 @@ static uint32_t lsi_io_readl(void *opaque, uint32_t addr)
 
 static void lsi_io_writeb(void *opaque, uint32_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     lsi_reg_writeb(s, addr & 0xff, val);
 }
 
 static void lsi_io_writew(void *opaque, uint32_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     addr &= 0xff;
     lsi_reg_writeb(s, addr, val & 0xff);
     lsi_reg_writeb(s, addr + 1, (val >> 8) & 0xff);
@@ -1943,7 +1944,7 @@ static void lsi_io_writew(void *opaque, uint32_t addr, uint32_t val)
 
 static void lsi_io_writel(void *opaque, uint32_t addr, uint32_t val)
 {
-    LSIState *s = (LSIState *)opaque;
+    LSIState *s = opaque;
     addr &= 0xff;
     lsi_reg_writeb(s, addr, val & 0xff);
     lsi_reg_writeb(s, addr + 1, (val >> 8) & 0xff);
@@ -1954,7 +1955,7 @@ static void lsi_io_writel(void *opaque, uint32_t addr, uint32_t val)
 static void lsi_io_mapfunc(PCIDevice *pci_dev, int region_num,
                            uint32_t addr, uint32_t size, int type)
 {
-    LSIState *s = (LSIState *)pci_dev;
+    LSIState *s = DO_UPCAST(LSIState, dev, pci_dev);
 
     DPRINTF("Mapping IO at %08x\n", addr);
 
@@ -1969,7 +1970,7 @@ static void lsi_io_mapfunc(PCIDevice *pci_dev, int region_num,
 static void lsi_ram_mapfunc(PCIDevice *pci_dev, int region_num,
                             uint32_t addr, uint32_t size, int type)
 {
-    LSIState *s = (LSIState *)pci_dev;
+    LSIState *s = DO_UPCAST(LSIState, dev, pci_dev);
 
     DPRINTF("Mapping ram at %08x\n", addr);
     s->script_ram_base = addr;
@@ -1979,35 +1980,10 @@ static void lsi_ram_mapfunc(PCIDevice *pci_dev, int region_num,
 static void lsi_mmio_mapfunc(PCIDevice *pci_dev, int region_num,
                              uint32_t addr, uint32_t size, int type)
 {
-    LSIState *s = (LSIState *)pci_dev;
+    LSIState *s = DO_UPCAST(LSIState, dev, pci_dev);
 
     DPRINTF("Mapping registers at %08x\n", addr);
     cpu_register_physical_memory(addr + 0, 0x400, s->mmio_io_addr);
-}
-
-void lsi_scsi_attach(DeviceState *host, BlockDriverState *bd, int id)
-{
-    LSIState *s = (LSIState *)host;
-
-    if (id < 0) {
-        for (id = 0; id < LSI_MAX_DEVS; id++) {
-            if (s->scsi_dev[id] == NULL)
-                break;
-        }
-    }
-    if (id >= LSI_MAX_DEVS) {
-        BADF("Bad Device ID %d\n", id);
-        return;
-    }
-    if (s->scsi_dev[id]) {
-        DPRINTF("Destroying device %d\n", id);
-        s->scsi_dev[id]->destroy(s->scsi_dev[id]);
-    }
-    DPRINTF("Attaching block device %d\n", id);
-    s->scsi_dev[id] = scsi_generic_init(bd, 1, lsi_command_complete, s);
-    if (s->scsi_dev[id] == NULL)
-        s->scsi_dev[id] = scsi_disk_init(bd, 1, lsi_command_complete, s);
-    bd->private = &s->pci_dev;
 }
 
 static void lsi_scsi_save(QEMUFile *f, void *opaque)
@@ -2018,7 +1994,7 @@ static void lsi_scsi_save(QEMUFile *f, void *opaque)
     assert(s->current_dma_len == 0);
     assert(s->active_commands == 0);
 
-    pci_device_save(&s->pci_dev, f);
+    pci_device_save(&s->dev, f);
 
     qemu_put_sbe32s(f, &s->carry);
     qemu_put_sbe32s(f, &s->sense);
@@ -2101,7 +2077,7 @@ static int lsi_scsi_load(QEMUFile *f, void *opaque, int version_id)
         return -EINVAL;
     }
 
-    if ((ret = pci_device_load(&s->pci_dev, f)) < 0)
+    if ((ret = pci_device_load(&s->dev, f)) < 0)
         return ret;
 
     qemu_get_sbe32s(f, &s->carry);
@@ -2180,7 +2156,7 @@ static int lsi_scsi_load(QEMUFile *f, void *opaque, int version_id)
 
 static int lsi_scsi_uninit(PCIDevice *d)
 {
-    LSIState *s = (LSIState *) d;
+    LSIState *s = DO_UPCAST(LSIState, dev, d);
 
     cpu_unregister_io_memory(s->mmio_io_addr);
     cpu_unregister_io_memory(s->ram_io_addr);
@@ -2190,12 +2166,12 @@ static int lsi_scsi_uninit(PCIDevice *d)
     return 0;
 }
 
-static void lsi_scsi_init(PCIDevice *dev)
+static int lsi_scsi_init(PCIDevice *dev)
 {
-    LSIState *s = (LSIState *)dev;
+    LSIState *s = DO_UPCAST(LSIState, dev, dev);
     uint8_t *pci_conf;
 
-    pci_conf = s->pci_dev.config;
+    pci_conf = s->dev.config;
 
     /* PCI Vendor ID (word) */
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_LSI_LOGIC);
@@ -2225,19 +2201,21 @@ static void lsi_scsi_init(PCIDevice *dev)
     s->queue = qemu_malloc(sizeof(lsi_queue));
     s->queue_len = 1;
     s->active_commands = 0;
-    s->pci_dev.unregister = lsi_scsi_uninit;
+    s->dev.unregister = lsi_scsi_uninit;
 
     lsi_soft_reset(s);
 
-    scsi_bus_new(&dev->qdev, lsi_scsi_attach);
-
+    s->bus = scsi_bus_new(&dev->qdev, 1, LSI_MAX_DEVS, lsi_command_complete);
+    scsi_bus_legacy_handle_cmdline(s->bus);
     register_savevm("lsiscsi", -1, 0, lsi_scsi_save, lsi_scsi_load, s);
+    return 0;
 }
 
 static PCIDeviceInfo lsi_info = {
-    .qdev.name = "lsi53c895a",
-    .qdev.size = sizeof(LSIState),
-    .init      = lsi_scsi_init,
+    .qdev.name  = "lsi53c895a",
+    .qdev.alias = "lsi",
+    .qdev.size  = sizeof(LSIState),
+    .init       = lsi_scsi_init,
 };
 
 static void lsi53c895a_register_devices(void)

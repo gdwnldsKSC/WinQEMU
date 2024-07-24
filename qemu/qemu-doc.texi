@@ -199,6 +199,20 @@ QEMU uses YM3812 emulation by Tatsuyuki Satoh.
 QEMU uses GUS emulation(GUSEMU32 @url{http://www.deinmeister.de/gusemu/})
 by Tibor "TS" Schütz.
 
+Not that, by default, GUS shares IRQ(7) with parallel ports and so
+qemu must be told to not have parallel ports to have working GUS
+
+@example
+qemu dos.img -soundhw gus -parallel none
+@end example
+
+Alternatively:
+@example
+qemu dos.img -device gus,irq=5
+@end example
+
+Or some other unclaimed IRQ.
+
 CS4231A is the chip used in Windows Sound System and GUSMAX products
 
 @c man end
@@ -240,6 +254,9 @@ During the graphical emulation, you can use the following keys:
 @table @key
 @item Ctrl-Alt-f
 Toggle full screen
+
+@item Ctrl-Alt-u
+Restore the screen's un-scaled dimensions
 
 @item Ctrl-Alt-n
 Switch to virtual console 'n'. Standard console mappings are:
@@ -2026,7 +2043,7 @@ qemu-i386 /usr/local/qemu-i386/wine/bin/wine \
 @subsection Command line options
 
 @example
-usage: qemu-i386 [-h] [-d] [-L path] [-s size] [-cpu model] [-g port] program [arguments...]
+usage: qemu-i386 [-h] [-d] [-L path] [-s size] [-cpu model] [-g port] [-B offset] program [arguments...]
 @end example
 
 @table @option
@@ -2038,6 +2055,10 @@ Set the x86 elf interpreter prefix (default=/usr/local/qemu-i386)
 Set the x86 stack size in bytes (default=524288)
 @item -cpu model
 Select CPU model (-cpu ? for list and additional feature selection)
+@item -B offset
+Offset guest address by the specified number of bytes.  This is useful when
+the address region rewuired by guest applications is reserved on the host.
+Ths option is currently only supported on some hosts.
 @end table
 
 Debug options:

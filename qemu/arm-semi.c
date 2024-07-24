@@ -15,9 +15,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
- *  MA 02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <sys/types.h>
@@ -168,16 +166,13 @@ static void arm_semi_flen_cb(CPUState *env, target_ulong ret, target_ulong err)
 #endif
 }
 
-#define ARG(n)			\
-{						\
+#define ARG(n)					\
+({						\
     target_ulong __arg;				\
     /* FIXME - handle get_user() failure */	\
     get_user_ual(__arg, args + (n) * 4);	\
     __arg;					\
-}
-
-
-
+})
 #define SET_ARG(n, val) put_user_ual(val, args + (n) * 4)
 uint32_t do_arm_semihosting(CPUState *env)
 {

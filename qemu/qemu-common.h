@@ -79,7 +79,6 @@ struct iovec {
 extern int qemu_ftruncate64(int, int64_t);
 #define ftruncate qemu_ftruncate64
 
-
 static inline char *realpath(const char *path, char *resolved_path)
 {
     _fullpath(resolved_path, path, _MAX_PATH);
@@ -172,8 +171,8 @@ time_t mktimegm(struct tm *tm);
 int qemu_fls(int i);
 
 /* path.c */
-void init_paths(const char* prefix);
-const char* path(const char* pathname);
+void init_paths(const char *prefix);
+const char *path(const char *pathname);
 
 #define qemu_isalnum(c)		isalnum((unsigned char)(c))
 #define qemu_isalpha(c)		isalpha((unsigned char)(c))

@@ -12,8 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write the Free Software Foundation,
- * Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdio.h>
@@ -21,6 +20,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #include "cmd.h"
 
@@ -284,6 +284,26 @@ fetchline(void)
 }
 #endif
 
+static char *qemu_strsep(char **input, const char *delim)
+{
+    char *result = *input;
+    if (result != NULL) {
+    char *p = result;
+    for (p = result; *p != '\0'; p++) {
+        if (strchr(delim, *p)) {
+                break;
+            }
+        }
+        if (*p == '\0') {
+            *input = NULL;
+        } else {
+            *p = '\0';
+            *input = p + 1;
+        }
+    }
+    return result;
+}
+
 char **
 breakline(
 	char	*input,
@@ -293,7 +313,7 @@ breakline(
 	char	*p;
 	char	**rval = calloc(sizeof(char *), 1);
 
-	while (rval && (p = strsep(&input, " ")) != NULL) {
+	while (rval && (p = qemu_strsep(&input, " ")) != NULL) {
 		if (!*p)
 			continue;
 		c++;

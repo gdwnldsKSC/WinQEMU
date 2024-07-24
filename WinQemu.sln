@@ -95,7 +95,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "inc", "inc", "{C450D1D4-96C
 		pxwc\inc\pxwc.h = pxwc\inc\pxwc.h
 		pxwc\inc\readlink.h = pxwc\inc\readlink.h
 		pxwc\inc\regex.h = pxwc\inc\regex.h
-		pxwc\inc\stdbool.h = pxwc\inc\stdbool.h
 		pxwc\inc\stdint.h = pxwc\inc\stdint.h
 		pxwc\inc\strings.h = pxwc\inc\strings.h
 		pxwc\inc\unistd.h = pxwc\inc\unistd.h

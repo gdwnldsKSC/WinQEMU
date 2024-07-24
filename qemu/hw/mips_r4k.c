@@ -17,6 +17,7 @@
 #include "flash.h"
 #include "qemu-log.h"
 #include "mips-bios.h"
+#include "ide.h"
 
 #define PHYS_TO_VIRT(x) ((x) | ~(target_ulong)0x7fffffff)
 
@@ -155,7 +156,7 @@ void mips_r4k_init (ram_addr_t ram_size,
     RTCState *rtc_state;
     int i;
     qemu_irq *i8259;
-    BlockDriverState *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
+    DriveInfo *hd[MAX_IDE_BUS * MAX_IDE_DEVS];
     DriveInfo *dinfo;
 
     /* init CPUs */
@@ -240,8 +241,10 @@ void mips_r4k_init (ram_addr_t ram_size,
 
     /* The PIC is attached to the MIPS CPU INT0 pin */
     i8259 = i8259_init(env->irq[2]);
+    isa_bus_new(NULL);
+    isa_bus_irqs(i8259);
 
-    rtc_state = rtc_init(0x70, i8259[8], 2000);
+    rtc_state = rtc_init(2000);
 
     /* Register 64 KB of ISA IO space at 0x14000000 */
     isa_mmio_init(0x14000000, 0x00010000);
@@ -259,7 +262,7 @@ void mips_r4k_init (ram_addr_t ram_size,
     isa_vga_init();
 
     if (nd_table[0].vlan)
-        isa_ne2000_init(0x300, i8259[9], &nd_table[0]);
+        isa_ne2000_init(0x300, 9, &nd_table[0]);
 
     if (drive_get_max_bus(IF_IDE) >= MAX_IDE_BUS) {
         fprintf(stderr, "qemu: too many IDE bus\n");
@@ -267,8 +270,7 @@ void mips_r4k_init (ram_addr_t ram_size,
     }
 
     for(i = 0; i < MAX_IDE_BUS * MAX_IDE_DEVS; i++) {
-        dinfo = drive_get(IF_IDE, i / MAX_IDE_DEVS, i % MAX_IDE_DEVS);
-        hd[i] = dinfo ? dinfo->bdrv : NULL;
+        hd[i] = drive_get(IF_IDE, i / MAX_IDE_DEVS, i % MAX_IDE_DEVS);
     }
 
     for(i = 0; i < MAX_IDE_BUS; i++)
@@ -276,7 +278,7 @@ void mips_r4k_init (ram_addr_t ram_size,
                      hd[MAX_IDE_DEVS * i],
 		     hd[MAX_IDE_DEVS * i + 1]);
 
-    i8042_init(i8259[1], i8259[12], 0x60);
+    isa_create_simple("i8042");
 }
 
 static QEMUMachine mips_machine = {

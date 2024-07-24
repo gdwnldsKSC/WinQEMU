@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
-
 #include <SDL.h>
 #include <SDL_syswm.h>
 
@@ -580,18 +569,24 @@ static void sdl_refresh(DisplayState *ds)
                         toggle_full_screen(ds);
                         gui_keysym = 1;
                         break;
+                    case 0x16: /* 'u' key on US keyboard */
+                        scaling_active = 0;
+                        sdl_resize(ds);
+                        vga_hw_invalidate();
+                        vga_hw_update();
+                        break;
 #ifndef _MSC_VER
-					case 0x02 ... 0x0a:  //  '1' to '9' keys  
+                    case 0x02 ... 0x0a:  //  '1' to '9' keys  
 #else
-					case 0x02:
-					case 0x03:
-					case 0x04:
-					case 0x05:
-					case 0x06:
-					case 0x07:
-					case 0x08:
-					case 0x09:
-					case 0x0a:
+                    case 0x02:
+                    case 0x03:
+                    case 0x04:
+                    case 0x05:
+                    case 0x06:
+                    case 0x07:
+                    case 0x08:
+                    case 0x09:
+                    case 0x0a:
 #endif
                         /* Reset the modifiers sent to the current console */
                         reset_keys();

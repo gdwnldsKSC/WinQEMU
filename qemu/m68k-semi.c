@@ -14,21 +14,9 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
- *  MA 02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -68,10 +56,6 @@
 typedef uint32_t gdb_mode_t;
 typedef uint32_t gdb_time_t;
 
-#ifdef _MSC_VER
-#pragma pack (push, 1)
-#endif
-
 struct m68k_gdb_stat {
   uint32_t    gdb_st_dev;     /* device */
   uint32_t    gdb_st_ino;     /* inode */
@@ -92,10 +76,6 @@ struct gdb_timeval {
   gdb_time_t tv_sec;  /* second */
   uint64_t tv_usec;   /* microsecond */
 } __attribute__((packed));
-
-#ifdef _MSC_VER
-#pragma pack (pop)
-#endif
 
 #define GDB_O_RDONLY   0x0
 #define GDB_O_WRONLY   0x1

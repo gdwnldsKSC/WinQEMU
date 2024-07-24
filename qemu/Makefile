@@ -56,6 +56,7 @@ recurse-all: $(SUBDIR_RULES) $(ROMSUBDIR_RULES)
 block-obj-y = cutils.o cache-utils.o qemu-malloc.o qemu-option.o module.o
 block-obj-y += nbd.o block.o aio.o aes.o osdep.o
 block-obj-$(CONFIG_POSIX) += posix-aio-compat.o
+block-obj-$(CONFIG_LINUX_AIO) += linux-aio.o
 
 block-nested-y += cow.o qcow.o vdi.o vmdk.o cloop.o dmg.o bochs.o vpc.o vvfat.o
 block-nested-y += qcow2.o qcow2-refcount.o qcow2-cluster.o qcow2-snapshot.o
@@ -80,9 +81,9 @@ obj-y += i2c.o smbus.o smbus_eeprom.o max7310.o max111x.o wm8750.o
 obj-y += ssd0303.o ssd0323.o ads7846.o stellaris_input.o twl92230.o
 obj-y += tmp105.o lm832x.o eeprom93xx.o tsc2005.o
 obj-y += scsi-disk.o cdrom.o
-obj-y += scsi-generic.o
+obj-y += scsi-generic.o scsi-bus.o
 obj-y += usb.o usb-hub.o usb-$(HOST_USB).o usb-hid.o usb-msd.o usb-wacom.o
-obj-y += usb-serial.o usb-net.o
+obj-y += usb-serial.o usb-net.o usb-bus.o
 obj-y += sd.o ssi-sd.o
 obj-y += bt.o bt-host.o bt-vhci.o bt-l2cap.o bt-sdp.o bt-hci.o bt-hid.o usb-bt.o
 obj-y += bt-hci-csr.o
@@ -90,10 +91,11 @@ obj-y += buffered_file.o migration.o migration-tcp.o net.o qemu-sockets.o
 obj-y += qemu-char.o aio.o net-checksum.o savevm.o
 obj-y += msmouse.o ps2.o
 obj-y += qdev.o qdev-properties.o ssi.o
+obj-y += qint.o qstring.o qdict.o
 
 obj-$(CONFIG_BRLAPI) += baum.o
 obj-$(CONFIG_WIN32) += tap-win32.o
-obj-$(CONFIG_POSIX) += migration-exec.o migration-unix.o
+obj-$(CONFIG_POSIX) += migration-exec.o migration-unix.o migration-fd.o
 
 audio/audio.o audio/fmodaudio.o: QEMU_CFLAGS += $(FMOD_CFLAGS)
 
@@ -178,6 +180,10 @@ qemu-io$(EXESUF):  qemu-io.o qemu-tool.o cmd.o $(block-obj-y)
 
 qemu-img-cmds.h: $(SRC_PATH)/qemu-img-cmds.hx
 	$(call quiet-command,sh $(SRC_PATH)/hxtool -h < $< > $@,"  GEN   $@")
+
+check-qint: check-qint.o qint.o qemu-malloc.o
+check-qstring: check-qstring.o qstring.o qemu-malloc.o
+check-qdict: check-qdict.o qdict.o qint.o qstring.o qemu-malloc.o
 
 clean:
 # avoid old build problems by removing potentially incorrect old files

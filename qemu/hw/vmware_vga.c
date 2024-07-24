@@ -1189,8 +1189,9 @@ static void vmsvga_init(struct vmsvga_state_s *s, int vga_ram_size)
     vmsvga_reset(s);
 
 #ifdef EMBED_STDVGA
-    vga_common_init((VGAState *) s, vga_ram_size);
-    vga_init((VGAState *) s);
+    vga_common_init(&s->vga, vga_ram_size);
+    vga_init(&s->vga);
+    register_savevm("vga", 0, 2, vga_common_save, vga_common_load, &s->vga);
 #else
     s->vram_size = vga_ram_size;
     s->vram_offset = qemu_ram_alloc(vga_ram_size);
@@ -1270,7 +1271,7 @@ static void pci_vmsvga_map_mem(PCIDevice *pci_dev, int region_num,
                     iomemtype);
 }
 
-static void pci_vmsvga_initfn(PCIDevice *dev)
+static int pci_vmsvga_initfn(PCIDevice *dev)
 {
     struct pci_vmsvga_state_s *s =
         DO_UPCAST(struct pci_vmsvga_state_s, card, dev);
@@ -1296,6 +1297,7 @@ static void pci_vmsvga_initfn(PCIDevice *dev)
     vmsvga_init(&s->chip, VGA_RAM_SIZE);
 
     register_savevm("vmware_vga", 0, 0, pci_vmsvga_save, pci_vmsvga_load, s);
+    return 0;
 }
 
 void pci_vmsvga_init(PCIBus *bus)

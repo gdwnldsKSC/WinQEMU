@@ -27,27 +27,28 @@
 
 /* data types (need to be adjusted if neither a VC6 nor a C99 compatible compiler is used) */
 
-#if defined _WIN32 && defined _MSC_VER /* doesnt support other win32 compilers yet, do it yourself... */
+/* #if defined _WIN32 && defined _MSC_VER  doesnt support other win32 compilers yet, do it yourself... 
+// we no longer need this workaround on MSVC 2022 (and other older ones, maybe....)
  typedef unsigned char GUSbyte;
  typedef unsigned short GUSword;
  typedef unsigned int GUSdword;
  typedef signed char GUSchar;
  typedef signed short GUSsample;
-#else
+#else */
  #include <stdint.h>
  typedef int8_t GUSchar;
  typedef uint8_t GUSbyte;
  typedef uint16_t GUSword;
  typedef uint32_t GUSdword;
  typedef int16_t GUSsample;
-#endif
+//#endif 
 
 typedef struct _GUSEmuState
 {
  GUSbyte *himemaddr; /* 1024*1024 bytes used for storing uploaded samples (+32 additional bytes for read padding) */
  GUSbyte *gusdatapos; /* (gusdataend-gusdata) bytes used for storing emulated GF1/mixer register states (32*32+4 bytes in initial GUSemu32 version) */
- int gusirq;
- int gusdma;
+ uint32_t gusirq;
+ uint32_t gusdma;
  unsigned int timer1fraction;
  unsigned int timer2fraction;
  void *opaque;

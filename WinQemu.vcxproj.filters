@@ -61,6 +61,9 @@
     <Filter Include="qemu\block\inc">
       <UniqueIdentifier>{039344ec-5e63-44cd-94d8-cde2ccf4dffb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\hw\IDE">
+      <UniqueIdentifier>{24fe5184-2270-4d17-a24a-619bf86bd48d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -496,9 +499,6 @@
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\i8259.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\ide.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\integratorcp.c">
@@ -1209,6 +1209,57 @@
     <ClCompile Include="qemu\hw\marvell_88w8618_audio.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qint.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qstring.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qdict.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\scsi-bus.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\core.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\isa.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\macio.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\microdrive.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\mmio.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\pci.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-io.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ne2000-isa.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb-bus.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\vga-pci.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\piix4.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\vga-isa.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\vga-isa-mm.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1819,6 +1870,24 @@
     </ClInclude>
     <ClInclude Include="qemu\block\raw-posix-aio.h">
       <Filter>qemu\block\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qint.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qobject.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qstring.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qdict.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ide\internal.h">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ne2000.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -39,15 +39,23 @@ Select CPU model (-cpu ? for list and additional feature selection)
 ETEXI
 
 DEF("smp", HAS_ARG, QEMU_OPTION_smp,
-    "-smp n[,maxcpus=cpus]\n"
+    "-smp n[,maxcpus=cpus][,cores=cores][,threads=threads][,sockets=sockets]\n"
     "                set the number of CPUs to 'n' [default=1]\n"
     "                maxcpus= maximum number of total cpus, including\n"
-    "                offline CPUs for hotplug etc.\n")
+    "                  offline CPUs for hotplug etc.\n"
+    "                cores= number of CPU cores on one socket\n"
+    "                threads= number of threads on one CPU core\n"
+    "                sockets= number of discrete sockets in the system\n")
 STEXI
-@item -smp @var{n}
+@item -smp @var{n}[,cores=@var{cores}][,threads=@var{threads}][,sockets=@var{sockets}][,maxcpus=@var{maxcpus}]
 Simulate an SMP system with @var{n} CPUs. On the PC target, up to 255
 CPUs are supported. On Sparc32 target, Linux limits the number of usable CPUs
 to 4.
+For the PC target, the number of @var{cores} per socket, the number
+of @var{threads} per cores and the total number of @var{sockets} can be
+specified. Missing values will be computed. If any on the three values is
+given, the total number of CPUs @var{n} can be omitted. @var{maxcpus}
+specifies the maximum number of hotpluggable CPUs.
 ETEXI
 
 DEF("numa", HAS_ARG, QEMU_OPTION_numa,
@@ -95,7 +103,7 @@ DEF("drive", HAS_ARG, QEMU_OPTION_drive,
     "-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]\n"
     "       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]\n"
     "       [,cache=writethrough|writeback|none][,format=f][,serial=s]\n"
-    "       [,addr=A][,id=name]\n"
+    "       [,addr=A][,id=name][,aio=threads|native]\n"
     "                use 'file' as a drive image\n")
 DEF("set", HAS_ARG, QEMU_OPTION_set,
     "-set group.id.arg=value\n"
@@ -128,6 +136,8 @@ These options have the same definition as they have in @option{-hdachs}.
 @var{snapshot} is "on" or "off" and allows to enable snapshot for given drive (see @option{-snapshot}).
 @item cache=@var{cache}
 @var{cache} is "none", "writeback", or "writethrough" and controls how the host cache is used to access block data.
+@item aio=@var{aio}
+@var{aio} is "threads", or "native" and selects between pthread based disk I/O and native Linux AIO.
 @item format=@var{format}
 Specify which disk @var{format} will be used rather than detecting
 the format.  Can be used to specifiy format=raw to avoid interpreting

@@ -184,6 +184,9 @@ int main(int argc, char **argv)
 
 #define DEFAULT_RAM_SIZE 128
 
+/* Maximum number of monitor devices */
+#define MAX_MONITOR_DEVICES 10
+
 static const char *data_dir;
 const char *bios_name = NULL;
 /* Note: drives_table[MAX_DRIVES] is a dummy block driver if none available
@@ -228,11 +231,11 @@ int usb_enabled = 0;
 int singlestep = 0;
 int smp_cpus = 1;
 int max_cpus = 0;
+int smp_cores = 1;
+int smp_threads = 1;
 const char *vnc_display;
 int acpi_enabled = 1;
 int no_hpet = 0;
-int virtio_balloon = 1;
-const char *virtio_balloon_devaddr;
 int fd_bootchk = 1;
 int no_reboot = 0;
 int no_shutdown = 0;
@@ -242,8 +245,7 @@ uint8_t irq0override = 1;
 #ifndef _WIN32
 int daemonize = 0;
 #endif
-WatchdogTimerModel *watchdog = NULL;
-int watchdog_action = WDT_RESET;
+const char *watchdog;
 const char *option_rom[MAX_OPTION_ROMS];
 int nb_option_roms;
 int semihosting_enabled = 0;
@@ -488,10 +490,11 @@ void do_info_mice(Monitor *mon)
     }
 }
 
-void do_mouse_set(Monitor *mon, int index)
+void do_mouse_set(Monitor *mon, const QDict *qdict)
 {
     QEMUPutMouseEntry *cursor;
     int i = 0;
+    int index = qdict_get_int(qdict, "index");
 
     if (!qemu_put_mouse_event_head) {
         monitor_printf(mon, "No mouse devices connected\n");
@@ -866,7 +869,7 @@ static void configure_alarms(char const *opt)
         exit(0);
     }
 
-    arg = strdup(opt);
+    arg = qemu_strdup(opt);
 
     /* Reorder the array */
     name = strtok(arg, ",");
@@ -895,7 +898,7 @@ next:
         name = strtok(NULL, ",");
     }
 
-    free(arg);
+    qemu_free(arg);
 
     if (cur) {
         /* Disable remaining timers */
@@ -1925,6 +1928,7 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
     int max_devs;
     int index;
     int cache;
+    int aio = 0;
     int bdrv_flags, onerror;
     const char *devaddr;
     DriveInfo *dinfo;
@@ -1935,7 +1939,7 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
     translation = BIOS_ATA_TRANSLATION_AUTO;
     cache = 1;
 
-    if (machine->use_scsi) {
+    if (machine && machine->use_scsi) {
         type = IF_SCSI;
         max_devs = MAX_SCSI_DEVS;
         pstrcpy(devname, sizeof(devname), "scsi");
@@ -2057,6 +2061,19 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
            return NULL;
         }
     }
+
+#ifdef CONFIG_LINUX_AIO
+    if ((buf = qemu_opt_get(opts, "aio")) != NULL) {
+        if (!strcmp(buf, "threads"))
+            aio = 0;
+        else if (!strcmp(buf, "native"))
+            aio = 1;
+        else {
+           fprintf(stderr, "qemu: invalid aio option\n");
+           return NULL;
+        }
+    }
+#endif
 
     if ((buf = qemu_opt_get(opts, "format")) != NULL) {
        if (strcmp(buf, "?") == 0) {
@@ -2227,11 +2244,19 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
         bdrv_flags |= BDRV_O_NOCACHE;
     else if (cache == 2) /* write-back */
         bdrv_flags |= BDRV_O_CACHE_WB;
+
+    if (aio == 1) {
+        bdrv_flags |= BDRV_O_NATIVE_AIO;
+    } else {
+        bdrv_flags &= ~BDRV_O_NATIVE_AIO;
+    }
+
     if (bdrv_open2(dinfo->bdrv, file, bdrv_flags, drv) < 0) {
         fprintf(stderr, "qemu: could not open disk image %s\n",
                         file);
         return NULL;
     }
+
     if (bdrv_key_required(dinfo->bdrv))
         autostart = 0;
     *fatal_error = 0;
@@ -2367,75 +2392,109 @@ static void numa_add(const char *optarg)
     return;
 }
 
+static void smp_parse(const char *optarg)
+{
+    int smp, sockets = 0, threads = 0, cores = 0;
+    char *endptr;
+    char option[128];
+
+    smp = strtoul(optarg, &endptr, 10);
+    if (endptr != optarg) {
+        if (*endptr == ',') {
+            endptr++;
+        }
+    }
+    if (get_param_value(option, 128, "sockets", endptr) != 0)
+        sockets = strtoull(option, NULL, 10);
+    if (get_param_value(option, 128, "cores", endptr) != 0)
+        cores = strtoull(option, NULL, 10);
+    if (get_param_value(option, 128, "threads", endptr) != 0)
+        threads = strtoull(option, NULL, 10);
+    if (get_param_value(option, 128, "maxcpus", endptr) != 0)
+        max_cpus = strtoull(option, NULL, 10);
+
+    /* compute missing values, prefer sockets over cores over threads */
+    if (smp == 0 || sockets == 0) {
+        sockets = sockets > 0 ? sockets : 1;
+        cores = cores > 0 ? cores : 1;
+        threads = threads > 0 ? threads : 1;
+        if (smp == 0) {
+            smp = cores * threads * sockets;
+        } else {
+            sockets = smp / (cores * threads);
+        }
+    } else {
+        if (cores == 0) {
+            threads = threads > 0 ? threads : 1;
+            cores = smp / (sockets * threads);
+        } else {
+            if (sockets == 0) {
+                sockets = smp / (cores * threads);
+            } else {
+                threads = smp / (cores * sockets);
+            }
+        }
+    }
+    smp_cpus = smp;
+    smp_cores = cores > 0 ? cores : 1;
+    smp_threads = threads > 0 ? threads : 1;
+    if (max_cpus == 0)
+        max_cpus = smp_cpus;
+}
+
 /***********************************************************/
 /* USB devices */
-
-static USBPort *used_usb_ports;
-static USBPort *free_usb_ports;
-
-/* ??? Maybe change this to register a hub to keep track of the topology.  */
-void qemu_register_usb_port(USBPort *port, void *opaque, int index,
-                            usb_attachfn attach)
-{
-    port->opaque = opaque;
-    port->index = index;
-    port->attach = attach;
-    port->next = free_usb_ports;
-    free_usb_ports = port;
-}
-
-int usb_device_add_dev(USBDevice *dev)
-{
-    USBPort *port;
-
-    /* Find a USB port to add the device to.  */
-    port = free_usb_ports;
-    if (!port->next) {
-        USBDevice *hub;
-
-        /* Create a new hub and chain it on.  */
-        free_usb_ports = NULL;
-        port->next = used_usb_ports;
-        used_usb_ports = port;
-
-        hub = usb_hub_init(VM_USB_HUB_SIZE);
-        usb_attach(port, hub);
-        port = free_usb_ports;
-    }
-
-    free_usb_ports = port->next;
-    port->next = used_usb_ports;
-    used_usb_ports = port;
-    usb_attach(port, dev);
-    return 0;
-}
 
 static void usb_msd_password_cb(void *opaque, int err)
 {
     USBDevice *dev = opaque;
 
     if (!err)
-        usb_device_add_dev(dev);
+        usb_device_attach(dev);
     else
-        dev->handle_destroy(dev);
+        dev->info->handle_destroy(dev);
 }
+
+static struct {
+    const char *name;
+    const char *qdev;
+} usbdevs[] = {
+    {
+        .name = "mouse",
+        .qdev = "QEMU USB Mouse",
+    },{
+        .name = "tablet",
+        .qdev = "QEMU USB Tablet",
+    },{
+        .name = "keyboard",
+        .qdev = "QEMU USB Keyboard",
+    },{
+        .name = "wacom-tablet",
+        .qdev = "QEMU PenPartner Tablet",
+    }
+};
 
 static int usb_device_add(const char *devname, int is_hotplug)
 {
     const char *p;
-    USBDevice *dev;
+    USBBus *bus = usb_bus_find(-1 /* any */);
+    USBDevice *dev = NULL;
+    int i;
 
-    if (!free_usb_ports)
+    if (!usb_enabled)
         return -1;
 
+    /* simple devices which don't need extra care */
+    for (i = 0; i < ARRAY_SIZE(usbdevs); i++) {
+        if (strcmp(devname, usbdevs[i].name) != 0)
+            continue;
+        dev = usb_create_simple(bus, usbdevs[i].qdev);
+        goto done;
+    }
+
+    /* the other ones */
     if (strstart(devname, "host:", &p)) {
         dev = usb_host_device_open(p);
-    } else if (!strcmp(devname, "mouse")) {
-        dev = usb_mouse_init();
-    } else if (!strcmp(devname, "tablet")) {
-        dev = usb_tablet_init();
-    } else if (!strcmp(devname, "keyboard")) {
-        dev = usb_keyboard_init();
     } else if (strstart(devname, "disk:", &p)) {
         BlockDriverState *bs;
 
@@ -2451,8 +2510,6 @@ static int usb_device_add(const char *devname, int is_hotplug)
                 return 0;
             }
         }
-    } else if (!strcmp(devname, "wacom-tablet")) {
-        dev = usb_wacom_init();
     } else if (strstart(devname, "serial:", &p)) {
         dev = usb_serial_init(p);
 #ifdef CONFIG_BRLAPI
@@ -2475,37 +2532,7 @@ static int usb_device_add(const char *devname, int is_hotplug)
     if (!dev)
         return -1;
 
-    return usb_device_add_dev(dev);
-}
-
-int usb_device_del_addr(int bus_num, int addr)
-{
-    USBPort *port;
-    USBPort **lastp;
-    USBDevice *dev;
-
-    if (!used_usb_ports)
-        return -1;
-
-    if (bus_num != 0)
-        return -1;
-
-    lastp = &used_usb_ports;
-    port = used_usb_ports;
-    while (port && port->dev->addr != addr) {
-        lastp = &port->next;
-        port = port->next;
-    }
-
-    if (!port)
-        return -1;
-
-    dev = port->dev;
-    *lastp = port->next;
-    usb_attach(port, NULL);
-    dev->handle_destroy(dev);
-    port->next = free_usb_ports;
-    free_usb_ports = port;
+done:
     return 0;
 }
 
@@ -2517,7 +2544,7 @@ static int usb_device_del(const char *devname)
     if (strstart(devname, "host:", &p))
         return usb_host_device_close(p);
 
-    if (!used_usb_ports)
+    if (!usb_enabled)
         return -1;
 
     p = strchr(devname, '.');
@@ -2526,7 +2553,7 @@ static int usb_device_del(const char *devname)
     bus_num = strtoul(devname, NULL, 0);
     addr = strtoul(p + 1, NULL, 0);
 
-    return usb_device_del_addr(bus_num, addr);
+    return usb_device_delete_addr(bus_num, addr);
 }
 
 static int usb_parse(const char *cmdline)
@@ -2534,48 +2561,14 @@ static int usb_parse(const char *cmdline)
     return usb_device_add(cmdline, 0);
 }
 
-void do_usb_add(Monitor *mon, const char *devname)
+void do_usb_add(Monitor *mon, const QDict *qdict)
 {
-    usb_device_add(devname, 1);
+    usb_device_add(qdict_get_str(qdict, "devname"), 1);
 }
 
-void do_usb_del(Monitor *mon, const char *devname)
+void do_usb_del(Monitor *mon, const QDict *qdict)
 {
-    usb_device_del(devname);
-}
-
-void usb_info(Monitor *mon)
-{
-    USBDevice *dev;
-    USBPort *port;
-    const char *speed_str;
-
-    if (!usb_enabled) {
-        monitor_printf(mon, "USB support not enabled\n");
-        return;
-    }
-
-    for (port = used_usb_ports; port; port = port->next) {
-        dev = port->dev;
-        if (!dev)
-            continue;
-        switch(dev->speed) {
-        case USB_SPEED_LOW:
-            speed_str = "1.5";
-            break;
-        case USB_SPEED_FULL:
-            speed_str = "12";
-            break;
-        case USB_SPEED_HIGH:
-            speed_str = "480";
-            break;
-        default:
-            speed_str = "?";
-            break;
-        }
-        monitor_printf(mon, "  Device %d.%d, Speed %s Mb/s, Product %s\n",
-                       0, dev->addr, speed_str, dev->devname);
-    }
+    usb_device_del(qdict_get_str(qdict, "devname"));
 }
 
 /***********************************************************/
@@ -3578,6 +3571,7 @@ void qemu_init_vcpu(void *_env)
     if (kvm_enabled())
         kvm_init_vcpu(env);
 #endif
+    env->nr_threads = smp_threads;
     return;
 }
 
@@ -3689,6 +3683,8 @@ static void *kvm_cpu_thread_fn(void *arg)
 
     block_io_signals();
     qemu_thread_self(env->thread);
+    if (kvm_enabled())
+        kvm_init_vcpu(env);
 
     /* signal CPU creation */
     qemu_mutex_lock(&qemu_global_mutex);
@@ -3699,10 +3695,12 @@ static void *kvm_cpu_thread_fn(void *arg)
     while (!qemu_system_ready)
         qemu_cond_timedwait(&qemu_system_cond, &qemu_global_mutex, 100);
 
+    cpu_synchronize_state(env);
+
     while (1) {
+        qemu_wait_io_event(env);
         if (cpu_can_run(env))
             qemu_cpu_exec(env);
-        qemu_wait_io_event(env);
     }
 
     return NULL;
@@ -3727,6 +3725,9 @@ static void *tcg_cpu_thread_fn(void *arg)
     while (!qemu_system_ready)
         qemu_cond_timedwait(&qemu_system_cond, &qemu_global_mutex, 100);
 
+    for (env = first_cpu; env != NULL; env = env->next_cpu) {
+        cpu_synchronize_state(env);
+    }
     while (1) {
         tcg_cpu_exec();
         qemu_wait_io_event(cur_cpu);
@@ -3884,7 +3885,6 @@ static void tcg_init_vcpu(void *_env)
 
 static void kvm_start_vcpu(CPUState *env)
 {
-    kvm_init_vcpu(env);
     env->thread = qemu_mallocz(sizeof(QemuThread));
     env->halt_cond = qemu_mallocz(sizeof(QemuCond));
     qemu_cond_init(env->halt_cond);
@@ -3901,6 +3901,8 @@ void qemu_init_vcpu(void *_env)
         kvm_start_vcpu(env);
     else
         tcg_init_vcpu(env);
+    env->nr_cores = smp_cores;
+    env->nr_threads = smp_threads;
 }
 
 void qemu_notify_event(void)
@@ -4460,7 +4462,7 @@ static void select_soundhw (const char *optarg)
             l = !e ? strlen (p) : (size_t) (e - p);
 
             for (c = soundhw; c->name; ++c) {
-                if (!strncmp (c->name, p, l)) {
+                if (!strncmp (c->name, p, l) && !c->name[l]) {
                     c->enabled = 1;
                     break;
                 }
@@ -4522,23 +4524,27 @@ static void select_vgahw (const char *p)
 #ifdef TARGET_I386
 static int balloon_parse(const char *arg)
 {
-    char buf[128];
-    const char *p;
+    QemuOpts *opts;
 
-    if (!strcmp(arg, "none")) {
-        virtio_balloon = 0;
-    } else if (!strncmp(arg, "virtio", 6)) {
-        virtio_balloon = 1;
-        if (arg[6] == ',')  {
-            p = arg + 7;
-            if (get_param_value(buf, sizeof(buf), "addr", p)) {
-                virtio_balloon_devaddr = strdup(buf);
-            }
-        }
-    } else {
-        return -1;
+    if (strcmp(arg, "none") == 0) {
+        return 0;
     }
-    return 0;
+
+    if (!strncmp(arg, "virtio", 6)) {
+        if (arg[6] == ',') {
+            /* have params -> parse them */
+            opts = qemu_opts_parse(&qemu_device_opts, arg+7, NULL);
+            if (!opts)
+                return  -1;
+        } else {
+            /* create empty opts */
+            opts = qemu_opts_create(&qemu_device_opts, NULL, 0);
+        }
+        qemu_opt_set(opts, "driver", "virtio-balloon-pci");
+        return 0;
+    }
+
+    return -1;
 }
 #endif
 
@@ -4637,9 +4643,7 @@ static char *find_datadir(const char *argv0)
     char *dir;
     char *p = NULL;
     char *res;
-#ifdef PATH_MAX
     char buf[PATH_MAX];
-#endif
     size_t max_len;
 
 #if defined(__linux__)
@@ -4664,10 +4668,7 @@ static char *find_datadir(const char *argv0)
     /* If we don't have any way of figuring out the actual executable
        location then try argv[0].  */
     if (!p) {
-#ifdef PATH_MAX
-        p = buf;
-#endif
-        p = realpath(argv0, p);
+        p = realpath(argv0, buf);
         if (!p) {
             return NULL;
         }
@@ -4686,9 +4687,7 @@ static char *find_datadir(const char *argv0)
             res = NULL;
         }
     }
-#ifndef PATH_MAX
-    free(p);
-#endif
+
     return res;
 }
 #undef SHARE_SUFFIX
@@ -4704,7 +4703,7 @@ char *qemu_find_file(int type, const char *name)
     /* If name contains path separators then try it as a straight path.  */
     if ((strchr(name, '/') || strchr(name, '\\'))
         && access(name, R_OK) == 0) {
-        return strdup(name);
+        return qemu_strdup(name);
     }
     switch (type) {
     case QEMU_FILE_TYPE_BIOS:
@@ -4793,8 +4792,9 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     QemuOpts *hda_opts = NULL, *opts;
     int optind;
     const char *r, *optarg;
-    CharDriverState *monitor_hd = NULL;
-    const char *monitor_device;
+    CharDriverState *monitor_hds[MAX_MONITOR_DEVICES];
+    const char *monitor_devices[MAX_MONITOR_DEVICES];
+    int monitor_device_index;
     const char *serial_devices[MAX_SERIAL_PORTS];
     int serial_device_index;
     const char *parallel_devices[MAX_PARALLEL_PORTS];
@@ -4819,6 +4819,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     CPUState *env;
     int show_vnc_port = 0;
 
+    qemu_errors_to_file(stderr);
     qemu_cache_utils_init(envp);
 
     LIST_INIT (&vm_change_state_head);
@@ -4862,7 +4863,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     kernel_cmdline = "";
     cyls = heads = secs = 0;
     translation = BIOS_ATA_TRANSLATION_AUTO;
-    monitor_device = "vc:80Cx24C";
 
     serial_devices[0] = "vc:80Cx24C";
     for(i = 1; i < MAX_SERIAL_PORTS; i++)
@@ -4878,6 +4878,12 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         virtio_consoles[i] = NULL;
     virtio_console_index = 0;
 
+    monitor_devices[0] = "vc:80Cx24C";
+    for (i = 1; i < MAX_MONITOR_DEVICES; i++) {
+        monitor_devices[i] = NULL;
+    }
+    monitor_device_index = 0;
+
     for (i = 0; i < MAX_NODES; i++) {
         node_mem[i] = 0;
         node_cpumask[i] = 0;
@@ -4889,8 +4895,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 
     tb_size = 0;
     autostart= 1;
-
-    register_watchdogs();
 
     optind = 1;
     for(;;) {
@@ -5292,7 +5296,12 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     break;
                 }
             case QEMU_OPTION_monitor:
-                monitor_device = optarg;
+                if (monitor_device_index >= MAX_MONITOR_DEVICES) {
+                    fprintf(stderr, "qemu: too many monitor devices\n");
+                    exit(1);
+                }
+                monitor_devices[monitor_device_index] = optarg;
+                monitor_device_index++;
                 break;
             case QEMU_OPTION_serial:
                 if (serial_device_index >= MAX_SERIAL_PORTS) {
@@ -5303,9 +5312,12 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 serial_device_index++;
                 break;
             case QEMU_OPTION_watchdog:
-                i = select_watchdog(optarg);
-                if (i > 0)
-                    exit (i == 1 ? 1 : 0);
+                if (watchdog) {
+                    fprintf(stderr,
+                            "qemu: only one watchdog option may be given\n");
+                    return 1;
+                }
+                watchdog = optarg;
                 break;
             case QEMU_OPTION_watchdog_action:
                 if (select_watchdog_action(optarg) == -1) {
@@ -5392,18 +5404,11 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 }
                 break;
             case QEMU_OPTION_smp:
-            {
-                char *p;
-                char option[128];
-                smp_cpus = strtol(optarg, &p, 10);
+                smp_parse(optarg);
                 if (smp_cpus < 1) {
                     fprintf(stderr, "Invalid number of CPUs\n");
                     exit(1);
                 }
-                if (*p++ != ',')
-                    break;
-                if (get_param_value(option, 128, "maxcpus", p))
-                    max_cpus = strtol(option, NULL, 0);
                 if (max_cpus < smp_cpus) {
                     fprintf(stderr, "maxcpus must be equal to or greater than "
                             "smp\n");
@@ -5414,7 +5419,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     exit(1);
                 }
                 break;
-            }
 	    case QEMU_OPTION_vnc:
                 display_type = DT_VNC;
 		vnc_display = optarg;
@@ -5577,6 +5581,16 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         }
     }
 
+    if (kvm_enabled()) {
+        int ret;
+
+        ret = kvm_init(smp_cpus);
+        if (ret < 0) {
+            fprintf(stderr, "failed to initialize KVM\n");
+            exit(1);
+        }
+    }
+
     /* If no data_dir is specified then try to find it relative to the
        executable path.  */
     if (!data_dir) {
@@ -5607,8 +5621,9 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
            serial_devices[0] = "stdio";
        if (parallel_device_index == 0)
            parallel_devices[0] = "null";
-       if (strncmp(monitor_device, "vc", 2) == 0)
-           monitor_device = "stdio";
+       if (strncmp(monitor_devices[0], "vc", 2) == 0) {
+           monitor_devices[0] = "stdio";
+       }
     }
 
 #ifndef _WIN32
@@ -5753,20 +5768,15 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     register_savevm("timer", 0, 2, timer_save, timer_load, NULL);
     register_savevm_live("ram", 0, 3, ram_save_live, NULL, ram_load, NULL);
 
-#ifndef _WIN32
-    /* must be after terminal init, SDL library changes signal handlers */
-    sighandler_setup();
-#endif
-
     /* Maintain compatibility with multiple stdio monitors */
-    if (!strcmp(monitor_device,"stdio")) {
+    if (!strcmp(monitor_devices[0],"stdio")) {
         for (i = 0; i < MAX_SERIAL_PORTS; i++) {
             const char *devname = serial_devices[i];
             if (devname && !strcmp(devname,"mon:stdio")) {
-                monitor_device = NULL;
+                monitor_devices[0] = NULL;
                 break;
             } else if (devname && !strcmp(devname,"stdio")) {
-                monitor_device = NULL;
+                monitor_devices[0] = NULL;
                 serial_devices[i] = "mon:stdio";
                 break;
             }
@@ -5815,21 +5825,21 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         }
     }
 
-    if (kvm_enabled()) {
-        int ret;
-
-        ret = kvm_init(smp_cpus);
-        if (ret < 0) {
-            fprintf(stderr, "failed to initialize KVM\n");
-            exit(1);
-        }
-    }
-
-    if (monitor_device) {
-        monitor_hd = qemu_chr_open("monitor", monitor_device, NULL);
-        if (!monitor_hd) {
-            fprintf(stderr, "qemu: could not open monitor device '%s'\n", monitor_device);
-            exit(1);
+    for (i = 0; i < MAX_MONITOR_DEVICES; i++) {
+        const char *devname = monitor_devices[i];
+        if (devname && strcmp(devname, "none")) {
+            char label[32];
+            if (i == 0) {
+                snprintf(label, sizeof(label), "monitor");
+            } else {
+                snprintf(label, sizeof(label), "monitor%d", i);
+            }
+            monitor_hds[i] = qemu_chr_open(label, devname, NULL);
+            if (!monitor_hds[i]) {
+                fprintf(stderr, "qemu: could not open monitor device '%s'\n",
+                        devname);
+                exit(1);
+            }
         }
     }
 
@@ -5877,12 +5887,23 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 
     module_call_init(MODULE_INIT_DEVICE);
 
+    if (watchdog) {
+        i = select_watchdog(watchdog);
+        if (i > 0)
+            exit (i == 1 ? 1 : 0);
+    }
+
     if (machine->compat_props) {
         qdev_prop_register_compat(machine->compat_props);
     }
     machine->init(ram_size, boot_devices,
                   kernel_filename, kernel_cmdline, initrd_filename, cpu_model);
 
+
+#ifndef _WIN32
+    /* must be after terminal init, SDL library changes signal handlers */
+    sighandler_setup();
+#endif
 
     for (env = first_cpu; env != NULL; env = env->next_cpu) {
         for (i = 0; i < nb_numa_nodes; i++) {
@@ -5967,8 +5988,13 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     text_consoles_set_display(display_state);
     qemu_chr_initial_reset();
 
-    if (monitor_device && monitor_hd)
-        monitor_init(monitor_hd, MONITOR_USE_READLINE | MONITOR_IS_DEFAULT);
+    for (i = 0; i < MAX_MONITOR_DEVICES; i++) {
+        if (monitor_devices[i] && monitor_hds[i]) {
+            monitor_init(monitor_hds[i],
+                         MONITOR_USE_READLINE |
+                         ((i == 0) ? MONITOR_IS_DEFAULT : 0));
+        }
+    }
 
     for(i = 0; i < MAX_SERIAL_PORTS; i++) {
         const char *devname = serial_devices[i];
@@ -6000,8 +6026,11 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
     }
 
-    if (loadvm)
-        do_loadvm(cur_mon, loadvm);
+    if (loadvm) {
+        if (load_vmstate(cur_mon, loadvm) < 0) {
+            autostart = 0;
+        }
+    }
 
     if (incoming) {
         qemu_start_incoming_migration(incoming);

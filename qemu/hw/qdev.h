@@ -62,6 +62,7 @@ enum PropertyType {
     PROP_TYPE_UNSPEC = 0,
     PROP_TYPE_UINT16,
     PROP_TYPE_UINT32,
+    PROP_TYPE_INT32,
     PROP_TYPE_UINT64,
     PROP_TYPE_TADDR,
     PROP_TYPE_MACADDR,
@@ -88,7 +89,7 @@ struct CompatProperty {
 
 DeviceState *qdev_create(BusState *bus, const char *name);
 DeviceState *qdev_device_add(QemuOpts *opts);
-void qdev_init(DeviceState *dev);
+int qdev_init(DeviceState *dev);
 void qdev_free(DeviceState *dev);
 
 qemu_irq qdev_get_gpio_in(DeviceState *dev, int n);
@@ -98,9 +99,7 @@ BusState *qdev_get_child_bus(DeviceState *dev, const char *name);
 
 /*** Device API.  ***/
 
-typedef void (*qdev_initfn)(DeviceState *dev, DeviceInfo *info);
-typedef void (*SCSIAttachFn)(DeviceState *host, BlockDriverState *bdrv,
-              int unit);
+typedef int (*qdev_initfn)(DeviceState *dev, DeviceInfo *info);
 
 struct DeviceInfo {
     const char *name;
@@ -109,6 +108,12 @@ struct DeviceInfo {
     size_t size;
     Property *props;
     int no_user;
+
+    /* callbacks */
+    QEMUResetHandler *reset;
+
+    /* device state */
+    const VMStateDescription *vmsd;
 
     /* Private to qdev / bus.  */
     qdev_initfn init;
@@ -122,8 +127,6 @@ void qdev_register(DeviceInfo *info);
 /* GPIO inputs also double as IRQ sinks.  */
 void qdev_init_gpio_in(DeviceState *dev, qemu_irq_handler handler, int n);
 void qdev_init_gpio_out(DeviceState *dev, qemu_irq *pins, int n);
-
-void scsi_bus_new(DeviceState *host, SCSIAttachFn attach);
 
 CharDriverState *qdev_init_chardev(DeviceState *dev);
 
@@ -154,6 +157,7 @@ void do_info_qdm(Monitor *mon);
 
 extern PropertyInfo qdev_prop_uint16;
 extern PropertyInfo qdev_prop_uint32;
+extern PropertyInfo qdev_prop_int32;
 extern PropertyInfo qdev_prop_uint64;
 extern PropertyInfo qdev_prop_hex32;
 extern PropertyInfo qdev_prop_hex64;
@@ -162,10 +166,6 @@ extern PropertyInfo qdev_prop_ptr;
 extern PropertyInfo qdev_prop_macaddr;
 extern PropertyInfo qdev_prop_drive;
 extern PropertyInfo qdev_prop_pci_devfn;
-
-//until we specify std:Clatest in MSVC 17.9, must use __typeof__ so compiler will allow usage anyway so we don't have to modify these macros.
-#define typeof_field(type, field) __typeof__(((type *)0)->field)
-#define type_check(t1,t2) ((t1*)0 - (t2*)0)
 
 #define DEFINE_PROP(_name, _state, _field, _prop, _type) { \
         .name      = (_name),                                    \
@@ -185,6 +185,8 @@ extern PropertyInfo qdev_prop_pci_devfn;
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_uint16, uint16_t)
 #define DEFINE_PROP_UINT32(_n, _s, _f, _d)                      \
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_uint32, uint32_t)
+#define DEFINE_PROP_INT32(_n, _s, _f, _d)                      \
+    DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_int32, int32_t)
 #define DEFINE_PROP_UINT64(_n, _s, _f, _d)                      \
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_uint64, uint64_t)
 #define DEFINE_PROP_HEX32(_n, _s, _f, _d)                       \
@@ -212,6 +214,7 @@ int qdev_prop_parse(DeviceState *dev, const char *name, const char *value);
 void qdev_prop_set(DeviceState *dev, const char *name, void *src, enum PropertyType type);
 void qdev_prop_set_uint16(DeviceState *dev, const char *name, uint16_t value);
 void qdev_prop_set_uint32(DeviceState *dev, const char *name, uint32_t value);
+void qdev_prop_set_int32(DeviceState *dev, const char *name, int32_t value);
 void qdev_prop_set_uint64(DeviceState *dev, const char *name, uint64_t value);
 void qdev_prop_set_chr(DeviceState *dev, const char *name, CharDriverState *value);
 void qdev_prop_set_drive(DeviceState *dev, const char *name, DriveInfo *value);
