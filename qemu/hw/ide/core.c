@@ -150,9 +150,9 @@ static void ide_identify(IDEState *s)
     put_le16(p + 84, (1 << 14) | 0);
     /* 14 = NOP supported, 5=WCACHE enabled, 0=SMART feature set enabled */
     if (bdrv_enable_write_cache(s->bs))
-        put_le16(p + 85, (1 << 14) | (1 << 5) | 1);
+         put_le16(p + 85, (1 << 14) | (1 << 5) | 1);
     else
-        put_le16(p + 85, (1 << 14) | 1);
+         put_le16(p + 85, (1 << 14) | 1);
     /* 13=flush_cache_ext,12=flush_cache,10=lba48 */
     put_le16(p + 86, (1 << 14) | (1 << 13) | (1 <<12) | (1 << 10));
     /* 14=set to 1, 1=smart self test, 0=smart error logging */
@@ -647,7 +647,7 @@ static void ide_sector_write(IDEState *s)
            option _only_ to install Windows 2000. You must disable it
            for normal use. */
         qemu_mod_timer(s->sector_write_timer, 
-                       qemu_get_clock(vm_clock) + (ticks_per_sec / 1000));
+                       qemu_get_clock(vm_clock) + (get_ticks_per_sec() / 1000));
     } else 
 #endif
     {
@@ -771,9 +771,9 @@ static void ide_atapi_cmd_check_status(IDEState *s)
     ide_set_irq(s->bus);
 }
 
-static void ide_flush_cb(void* opaque, int ret)
+static void ide_flush_cb(void *opaque, int ret)
 {
-    IDEState* s = opaque;
+    IDEState *s = opaque;
 
     /* XXX: how do we signal I/O errors here? */
 
@@ -1494,57 +1494,56 @@ static void ide_atapi_cmd(IDEState *s)
         }
         break;
     case GPCMD_READ_DVD_STRUCTURE:
-    {
-        int media = packet[1];
-        int format = packet[7];
-        int ret;
+        {
+            int media = packet[1];
+            int format = packet[7];
+            int ret;
 
-        max_len = ube16_to_cpu(packet + 8);
+            max_len = ube16_to_cpu(packet + 8);
 
-        if (format < 0xff) {
-            if (media_is_cd(s)) {
-                ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
-                    ASC_INCOMPATIBLE_FORMAT);
-                break;
+            if (format < 0xff) {
+                if (media_is_cd(s)) {
+                    ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
+                                        ASC_INCOMPATIBLE_FORMAT);
+                    break;
+                } else if (!media_present(s)) {
+                    ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
+                                        ASC_INV_FIELD_IN_CMD_PACKET);
+                    break;
+                }
             }
-            else if (!media_present(s)) {
-                ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
-                    ASC_INV_FIELD_IN_CMD_PACKET);
-                break;
-            }
-        }
 
-        memset(buf, 0, max_len > IDE_DMA_BUF_SECTORS * 512 + 4 ?
-            IDE_DMA_BUF_SECTORS * 512 + 4 : max_len);
+            memset(buf, 0, max_len > IDE_DMA_BUF_SECTORS * 512 + 4 ?
+                   IDE_DMA_BUF_SECTORS * 512 + 4 : max_len);
 
 #ifndef _MSC_VER
-        switch (format) {
-        case 0x00 ... 0x7f:
-        case 0xff:
-            if (media == 0) {
-                ret = ide_dvd_read_structure(s, format, packet, buf);
+            switch (format) {
+                case 0x00 ... 0x7f:
+                case 0xff:
+                    if (media == 0) {
+                        ret = ide_dvd_read_structure(s, format, packet, buf);
 
-                if (ret < 0)
-                    ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST, -ret);
-                else
-                    ide_atapi_cmd_reply(s, ret, max_len);
+                        if (ret < 0)
+                            ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST, -ret);
+                        else
+                            ide_atapi_cmd_reply(s, ret, max_len);
 
-                break;
+                        break;
+                    }
+                    /* TODO: BD support, fall through for now */
+
+                /* Generic disk structures */
+                case 0x80: /* TODO: AACS volume identifier */
+                case 0x81: /* TODO: AACS media serial number */
+                case 0x82: /* TODO: AACS media identifier */
+                case 0x83: /* TODO: AACS media key block */
+                case 0x90: /* TODO: List of recognized format layers */
+                case 0xc0: /* TODO: Write protection status */
+                default:
+                    ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
+                                        ASC_INV_FIELD_IN_CMD_PACKET);
+                    break;
             }
-            /* TODO: BD support, fall through for now */
-
-        /* Generic disk structures */
-        case 0x80: /* TODO: AACS volume identifier */
-        case 0x81: /* TODO: AACS media serial number */
-        case 0x82: /* TODO: AACS media identifier */
-        case 0x83: /* TODO: AACS media key block */
-        case 0x90: /* TODO: List of recognized format layers */
-        case 0xc0: /* TODO: Write protection status */
-        default:
-            ide_atapi_cmd_error(s, SENSE_ILLEGAL_REQUEST,
-                ASC_INV_FIELD_IN_CMD_PACKET);
-            break;
-        }
 #else
         if ((format >= 0x00 && format <= 0x7f) || (format == 0xff))
         {
@@ -1570,7 +1569,7 @@ static void ide_atapi_cmd(IDEState *s)
                 ASC_INV_FIELD_IN_CMD_PACKET);
         }
 #endif
-    }
+        }
         break;
     case GPCMD_SET_SPEED:
         ide_atapi_cmd_ok(s);

@@ -14,10 +14,13 @@ DEF("cpu", HAS_ARG, QEMU_OPTION_cpu,
 "-cpu cpu        select CPU (-cpu ? for list)\n")
 
 DEF("smp", HAS_ARG, QEMU_OPTION_smp,
-"-smp n[,maxcpus=cpus]\n"
+"-smp n[,maxcpus=cpus][,cores=cores][,threads=threads][,sockets=sockets]\n"
 "                set the number of CPUs to 'n' [default=1]\n"
 "                maxcpus= maximum number of total cpus, including\n"
-"                offline CPUs for hotplug etc.\n")
+"                  offline CPUs for hotplug etc.\n"
+"                cores= number of CPU cores on one socket\n"
+"                threads= number of threads on one CPU core\n"
+"                sockets= number of discrete sockets in the system\n")
 
 DEF("numa", HAS_ARG, QEMU_OPTION_numa,
 "-numa node[,mem=size][,cpus=cpu[-cpu]][,nodeid=node]\n")
@@ -40,7 +43,7 @@ DEF("drive", HAS_ARG, QEMU_OPTION_drive,
 "-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]\n"
 "       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]\n"
 "       [,cache=writethrough|writeback|none][,format=f][,serial=s]\n"
-"       [,addr=A][,id=name]\n"
+"       [,addr=A][,id=name][,aio=threads|native]\n"
 "                use 'file' as a drive image\n")
 DEF("set", HAS_ARG, QEMU_OPTION_set,
 "-set group.id.arg=value\n"
@@ -303,6 +306,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 
 	// END HEAVILY MODIFIED SECTION 
 
+
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "\n" \
 "-bt hci,null    dumb bluetooth HCI - doesn't respond to commands\n" \
@@ -334,6 +338,8 @@ DEFHEADING()
 DEFHEADING(Debug/Expert options:)
 
 
+DEF("chardev", HAS_ARG, QEMU_OPTION_chardev, \
+"-chardev spec   create unconnected chardev\n")
 DEF("serial", HAS_ARG, QEMU_OPTION_serial, \
 "-serial dev     redirect the serial port to char device 'dev'\n")
 
@@ -371,16 +377,6 @@ DEF("L", HAS_ARG, QEMU_OPTION_L, \
 
 DEF("bios", HAS_ARG, QEMU_OPTION_bios, \
 "-bios file      set the filename for the BIOS\n")
-
-#ifdef CONFIG_KQEMU
-DEF("kernel-kqemu", 0, QEMU_OPTION_kernel_kqemu, \
-"-kernel-kqemu   enable KQEMU full virtualization (default is user mode only)\n")
-#endif
-
-#ifdef CONFIG_KQEMU
-DEF("enable-kqemu", 0, QEMU_OPTION_enable_kqemu, \
-"-enable-kqemu   enable KQEMU kernel module usage\n")
-#endif
 
 #ifdef CONFIG_KVM
 DEF("enable-kvm", 0, QEMU_OPTION_enable_kvm, \
