@@ -1136,14 +1136,6 @@ void helper_sysret(int dflag)
         env->eflags |= IF_MASK;
         cpu_x86_set_cpl(env, 3);
     }
-#ifdef CONFIG_KQEMU
-    if (kqemu_is_ok(env)) {
-        if (env->hflags & HF_LMA_MASK)
-            CC_OP = CC_OP_EFLAGS;
-        env->exception_index = -1;
-        cpu_loop_exit();
-    }
-#endif
 }
 #endif
 
@@ -2531,12 +2523,6 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
         SET_ESP(sp, sp_mask);
         EIP = offset;
     }
-#ifdef CONFIG_KQEMU
-    if (kqemu_is_ok(env)) {
-        env->exception_index = -1;
-        cpu_loop_exit();
-    }
-#endif
 }
 
 /* real and vm86 mode iret */
@@ -2817,24 +2803,11 @@ void helper_iret_protected(int shift, int next_eip)
         helper_ret_protected(shift, 1, 0);
     }
     env->hflags2 &= ~HF2_NMI_MASK;
-#ifdef CONFIG_KQEMU
-    if (kqemu_is_ok(env)) {
-        CC_OP = CC_OP_EFLAGS;
-        env->exception_index = -1;
-        cpu_loop_exit();
-    }
-#endif
 }
 
 void helper_lret_protected(int shift, int addend)
 {
     helper_ret_protected(shift, 0, addend);
-#ifdef CONFIG_KQEMU
-    if (kqemu_is_ok(env)) {
-        env->exception_index = -1;
-        cpu_loop_exit();
-    }
-#endif
 }
 
 void helper_sysenter(void)
@@ -2907,12 +2880,6 @@ void helper_sysexit(int dflag)
     }
     ESP = ECX;
     EIP = EDX;
-#ifdef CONFIG_KQEMU
-    if (kqemu_is_ok(env)) {
-        env->exception_index = -1;
-        cpu_loop_exit();
-    }
-#endif
 }
 
 #if defined(CONFIG_USER_ONLY)
@@ -3234,15 +3201,6 @@ void helper_rdmsr(void)
         break;
     case MSR_KERNELGSBASE:
         val = env->kernelgsbase;
-        break;
-#endif
-#ifdef CONFIG_KQEMU
-    case MSR_QPI_COMMBASE:
-        if (env->kqemu_enabled) {
-            val = kqemu_comm_base;
-        } else {
-            val = 0;
-        }
         break;
 #endif
     case MSR_MTRRphysBase(0):
@@ -4391,8 +4349,8 @@ void helper_fyl2xp1(void)
 
     fptemp = ST0;
 #ifndef _MSC_VER
-	if ((fptemp+1.0)>0.0) {
-		fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
+    if ((fptemp+1.0)>0.0) {
+        fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
         ST1 *= fptemp;
 #else
 	if ((fx80_to_longdouble(&fptemp) + 1.0)>0.0) {

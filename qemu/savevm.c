@@ -848,6 +848,26 @@ const VMStateInfo vmstate_info_uint64 = {
     .put  = put_uint64,
 };
 
+/* 8 bit int. See that the received value is the same than the one
+   in the field */
+
+static int get_uint8_equal(QEMUFile *f, void *pv, size_t size)
+{
+    uint8_t *v = pv;
+    uint8_t v2;
+    qemu_get_8s(f, &v2);
+
+    if (*v == v2)
+        return 0;
+    return -EINVAL;
+}
+
+const VMStateInfo vmstate_info_uint8_equal = {
+    .name = "int32 equal",
+    .get  = get_uint8_equal,
+    .put  = put_uint8,
+};
+
 /* timers  */
 
 static int get_timer(QEMUFile *f, void *pv, size_t size)
@@ -1029,6 +1049,11 @@ int vmstate_load_state(QEMUFile *f, const VMStateDescription *vmsd,
     if  (version_id < vmsd->minimum_version_id) {
         return vmsd->load_state_old(f, opaque, version_id);
     }
+    if (vmsd->pre_load) {
+        int ret = vmsd->pre_load(opaque);
+        if (ret)
+            return ret;
+    }
     while(field->name) {
         if (field->version_id <= version_id) {
             void *base_addr = (char *)opaque + field->offset;
@@ -1058,8 +1083,9 @@ int vmstate_load_state(QEMUFile *f, const VMStateDescription *vmsd,
         }
         field++;
     }
-    if (vmsd->run_after_load)
-        return vmsd->run_after_load(opaque);
+    if (vmsd->post_load) {
+        return vmsd->post_load(opaque);
+    }
     return 0;
 }
 
@@ -1068,6 +1094,9 @@ void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
 {
     VMStateField *field = vmsd->fields;
 
+    if (vmsd->pre_save) {
+        vmsd->pre_save(opaque);
+    }
     while(field->name) {
         const void *base_addr = (char *)opaque + field->offset;
         int i, n_elems = 1;
@@ -1090,6 +1119,9 @@ void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
             }
         }
         field++;
+    }
+    if (vmsd->post_save) {
+        vmsd->post_save(opaque);
     }
 }
 

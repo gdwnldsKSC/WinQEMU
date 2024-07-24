@@ -130,7 +130,7 @@ static x86_def_t x86_defs[] = {
 #ifdef TARGET_X86_64
     {
         .name = "qemu64",
-        .level = 2,
+        .level = 4,
         .vendor1 = CPUID_VENDOR_AMD_1,
         .vendor2 = CPUID_VENDOR_AMD_2,
         .vendor3 = CPUID_VENDOR_AMD_3,
@@ -198,10 +198,36 @@ static x86_def_t x86_defs[] = {
         .xlevel = 0x80000008,
         .model_id = "Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz",
     },
+    {
+        .name = "kvm64",
+        .level = 5,
+        .vendor1 = CPUID_VENDOR_INTEL_1,
+        .vendor2 = CPUID_VENDOR_INTEL_2,
+        .vendor3 = CPUID_VENDOR_INTEL_3,
+        .family = 15,
+        .model = 6,
+        .stepping = 1,
+        /* Missing: CPUID_VME, CPUID_HT */
+        .features = PPRO_FEATURES |
+            CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA |
+            CPUID_PSE36,
+        /* Missing: CPUID_EXT_POPCNT, CPUID_EXT_MONITOR */
+        .ext_features = CPUID_EXT_SSE3 | CPUID_EXT_CX16,
+        /* Missing: CPUID_EXT2_PDPE1GB, CPUID_EXT2_RDTSCP */
+        .ext2_features = (PPRO_FEATURES & 0x0183F3FF) |
+            CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX,
+        /* Missing: CPUID_EXT3_LAHF_LM, CPUID_EXT3_CMP_LEG, CPUID_EXT3_EXTAPIC,
+                    CPUID_EXT3_CR8LEG, CPUID_EXT3_ABM, CPUID_EXT3_SSE4A,
+                    CPUID_EXT3_MISALIGNSSE, CPUID_EXT3_3DNOWPREFETCH,
+                    CPUID_EXT3_OSVW, CPUID_EXT3_IBS, CPUID_EXT3_SVM */
+        .ext3_features = 0,
+        .xlevel = 0x80000008,
+        .model_id = "Common KVM processor"
+    },
 #endif
     {
         .name = "qemu32",
-        .level = 2,
+        .level = 4,
         .family = 6,
         .model = 3,
         .stepping = 3,
@@ -360,7 +386,7 @@ static int cpu_x86_find_by_name(x86_def_t *x86_cpu_def, const char *cpu_model)
     char *featurestr, *name = strtok(s, ",");
     uint32_t plus_features = 0, plus_ext_features = 0, plus_ext2_features = 0, plus_ext3_features = 0;
     uint32_t minus_features = 0, minus_ext_features = 0, minus_ext2_features = 0, minus_ext3_features = 0;
-    int family = -1, model = -1, stepping = -1;
+    uint32_t numvalue;
 
     def = NULL;
     for (i = 0; i < ARRAY_SIZE(x86_defs); i++) {
@@ -392,28 +418,47 @@ static int cpu_x86_find_by_name(x86_def_t *x86_cpu_def, const char *cpu_model)
             *val = 0; val++;
             if (!strcmp(featurestr, "family")) {
                 char *err;
-                family = strtol(val, &err, 10);
-                if (!*val || *err || family < 0) {
+                numvalue = strtoul(val, &err, 0);
+                if (!*val || *err) {
                     fprintf(stderr, "bad numerical value %s\n", val);
                     goto error;
                 }
-                x86_cpu_def->family = family;
+                x86_cpu_def->family = numvalue;
             } else if (!strcmp(featurestr, "model")) {
                 char *err;
-                model = strtol(val, &err, 10);
-                if (!*val || *err || model < 0 || model > 0xff) {
+                numvalue = strtoul(val, &err, 0);
+                if (!*val || *err || numvalue > 0xff) {
                     fprintf(stderr, "bad numerical value %s\n", val);
                     goto error;
                 }
-                x86_cpu_def->model = model;
+                x86_cpu_def->model = numvalue;
             } else if (!strcmp(featurestr, "stepping")) {
                 char *err;
-                stepping = strtol(val, &err, 10);
-                if (!*val || *err || stepping < 0 || stepping > 0xf) {
+                numvalue = strtoul(val, &err, 0);
+                if (!*val || *err || numvalue > 0xf) {
                     fprintf(stderr, "bad numerical value %s\n", val);
                     goto error;
                 }
-                x86_cpu_def->stepping = stepping;
+                x86_cpu_def->stepping = numvalue ;
+            } else if (!strcmp(featurestr, "level")) {
+                char *err;
+                numvalue = strtoul(val, &err, 0);
+                if (!*val || *err) {
+                    fprintf(stderr, "bad numerical value %s\n", val);
+                    goto error;
+                }
+                x86_cpu_def->level = numvalue;
+            } else if (!strcmp(featurestr, "xlevel")) {
+                char *err;
+                numvalue = strtoul(val, &err, 0);
+                if (!*val || *err) {
+                    fprintf(stderr, "bad numerical value %s\n", val);
+                    goto error;
+                }
+                if (numvalue < 0x80000000) {
+                	numvalue += 0x80000000;
+                }
+                x86_cpu_def->xlevel = numvalue;
             } else if (!strcmp(featurestr, "vendor")) {
                 if (strlen(val) != 12) {
                     fprintf(stderr, "vendor string must be 12 chars long\n");
@@ -721,7 +766,7 @@ void cpu_dump_state(CPUState *env, FILE *f,
 
 #ifndef _MSC_VER
     if (kvm_enabled())
-        kvm_arch_get_registers(env);
+        cpu_synchronize_state(env);
 #endif
 
     eflags = env->eflags;
@@ -1022,15 +1067,11 @@ target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
 
 /* XXX: This value should match the one returned by CPUID
  * and in exec.c */
-#if defined(CONFIG_KQEMU)
-#define PHYS_ADDR_MASK 0xfffff000LL
-#else
 # if defined(TARGET_X86_64)
 # define PHYS_ADDR_MASK 0xfffffff000LL
 # else
 # define PHYS_ADDR_MASK 0xffffff000LL
 # endif
-#endif
 
 /* return value:
    -1 = cannot handle fault
@@ -1658,6 +1699,10 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
         *ebx = (env->cpuid_apic_id << 24) | 8 << 8; /* CLFLUSH size in quad words, Linux wants it. */
         *ecx = env->cpuid_ext_features;
         *edx = env->cpuid_features;
+        if (env->nr_cores * env->nr_threads > 1) {
+            *ebx |= (env->nr_cores * env->nr_threads) << 16;
+            *edx |= 1 << 28;    /* HTT bit */
+        }
         break;
     case 2:
         /* cache info: needed for Pentium Pro compatibility */
@@ -1668,21 +1713,29 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
         break;
     case 4:
         /* cache info: needed for Core compatibility */
+        if (env->nr_cores > 1) {
+        	*eax = (env->nr_cores - 1) << 26;
+        } else {
+        	*eax = 0;
+        }
         switch (count) {
             case 0: /* L1 dcache info */
-                *eax = 0x0000121;
+                *eax |= 0x0000121;
                 *ebx = 0x1c0003f;
                 *ecx = 0x000003f;
                 *edx = 0x0000001;
                 break;
             case 1: /* L1 icache info */
-                *eax = 0x0000122;
+                *eax |= 0x0000122;
                 *ebx = 0x1c0003f;
                 *ecx = 0x000003f;
                 *edx = 0x0000001;
                 break;
             case 2: /* L2 cache info */
-                *eax = 0x0000143;
+                *eax |= 0x0000143;
+                if (env->nr_threads > 1) {
+                    *eax |= (env->nr_threads - 1) << 14;
+                }
                 *ebx = 0x3c0003f;
                 *ecx = 0x0000fff;
                 *edx = 0x0000001;
@@ -1735,6 +1788,13 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
         *ecx = env->cpuid_ext3_features;
         *edx = env->cpuid_ext2_features;
 
+        if (env->nr_cores * env->nr_threads > 1 &&
+            env->cpuid_vendor1 == CPUID_VENDOR_AMD_1 &&
+            env->cpuid_vendor2 == CPUID_VENDOR_AMD_2 &&
+            env->cpuid_vendor3 == CPUID_VENDOR_AMD_3) {
+            *ecx |= 1 << 1;    /* CmpLegacy bit */
+        }
+
         if (kvm_enabled()) {
             /* Nested SVM not yet supported in KVM */
             *ecx &= ~CPUID_EXT3_SVM;
@@ -1770,25 +1830,20 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
 /* XXX: This value must match the one used in the MMU code. */ 
         if (env->cpuid_ext2_features & CPUID_EXT2_LM) {
             /* 64 bit processor */
-#if defined(CONFIG_KQEMU)
-            *eax = 0x00003020;	/* 48 bits virtual, 32 bits physical */
-#else
 /* XXX: The physical address space is limited to 42 bits in exec.c. */
             *eax = 0x00003028;	/* 48 bits virtual, 40 bits physical */
-#endif
         } else {
-#if defined(CONFIG_KQEMU)
-            *eax = 0x00000020;	/* 32 bits physical */
-#else
             if (env->cpuid_features & CPUID_PSE36)
                 *eax = 0x00000024; /* 36 bits physical */
             else
                 *eax = 0x00000020; /* 32 bits physical */
-#endif
         }
         *ebx = 0;
         *ecx = 0;
         *edx = 0;
+        if (env->nr_cores * env->nr_threads > 1) {
+            *ecx |= (env->nr_cores * env->nr_threads) - 1;
+        }
         break;
     case 0x8000000A:
         *eax = 0x00000001; /* SVM Revision */
@@ -1860,9 +1915,6 @@ CPUX86State *cpu_x86_init(const char *cpu_model)
     }
     mce_init(env);
     cpu_reset(env);
-#ifdef CONFIG_KQEMU
-    kqemu_init(env);
-#endif
 
     qemu_init_vcpu(env);
 
