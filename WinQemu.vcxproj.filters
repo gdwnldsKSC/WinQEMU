@@ -1260,6 +1260,9 @@
     <ClCompile Include="qemu\hw\vga-isa-mm.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\ide\qdev.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
