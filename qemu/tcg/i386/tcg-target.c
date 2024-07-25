@@ -1068,7 +1068,7 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_bswap32_i32:
         tcg_out_opc(s, (0xc8 + args[0]) | P_EXT);
         break;
-        /*
+ /*
     case INDEX_op_neg_i32:
         tcg_out_modrm(s, 0xf7, 3, args[0]);
         break;

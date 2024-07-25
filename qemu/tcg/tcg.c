@@ -22,18 +22,6 @@
  * THE SOFTWARE.
  */
 
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-
 /* define it to use liveness analysis (better code) */
 #define USE_LIVENESS_ANALYSIS
 
@@ -58,6 +46,7 @@
 
 #include "qemu-common.h"
 #include "cache-utils.h"
+#include "host-utils.h"
 
 /* Note: the long term plan is to reduce the dependancies on the QEMU
    CPU definitions. Currently they are used for qemu_ld/st
@@ -69,12 +58,16 @@
 #include "tcg-op.h"
 #include "elf.h"
 
+#if defined(CONFIG_USE_GUEST_BASE) && !defined(TCG_TARGET_HAS_GUEST_BASE)
+#error GUEST_BASE not supported on this host.
+#endif
+
 static void patch_reloc(uint8_t *code_ptr, int type, 
                         tcg_target_long value, tcg_target_long addend);
 
 static TCGOpDef tcg_op_defs[] = {
 #define DEF(s, n, copy_size) { #s, 0, 0, n, n, 0, copy_size },
-#define DEF2(s, iargs, oargs, cargs, flags) { #s, iargs, oargs, cargs, iargs + oargs + cargs, flags, 0 },
+#define DEF2(s, oargs, iargs, cargs, flags) { #s, oargs, iargs, cargs, iargs + oargs + cargs, flags, 0 },
 #include "tcg-opc.h"
 #undef DEF
 #undef DEF2
@@ -770,7 +763,6 @@ static TCGHelperInfo *tcg_find_helper(TCGContext *s, tcg_target_ulong val)
     return NULL;
 }
 
-#ifndef _MSC_VER
 static const char * const cond_name[] =
 {
     [TCG_COND_EQ] = "eq",
@@ -784,21 +776,6 @@ static const char * const cond_name[] =
     [TCG_COND_LEU] = "leu",
     [TCG_COND_GTU] = "gtu"
 };
-#else
-static const char * const cond_name[] =
-{
-	 "eq",
-	 "ne",
-	 "lt",
-	 "ge",
-	 "le",
-	 "gt",
-	 "ltu",
-	 "geu",
-	 "leu",
-	 "gtu"
-};
-#endif
 
 void tcg_dump_ops(TCGContext *s, FILE *outfile)
 {
@@ -1151,11 +1128,11 @@ static void tcg_liveness_analysis(TCGContext *s)
                         dead_temps[arg] = 1;
                     }
                     
-					if (!(call_flags & TCG_CALL_CONST)) {
-						/* globals are live (they may be used by the call) */
-						memset(dead_temps, 0, s->nb_globals);
-					}
-                    
+                    if (!(call_flags & TCG_CALL_CONST)) {
+                        /* globals are live (they may be used by the call) */
+                        memset(dead_temps, 0, s->nb_globals);
+                    }
+
                     /* input args are live */
                     dead_iargs = 0;
                     for(i = 0; i < nb_iargs; i++) {
@@ -1852,9 +1829,9 @@ static int tcg_reg_alloc_call(TCGContext *s, const TCGOpDef *def,
     
     /* store globals and free associated registers (we assume the call
        can modify any global. */
-	if (!(flags & TCG_CALL_CONST)) {
-		save_globals(s, allocated_regs);
-	}
+    if (!(flags & TCG_CALL_CONST)) {
+        save_globals(s, allocated_regs);
+    }
 
     tcg_out_op(s, opc, &func_arg, &const_func_arg);
     
@@ -2097,6 +2074,7 @@ void tcg_dump_info(FILE *f,
                 s->restore_count);
     cpu_fprintf(f, "  avg cycles        %0.1f\n",
                 s->restore_count ? (double)s->restore_time / s->restore_count : 0);
+
     dump_op_count();
 }
 #else
