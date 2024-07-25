@@ -191,6 +191,15 @@
     <ClCompile Include="qemu\block\vmdk.c" />
     <ClCompile Include="qemu\block\vpc.c" />
     <ClCompile Include="qemu\block\vvfat.c" />
+    <ClCompile Include="qemu\check-qdict.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\check-qint.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\check-qstring.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
@@ -1350,6 +1359,7 @@
     <Text Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="qemu\qemu-monitor.hx" />
     <None Include="qemu\qemu-options.hx" />
     <None Include="qemu\target-alpha\STATUS">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

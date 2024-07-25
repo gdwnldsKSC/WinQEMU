@@ -1263,6 +1263,15 @@
     <ClCompile Include="qemu\tcg-runtime.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\check-qdict.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\check-qint.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\check-qstring.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1904,6 +1913,9 @@
       <Filter>qemu\target-alpha</Filter>
     </None>
     <None Include="qemu\qemu-options.hx">
+      <Filter>qemu\inc</Filter>
+    </None>
+    <None Include="qemu\qemu-monitor.hx">
       <Filter>qemu\inc</Filter>
     </None>
   </ItemGroup>
