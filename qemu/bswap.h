@@ -1,13 +1,3 @@
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef BSWAP_H
 #define BSWAP_H
 
@@ -23,9 +13,14 @@
 
 #ifdef CONFIG_BYTESWAP_H
 #include <byteswap.h>
+#elif _MSC_VER // add in byteswap functions from MSVC
+#include <stdlib.h>
+#define bswap_32(x) _byteswap_ulong(x)
+#define bswap_64(x) _byteswap_uint64(x)
+#define bswap_16(x) _byteswap_ushort(x)
+
 #else
 
-#ifndef _MSC_VER
 #define bswap_16(x) \
 ({ \
 	uint16_t __x = (x); \
@@ -58,45 +53,7 @@
 		(uint64_t)(((uint64_t)(__x) & (uint64_t)0xff00000000000000ULL) >> 56) )); \
 })
 
-#else
-inline uint16_t bswap_16(uint16_t x)
-{
-	uint16_t __x = x;
-	__x = (uint16_t)((((uint16_t)(__x) & (uint16_t)0x00ffU) << 8) |
-		(((uint16_t)(__x) & (uint16_t)0xff00U) >> 8));
-
-	return __x;
-}
-
-inline uint32_t bswap_32(uint32_t x) \
-{
-	uint32_t __x = (x);
-	__x = (uint32_t) ((((uint32_t)(__x) & (uint32_t)0x000000ffUL) << 24) | \
-		(((uint32_t)(__x) & (uint32_t)0x0000ff00UL) <<  8) | \
-		(((uint32_t)(__x) & (uint32_t)0x00ff0000UL) >>  8) | \
-		(((uint32_t)(__x) & (uint32_t)0xff000000UL) >> 24) );
-
-	return __x;
-}
-
-inline uint64_t bswap_64(uint64_t x) \
-{ 
-	uint64_t __x = (x);
-	__x = (uint64_t)(
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x00000000000000ffULL) << 56) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x000000000000ff00ULL) << 40) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x0000000000ff0000ULL) << 24) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x00000000ff000000ULL) <<  8) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x000000ff00000000ULL) >>  8) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x0000ff0000000000ULL) >> 24) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0x00ff000000000000ULL) >> 40) | \
-		(uint64_t)(((uint64_t)(__x) & (uint64_t)0xff00000000000000ULL) >> 56) );
-
-	return __x;
-}
-#endif
-
-#endif /* !HAVE_BYTESWAP_H */
+#endif /* !CONFIG_BYTESWAP_H */
 
 static inline uint16_t bswap16(uint16_t x)
 {
