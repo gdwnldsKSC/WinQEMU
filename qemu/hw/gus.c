@@ -156,8 +156,8 @@ static void GUS_callback (void *opaque, int free)
     }
     s->left = samples;
 
-reset:
-    gus_irqgen (&s->emu, (double) (net * 1000000) / s->freq);
+ reset:
+    gus_irqgen (&s->emu, muldiv64 (net, 1000000, s->freq));
 }
 
 int GUS_irqrequest (GUSEmuState *emu, int hwirq, int n)
@@ -268,7 +268,6 @@ static int gus_initfn (ISADevice *dev)
 
     if (!s->voice) {
         AUD_remove_card (&s->card);
-        qemu_free (s);
         return -1;
     }
 

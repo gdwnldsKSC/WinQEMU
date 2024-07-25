@@ -26,8 +26,8 @@
 #ifndef QEMU_OPTIONS_H
 #define QEMU_OPTIONS_H
 
-#include "qemu-queue.h"
 #include <stdint.h>
+#include "qemu-queue.h"
 
 enum QEMUOptionParType {
     OPT_FLAG,

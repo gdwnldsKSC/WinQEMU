@@ -203,6 +203,7 @@
     <ClCompile Include="qemu\hw\ide\qdev.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
+    <ClCompile Include="qemu\hw\loader.c" />
     <ClCompile Include="qemu\hw\marvell_88w8618_audio.c" />
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -266,6 +267,7 @@
     <ClCompile Include="qemu\target-i386\translate.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\tcg-runtime.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">Create</PrecompiledHeader>
@@ -320,7 +322,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\loader.c" />
     <ClCompile Include="qemu\m68k-dis.c" />
     <ClCompile Include="qemu\m68k-semi.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1097,7 +1098,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\tcg\tcg-runtime.c" />
     <ClCompile Include="qemu\tcg\tcg.c" />
     <ClCompile Include="qemu\tcg\i386\tcg-target.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1129,7 +1129,9 @@
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
+    <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\ne2000.h" />
     <ClInclude Include="qemu\hw\poison.h" />
@@ -1198,7 +1200,6 @@
     <ClInclude Include="qemu\dma.h" />
     <ClInclude Include="qemu\dyngen-exec.h" />
     <ClInclude Include="qemu\elf.h" />
-    <ClInclude Include="qemu\elf_ops.h" />
     <ClInclude Include="qemu\exec-all.h" />
     <ClInclude Include="qemu\gdbstub.h" />
     <ClInclude Include="qemu\gen-icount.h" />

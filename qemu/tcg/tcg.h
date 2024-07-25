@@ -27,6 +27,7 @@
 
 #include "qemu-common.h"
 #include "tcg-target.h"
+#include "tcg-runtime.h"
 
 #if TCG_TARGET_REG_BITS == 32
 typedef int32_t tcg_target_long;
@@ -471,15 +472,6 @@ void tcg_out_reloc(TCGContext *s, uint8_t *code_ptr, int type,
 const TCGArg *tcg_gen_code_op(TCGContext *s, int opc, const TCGArg *args1,
                               unsigned int dead_iargs);
 
-/* tcg-runtime.c */
-int64_t tcg_helper_shl_i64(int64_t arg1, int64_t arg2);
-int64_t tcg_helper_shr_i64(int64_t arg1, int64_t arg2);
-int64_t tcg_helper_sar_i64(int64_t arg1, int64_t arg2);
-int64_t tcg_helper_div_i64(int64_t arg1, int64_t arg2);
-int64_t tcg_helper_rem_i64(int64_t arg1, int64_t arg2);
-uint64_t tcg_helper_divu_i64(uint64_t arg1, uint64_t arg2);
-uint64_t tcg_helper_remu_i64(uint64_t arg1, uint64_t arg2);
-
 extern uint8_t code_gen_prologue[];
 #if defined(_ARCH_PPC) && !defined(_ARCH_PPC64)
 #define tcg_qemu_tb_exec(tb_ptr) \
@@ -487,5 +479,4 @@ extern uint8_t code_gen_prologue[];
 #else
 #define tcg_qemu_tb_exec(tb_ptr) ((long REGPARM (*)(void *))code_gen_prologue)(tb_ptr)
 #endif
-
 #endif // end include guard

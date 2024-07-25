@@ -13,6 +13,7 @@
 
 #include "sysemu.h"
 #include "smbios.h"
+#include "loader.h"
 
 
 #ifdef _MSC_VER
