@@ -1456,7 +1456,8 @@ static int win32_start_timer(struct qemu_alarm_timer *t)
                         flags);
 
     if (!data->timerId) {
-        perror("Failed to initialize win32 alarm timer");
+        fprintf(stderr, "Failed to initialize win32 alarm timer: %ld\n",
+                GetLastError());
         timeEndPeriod(data->period);
         return -1;
     }
@@ -1493,7 +1494,8 @@ static void win32_rearm_timer(struct qemu_alarm_timer *t)
                         TIME_ONESHOT | TIME_PERIODIC);
 
     if (!data->timerId) {
-        perror("Failed to re-arm win32 alarm timer");
+        fprintf(stderr, "Failed to re-arm win32 alarm timer %ld\n",
+                GetLastError());
 
         timeEndPeriod(data->period);
         exit(1);
@@ -3390,7 +3392,7 @@ static int qemu_event_init(void)
 {
     qemu_event_handle = CreateEvent(NULL, FALSE, FALSE, NULL);
     if (!qemu_event_handle) {
-        perror("Failed CreateEvent");
+        fprintf(stderr, "Failed CreateEvent: %ld\n", GetLastError());
         return -1;
     }
     qemu_add_wait_object(qemu_event_handle, dummy_event_handler, NULL);
@@ -3399,7 +3401,11 @@ static int qemu_event_init(void)
 
 static void qemu_event_increment(void)
 {
-    SetEvent(qemu_event_handle);
+    if (!SetEvent(qemu_event_handle)) {
+        fprintf(stderr, "qemu_event_increment: SetEvent failed: %ld\n",
+                GetLastError());
+        exit (1);
+    }
 }
 #endif
 
