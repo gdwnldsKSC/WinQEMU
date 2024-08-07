@@ -21,25 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-#ifdef _MSC_VER
-#ifndef __tcg_target_h__
-#define __tcg_target_h__
-
-#include <stdint.h>
-#include "qemu-common.h"
-#endif
-
 #define TCG_TARGET_I386 1
 
 #define TCG_TARGET_REG_BITS 32
@@ -66,11 +47,15 @@ enum {
 /* optional instructions */
 #define TCG_TARGET_HAS_bswap16_i32
 #define TCG_TARGET_HAS_bswap32_i32
-//#define TCG_TARGET_HAS_neg_i32
-//#define TCG_TARGET_HAS_not_i32
-//#define TCG_TARGET_HAS_ext8s_i32
-//#define TCG_TARGET_HAS_ext16s_i32
-//#define TCG_TARGET_HAS_rot_i32
+#define TCG_TARGET_HAS_neg_i32
+#define TCG_TARGET_HAS_not_i32
+#define TCG_TARGET_HAS_ext8s_i32
+#define TCG_TARGET_HAS_ext16s_i32
+#define TCG_TARGET_HAS_rot_i32
+#define TCG_TARGET_HAS_ext8u_i32
+#define TCG_TARGET_HAS_ext16u_i32
+
+#define TCG_TARGET_HAS_GUEST_BASE
 
 /* Note: must be synced with dyngen-exec.h */
 #define TCG_AREG0 TCG_REG_EBP
@@ -80,7 +65,3 @@ enum {
 static inline void flush_icache_range(unsigned long start, unsigned long stop)
 {
 }
-
-#ifdef _MSC_VER
-#endif
-#endif

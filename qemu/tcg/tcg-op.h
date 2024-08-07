@@ -1189,16 +1189,22 @@ static inline void tcg_gen_ext16s_i32(TCGv_i32 ret, TCGv_i32 arg)
 #endif
 }
 
-/* These are currently just for convenience.
-   We assume a target will recognise these automatically .  */
 static inline void tcg_gen_ext8u_i32(TCGv_i32 ret, TCGv_i32 arg)
 {
+#ifdef TCG_TARGET_HAS_ext8u_i32
+    tcg_gen_op2_i32(INDEX_op_ext8u_i32, ret, arg);
+#else
     tcg_gen_andi_i32(ret, arg, 0xffu);
+#endif
 }
 
 static inline void tcg_gen_ext16u_i32(TCGv_i32 ret, TCGv_i32 arg)
 {
+#ifdef TCG_TARGET_HAS_ext16u_i32
+    tcg_gen_op2_i32(INDEX_op_ext16u_i32, ret, arg);
+#else
     tcg_gen_andi_i32(ret, arg, 0xffffu);
+#endif
 }
 
 /* Note: we assume the two high bytes are set to zero */
@@ -1358,17 +1364,29 @@ static inline void tcg_gen_ext32s_i64(TCGv_i64 ret, TCGv_i64 arg)
 
 static inline void tcg_gen_ext8u_i64(TCGv_i64 ret, TCGv_i64 arg)
 {
+#ifdef TCG_TARGET_HAS_ext8u_i64
+    tcg_gen_op2_i64(INDEX_op_ext8u_i64, ret, arg);
+#else
     tcg_gen_andi_i64(ret, arg, 0xffu);
+#endif
 }
 
 static inline void tcg_gen_ext16u_i64(TCGv_i64 ret, TCGv_i64 arg)
 {
+#ifdef TCG_TARGET_HAS_ext16u_i64
+    tcg_gen_op2_i64(INDEX_op_ext16u_i64, ret, arg);
+#else
     tcg_gen_andi_i64(ret, arg, 0xffffu);
+#endif
 }
 
 static inline void tcg_gen_ext32u_i64(TCGv_i64 ret, TCGv_i64 arg)
 {
+#ifdef TCG_TARGET_HAS_ext32u_i64
+    tcg_gen_op2_i64(INDEX_op_ext32u_i64, ret, arg);
+#else
     tcg_gen_andi_i64(ret, arg, 0xffffffffu);
+#endif
 }
 
 /* Note: we assume the target supports move between 32 and 64 bit
@@ -1382,7 +1400,7 @@ static inline void tcg_gen_trunc_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
    registers */
 static inline void tcg_gen_extu_i32_i64(TCGv_i64 ret, TCGv_i32 arg)
 {
-    tcg_gen_andi_i64(ret, MAKE_TCGV_I64(GET_TCGV_I32(arg)), 0xffffffffu);
+    tcg_gen_ext32u_i64(ret, MAKE_TCGV_I64(GET_TCGV_I32(arg)));
 }
 
 /* Note: we assume the target supports move between 32 and 64 bit
@@ -1441,8 +1459,8 @@ static inline void tcg_gen_bswap64_i64(TCGv_i64 ret, TCGv_i64 arg)
 #ifdef TCG_TARGET_HAS_bswap64_i64
     tcg_gen_op2_i64(INDEX_op_bswap64_i64, ret, arg);
 #else
-    TCGv_i64 t0 = tcg_temp_new_i32();
-    TCGv_i64 t1 = tcg_temp_new_i32();
+    TCGv_i64 t0 = tcg_temp_new_i64();
+    TCGv_i64 t1 = tcg_temp_new_i64();
     
     tcg_gen_shli_i64(t0, arg, 56);
     

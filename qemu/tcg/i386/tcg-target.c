@@ -22,16 +22,6 @@
  * THE SOFTWARE.
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef NDEBUG
 static const char * const tcg_target_reg_names[TCG_TARGET_NB_REGS] = {
     "%eax",
@@ -1026,13 +1016,13 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_sar_i32:
         c = SHIFT_SAR;
         goto gen_shift32;
-    /* case INDEX_op_rotl_i32:
+    case INDEX_op_rotl_i32:
         c = SHIFT_ROL;
         goto gen_shift32;
     case INDEX_op_rotr_i32:
         c = SHIFT_ROR;
         goto gen_shift32;
-		*/
+
     case INDEX_op_add2_i32:
         if (const_args[4]) 
             tgen_arithi(s, ARITH_ADD, args[0], args[4], 1);
@@ -1068,7 +1058,7 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_bswap32_i32:
         tcg_out_opc(s, (0xc8 + args[0]) | P_EXT);
         break;
- /*
+
     case INDEX_op_neg_i32:
         tcg_out_modrm(s, 0xf7, 3, args[0]);
         break;
@@ -1083,7 +1073,12 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     case INDEX_op_ext16s_i32:
         tcg_out_modrm(s, 0xbf | P_EXT, args[0], args[1]);
         break;
-*/
+    case INDEX_op_ext8u_i32:
+        tcg_out_modrm(s, 0xb6 | P_EXT, args[0], args[1]);
+        break;
+    case INDEX_op_ext16u_i32:
+        tcg_out_modrm(s, 0xb7 | P_EXT, args[0], args[1]);
+        break;
 
     case INDEX_op_qemu_ld8u:
         tcg_out_qemu_ld(s, args, 0);
@@ -1122,7 +1117,6 @@ static inline void tcg_out_op(TCGContext *s, int opc,
     }
 }
 
-#ifndef _MSC_VER
 static const TCGTargetOpDef x86_op_defs[] = {
     { INDEX_op_exit_tb, { } },
     { INDEX_op_goto_tb, { } },
@@ -1172,6 +1166,8 @@ static const TCGTargetOpDef x86_op_defs[] = {
 
     { INDEX_op_ext8s_i32, { "r", "q" } },
     { INDEX_op_ext16s_i32, { "r", "r" } },
+    { INDEX_op_ext8u_i32, { "r", "q"} },
+    { INDEX_op_ext16u_i32, { "r", "r"} },
 
 #if TARGET_LONG_BITS == 32
     { INDEX_op_qemu_ld8u, { "r", "L" } },
@@ -1200,75 +1196,6 @@ static const TCGTargetOpDef x86_op_defs[] = {
 #endif
     { -1 },
 };
-#else
-static const TCGTargetOpDef x86_op_defs[] = {
-	{ INDEX_op_exit_tb, { NULL} },
-	{ INDEX_op_goto_tb, { NULL } },
-	{ INDEX_op_call, { "ri" } },
-	{ INDEX_op_jmp, { "ri" } },
-	{ INDEX_op_br, {NULL} },
-	{ INDEX_op_mov_i32, { "r", "r" } },
-	{ INDEX_op_movi_i32, { "r" } },
-	{ INDEX_op_ld8u_i32, { "r", "r" } },
-	{ INDEX_op_ld8s_i32, { "r", "r" } },
-	{ INDEX_op_ld16u_i32, { "r", "r" } },
-	{ INDEX_op_ld16s_i32, { "r", "r" } },
-	{ INDEX_op_ld_i32, { "r", "r" } },
-	{ INDEX_op_st8_i32, { "q", "r" } },
-	{ INDEX_op_st16_i32, { "r", "r" } },
-	{ INDEX_op_st_i32, { "r", "r" } },
-
-	{ INDEX_op_add_i32, { "r", "0", "ri" } },
-	{ INDEX_op_sub_i32, { "r", "0", "ri" } },
-	{ INDEX_op_mul_i32, { "r", "0", "ri" } },
-	{ INDEX_op_mulu2_i32, { "a", "d", "a", "r" } },
-	{ INDEX_op_div2_i32, { "a", "d", "0", "1", "r" } },
-	{ INDEX_op_divu2_i32, { "a", "d", "0", "1", "r" } },
-	{ INDEX_op_and_i32, { "r", "0", "ri" } },
-	{ INDEX_op_or_i32, { "r", "0", "ri" } },
-	{ INDEX_op_xor_i32, { "r", "0", "ri" } },
-
-	{ INDEX_op_shl_i32, { "r", "0", "ci" } },
-	{ INDEX_op_shr_i32, { "r", "0", "ci" } },
-	{ INDEX_op_sar_i32, { "r", "0", "ci" } },
-
-	{ INDEX_op_brcond_i32, { "r", "ri" } },
-
-    { INDEX_op_bswap16_i32, { "r", "0" } },
-    { INDEX_op_bswap32_i32, { "r", "0" } },
-
-	{ INDEX_op_add2_i32, { "r", "r", "0", "1", "ri", "ri" } },
-	{ INDEX_op_sub2_i32, { "r", "r", "0", "1", "ri", "ri" } },
-	{ INDEX_op_brcond2_i32, { "r", "r", "ri", "ri" } },
-
-#if TARGET_LONG_BITS == 32
-	{ INDEX_op_qemu_ld8u, { "r", "L" } },
-	{ INDEX_op_qemu_ld8s, { "r", "L" } },
-	{ INDEX_op_qemu_ld16u, { "r", "L" } },
-	{ INDEX_op_qemu_ld16s, { "r", "L" } },
-	{ INDEX_op_qemu_ld32u, { "r", "L" } },
-	{ INDEX_op_qemu_ld64, { "r", "r", "L" } },
-
-	{ INDEX_op_qemu_st8, { "cb", "L" } },
-	{ INDEX_op_qemu_st16, { "L", "L" } },
-	{ INDEX_op_qemu_st32, { "L", "L" } },
-	{ INDEX_op_qemu_st64, { "L", "L", "L" } },
-#else
-	{ INDEX_op_qemu_ld8u, { "r", "L", "L" } },
-	{ INDEX_op_qemu_ld8s, { "r", "L", "L" } },
-	{ INDEX_op_qemu_ld16u, { "r", "L", "L" } },
-	{ INDEX_op_qemu_ld16s, { "r", "L", "L" } },
-	{ INDEX_op_qemu_ld32u, { "r", "L", "L" } },
-	{ INDEX_op_qemu_ld64, { "r", "r", "L", "L" } },
-
-	{ INDEX_op_qemu_st8, { "cb", "L", "L" } },
-	{ INDEX_op_qemu_st16, { "L", "L", "L" } },
-	{ INDEX_op_qemu_st32, { "L", "L", "L" } },
-	{ INDEX_op_qemu_st64, { "L", "L", "L", "L" } },
-#endif
-	{ -1 },
-};
-#endif
 
 static int tcg_target_callee_save_regs[] = {
     /*    TCG_REG_EBP, */ /* currently used for the global env, so no

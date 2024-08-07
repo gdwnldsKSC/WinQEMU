@@ -82,10 +82,15 @@
 #define MAX_ETH_FRAME_SIZE 1514
 
 /* This driver supports several different devices which are declared here. */
+#define i82550          0x82550
 #define i82551          0x82551
+#define i82557A         0x82557a
 #define i82557B         0x82557b
 #define i82557C         0x82557c
+#define i82558A         0x82558a
 #define i82558B         0x82558b
+#define i82559A         0x82559a
+#define i82559B         0x82559b
 #define i82559C         0x82559c
 #define i82559ER        0x82559e
 #define i82562          0x82562
@@ -194,19 +199,6 @@ typedef struct {
     uint8_t cmd;
     uint32_t start;
     uint32_t stop;
-    uint8_t boundary;
-    uint8_t tsr;
-    uint8_t tpsr;
-    uint16_t tcnt;
-    uint16_t rcnt;
-    uint32_t rsar;
-    uint8_t rsr;
-    uint8_t rxcr;
-    uint8_t isr;
-    uint8_t dcfg;
-    uint8_t imr;
-    uint8_t phys[6];            /* mac address */
-    uint8_t curpag;
     uint8_t mult[8];            /* multicast mask array */
     int mmio_index;
     VLANClientState *vc;
@@ -215,7 +207,6 @@ typedef struct {
     uint8_t int_stat;           /* PCI interrupt status */
     uint32_t region[3];         /* PCI region addresses */
     uint8_t macaddr[6];
-    uint32_t statcounter[19];
     uint16_t mdimem[32];
     eeprom_t *eeprom;
     uint32_t device;            /* device variant */
@@ -227,7 +218,8 @@ typedef struct {
     uint32_t ru_base;           /* RU base address */
     uint32_t ru_offset;         /* RU address offset */
     uint32_t statsaddr;         /* pointer to eepro100_stats_t */
-    eepro100_stats_t statistics;        /* statistical counters */
+    /* Statistical counters. Also used for wake-up packet (i82559). */
+    eepro100_stats_t statistics;
 #if 0
     uint16_t status;
 #endif
@@ -238,6 +230,10 @@ typedef struct {
     /* Data in mem is always in the byte order of the controller (le). */
     uint8_t mem[PCI_MEM_SIZE];
 } EEPRO100State;
+
+/* Parameters for nic_save, nic_load. */
+static const int eepro100_instance = -1;
+static const int eepro100_version = 20090807;
 
 /* Default values for MDI (PHY) registers */
 static const uint16_t eepro100_mdi_default[] = {
@@ -1587,50 +1583,29 @@ static int nic_load(QEMUFile * f, void *opaque, int version_id)
     int i;
     int ret;
 
-    if (version_id > 3)
+    if (version_id != eepro100_version) {
         return -EINVAL;
-
-    if (version_id >= 3) {
-        ret = pci_device_load(&s->dev, f);
-        if (ret < 0)
-            return ret;
     }
 
-    if (version_id >= 2) {
-        qemu_get_8s(f, &s->rxcr);
-    } else {
-        s->rxcr = 0x0c;
+    ret = pci_device_load(&s->dev, f);
+    if (ret < 0) {
+        return ret;
     }
 
     qemu_get_8s(f, &s->cmd);
     qemu_get_be32s(f, &s->start);
     qemu_get_be32s(f, &s->stop);
-    qemu_get_8s(f, &s->boundary);
-    qemu_get_8s(f, &s->tsr);
-    qemu_get_8s(f, &s->tpsr);
-    qemu_get_be16s(f, &s->tcnt);
-    qemu_get_be16s(f, &s->rcnt);
-    qemu_get_be32s(f, &s->rsar);
-    qemu_get_8s(f, &s->rsr);
-    qemu_get_8s(f, &s->isr);
-    qemu_get_8s(f, &s->dcfg);
-    qemu_get_8s(f, &s->imr);
-    qemu_get_buffer(f, s->phys, 6);
-    qemu_get_8s(f, &s->curpag);
     qemu_get_buffer(f, s->mult, 8);
     qemu_get_buffer(f, s->mem, sizeof(s->mem));
 
     /* Restore all members of struct between scv_stat and mem. */
     qemu_get_8s(f, &s->scb_stat);
     qemu_get_8s(f, &s->int_stat);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < ARRAY_SIZE(s->region); i++) {
         qemu_get_be32s(f, &s->region[i]);
     }
     qemu_get_buffer(f, s->macaddr, 6);
-    for (i = 0; i < 19; i++) {
-        qemu_get_be32s(f, &s->statcounter[i]);
-    }
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < ARRAY_SIZE(s->mdimem); i++) {
         qemu_get_be16s(f, &s->mdimem[i]);
     }
     /* The eeprom should be saved and restored by its own routines. */
@@ -1681,37 +1656,20 @@ static void nic_save(QEMUFile * f, void *opaque)
 
     pci_device_save(&s->dev, f);
 
-    qemu_put_8s(f, &s->rxcr);
-
     qemu_put_8s(f, &s->cmd);
     qemu_put_be32s(f, &s->start);
     qemu_put_be32s(f, &s->stop);
-    qemu_put_8s(f, &s->boundary);
-    qemu_put_8s(f, &s->tsr);
-    qemu_put_8s(f, &s->tpsr);
-    qemu_put_be16s(f, &s->tcnt);
-    qemu_put_be16s(f, &s->rcnt);
-    qemu_put_be32s(f, &s->rsar);
-    qemu_put_8s(f, &s->rsr);
-    qemu_put_8s(f, &s->isr);
-    qemu_put_8s(f, &s->dcfg);
-    qemu_put_8s(f, &s->imr);
-    qemu_put_buffer(f, s->phys, 6);
-    qemu_put_8s(f, &s->curpag);
     qemu_put_buffer(f, s->mult, 8);
     qemu_put_buffer(f, s->mem, sizeof(s->mem));
 
     /* Save all members of struct between scv_stat and mem. */
     qemu_put_8s(f, &s->scb_stat);
     qemu_put_8s(f, &s->int_stat);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < ARRAY_SIZE(s->region); i++) {
         qemu_put_be32s(f, &s->region[i]);
     }
     qemu_put_buffer(f, s->macaddr, 6);
-    for (i = 0; i < 19; i++) {
-        qemu_put_be32s(f, &s->statcounter[i]);
-    }
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < ARRAY_SIZE(s->mdimem); i++) {
         qemu_put_be16s(f, &s->mdimem[i]);
     }
     /* The eeprom should be saved and restored by its own routines. */
@@ -1762,9 +1720,9 @@ static void nic_cleanup(VLANClientState *vc)
     eeprom93xx_free(s->eeprom);
 }
 
-static int pci_nic_uninit(PCIDevice *dev)
+static int pci_nic_uninit(PCIDevice *pci_dev)
 {
-    EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, dev);
+    EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, pci_dev);
 
     cpu_unregister_io_memory(s->mmio_index);
 
@@ -1814,38 +1772,120 @@ static int nic_init(PCIDevice *pci_dev, uint32_t device)
 
     qemu_register_reset(nic_reset, s);
 
-    register_savevm(s->vc->model, -1, 3, nic_save, nic_load, s);
+    register_savevm(s->vc->model, eepro100_instance, eepro100_version,
+                    nic_save, nic_load, s);
     return 0;
 }
 
-static int pci_i82551_init(PCIDevice *dev)
+static int pci_i82550_init(PCIDevice *pci_dev)
 {
-    return nic_init(dev, i82551);
+    return nic_init(pci_dev, i82550);
 }
 
-static int pci_i82557b_init(PCIDevice *dev)
+static int pci_i82551_init(PCIDevice *pci_dev)
 {
-    return nic_init(dev, i82557B);
+    return nic_init(pci_dev, i82551);
 }
 
-static int pci_i82559er_init(PCIDevice *dev)
+static int pci_i82557a_init(PCIDevice *pci_dev)
 {
-    return nic_init(dev, i82559ER);
+    return nic_init(pci_dev, i82557A);
+}
+
+static int pci_i82557b_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82557B);
+}
+
+static int pci_i82557c_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82557C);
+}
+
+static int pci_i82558a_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82558A);
+}
+
+static int pci_i82558b_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82558B);
+}
+
+static int pci_i82559a_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82559A);
+}
+
+static int pci_i82559b_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82559B);
+}
+
+static int pci_i82559c_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82559C);
+}
+
+static int pci_i82559er_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82559ER);
+}
+
+static int pci_i82562_init(PCIDevice *pci_dev)
+{
+    return nic_init(pci_dev, i82562);
 }
 
 static PCIDeviceInfo eepro100_info[] = {
     {
+        .qdev.name = "i82550",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82550_init,
+    },{
         .qdev.name = "i82551",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82551_init,
+    },{
+        .qdev.name = "i82557a",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82557a_init,
     },{
         .qdev.name = "i82557b",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82557b_init,
     },{
+        .qdev.name = "i82557c",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82557c_init,
+    },{
+        .qdev.name = "i82558a",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82558a_init,
+    },{
+        .qdev.name = "i82558b",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82558b_init,
+    },{
+        .qdev.name = "i82559a",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82559a_init,
+    },{
+        .qdev.name = "i82559b",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82559b_init,
+    },{
+        .qdev.name = "i82559c",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82559c_init,
+    },{
         .qdev.name = "i82559er",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82559er_init,
+    },{
+        .qdev.name = "i82562",
+        .qdev.size = sizeof(EEPRO100State),
+        .init      = pci_i82562_init,
     },{
         /* end of list */
     }
