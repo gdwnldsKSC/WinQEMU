@@ -213,12 +213,6 @@ struct PCIDevice {
     uint32_t msix_bar_size;
     /* Version id needed for VMState */
     int32_t version_id;
-    /* How much space does an MSIX table need. */
-    /* The spec requires giving the table structure
-     * a 4K aligned region all by itself. Align it to
-     * target pages so that drivers can do passthrough
-     * on the rest of the region. */
-    target_phys_addr_t msix_page_size;
 };
 
 PCIDevice *pci_register_device(PCIBus *bus, const char *name,
@@ -262,12 +256,15 @@ PCIBus *pci_register_bus(DeviceState *parent, const char *name,
 int pci_nic_supported(const char *model);
 PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
                         const char *default_devaddr);
+PCIDevice *pci_nic_init_nofail(NICInfo *nd, const char *default_model,
+                               const char *default_devaddr);
 void pci_data_write(void *opaque, uint32_t addr, uint32_t val, int len);
 uint32_t pci_data_read(void *opaque, uint32_t addr, int len);
 int pci_bus_num(PCIBus *s);
 void pci_for_each_device(int bus_num, void (*fn)(PCIDevice *d));
 PCIBus *pci_find_bus(int bus_num);
 PCIDevice *pci_find_device(int bus_num, int slot, int function);
+PCIBus *pci_get_bus_devfn(int *devfnp, const char *devaddr);
 
 int pci_read_devaddr(Monitor *mon, const char *addr, int *domp, int *busp,
                      unsigned *slotp);
@@ -342,8 +339,7 @@ typedef struct {
 void pci_qdev_register(PCIDeviceInfo *info);
 void pci_qdev_register_many(PCIDeviceInfo *info);
 
-PCIDevice *pci_create(const char *name, const char *devaddr);
-PCIDevice *pci_create_noinit(PCIBus *bus, int devfn, const char *name);
+PCIDevice *pci_create(PCIBus *bus, int devfn, const char *name);
 PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name);
 
 /* lsi53c895a.c */

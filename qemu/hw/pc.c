@@ -844,8 +844,8 @@ static void load_linux(void *fw_cfg,
     if (!f || !(kernel_size = get_file_size(f)) ||
 	fread(header, 1, MIN(ARRAY_SIZE(header), kernel_size), f) !=
 	MIN(ARRAY_SIZE(header), kernel_size)) {
-	fprintf(stderr, "qemu: could not load kernel '%s'\n",
-		kernel_filename);
+	fprintf(stderr, "qemu: could not load kernel '%s': %s\n",
+		kernel_filename, strerror(errno));
 	exit(1);
     }
 
@@ -950,8 +950,8 @@ static void load_linux(void *fw_cfg,
 
 	fi = fopen(initrd_filename, "rb");
 	if (!fi) {
-	    fprintf(stderr, "qemu: could not load initial ram disk '%s'\n",
-		    initrd_filename);
+	    fprintf(stderr, "qemu: could not load initial ram disk '%s': %s\n",
+		    initrd_filename, strerror(errno));
 	    exit(1);
 	}
 
@@ -959,8 +959,8 @@ static void load_linux(void *fw_cfg,
 	initrd_addr = (initrd_max-initrd_size) & ~4095;
 
 	if (!fread_targphys_ok(initrd_addr, initrd_size, fi)) {
-	    fprintf(stderr, "qemu: read error on initial ram disk '%s'\n",
-		    initrd_filename);
+	    fprintf(stderr, "qemu: read error on initial ram disk '%s': %s\n",
+		    initrd_filename, strerror(errno));
 	    exit(1);
 	}
 	fclose(fi);
@@ -1345,7 +1345,7 @@ static void pc_init1(ram_addr_t ram_size,
         if (!pci_enabled || (nd->model && strcmp(nd->model, "ne2k_isa") == 0))
             pc_init_ne2k_isa(nd);
         else
-            pci_nic_init(nd, "e1000", NULL);
+            pci_nic_init_nofail(nd, "e1000", NULL);
     }
 
     if (drive_get_max_bus(IF_IDE) >= MAX_IDE_BUS) {

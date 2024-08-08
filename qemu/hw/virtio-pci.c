@@ -373,8 +373,7 @@ static void virtio_write_config(PCIDevice *pci_dev, uint32_t address,
     }
 
     pci_default_write_config(pci_dev, address, val, len);
-    if(proxy->vdev->nvectors)
-        msix_write_config(pci_dev, address, val, len);
+    msix_write_config(pci_dev, address, val, len);
 }
 
 static const VirtIOBindings virtio_pci_bindings = {
@@ -411,8 +410,7 @@ static void virtio_init_pci(VirtIOPCIProxy *proxy, VirtIODevice *vdev,
 
     config[0x3d] = 1;
 
-    if (vdev->nvectors && !msix_init(&proxy->pci_dev, vdev->nvectors, 1, 0,
-                                     TARGET_PAGE_SIZE)) {
+    if (vdev->nvectors && !msix_init(&proxy->pci_dev, vdev->nvectors, 1, 0)) {
         pci_register_bar(&proxy->pci_dev, 1,
                          msix_bar_size(&proxy->pci_dev),
                          PCI_ADDRESS_SPACE_MEM,
@@ -475,6 +473,9 @@ static int virtio_console_init_pci(PCIDevice *pci_dev)
         proxy->class_code = PCI_CLASS_COMMUNICATION_OTHER;
 
     vdev = virtio_console_init(&pci_dev->qdev);
+    if (!vdev) {
+        return -1;
+    }
     virtio_init_pci(proxy, vdev,
                     PCI_VENDOR_ID_REDHAT_QUMRANET,
                     PCI_DEVICE_ID_VIRTIO_CONSOLE,

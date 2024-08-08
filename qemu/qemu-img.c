@@ -545,7 +545,7 @@ static int is_allocated_sectors(const uint8_t *buf, int n, int *pnum)
     return v;
 }
 
-#define IO_BUF_SIZE 65536
+#define IO_BUF_SIZE (2 * 1024 * 1024)
 
 static int img_convert(int argc, char **argv)
 {
@@ -1049,7 +1049,6 @@ static int img_snapshot(int argc, char **argv)
 
     return 0;
 }
-
 
 static const img_cmd_t img_cmds[] = {
 #define DEF(option, callback, arg_string)        \

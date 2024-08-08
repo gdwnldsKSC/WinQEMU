@@ -317,7 +317,7 @@ int pci_read_devaddr(Monitor *mon, const char *addr, int *domp, int *busp,
     return 0;
 }
 
-static PCIBus *pci_get_bus_devfn(int *devfnp, const char *devaddr)
+PCIBus *pci_get_bus_devfn(int *devfnp, const char *devaddr)
 {
     int dom, bus;
     unsigned slot;
@@ -809,24 +809,6 @@ void pci_info(Monitor *mon)
     pci_for_each_device(0, pci_info_device);
 }
 
-PCIDevice *pci_create(const char *name, const char *devaddr)
-{
-    PCIBus *bus;
-    int devfn;
-    DeviceState *dev;
-
-    bus = pci_get_bus_devfn(&devfn, devaddr);
-    if (!bus) {
-        fprintf(stderr, "Invalid PCI device address %s for device %s\n",
-                devaddr, name);
-        exit(1);
-    }
-
-    dev = qdev_create(&bus->qbus, name);
-    qdev_prop_set_uint32(dev, "addr", devfn);
-    return (PCIDevice *)dev;
-}
-
 static const char * const pci_nic_models[] = {
     "ne2k_pci",
     "i82551",
@@ -867,26 +849,46 @@ PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
                         const char *default_devaddr)
 {
     const char *devaddr = nd->devaddr ? nd->devaddr : default_devaddr;
+    PCIBus *bus;
+    int devfn;
     PCIDevice *pci_dev;
     DeviceState *dev;
     int i;
 
-    qemu_check_nic_model_list(nd, pci_nic_models, default_model);
+    i = qemu_find_nic_model(nd, pci_nic_models, default_model);
+    if (i < 0)
+        return NULL;
 
-    for (i = 0; pci_nic_models[i]; i++) {
-        if (strcmp(nd->model, pci_nic_models[i]) == 0) {
-            pci_dev = pci_create(pci_nic_names[i], devaddr);
-            dev = &pci_dev->qdev;
-            if (nd->id)
-                dev->id = qemu_strdup(nd->id);
-            dev->nd = nd;
-            qdev_init(dev);
-            nd->private = dev;
-            return pci_dev;
-        }
+    bus = pci_get_bus_devfn(&devfn, devaddr);
+    if (!bus) {
+        qemu_error("Invalid PCI device address %s for device %s\n",
+                   devaddr, pci_nic_names[i]);
+        return NULL;
     }
 
-    return NULL;
+    pci_dev = pci_create(bus, devfn, pci_nic_names[i]);
+    dev = &pci_dev->qdev;
+    if (nd->id)
+        dev->id = qemu_strdup(nd->id);
+    dev->nd = nd;
+    if (qdev_init(dev) < 0)
+        return NULL;
+    nd->private = dev;
+    return pci_dev;
+}
+
+PCIDevice *pci_nic_init_nofail(NICInfo *nd, const char *default_model,
+                               const char *default_devaddr)
+{
+    PCIDevice *res;
+
+    if (qemu_show_nic_models(nd->model, pci_nic_models))
+        exit(0);
+
+    res = pci_nic_init(nd, default_model, default_devaddr);
+    if (!res)
+        exit(1);
+    return res;
 }
 
 typedef struct {
@@ -952,7 +954,7 @@ PCIBus *pci_bridge_init(PCIBus *bus, int devfn, uint16_t vid, uint16_t did,
     PCIDevice *dev;
     PCIBridge *s;
 
-    dev = pci_create_noinit(bus, devfn, "pci-bridge");
+    dev = pci_create(bus, devfn, "pci-bridge");
     qdev_prop_set_uint32(&dev->qdev, "vendorid", vid);
     qdev_prop_set_uint32(&dev->qdev, "deviceid", did);
     qdev_init(&dev->qdev);
@@ -1007,7 +1009,7 @@ void pci_qdev_register_many(PCIDeviceInfo *info)
     }
 }
 
-PCIDevice *pci_create_noinit(PCIBus *bus, int devfn, const char *name)
+PCIDevice *pci_create(PCIBus *bus, int devfn, const char *name)
 {
     DeviceState *dev;
 
@@ -1018,7 +1020,7 @@ PCIDevice *pci_create_noinit(PCIBus *bus, int devfn, const char *name)
 
 PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name)
 {
-    PCIDevice *dev = pci_create_noinit(bus, devfn, name);
+    PCIDevice *dev = pci_create(bus, devfn, name);
     qdev_init(&dev->qdev);
     return dev;
 }
