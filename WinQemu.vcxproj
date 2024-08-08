@@ -170,6 +170,8 @@
     <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c" />
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
     <ClCompile Include="qemu\acl.c" />
+    <ClCompile Include="qemu\audio\audio_win_int.c" />
+    <ClCompile Include="qemu\audio\winwaveaudio.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
     <ClCompile Include="qemu\block\cow.c" />
@@ -252,6 +254,7 @@
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
     <ClCompile Include="qemu\qint.c" />
+    <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\sdl_zoom.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
@@ -1133,9 +1136,12 @@
     <ClCompile Include="qemu\slirp\udp.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="config-devices.h" />
+    <ClInclude Include="config-target.h" />
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
+    <ClInclude Include="qemu\audio\audio_win_int.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
@@ -1159,6 +1165,7 @@
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
     <ClInclude Include="qemu\qint.h" />
+    <ClInclude Include="qemu\qlist.h" />
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
     <ClInclude Include="qemu\sdl_zoom.h" />

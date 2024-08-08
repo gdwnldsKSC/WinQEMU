@@ -1275,6 +1275,15 @@
     <ClCompile Include="gettimeofday.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qlist.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\audio\audio_win_int.c">
+      <Filter>qemu\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\audio\winwaveaudio.c">
+      <Filter>qemu\audio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1906,6 +1915,18 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\elf_ops.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="config-target.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="config-devices.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qlist.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\audio\audio_win_int.h">
+      <Filter>qemu\audio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
