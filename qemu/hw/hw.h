@@ -286,6 +286,7 @@ enum VMStateFlags {
     VMS_STRUCT  = 0x008,
     VMS_VARRAY  = 0x010,  /* Array with size in another field */
     VMS_BUFFER  = 0x020,  /* static sized buffer */
+    VMS_ARRAY_OF_POINTER = 0x040,
 };
 
 typedef struct {
@@ -387,6 +388,26 @@ extern const VMStateInfo vmstate_info_buffer;
             + type_check(_type,typeof_field(_state, _field))         \
 }
 
+#define VMSTATE_STRUCT_POINTER(_field, _state, _vmsd, _type) {       \
+    .name       = (stringify(_field)),                               \
+    .vmsd       = &(_vmsd),                                          \
+    .size       = sizeof(_type),                                     \
+    .flags      = VMS_STRUCT|VMS_POINTER,                            \
+    .offset     = offsetof(_state, _field)                           \
+            + type_check(_type,typeof_field(_state, _field))         \
+}
+
+#define VMSTATE_ARRAY_OF_POINTER(_field, _state, _num, _version, _info, _type) {\
+    .name       = (stringify(_field)),                               \
+    .version_id = (_version),                                        \
+    .num        = (_num),                                            \
+    .info       = &(_info),                                          \
+    .size       = sizeof(_type),                                     \
+    .flags      = VMS_ARRAY|VMS_ARRAY_OF_POINTER,                    \
+    .offset     = offsetof(_state, _field)                           \
+        + type_check_array(_type,typeof_field(_state, _field),_num)  \
+}
+
 #define VMSTATE_STRUCT_ARRAY(_field, _state, _num, _version, _vmsd, _type) { \
     .name       = (stringify(_field)),                               \
     .num        = (_num),                                            \
@@ -438,6 +459,17 @@ extern const VMStateDescription vmstate_pci_device;
     .flags      = VMS_STRUCT,                                        \
     .offset     = offsetof(_state, _field)                           \
             + type_check(PCIDevice,typeof_field(_state, _field))     \
+}
+
+extern const VMStateDescription vmstate_i2c_slave;
+
+#define VMSTATE_I2C_SLAVE(_field, _state) {                          \
+    .name       = (stringify(_field)),                               \
+    .size       = sizeof(i2c_slave),                                 \
+    .vmsd       = &vmstate_i2c_slave,                                \
+    .flags      = VMS_STRUCT,                                        \
+    .offset     = offsetof(_state, _field)                           \
+            + type_check(i2c_slave,typeof_field(_state, _field))     \
 }
 
 /* _f : field name
@@ -498,6 +530,9 @@ extern const VMStateDescription vmstate_pci_device;
 #define VMSTATE_TIMER(_f, _s)                                         \
     VMSTATE_TIMER_V(_f, _s, 0)
 
+#define VMSTATE_TIMER_ARRAY(_f, _s, _n)                              \
+    VMSTATE_ARRAY_OF_POINTER(_f, _s, _n, 0, vmstate_info_timer, QEMUTimer *)
+
 #define VMSTATE_PTIMER_V(_f, _s, _v)                                  \
     VMSTATE_POINTER(_f, _s, _v, vmstate_info_ptimer, ptimer_state *)
 
@@ -510,6 +545,12 @@ extern const VMStateDescription vmstate_pci_device;
 #define VMSTATE_UINT16_ARRAY(_f, _s, _n)                               \
     VMSTATE_UINT16_ARRAY_V(_f, _s, _n, 0)
 
+#define VMSTATE_UINT8_ARRAY_V(_f, _s, _n, _v)                         \
+    VMSTATE_ARRAY(_f, _s, _n, _v, vmstate_info_uint8, uint8_t)
+
+#define VMSTATE_UINT8_ARRAY(_f, _s, _n)                               \
+    VMSTATE_UINT8_ARRAY_V(_f, _s, _n, 0)
+
 #define VMSTATE_UINT32_ARRAY_V(_f, _s, _n, _v)                        \
     VMSTATE_ARRAY(_f, _s, _n, _v, vmstate_info_uint32, uint32_t)
 
@@ -521,6 +562,12 @@ extern const VMStateDescription vmstate_pci_device;
 
 #define VMSTATE_UINT64_ARRAY(_f, _s, _n)                              \
     VMSTATE_UINT64_ARRAY_V(_f, _s, _n, 0)
+
+#define VMSTATE_INT16_ARRAY_V(_f, _s, _n, _v)                         \
+    VMSTATE_ARRAY(_f, _s, _n, _v, vmstate_info_int16, int16_t)
+
+#define VMSTATE_INT16_ARRAY(_f, _s, _n)                               \
+    VMSTATE_INT16_ARRAY_V(_f, _s, _n, 0)
 
 #define VMSTATE_INT32_ARRAY_V(_f, _s, _n, _v)                         \
     VMSTATE_ARRAY(_f, _s, _n, _v, vmstate_info_int32, int32_t)
@@ -539,6 +586,25 @@ extern const VMStateDescription vmstate_pci_device;
 
 #define VMSTATE_BUFFER(_f, _s)                                        \
     VMSTATE_STATIC_BUFFER(_f, _s, 0)
+
+#ifdef NEED_CPU_H
+#if TARGET_LONG_BITS == 64
+#define VMSTATE_UINTTL_V(_f, _s, _v)                                  \
+    VMSTATE_UINT64_V(_f, _s, _v)
+#define VMSTATE_UINTTL_ARRAY_V(_f, _s, _n, _v)                        \
+    VMSTATE_UINT64_ARRAY_V(_f, _s, _n, _v)
+#else
+#define VMSTATE_UINTTL_V(_f, _s, _v)                                  \
+    VMSTATE_UINT32_V(_f, _s, _v)
+#define VMSTATE_UINTTL_ARRAY_V(_f, _s, _n, _v)                        \
+    VMSTATE_UINT32_ARRAY_V(_f, _s, _n, _v)
+#endif
+#define VMSTATE_UINTTL(_f, _s)                                        \
+    VMSTATE_UINTTL_V(_f, _s, 0)
+#define VMSTATE_UINTTL_ARRAY(_f, _s, _n)                              \
+    VMSTATE_UINTTL_ARRAY_V(_f, _s, _n, 0)
+
+#endif
 
 #define VMSTATE_END_OF_LIST()                                         \
     {}
