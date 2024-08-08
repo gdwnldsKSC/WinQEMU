@@ -2,7 +2,7 @@
 
 { "help|?", "name:s?", do_help_cmd, "[cmd]", "show the help" },
 
-{ "commit", "device:s", do_commit,
+{ "commit", "device:B", do_commit,
 "device|all", "commit changes to the disk images (if -snapshot is used) or backing files" },
 
 { "info", "item:s?", do_info,
@@ -93,7 +93,7 @@
 "index", "set which mouse device receives events" },
 
 #ifdef HAS_AUDIO
-{ "wavcapture", "path:s,freq:i?,bits:i?,nchannels:i?", do_wav_capture,
+{ "wavcapture", "path:F,freq:i?,bits:i?,nchannels:i?", do_wav_capture,
 "path [frequency [bits [channels]]]",
 "capture audio to a wave file (default frequency=44100 bits=16 channels=2)" },
 #endif

@@ -165,6 +165,7 @@
       </PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="gettimeofday.c" />
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
     <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c" />
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />

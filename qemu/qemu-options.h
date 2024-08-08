@@ -168,8 +168,7 @@ DEF("win2k-hack", 0, QEMU_OPTION_win2k_hack,
 #endif
 
 #ifdef TARGET_I386
-DEF("rtc-td-hack", 0, QEMU_OPTION_rtc_td_hack,
-"-rtc-td-hack    use it to fix time drift in Windows ACPI HAL\n")
+DEF("rtc-td-hack", 0, QEMU_OPTION_rtc_td_hack, "")
 #endif
 
 #ifdef TARGET_I386
@@ -307,6 +306,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	// END HEAVILY MODIFIED SECTION 
 
 
+
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "\n" \
 "-bt hci,null    dumb bluetooth HCI - doesn't respond to commands\n" \
@@ -416,11 +416,19 @@ DEF("clock", HAS_ARG, QEMU_OPTION_clock, \
 "-clock          force the use of the given methods for timer alarm.\n" \
 "                To see what timers are available use -clock ?\n")
 
-DEF("localtime", 0, QEMU_OPTION_localtime, \
-"-localtime      set the real time clock to local time [default=utc]\n")
+DEF("localtime", 0, QEMU_OPTION_localtime, "")
+DEF("startdate", HAS_ARG, QEMU_OPTION_startdate, "")
 
-DEF("startdate", HAS_ARG, QEMU_OPTION_startdate, \
-"-startdate      select initial date of the clock\n")
+#ifdef TARGET_I386
+DEF("rtc", HAS_ARG, QEMU_OPTION_rtc, \
+"-rtc [base=utc|localtime|date][,clock=host|vm][,driftfix=none|slew]\n" \
+"                set the RTC base and clock, enable drift fix for clock ticks\n")
+#else
+DEF("rtc", HAS_ARG, QEMU_OPTION_rtc, \
+"-rtc [base=utc|localtime|date][,clock=host|vm]\n" \
+"                set the RTC base and clock\n")
+#endif
+
 
 DEF("icount", HAS_ARG, QEMU_OPTION_icount, \
 "-icount [N|auto]\n" \

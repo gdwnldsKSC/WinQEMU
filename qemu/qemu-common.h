@@ -121,6 +121,8 @@ typedef signed int ssize_t;
 // more posixyness
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
+
+int gettimeofday(struct timeval* tp, struct timezone* tzp);
 #endif
 
 #endif // end MSVC sections

@@ -1272,6 +1272,9 @@
     <ClCompile Include="qemu\check-qstring.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="gettimeofday.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
