@@ -29,6 +29,7 @@
 #include "hw/pc.h"
 #include "hw/pci.h"
 #include "hw/watchdog.h"
+#include "hw/loader.h"
 #include "gdbstub.h"
 #include "net.h"
 #include "qemu-char.h"
@@ -1456,6 +1457,9 @@ static void do_info_numa(Monitor *mon)
 
 #ifdef CONFIG_PROFILER
 
+int64_t qemu_time;
+int64_t dev_time;
+
 static void do_info_profile(Monitor *mon)
 {
     int64_t total;
@@ -1884,6 +1888,8 @@ static const mon_cmd_t info_cmds[] = {
       "", "show device tree" },
     { "qdm", "", do_info_qdm,
       "", "show qdev device model list" },
+    { "roms", "", do_info_roms,
+      "", "show roms" },
     { NULL, NULL, },
 };
 

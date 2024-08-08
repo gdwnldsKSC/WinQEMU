@@ -414,10 +414,12 @@ static void sdl_update_caption(void)
     if (!vm_running)
         status = " [Stopped]";
     else if (gui_grab) {
-        if (!alt_grab)
-            status = " - Press Ctrl-Alt to exit grab";
-        else
+        if (alt_grab)
             status = " - Press Ctrl-Alt-Shift to exit grab";
+        else if (ctrl_grab)
+            status = " - Press Right-Ctrl to exit grab";
+        else
+            status = " - Press Ctrl-Alt to exit grab";
     }
 
     if (qemu_name) {
@@ -557,12 +559,14 @@ static void sdl_refresh(DisplayState *ds)
         case SDL_KEYDOWN:
         case SDL_KEYUP:
             if (ev->type == SDL_KEYDOWN) {
-                if (!alt_grab) {
-                    mod_state = (SDL_GetModState() & gui_grab_code) ==
-                                gui_grab_code;
-                } else {
+                if (alt_grab) {
                     mod_state = (SDL_GetModState() & (gui_grab_code | KMOD_LSHIFT)) ==
                                 (gui_grab_code | KMOD_LSHIFT);
+                } else if (ctrl_grab) {
+                    mod_state = (SDL_GetModState() & KMOD_RCTRL) == KMOD_RCTRL;
+                } else {
+                    mod_state = (SDL_GetModState() & gui_grab_code) ==
+                                gui_grab_code;
                 }
                 gui_key_modifier_pressed = mod_state;
                 if (gui_key_modifier_pressed) {
@@ -580,7 +584,7 @@ static void sdl_refresh(DisplayState *ds)
                         vga_hw_update();
                         break;
 #ifndef _MSC_VER
-                    case 0x02 ... 0x0a:  //  '1' to '9' keys  
+                    case 0x02 ... 0x0a:  /* '1' to '9' keys */
 #else
                     case 0x02:
                     case 0x03:

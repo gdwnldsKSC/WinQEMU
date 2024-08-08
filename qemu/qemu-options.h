@@ -128,6 +128,11 @@ DEF("alt-grab", 0, QEMU_OPTION_alt_grab,
 #endif
 
 #ifdef CONFIG_SDL
+DEF("ctrl-grab", 0, QEMU_OPTION_ctrl_grab,
+"-ctrl-grab       use Right-Ctrl to grab mouse (instead of Ctrl-Alt)\n")
+#endif
+
+#ifdef CONFIG_SDL
 DEF("no-quit", 0, QEMU_OPTION_no_quit,
 "-no-quit        disable SDL window close capability\n")
 #endif
@@ -232,14 +237,14 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 #define SLIRP_OPTIONS \
 "-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
 "         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
-"         [,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]\n" \
+"         [,hostfwd=rule][,guestfwd=rule]" \
 "                connect the user mode network stack to VLAN 'n', configure its\n" \
 "                DHCP server and enabled optional services\n"
 #else
 #define SLIRP_OPTIONS \
 "-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
 "         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
-"         [,hostfwd=rule][,guestfwd=rule]" \
+"         [,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]" \
 "                connect the user mode network stack to VLAN 'n', configure its\n" \
 "                DHCP server and enabled optional services\n"
 #endif
@@ -255,13 +260,14 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 #else // Non-Windows TAP options - we don't really need it, but having it as reference will help future updates
 #ifdef TUNSETSNDBUF
 #define TAP_OPTIONS \
-"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes]\n" 
-"                connect the host TAP network interface to VLAN 'n' and use the\n" \
+"-net tap[,vlan=n][,name=str],ifname=name\n"
+"                connect the host TAP network interface to VLAN 'n'\n" \
 "                network scripts 'file' (default=%s)\n" \
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n" \
-"                use 'sndbuf=nbytes' to limit the size of the send buffer\n"
+"                use 'sndbuf=nbytes' to limit the size of the send buffer; the\n" \
+"                default of 'sndbuf=1048576' can be disabled using 'sndbuf=0'\n"
 #else
 #define TAP_OPTIONS \
 "-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n"
@@ -279,7 +285,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "                connect the vlan 'n' to port 'n' of a vde switch running\n" \
 "                on host and listening for incoming connections on 'socketpath'.\n" \
 "                Use group 'groupname' and mode 'octalmode' to change default\n" \
-"                ownership and permissions for communication port.\n" 
+"                ownership and permissions for communication port.\n"
 #else
 #define VDE_OPTIONS ""
 #endif
@@ -304,7 +310,6 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"                is provided, the default is '-net nic -net user'\n")
 
 	// END HEAVILY MODIFIED SECTION 
-
 
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
