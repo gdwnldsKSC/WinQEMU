@@ -571,7 +571,8 @@ USBDevice *usb_msd_init(const char *filename)
     /* create guest device */
     dev = usb_create(NULL /* FIXME */, "QEMU USB MSD");
     qdev_prop_set_drive(&dev->qdev, "drive", dinfo);
-    qdev_init(&dev->qdev);
+    if (qdev_init(&dev->qdev) < 0)
+        return NULL;
 
     return dev;
 }
@@ -584,14 +585,14 @@ BlockDriverState *usb_msd_get_bdrv(USBDevice *dev)
 }
 
 static struct USBDeviceInfo msd_info = {
-    .qdev.name = "QEMU USB MSD",
-    .qdev.alias = "usb-storage",
-    .qdev.size = sizeof(MSDState),
-    .init = usb_msd_initfn,
-    .handle_packet = usb_generic_handle_packet,
-    .handle_reset = usb_msd_handle_reset,
+    .qdev.name      = "QEMU USB MSD",
+    .qdev.alias     = "usb-storage",
+    .qdev.size      = sizeof(MSDState),
+    .init           = usb_msd_initfn,
+    .handle_packet  = usb_generic_handle_packet,
+    .handle_reset   = usb_msd_handle_reset,
     .handle_control = usb_msd_handle_control,
-    .handle_data = usb_msd_handle_data,
+    .handle_data    = usb_msd_handle_data,
     .qdev.props     = (Property[]) {
         DEFINE_PROP_DRIVE("drive", MSDState, dinfo),
         DEFINE_PROP_END_OF_LIST(),
