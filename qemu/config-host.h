@@ -9,7 +9,7 @@
 #define CONFIG_STATIC 1
 #define CONFIG_SLIRP 1
 #define CONFIG_ADLIB 1
-#define QEMU_VERSION "0.11.5"
+#define QEMU_VERSION "pre-0.12.0"
 #define QEMU_PKGVERSION "MS-VisualStudio-2022"
 #define CONFIG_UNAME_RELEASE ""
 #define CONFIG_AUDIO_DRIVERS \

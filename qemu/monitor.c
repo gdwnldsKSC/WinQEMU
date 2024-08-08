@@ -101,7 +101,7 @@ struct Monitor {
 
 static QLIST_HEAD(mon_list, Monitor) mon_list;
 
-static const mon_cmd_t mon_cmds[59]; // must define these two due to MSVC not supporting variable length arrays 
+static const mon_cmd_t mon_cmds[61]; // must define these two due to MSVC not supporting variable length arrays 
 static const mon_cmd_t info_cmds[35];
 
 Monitor *cur_mon = NULL;

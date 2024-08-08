@@ -1173,9 +1173,9 @@ static void rtl8139_reset_rxring(RTL8139State *s, uint32_t bufferSize)
     s->RxBufAddr = 0;
 }
 
-static void rtl8139_reset(void *opaque)
+static void rtl8139_reset(DeviceState *d)
 {
-    RTL8139State *s = opaque;
+    RTL8139State *s = container_of(d, RTL8139State, dev.qdev);
     int i;
 
     /* restore MAC address */
@@ -1371,7 +1371,7 @@ static void rtl8139_ChipCmd_write(RTL8139State *s, uint32_t val)
     if (val & CmdReset)
     {
         DEBUG_PRINT(("RTL8139: ChipCmd reset\n"));
-        rtl8139_reset(s);
+        rtl8139_reset(&s->dev.qdev);
     }
     if (val & CmdRxEnb)
     {
@@ -1544,7 +1544,7 @@ static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
     } else if (opmode == 0x40) {
         /* Reset.  */
         val = 0;
-        rtl8139_reset(s);
+        rtl8139_reset(&s->dev.qdev);
     }
 
     s->Cfg9346 = val;
@@ -2800,7 +2800,7 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
 
 #ifndef _MSC_VER
 
-        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
+        case TxStatus0 ... TxStatus0+4*4-1:
 #else
         case TxStatus0:
         case TxStatus0 + 1:
@@ -2819,7 +2819,7 @@ static void rtl8139_io_writel(void *opaque, uint8_t addr, uint32_t val)
         case TxStatus0 + 14:
         case TxStatus0 + 15:
 #endif
-            rtl8139_TxStatus_write(s, addr - TxStatus0, val);
+            rtl8139_TxStatus_write(s, addr-TxStatus0, val);
             break;
 
 
@@ -2892,7 +2892,7 @@ static uint32_t rtl8139_io_readb(void *opaque, uint8_t addr)
     switch (addr)
     {
 #ifndef _MSC_VER
-	case MAC0 ... MAC0 + 5:
+	case MAC0 ... MAC0+5:
 #else
 	case MAC0:
 	case MAC0 + 1:
@@ -2914,7 +2914,7 @@ static uint32_t rtl8139_io_readb(void *opaque, uint8_t addr)
             ret = 0;
             break;
 #ifndef _MSC_VER
-		case MAR0 ... MAR0 + 7:
+		case MAR0 ... MAR0+7:
 #else
 		case MAR0:
 		case MAR0 + 1:
@@ -3086,7 +3086,7 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
 
 #ifndef _MSC_VER
 
-        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
+        case TxStatus0 ... TxStatus0+4*4-1:
 #else
         case TxStatus0:
         case TxStatus0 + 1:
@@ -3105,12 +3105,12 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
         case TxStatus0 + 14:
         case TxStatus0 + 15:
 #endif
-            ret = rtl8139_TxStatus_read(s, addr - TxStatus0);
+            ret = rtl8139_TxStatus_read(s, addr-TxStatus0);
             break;
 
 #ifndef _MSC_VER
 
-        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
+        case TxAddr0 ... TxAddr0+4*4-1:
 #else
         case TxAddr0:
         case TxAddr0 + 1:
@@ -3129,7 +3129,7 @@ static uint32_t rtl8139_io_readl(void *opaque, uint8_t addr)
         case TxAddr0 + 14:
         case TxAddr0 + 15:
 #endif
-            ret = rtl8139_TxAddr_read(s, addr - TxAddr0);
+            ret = rtl8139_TxAddr_read(s, addr-TxAddr0);
             break;
 
         case RxBuf:
@@ -3578,8 +3578,6 @@ static int pci_rtl8139_init(PCIDevice *dev)
     RTL8139State * s = DO_UPCAST(RTL8139State, dev, dev);
     uint8_t *pci_conf;
 
-    s->dev.unregister = pci_rtl8139_uninit;
-
     pci_conf = s->dev.config;
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_REALTEK);
     pci_config_set_device_id(pci_conf, PCI_DEVICE_ID_REALTEK_8139);
@@ -3601,7 +3599,7 @@ static int pci_rtl8139_init(PCIDevice *dev)
                            PCI_ADDRESS_SPACE_MEM, rtl8139_mmio_map);
 
     qdev_get_macaddr(&dev->qdev, s->macaddr);
-    rtl8139_reset(s);
+    rtl8139_reset(&s->dev.qdev);
     s->vc = qdev_get_vlan_client(&dev->qdev,
                                  rtl8139_can_receive, rtl8139_receive, NULL,
                                  rtl8139_cleanup, s);
@@ -3628,6 +3626,7 @@ static PCIDeviceInfo rtl8139_info = {
     .qdev.size  = sizeof(RTL8139State),
     .qdev.reset = rtl8139_reset,
     .init       = pci_rtl8139_init,
+    .exit       = pci_rtl8139_uninit,
 };
 
 static void rtl8139_register_devices(void)

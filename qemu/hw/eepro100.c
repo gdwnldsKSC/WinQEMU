@@ -1782,8 +1782,6 @@ static int nic_init(PCIDevice *pci_dev, uint32_t device)
 
     TRACE(OTHER, logout("\n"));
 
-    s->dev.unregister = pci_nic_uninit;
-
     s->device = device;
 
     pci_reset(s);
@@ -1892,6 +1890,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82551",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82551_init,
+        .exit      = pci_nic_uninit,
     },{
         .qdev.name = "i82557a",
         .qdev.size = sizeof(EEPRO100State),
@@ -1900,6 +1899,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82557b",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82557b_init,
+        .exit      = pci_nic_uninit,
     },{
         .qdev.name = "i82557c",
         .qdev.size = sizeof(EEPRO100State),
@@ -1928,6 +1928,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82559er",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82559er_init,
+        .exit      = pci_nic_uninit,
     },{
         .qdev.name = "i82562",
         .qdev.size = sizeof(EEPRO100State),

@@ -80,8 +80,14 @@
 { "usb_del", "devname:s", do_usb_del,
 "device", "remove USB device 'bus.addr'" },
 
-{ "cpu", "index:i", do_cpu_set,
-"index", "set the default CPU" },
+{ "device_add", "config:s", do_device_add,
+"device", "add device, like -device on the command line" },
+
+{ "device_del", "id:s", do_device_del,
+"device", "remove device" },
+
+{ "cpu", "index:i", do_cpu_set, "index", "set the default CPU" },
+
 
 { "mouse_move", "dx_str:s,dy_str:s,dz_str:s?", do_mouse_move,
 "dx dy [dz]", "send mouse move events" },
