@@ -276,7 +276,7 @@ typedef struct VMStateDescription VMStateDescription;
 struct VMStateInfo {
     const char *name;
     int (*get)(QEMUFile *f, void *pv, size_t size);
-    void (*put)(QEMUFile *f, const void *pv, size_t size);
+    void (*put)(QEMUFile *f, void *pv, size_t size);
 };
 
 enum VMStateFlags {
@@ -307,9 +307,9 @@ struct VMStateDescription {
     int minimum_version_id_old;
     LoadStateHandler *load_state_old;
     int (*pre_load)(void *opaque);
-    int (*post_load)(void *opaque);
-    void (*pre_save)(const void *opaque);
-    void (*post_save)(const void *opaque);
+    int (*post_load)(void *opaque, int version_id);
+    void (*pre_save)(void *opaque);
+    void (*post_save)(void *opaque);
     VMStateField *fields;
 };
 
@@ -390,6 +390,18 @@ extern const VMStateInfo vmstate_info_buffer;
 #define VMSTATE_STRUCT_ARRAY(_field, _state, _num, _version, _vmsd, _type) { \
     .name       = (stringify(_field)),                               \
     .num        = (_num),                                            \
+    .version_id = (_version),                                        \
+    .vmsd       = &(_vmsd),                                          \
+    .size       = sizeof(_type),                                     \
+    .flags      = VMS_STRUCT|VMS_ARRAY,                              \
+    .offset     = offsetof(_state, _field)                           \
+        + type_check_array(_type,typeof_field(_state, _field),_num)  \
+}
+
+#define VMSTATE_STRUCT_ARRAY_SIZE_UINT8(_field, _state, _field__num, _version, _vmsd, _type) { \
+    .name       = (stringify(_field)),                               \
+    .num_offset = offsetof(_state, _field_num)                       \
+        + type_check(uint8_t,typeof_field(_state, _field_num)),       \
     .version_id = (_version),                                        \
     .vmsd       = &(_vmsd),                                          \
     .size       = sizeof(_type),                                     \
@@ -534,7 +546,7 @@ extern const VMStateDescription vmstate_pci_device;
 extern int vmstate_load_state(QEMUFile *f, const VMStateDescription *vmsd,
                               void *opaque, int version_id);
 extern void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
-                               const void *opaque);
+                               void *opaque);
 extern int vmstate_register(int instance_id, const VMStateDescription *vmsd,
                             void *base);
 void vmstate_unregister(const VMStateDescription *vmsd, void *opaque);
