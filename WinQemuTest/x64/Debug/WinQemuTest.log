@@ -1,7 +1,0 @@
-﻿  stdafx.cpp
-  WinQemuTest.cpp
-  Generating Code...
-C:\Program Files\Microsoft Visual Studio\2022\Preview\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1392,5): warning MSB8012: TargetPath(C:\Users\hunterkll\Documents\GitHub\WinQEMU\x64\Debug\WinQemuTest.exe) does not match the Linker's OutputFile property value (C:\Users\hunterkll\Documents\GitHub\WinQEMU\Debug\WinQemuTest.exe). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Link.OutputFile).
-WinQemuTest.obj : error LNK2019: unresolved external symbol qemu_main referenced in function main
-..\libs\Debug\WinQemu.lib : warning LNK4272: library machine type 'x86' conflicts with target machine type 'x64'
-C:\Users\hunterkll\Documents\GitHub\WinQEMU\Debug\WinQemuTest.exe : fatal error LNK1120: 1 unresolved externals
