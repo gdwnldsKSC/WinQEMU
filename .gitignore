@@ -19,5 +19,8 @@
 /Release/
 /WinQemuTest/Debug-alpha/
 /WinQemuTest/Debug/
-/WinQemuTest/Release
+/WinQemuTest/Release/
+/WinQemuTest/x64/Debug/
+/WinQemu/x64/Debug/
+/x64/Debug/
 /libs/Debug/
