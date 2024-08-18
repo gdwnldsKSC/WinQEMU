@@ -1,5 +1,5 @@
 ﻿Currently VS2022! TESTFILES build was created via fully updated
-VS2022 17.11 Preview Release 7 on Windows 11 26257 with the Windows 10 20348 SDK.
+VS2022 17.11 on Windows 11 26257 with the Windows 10 20348 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
 just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
@@ -36,8 +36,8 @@ Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and
 
 7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
 use -m 512 while working on bringing in some finishes to currently incomplete changes.
-Changes to Visual Studio will necessitate upgrading to VS 2022 17.11 which is currently
-in preview, but can be installed side-by-side with release version. 
+Changes to Visual Studio (to remove customizations to this project) 
+will necessitate upgrading to VS 2022 17.11. 
 
 # Building instructions
 
