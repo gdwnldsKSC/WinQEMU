@@ -155,7 +155,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemuTest", "WinQemuTest\
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109} = {043CD6CD-5932-4FFE-A2E5-173B7682D109}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SoftFloat", "SoftFloat\SoftFloat.vcxproj", "{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SoftFloat", "SoftFloat-src\SoftFloat.vcxproj", "{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -39,6 +39,10 @@ use -m 512 while working on bringing in some finishes to currently incomplete ch
 Changes to Visual Studio (to remove customizations to this project) 
 will necessitate upgrading to VS 2022 17.11. 
 
+8/18/24 - Adding SoftFloat library to enable x64 building, as the MSVC compiler does not
+support inline assembly as the original float80 header used. Must run winget install cmake
+in order to get system-wide cmake support to allow the library to build. 
+
 # Building instructions
 
 Only Debug/Win32 is currently "fixed up" and validated. 
@@ -53,6 +57,11 @@ or the paths of your choosing now that we can specify arbitrary paths.
 
 vcpkg install pthreads:x64-windows will be required. acquire vcpkg from
 https://github.com/microsoft/vcpkg/ 
+
+With the addition of the SoftFloat library, system-wide cmake will be needed to build the
+system. 'winget install cmake' from cmd will be sufficient to satisfy this requirement. 
+MSVC x64 does *not* support inline assembly, so our entire fp80 implementation needs
+to be reworked with this new library. 
 
 Powershell 7 is brought in/used by vcpkg but you should probably install it system wide.
 Otherwise you will get a pwsh.exe is not recognized as an internal or external command 

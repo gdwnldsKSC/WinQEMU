@@ -1,15 +1,15 @@
-﻿  cmdline = "C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src\build.cmd" --install --arch 64 --config Debug --pkgname .
+﻿  cmdline = "C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\build.cmd" --rebuild --install --arch 64 --config Debug --pkgname .
   
-  Build of 64-bit Debug version of SoftFloat begun on Sun 08/18/2024 at 17:30:50.00
+  Build of 64-bit Debug version of SoftFloat begun on Sun 08/18/2024 at 17:10:42.13
   
-  Building SoftFloat64.Debug ...
+  Configuring SoftFloat64.Debug ...
   
   
   
   
   --------------------------- ENVIRONMENT POOL ---------------------------
   
-  #=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src\CMakeLists.txt
+  #=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\CMakeLists.txt
   @=S
   ADVISOR_2024_DIR=C:\Program Files (x86)\Intel\oneAPI\advisor\2024.0
   ALLUSERSPROFILE=C:\ProgramData
@@ -19,7 +19,7 @@
   blddir=SoftFloat64.Debug
   break=goto :break
   cachefile=SoftFloat64.Debug\CMakeCache.txt
-  cache_value=C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d
+  cache_value=C:/Program Files/Project
   CAExcludePath=C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.41.34120\atlmfc\include;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.41.34120\include;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\ucrt;;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\shared;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\winrt;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\Include\um;
   cmake=cmake.exe
   cmdline_arg=--pkgname
@@ -30,13 +30,14 @@
   COMPUTERNAME=KAIBA2
   ComSpec=C:\WINDOWS\system32\cmd.exe
   config=Debug
+  configure_needed=1
   CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7
   CUDA_PATH_V11_7=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7
   def_arch=64
   def_config=Release
-  def_pkgdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src
+  def_pkgdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat
   dirname=SoftFloat
-  dp0=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src
+  dp0=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat
   DriverData=C:\Windows\System32\Drivers\DriverData
   DXSDK_DIR=C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\
   EFC_22200=1
@@ -56,10 +57,7 @@
   INCLUDE=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\include\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\winrt;C:\ATLServer\include;C:\WTL90\Include;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.41.34120\include;;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.41.34120\atlmfc\include;;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\VS\include;;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\ucrt;;;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\VS\UnitTest\include;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\shared;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\winrt;C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\Include\um;
   install=1
   install_needed=1
-  instdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\SoftFloat64d
   isalphanum=1
-  isdir=d----------
-  isfile=--a--------
   isopt=-pkgname
   is_valid_dir=1
   JD2_HOME=C:\Users\hunterkll\AppData\Local\JDownloader 2.0
@@ -77,7 +75,7 @@
   NUMBER_OF_PROCESSORS=36
   NVTOOLSEXT_PATH=C:\Program Files\NVIDIA Corporation\NvToolsExt\
   nx0=build.cmd
-  nx0_cmdline="C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src\build.cmd" --install --arch 64 --config Debug --pkgname .
+  nx0_cmdline="C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\build.cmd" --rebuild --install --arch 64 --config Debug --pkgname .
   OneDrive=C:\Users\hunterkll\OneDrive - Kisara Corporation
   OneDriveCommercial=C:\Users\hunterkll\OneDrive - Kisara Corporation
   OneDriveConsumer=C:\Users\hunterkll\OneDrive
@@ -88,11 +86,11 @@
   Path=C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\CommonExtensions\Microsoft\TestWindow;C:\Program Files (x86)\MSBuild\14.0\bin\amd64;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\BIN\amd64;C:\WINDOWS\Microsoft.NET\Framework64\v4.0.30319;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\VCPackages;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools;C:\Program Files (x86)\HTML Help Workshop;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Performance Tools\x64;C:\Program Files (x86)\Microsoft Visual Studio 14.0\Team Tools\Performance Tools;C:\Program Files (x86)\Windows Kits\10\bin\x64;C:\Program Files (x86)\Windows Kits\10\bin\x86;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\x64\;C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.41.34120\bin\HostX64\x64;C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x64;;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools\x64;C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86;;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools;C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\tools;C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\ide;C:\Program Files (x86)\HTML Help Workshop;;C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\amd64;C:\WINDOWS\Microsoft.NET\Framework64\v4.0.30319\;C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\;C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin;C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\;;C:\Program Files\Python312\Scripts\;C:\Program Files\Python312\;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Program Files\Eclipse Adoptium\jdk-11.0.24.8-hotspot\bin;C:\Program Files\Eclipse Adoptium\jre-11.0.24.8-hotspot\bin;c:\program files (x86)\common files\oracle\java\java8path;c:\program files (x86)\common files\oracle\java\javapath;c:\program files (x86)\vmware\vmware workstation\bin\;c:\program files\nvidia gpu computing toolkit\cuda\v11.7\bin;c:\program files\nvidia gpu computing toolkit\cuda\v11.7\libnvvp;c:\windows\system32;c:\windows;c:\windows\system32\wbem;c:\windows\system32\windowspowershell\v1.0\;c:\windows\system32\openssh\;c:\program files\microsoft vs code\bin;s:\program files\microsoft sql server\client sdk\odbc\170\tools\binn\;c:\program files\azure data studio\bin;c:\program files\java\jdk1.8.0_281\bin;c:\program files (x86)\intel\intel(r) management engine components\dal;c:\program files\intel\intel(r) management engine components\dal;c:\program files\nvidia corporation\nvidia nvdlisr;c:\program files (x86)\microsoft sql server\90\tools\binn\;c:\program files\dotnet\;s:\program files (x86)\microsoft sql server\160\dts\binn\;c:\program files\nvidia corporation\nsight compute 2022.2.1\;c:\program files\sourcegear\common\diffmerge\;c:\program files (x86)\microsoft sql server\100\tools\binn\;c:\program files\microsoft sql server\100\tools\binn\;c:\program files\microsoft sql server\100\dts\binn\;s:\program files\microsoft sql server\110\tools\binn\;c:\program files (x86)\microsoft sdks\typescript\1.0\;c:\users\hunterkll\.dnx\bin;c:\program files\microsoft dnx\dnvm\;s:\program files\microsoft sql server\130\tools\binn\;s:\program files (x86)\microsoft sql server\160\tools\binn\;s:\program files\microsoft sql server\160\tools\binn\;s:\program files\microsoft sql server\160\dts\binn\;c:\program files (x86)\windows kits\10\microsoft application virtualization\sequencer\;c:\program files (x86)\windows kits\10\windows performance toolkit\;c:\program files\putty\;c:\program files (x86)\common files\acronis\snapapi\;c:\program files (x86)\common files\acronis\virtualfile\;c:\program files (x86)\common files\acronis\virtualfile64\;c:\program files (x86)\common files\acronis\fileprotector\;c:\program files (x86)\common files\acronis\fileprotector64\;c:\program files\solidigm\solidigm(tm) storage tool\;c:\program files\git\cmd;c:\program files\docker\docker\resources\bin;C:\Program Files\Docker\Docker\resources\bin;C:\WINDOWS\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\PowerShell\7\;C:\Program Files\CMake\bin;C:\Users\hunterkll\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Azure Data Studio\bin;C:\Program Files\Java\jdk1.8.0_281\bin;C:\Users\hunterkll\AppData\Local\GitHubDesktop\bin;C:\Users\hunterkll\.dotnet\tools;C:\Users\hunterkll\AppData\Local\Programs\Fiddler;C:\Users\hunterkll\AppData\Local\Microsoft\WindowsApps;C:\Users\hunterkll\.dotnet\tools;C:\Users\hunterkll\AppData\Roaming\Python\Python312\Scripts;;
   PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW
   PkgDefApplicationConfigFile=C:\Users\hunterkll\AppData\Local\Microsoft\VisualStudio\17.0_19b09a8b\devenv.exe.config
-  pkgdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src
+  pkgdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat
   pkgname=SoftFloat
   Platform=X64
   POWERSHELL_DISTRIBUTION_CHANNEL=MSI:Windows 10 Enterprise
-  prev_instdir=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\SoftFloat64d
+  prev_instdir=C:\Program Files\Project
   PROCESSOR_ARCHITECTURE=AMD64
   PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
   PROCESSOR_LEVEL=6
@@ -105,6 +103,7 @@
   PSModulePath=C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;S:\Program Files (x86)\Microsoft SQL Server\160\Tools\PowerShell\Modules\;C:\Program Files (x86)\Windows Kits\10\Microsoft Application Virtualization\Sequencer\AppvPkgConverter;C:\Program Files (x86)\Windows Kits\10\Microsoft Application Virtualization\Sequencer\AppvSequencer;C:\Program Files (x86)\Windows Kits\10\Microsoft Application Virtualization\
   PUBLIC=C:\Users\Public
   rc=0
+  rebuild=1
   return=goto :EOF
   ServiceHubLogSessionKey=A2BDEA6F
   SESSIONNAME=Console
@@ -151,7 +150,7 @@
   VsPerMonitorDpiAwarenessEnabled.104620=TRUE
   VSSKUEDITION=Professional
   vstarget=amd64
-  vstools=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat-src\vstools.cmd
+  vstools=C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\vstools.cmd
   vsver=140
   VS_Perf_Session_GCHeapCount=2
   VTUNE_PROFILER_2024_DIR=C:\Program Files (x86)\Intel\oneAPI\vtune\2024.0
@@ -304,170 +303,63 @@
   
   ------------------------------------------------------------------------
   
-  [  0%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_div.c.obj
-  f64_div.c
-  [  1%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_eq.c.obj
-  f64_eq.c
-  [  2%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_eq_signaling.c.obj
-  f64_eq_signaling.c
-  [  2%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_isSignalingNaN.c.obj
-  f64_isSignalingNaN.c
-  [  3%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_le.c.obj
-  f64_le.c
-  [  4%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_le_quiet.c.obj
-  f64_le_quiet.c
-  [  4%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_lt.c.obj
-  f64_lt.c
-  [  5%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_lt_quiet.c.obj
-  f64_lt_quiet.c
-  [  6%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_mul.c.obj
-  f64_mul.c
-  [  6%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_mulAdd.c.obj
-  f64_mulAdd.c
-  [  7%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_rem.c.obj
-  f64_rem.c
-  [  8%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_sqrt.c.obj
-  f64_sqrt.c
-  [  8%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_sub.c.obj
-  f64_sub.c
-  [  9%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_f128.c.obj
-  f64_to_f128.c
-  [ 10%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_f32.c.obj
-  f64_to_f32.c
-  [ 10%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_i32.c.obj
-  f64_to_i32.c
-  [ 11%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_i32_r_minMag.c.obj
-  f64_to_i32_r_minMag.c
-  [ 12%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_i64.c.obj
-  f64_to_i64.c
-  [ 12%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_i64_r_minMag.c.obj
-  f64_to_i64_r_minMag.c
-  [ 13%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_ui32.c.obj
-  f64_to_ui32.c
-  [ 14%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_ui32_r_minMag.c.obj
-  f64_to_ui32_r_minMag.c
-  [ 14%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_ui64.c.obj
-  f64_to_ui64.c
-  [ 15%] Building C object CMakeFiles/SoftFloat64d.dir/source/f64_to_ui64_r_minMag.c.obj
-  f64_to_ui64_r_minMag.c
-  [ 15%] Building C object CMakeFiles/SoftFloat64d.dir/source/i32_to_f128.c.obj
-  i32_to_f128.c
-  [ 16%] Building C object CMakeFiles/SoftFloat64d.dir/source/i32_to_f32.c.obj
-  i32_to_f32.c
-  [ 17%] Building C object CMakeFiles/SoftFloat64d.dir/source/i32_to_f64.c.obj
-  i32_to_f64.c
-  [ 17%] Building C object CMakeFiles/SoftFloat64d.dir/source/i64_to_f128.c.obj
-  i64_to_f128.c
-  [ 18%] Building C object CMakeFiles/SoftFloat64d.dir/source/i64_to_f32.c.obj
-  i64_to_f32.c
-  [ 19%] Building C object CMakeFiles/SoftFloat64d.dir/source/i64_to_f64.c.obj
-  i64_to_f64.c
-  [ 19%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_add128.c.obj
-  s_add128.c
-  [ 20%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_add256M.c.obj
-  s_add256M.c
-  [ 21%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_approxRecip32_1.c.obj
-  s_approxRecip32_1.c
-  [ 21%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_approxRecipSqrt32_1.c.obj
-  s_approxRecipSqrt32_1.c
-  [ 22%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_approxRecipSqrt_1Ks.c.obj
-  s_approxRecipSqrt_1Ks.c
-  [ 23%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_countLeadingZeros32.c.obj
-  s_countLeadingZeros32.c
-  [ 23%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_countLeadingZeros64.c.obj
-  s_countLeadingZeros64.c
-  [ 24%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_countLeadingZeros8.c.obj
-  s_countLeadingZeros8.c
-  [ 25%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_eq128.c.obj
-  s_eq128.c
-  [ 25%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_le128.c.obj
-  s_le128.c
-  [ 26%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_lt128.c.obj
-  s_lt128.c
-  [ 27%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_mul128By32.c.obj
-  s_mul128By32.c
-  [ 27%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_mul128To256M.c.obj
-  s_mul128To256M.c
-  [ 28%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_mul64ByShifted32To128.c.obj
-  s_mul64ByShifted32To128.c
-  [ 29%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_mul64To128.c.obj
-  s_mul64To128.c
-  [ 29%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_mulAddF128.c.obj
-  s_mulAddF128.c
-  [ 30%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normRoundPackToF128.c.obj
-  s_normRoundPackToF128.c
-  [ 31%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normRoundPackToF32.c.obj
-  s_normRoundPackToF32.c
-  [ 31%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normRoundPackToF64.c.obj
-  s_normRoundPackToF64.c
-  [ 32%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normSubnormalF128Sig.c.obj
-  s_normSubnormalF128Sig.c
-  [ 32%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normSubnormalF32Sig.c.obj
-  s_normSubnormalF32Sig.c
-  [ 33%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_normSubnormalF64Sig.c.obj
-  s_normSubnormalF64Sig.c
-  [ 34%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam128.c.obj
-  s_shiftRightJam128.c
-  [ 34%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam128Extra.c.obj
-  s_shiftRightJam128Extra.c
-  [ 35%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam256M.c.obj
-  s_shiftRightJam256M.c
-  [ 36%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam32.c.obj
-  s_shiftRightJam32.c
-  [ 36%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam64.c.obj
-  s_shiftRightJam64.c
-  [ 37%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shiftRightJam64Extra.c.obj
-  s_shiftRightJam64Extra.c
-  [ 38%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftLeft128.c.obj
-  s_shortShiftLeft128.c
-  [ 38%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftRight128.c.obj
-  s_shortShiftRight128.c
-  [ 39%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftRightJam128.c.obj
-  s_shortShiftRightJam128.c
-  [ 40%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftRightJam128Extra.c.obj
-  s_shortShiftRightJam128Extra.c
-  [ 40%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftRightJam64.c.obj
-  s_shortShiftRightJam64.c
-  [ 41%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_shortShiftRightJam64Extra.c.obj
-  s_shortShiftRightJam64Extra.c
-  [ 42%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_sub128.c.obj
-  s_sub128.c
-  [ 42%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_sub256M.c.obj
-  s_sub256M.c
-  [ 43%] Building C object CMakeFiles/SoftFloat64d.dir/source/s_subMagsF128.c.obj
-  s_subMagsF128.c
-  [ 44%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui32_to_f128.c.obj
-  ui32_to_f128.c
-  [ 44%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui32_to_f32.c.obj
-  ui32_to_f32.c
-  [ 45%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui32_to_f64.c.obj
-  ui32_to_f64.c
-  [ 46%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui64_to_f128.c.obj
-  ui64_to_f128.c
-  [ 46%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui64_to_f32.c.obj
-  ui64_to_f32.c
-  [ 47%] Building C object CMakeFiles/SoftFloat64d.dir/source/ui64_to_f64.c.obj
-  ui64_to_f64.c
-  [ 48%] Linking C static library SoftFloat64d.lib
-  [100%] Built target SoftFloat64d
+  CMake Warning (dev) in CMakeLists.txt:
+    No project() command is present.  The top-level CMakeLists.txt file must
+    contain a literal, direct call to the project() command.  Add a line of
+    code such as
   
-  Installing SoftFloat64.Debug ...
+      project(ProjectName)
   
-  [100%] Built target SoftFloat64d
-  Install the project...
-  -- Install configuration: "Debug"
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/lib/SoftFloat64d.lib
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat_version.h
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat.h
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat_types.h
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.LICENSE.txt
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.README.txt
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.README.html
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat-history.html
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat-source.html
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat.html
-  -- Installing: C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/lib/SoftFloat64d.pdb
+    near the top of the file, but after cmake_minimum_required().
   
-  Build SUCCEEDED on Sun 08/18/2024 at 17:32:02.04
+    CMake is pretending there is a "project(Project)" command on the first
+    line.
+  This warning is for project developers.  Use -Wno-dev to suppress it.
   
+  CMake Warning (dev) in CMakeLists.txt:
+    cmake_minimum_required() should be called prior to this top-level project()
+    call.  Please see the cmake-commands(7) manual for usage documentation of
+    both commands.
+  This warning is for project developers.  Use -Wno-dev to suppress it.
+  
+  -- The C compiler identification is MSVC 19.0.24245.0
+  -- The CXX compiler identification is MSVC 19.0.24245.0
+  -- Detecting C compiler ABI info
+  -- Detecting C compiler ABI info - done
+  -- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64/cl.exe - skipped
+  -- Detecting C compile features
+  -- Detecting C compile features - done
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info - done
+  -- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64/cl.exe - skipped
+  -- Detecting CXX compile features
+  -- Detecting CXX compile features - done
+  CMake Deprecation Warning at CMakeLists.txt:5 (cmake_minimum_required):
+    Compatibility with CMake < 3.5 will be removed from a future version of
+    CMake.
+  
+    Update the VERSION argument <min> value or use a ...<max> suffix to tell
+    CMake that the project does not need compatibility with older versions.
+  
+  
+  ++ SOURCE_DIR 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat' 
+  ++ BINARY_DIR 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug' 
+  ++ BINARY_DIR_NAME 'SoftFloat64.Debug' 
+  ++ TRUNCATED_BINARY_DIR 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat' 
+  CMake Error at cmake/modules/ParseBinaryDir.cmake:38 (message):
+    In-source builds are not allowed!
+  
+    Remove the 'CMakeCache.txt' file and the entire 'CMakeFiles' directory and
+    try again!
+  Call Stack (most recent call first):
+    CMakeLists.txt:29 (ParseBinaryDir)
+  
+  
+  -- Configuring incomplete, errors occurred!
+                                 
+build.cmd(1): error C9999: CMake has failed! rc=1
+  
+  Build FAILED on Sun 08/18/2024 at 17:11:01.75
+  
+C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(53,5): error MSB3073: The command "cd ..\SoftFloat
+C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(53,5): error MSB3073: "C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\build.cmd" --rebuild --install --arch 64 --config Debug --pkgname ." exited with code 1.

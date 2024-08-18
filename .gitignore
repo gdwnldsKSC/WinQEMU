@@ -24,3 +24,6 @@
 /WinQemu/x64/Debug/
 /x64/Debug/
 /libs/Debug/
+SoftFloat/BuildLog-x64-Debug.txt
+/SoftFloat/SoftFloat64.Debug
+SoftFloat/BuildLog-x64-Debug.txt
