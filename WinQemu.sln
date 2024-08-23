@@ -155,8 +155,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinQemuTest", "WinQemuTest\
 		{043CD6CD-5932-4FFE-A2E5-173B7682D109} = {043CD6CD-5932-4FFE-A2E5-173B7682D109}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SoftFloat", "SoftFloat\SoftFloat.vcxproj", "{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -191,18 +189,6 @@ Global
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Release|Win32.Build.0 = Release|Win32
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Release|x64.ActiveCfg = Release|x64
 		{37B9A41C-2460-44D8-BA57-955D25D76A4F}.Release|x64.Build.0 = Release|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug|Win32.ActiveCfg = Debug|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug|Win32.Build.0 = Debug|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug|x64.ActiveCfg = Debug|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug|x64.Build.0 = Debug|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug-alpha|Win32.ActiveCfg = Debug|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug-alpha|Win32.Build.0 = Debug|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug-alpha|x64.ActiveCfg = Debug|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Debug-alpha|x64.Build.0 = Debug|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Release|Win32.ActiveCfg = Release|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Release|Win32.Build.0 = Release|Win32
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Release|x64.ActiveCfg = Release|x64
-		{BBC0D6D2-EB8A-46E2-8BC8-45DF1EDA4F98}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

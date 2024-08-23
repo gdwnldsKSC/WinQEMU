@@ -1,5 +1,0 @@
-﻿                                 
-build.cmd(1): error C9999: cmake.exe not found.
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\VC\VCTargets\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command "cd ..\SoftFloat
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\VC\VCTargets\Microsoft.MakeFile.Targets(44,5): error MSB3073: "C:\Users\hunterkll\Documents\GitHub\WinQEMU\SoftFloat\build.cmd" --install --arch 64 --config Debug --pkgname .
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\VC\VCTargets\Microsoft.MakeFile.Targets(44,5): error MSB3073: " exited with code 1.
