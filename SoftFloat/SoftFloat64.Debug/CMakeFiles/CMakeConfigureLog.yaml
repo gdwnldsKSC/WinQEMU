@@ -1,0 +1,416 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt"
+    message: |
+      The system is: Windows - 10.0.26257 - AMD64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64/cl.exe 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Microsoft (R) C/C++ Optimizing Compiler Version 19.00.24245 for x64
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      CMakeCCompilerId.c
+      Microsoft (R) Incremental Linker Version 14.00.24245.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      /out:CMakeCCompilerId.exe 
+      CMakeCCompilerId.obj 
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.exe"
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.obj"
+      
+      The C compiler identification is MSVC, found in:
+        C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/3.30.2/CompilerIdC/CMakeCCompilerId.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Detecting C compiler /showIncludes prefix:
+        main.c
+        Note: including file: c:\\users\\hunterkll\\documents\\github\\winqemu\\softfloat\\softfloat64.debug\\cmakefiles\\showincludes\\foo.h
+        
+      Found prefix "Note: including file: "
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64/cl.exe 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Microsoft (R) C/C++ Optimizing Compiler Version 19.00.24245 for x64
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      CMakeCXXCompilerId.cpp
+      Microsoft (R) Incremental Linker Version 14.00.24245.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      /out:CMakeCXXCompilerId.exe 
+      CMakeCXXCompilerId.obj 
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.obj"
+      
+      The CXX compiler identification is MSVC, found in:
+        C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/3.30.2/CompilerIdCXX/CMakeCXXCompilerId.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:1243 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt"
+    message: |
+      Detecting CXX compiler /showIncludes prefix:
+        main.c
+        Note: including file: c:\\users\\hunterkll\\documents\\github\\winqemu\\softfloat\\softfloat64.debug\\cmakefiles\\showincludes\\foo.h
+        
+      Found prefix "Note: including file: "
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-qf2upz"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-qf2upz"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS /W3"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-qf2upz'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_31e61\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_31e61.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_31e61.dir\\build
+        Building C object CMakeFiles/cmTC_31e61.dir/CMakeCCompilerABI.c.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_31e61.dir\\CMakeCCompilerABI.c.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-qf2upz --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmD06A.tmp
+        CMakeCCompilerABI.c
+        Linking C executable cmTC_31e61.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_31e61.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_31e61.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmD1C3.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_31e61.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_31e61.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_31e61.dir/manifest.res CMakeFiles\\cmTC_31e61.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_31e61.dir\\objects1.rsp /out:cmTC_31e61.exe /implib:cmTC_31e61.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-qf2upz\\cmTC_31e61.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_31e61.dir/intermediate.manifest CMakeFiles\\cmTC_31e61.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_31e61.dir/intermediate.manifest /out:CMakeFiles\\cmTC_31e61.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_31e61.dir/manifest.res CMakeFiles\\cmTC_31e61.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_31e61.dir\\objects1.rsp /out:cmTC_31e61.exe /implib:cmTC_31e61.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-qf2upz\\cmTC_31e61.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_31e61.dir/intermediate.manifest CMakeFiles\\cmTC_31e61.dir/manifest.res
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'C': C:/PROGRA~2/MICROS~1.0/VC/bin/amd64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Running the C compiler's linker: "C:/PROGRA~2/MICROS~1.0/VC/bin/amd64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.00.24245.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-x0ih3z"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-x0ih3z"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /W3 /GR /EHsc"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-x0ih3z'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_1c97f\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_1c97f.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_1c97f.dir\\build
+        Building CXX object CMakeFiles/cmTC_1c97f.dir/CMakeCXXCompilerABI.cpp.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_1c97f.dir\\CMakeCXXCompilerABI.cpp.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-x0ih3z --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmD9F0.tmp
+        CMakeCXXCompilerABI.cpp
+        Linking CXX executable cmTC_1c97f.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_1c97f.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_1c97f.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmDB58.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_1c97f.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_1c97f.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_1c97f.dir/manifest.res CMakeFiles\\cmTC_1c97f.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_1c97f.dir\\objects1.rsp /out:cmTC_1c97f.exe /implib:cmTC_1c97f.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-x0ih3z\\cmTC_1c97f.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_1c97f.dir/intermediate.manifest CMakeFiles\\cmTC_1c97f.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_1c97f.dir/intermediate.manifest /out:CMakeFiles\\cmTC_1c97f.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_1c97f.dir/manifest.res CMakeFiles\\cmTC_1c97f.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_1c97f.dir\\objects1.rsp /out:cmTC_1c97f.exe /implib:cmTC_1c97f.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-x0ih3z\\cmTC_1c97f.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_1c97f.dir/intermediate.manifest CMakeFiles\\cmTC_1c97f.dir/manifest.res
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'CXX': C:/PROGRA~2/MICROS~1.0/VC/bin/amd64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt"
+    message: |
+      Running the CXX compiler's linker: "C:/PROGRA~2/MICROS~1.0/VC/bin/amd64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.00.24245.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/FeatureTesting.cmake:34 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/FeatureTesting.cmake:87 (_record_compiler_features)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Compiler/CMakeCommonCompilerMacros.cmake:124 (_record_compiler_features_cxx)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerSupport.cmake:70 (cmake_record_cxx_compile_features)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:83 (CMAKE_DETERMINE_COMPILER_SUPPORT)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting CXX compile features"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-1f90nb"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-1f90nb"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /W3 /GR /EHsc"
+    buildResult:
+      variable: "CMAKE_CXX_FEATURE_TEST"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-1f90nb'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_81e28\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_81e28.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_81e28.dir\\build
+        Building CXX object CMakeFiles/cmTC_81e28.dir/feature_tests.cxx.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_81e28.dir\\feature_tests.cxx.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-1f90nb --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmE327.tmp
+        feature_tests.cxx
+        Linking CXX executable cmTC_81e28.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_81e28.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_81e28.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmE48F.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_81e28.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_81e28.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_81e28.dir/manifest.res CMakeFiles\\cmTC_81e28.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_81e28.dir\\objects1.rsp /out:cmTC_81e28.exe /implib:cmTC_81e28.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-1f90nb\\cmTC_81e28.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_81e28.dir/intermediate.manifest CMakeFiles\\cmTC_81e28.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_81e28.dir/intermediate.manifest /out:CMakeFiles\\cmTC_81e28.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_81e28.dir/manifest.res CMakeFiles\\cmTC_81e28.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_81e28.dir\\objects1.rsp /out:cmTC_81e28.exe /implib:cmTC_81e28.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-1f90nb\\cmTC_81e28.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_81e28.dir/intermediate.manifest CMakeFiles\\cmTC_81e28.dir/manifest.res
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/FeatureTesting.cmake:34 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Internal/FeatureTesting.cmake:87 (_record_compiler_features)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/Compiler/CMakeCommonCompilerMacros.cmake:132 (_record_compiler_features_cxx)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeDetermineCompilerSupport.cmake:70 (cmake_record_cxx_compile_features)"
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:83 (CMAKE_DETERMINE_COMPILER_SUPPORT)"
+      - "CMakeLists.txt"
+    checks:
+      - "Detecting CXX compile features"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w3dw9n"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w3dw9n"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /W3 /GR /EHsc"
+    buildResult:
+      variable: "CMAKE_CXX_FEATURE_TEST"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w3dw9n'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_e547c\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_e547c.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_e547c.dir\\build
+        Building CXX object CMakeFiles/cmTC_e547c.dir/feature_tests.cxx.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_e547c.dir\\feature_tests.cxx.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w3dw9n --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmEC20.tmp
+        feature_tests.cxx
+        Linking CXX executable cmTC_e547c.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_e547c.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_e547c.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmED98.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_e547c.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_e547c.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_e547c.dir/manifest.res CMakeFiles\\cmTC_e547c.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_e547c.dir\\objects1.rsp /out:cmTC_e547c.exe /implib:cmTC_e547c.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w3dw9n\\cmTC_e547c.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_e547c.dir/intermediate.manifest CMakeFiles\\cmTC_e547c.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_e547c.dir/intermediate.manifest /out:CMakeFiles\\cmTC_e547c.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_e547c.dir/manifest.res CMakeFiles\\cmTC_e547c.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_e547c.dir\\objects1.rsp /out:cmTC_e547c.exe /implib:cmTC_e547c.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w3dw9n\\cmTC_e547c.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_e547c.dir/intermediate.manifest CMakeFiles\\cmTC_e547c.dir/manifest.res
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CheckIncludeFile.cmake:90 (try_compile)"
+      - "cmake/modules/CheckHeader.cmake:28 (check_include_file)"
+      - "CMakeLists.txt:67 (check_header)"
+    checks:
+      - "Looking for stdbool.h"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-mgrye5"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-mgrye5"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS /W3"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat-src/cmake/modules"
+    buildResult:
+      variable: "HAVE_STDBOOL_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-mgrye5'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_acde7\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_acde7.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_acde7.dir\\build
+        Building C object CMakeFiles/cmTC_acde7.dir/CheckIncludeFile.c.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_acde7.dir\\CheckIncludeFile.c.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-mgrye5 --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmF9DC.tmp
+        CheckIncludeFile.c
+        Linking C executable cmTC_acde7.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_acde7.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_acde7.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nmFB34.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_acde7.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_acde7.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_acde7.dir/manifest.res CMakeFiles\\cmTC_acde7.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_acde7.dir\\objects1.rsp /out:cmTC_acde7.exe /implib:cmTC_acde7.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-mgrye5\\cmTC_acde7.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_acde7.dir/intermediate.manifest CMakeFiles\\cmTC_acde7.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_acde7.dir/intermediate.manifest /out:CMakeFiles\\cmTC_acde7.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_acde7.dir/manifest.res CMakeFiles\\cmTC_acde7.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_acde7.dir\\objects1.rsp /out:cmTC_acde7.exe /implib:cmTC_acde7.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-mgrye5\\cmTC_acde7.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_acde7.dir/intermediate.manifest CMakeFiles\\cmTC_acde7.dir/manifest.res
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-3.30/Modules/CheckIncludeFile.cmake:90 (try_compile)"
+      - "cmake/modules/CheckHeader.cmake:28 (check_include_file)"
+      - "CMakeLists.txt:68 (check_header)"
+    checks:
+      - "Looking for stdint.h"
+    directories:
+      source: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w2ardi"
+      binary: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w2ardi"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS /W3"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat-src/cmake/modules"
+    buildResult:
+      variable: "HAVE_STDINT_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/CMakeScratch/TryCompile-w2ardi'
+        
+        Run Build Command(s): "C:/Program Files/CMake/bin/cmake.exe" -E env VERBOSE=1 nmake -f Makefile /nologo cmTC_84790\\fast
+        	"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\BIN\\amd64\\nmake.exe"  -f CMakeFiles\\cmTC_84790.dir\\build.make /nologo -L                  CMakeFiles\\cmTC_84790.dir\\build
+        Building C object CMakeFiles/cmTC_84790.dir/CheckIncludeFile.c.obj
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E cmake_cl_compile_depends --dep-file=CMakeFiles\\cmTC_84790.dir\\CheckIncludeFile.c.obj.d --working-dir=C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w2ardi --filter-prefix="Note: including file: " -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\cl.exe @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nm313.tmp
+        CheckIncludeFile.c
+        Linking C executable cmTC_84790.exe
+        	"C:\\Program Files\\CMake\\bin\\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\\cmTC_84790.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe --manifests -- C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_84790.dir\\objects1.rsp @C:\\Users\\HUNTER~1\\AppData\\Local\\Temp\\nm4BA.tmp
+        Visual Studio Incremental Link with embedded manifests
+        Create CMakeFiles\\cmTC_84790.dir/manifest.rc
+        Create empty: CMakeFiles\\cmTC_84790.dir/embed.manifest
+        RC Pass 1:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_84790.dir/manifest.res CMakeFiles\\cmTC_84790.dir/manifest.rc
+        LINK Pass 1:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_84790.dir\\objects1.rsp /out:cmTC_84790.exe /implib:cmTC_84790.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w2ardi\\cmTC_84790.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_84790.dir/intermediate.manifest CMakeFiles\\cmTC_84790.dir/manifest.res
+        MT:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\mt.exe /nologo /manifest CMakeFiles\\cmTC_84790.dir/intermediate.manifest /out:CMakeFiles\\cmTC_84790.dir/embed.manifest /notify_update
+        RC Pass 2:
+        C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100203~1.0\\x64\\rc.exe /fo CMakeFiles\\cmTC_84790.dir/manifest.res CMakeFiles\\cmTC_84790.dir/manifest.rc
+        FINAL LINK:
+        C:\\PROGRA~2\\MICROS~1.0\\VC\\bin\\amd64\\link.exe /nologo @CMakeFiles\\cmTC_84790.dir\\objects1.rsp /out:cmTC_84790.exe /implib:cmTC_84790.lib /pdb:C:\\Users\\hunterkll\\Documents\\GitHub\\WinQEMU\\SoftFloat\\SoftFloat64.Debug\\CMakeFiles\\CMakeScratch\\TryCompile-w2ardi\\cmTC_84790.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_84790.dir/intermediate.manifest CMakeFiles\\cmTC_84790.dir/manifest.res
+        
+      exitCode: 0
+...

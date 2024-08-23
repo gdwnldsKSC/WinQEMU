@@ -1,0 +1,11 @@
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/lib/SoftFloat64d.lib
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat_version.h
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat.h
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/include/softfloat_types.h
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.LICENSE.txt
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.README.txt
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/./softfloat.README.html
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat-history.html
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat-source.html
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/doc/SoftFloat.html
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64d/lib/SoftFloat64d.pdb

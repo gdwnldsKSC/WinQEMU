@@ -1,0 +1,7 @@
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/SoftFloat64d.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/uninstall.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/edit_cache.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/rebuild_cache.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/list_install_components.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/install.dir
+C:/Users/hunterkll/Documents/GitHub/WinQEMU/SoftFloat/SoftFloat64.Debug/CMakeFiles/install/local.dir
