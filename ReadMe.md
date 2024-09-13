@@ -37,7 +37,9 @@ Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and
 7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
 use -m 512 while working on bringing in some finishes to currently incomplete changes.
 Changes to Visual Studio (to remove customizations to this project) 
-will necessitate upgrading to VS 2022 17.11. 
+will necessitate upgrading to VS 2022 17.11. With 17.11 we can also now use
+/cstd:clatest so we no longer have to use \_\_typeof\_\_() instead of just typeof()
+leaving more code unmodified
 
 # Building instructions
 
