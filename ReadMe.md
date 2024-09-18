@@ -77,11 +77,11 @@ Changing the toolchain from VS 2022 to something else and then back again resolv
 
 Only Debug/Win32 is currently "fixed up" and working as of this time. 
 
-Visual Studio 2008 / Visual C++ 2008 Runtime DEBUG version required for currently included fmod library
-build. (Satisified by having VS2008 installed, or otherwise acquiring MSVCR90D.dll ) - this is next
-on roadmap to fix. Setting build to RELEASE will enable it to build/run without VS2022 debugging 
-capabilities, but will allow you to use the regular VC++ 2008 Runtime currently. Fix will probably
-be removal of fmod dependency. 
+Visual Studio 2008 / Visual C++ 2008 Runtime DEBUG version required for currently included build
+of sdl. This requirement will be fixed in the future by properly integrating the SDL build process
+and upgrading to a far newer version. Switching to a 'release' build will remove this requirement
+and allow usage of only the regular VC++ Runtime redistributable, but until that time, the easiest route
+is to acquire MSVCR90D.dll separately or install Visual Studio 2008. 
 
 For a working debug environment, add to D:\Images\ (currently hard coded) vgabios-cirrus.bin, 
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
