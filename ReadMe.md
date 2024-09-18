@@ -41,9 +41,46 @@ will necessitate upgrading to VS 2022 17.11. With 17.11 we can also now use
 /cstd:clatest so we no longer have to use \_\_typeof\_\_() instead of just typeof()
 leaving more code unmodified
 
+# pthreads and vcpkg installation notes 
+
+vcpkg is required to be installed with visual studio 2022. It is a selected component during
+Visual Studio installation, however using this version can cause problems.
+
+To allivieate any potential issues, we will use the recent version directly from Microsoft's
+public github. 
+
+While location of vcpkg doesn't matter, for our example we will use 'c:\dev\vcpkg'
+
+Within a command prompt, run 'git clone https://github.com/Microsoft/vcpkg.git ' inside 'C:\dev'
+directory to get the current vcpkg setup cloned and ready in 'c:\dev\vcpkg'
+
+From inside C:\dev\vcpkg run 'bootstrap-vcpkg.bat'
+
+Next, execute 'vcpkg integrate install' to commence the visual studio integration. 
+
+Finally, run 'vcpkg install pthreads:x86-windows' to install the required pthreads library, 
+with the integration it will automatically be found and linked to the project appropriately. 
+This will now automatically, after following those steps, build pthreadVC3.dll inside the
+target folder as well, which is now required to run. This installs the 32-bit x86 version,
+while vcpkg install pthreads alone installs the x64 version by default instead. Currently,
+the 64-bit build is non-functional, so we require the 32-bit version. 
+
+Note: Powershell 7 is brought in/used by vcpkg but you should probably install it system 
+wide. Otherwise you will get a pwsh.exe is not recognized as an internal or external command 
+when attempting the build (but it will still work for now). 
+
+Note: On one system, I had some issue with the include directories being automatically 
+recognized in visual studio from the vcpkg directories, which should happen automatically.
+Changing the toolchain from VS 2022 to something else and then back again resolved this issue.
+
 # Building instructions
 
-Only Debug/Win32 is currently "fixed up" and validated. 
+Only Debug/Win32 is currently "fixed up" and working as of this time. 
+
+Visual Studio 2008 / Visual C++ 2008 Runtime DEBUG version required for currently included fmod library
+build. (Satisified by having VS2008 installed, or otherwise acquiring MSVCR90D.dll ) - this is next
+on roadmap to fix. Setting build to RELEASE will enable it to build/run without VS2022 debugging 
+capabilities, but will allow you to use the regular VC++ 2008 Runtime currently. 
 
 For a working debug environment, add to D:\Images\ (currently hard coded) vgabios-cirrus.bin, 
 small.ffs, and bios.bin for a minimal x86 emulated system during debugging. This path can 
@@ -52,18 +89,6 @@ be modified in project WinQemu\qemu\inc\config-host.h
 Add '-net none -cpu coreduo -m 512 -M pc -vga std -sdl -hda D:\Images\small.ffs -bios D:\Images\bios.bin -L D:\Images'  
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 
-
-vcpkg install pthreads:x64-windows will be required. acquire vcpkg from
-https://github.com/microsoft/vcpkg/ 
-
-Powershell 7 is brought in/used by vcpkg but you should probably install it system wide.
-Otherwise you will get a pwsh.exe is not recognized as an internal or external command 
-when attempting the build (but it will still work for now). 
-
-Instructions here: https://github.com/microsoft/vcpkg?tab=readme-ov-file#getting-started
-
-This will now automatically, after following those steps, build pthreadVC3.dll inside the
-debug target folder as well, which is now required to run. 
 
 From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.h
 As well do the same thing for qemu-monitor.hx > qemu-monitor.h
