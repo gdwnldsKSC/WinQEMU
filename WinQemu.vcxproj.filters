@@ -1284,6 +1284,12 @@
     <ClCompile Include="qemu\audio\winwaveaudio.c">
       <Filter>qemu\audio</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\ide\cmd646.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\piix.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1927,6 +1933,9 @@
     </ClInclude>
     <ClInclude Include="qemu\audio\audio_win_int.h">
       <Filter>qemu\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ide\pci.h">
+      <Filter>qemu\hw\IDE</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

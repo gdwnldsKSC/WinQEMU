@@ -350,12 +350,14 @@
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\ide\cmd646.c" />
     <ClCompile Include="qemu\hw\ide\core.c" />
     <ClCompile Include="qemu\hw\ide\isa.c" />
     <ClCompile Include="qemu\hw\ide\macio.c" />
     <ClCompile Include="qemu\hw\ide\microdrive.c" />
     <ClCompile Include="qemu\hw\ide\mmio.c" />
     <ClCompile Include="qemu\hw\ide\pci.c" />
+    <ClCompile Include="qemu\hw\ide\piix.c" />
     <ClCompile Include="qemu\hw\ide\qdev.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
@@ -1696,6 +1698,7 @@
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
+    <ClInclude Include="qemu\hw\ide\pci.h" />
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\ne2000.h" />
