@@ -672,7 +672,7 @@ int bdrv_pread(BlockDriverState *bs, int64_t offset,
             return -EIO;
         sector_num += nb_sectors;
         len = nb_sectors << SECTOR_BITS;
-        (char*)buf += len;
+        (char *)buf += len;
         count -= len;
     }
 
@@ -708,7 +708,7 @@ int bdrv_pwrite(BlockDriverState *bs, int64_t offset,
         if (count == 0)
             return count1;
         sector_num++;
-        (char*)buf += len;
+        (char *)buf += len;
     }
 
     /* write the sectors "in place" */
@@ -718,7 +718,7 @@ int bdrv_pwrite(BlockDriverState *bs, int64_t offset,
             return -EIO;
         sector_num += nb_sectors;
         len = nb_sectors << SECTOR_BITS;
-        (char*)buf += len;
+        (char *)buf += len;
         count -= len;
     }
 
@@ -1721,19 +1721,26 @@ static int bdrv_read_em(BlockDriverState *bs, int64_t sector_num,
     struct iovec iov;
     QEMUIOVector qiov;
 
+    async_context_push();
+
     async_ret = NOT_DONE;
     iov.iov_base = (void *)buf;
     iov.iov_len = nb_sectors * 512;
     qemu_iovec_init_external(&qiov, &iov, 1);
     acb = bdrv_aio_readv(bs, sector_num, &qiov, nb_sectors,
         bdrv_rw_em_cb, &async_ret);
-    if (acb == NULL)
-        return -1;
+    if (acb == NULL) {
+        async_ret = -1;
+        goto fail;
+    }
 
     while (async_ret == NOT_DONE) {
         qemu_aio_wait();
     }
 
+
+fail:
+    async_context_pop();
     return async_ret;
 }
 
@@ -1745,17 +1752,24 @@ static int bdrv_write_em(BlockDriverState *bs, int64_t sector_num,
     struct iovec iov;
     QEMUIOVector qiov;
 
+    async_context_push();
+
     async_ret = NOT_DONE;
     iov.iov_base = (void *)buf;
     iov.iov_len = nb_sectors * 512;
     qemu_iovec_init_external(&qiov, &iov, 1);
     acb = bdrv_aio_writev(bs, sector_num, &qiov, nb_sectors,
         bdrv_rw_em_cb, &async_ret);
-    if (acb == NULL)
-        return -1;
+    if (acb == NULL) {
+        async_ret = -1;
+        goto fail;
+    }
     while (async_ret == NOT_DONE) {
         qemu_aio_wait();
     }
+
+fail:
+    async_context_pop();
     return async_ret;
 }
 

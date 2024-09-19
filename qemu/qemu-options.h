@@ -258,25 +258,17 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 "-net tap[,vlan=n][,name=str],ifname=name\n" \
 "                connect the host TAP network interface to VLAN 'n'\n"
 #else // Non-Windows TAP options - we don't really need it, but having it as reference will help future updates
-#ifdef TUNSETSNDBUF
 #define TAP_OPTIONS \
-"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes]\n"
-"                connect the host TAP network interface to VLAN 'n'\n" \
+"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes][,vnet_hdr=on|off]\n" \
+"                connect the host TAP network interface to VLAN 'n' and use the\n" \
 "                network scripts 'file' (default=%s)\n" \
 "                and 'dfile' (default=%s);\n" \
 "                use '[down]script=no' to disable script execution;\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n" \
 "                use 'sndbuf=nbytes' to limit the size of the send buffer; the\n" \
-"                default of 'sndbuf=1048576' can be disabled using 'sndbuf=0'\n"
-#else
-#define TAP_OPTIONS \
-"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile]\n"
-"                connect the host TAP network interface to VLAN 'n' and use the\n" \
-"                network scripts 'file' (default=%s)\n" \
-"                and 'dfile' (default=%s);\n" \
-"                use '[down]script=no' to disable script execution;\n" \
-"                use 'fd=h' to connect to an already opened TAP interface\n"
-#endif 
+"                default of 'sndbuf=1048576' can be disabled using 'sndbuf=0'\n" \
+"                use vnet_hdr=off to avoid enabling the IFF_VNET_HDR tap flag; use\n" \
+"                vnet_hdr=on to make the lack of IFF_VNET_HDR support an error condition\n" 
 #endif
 
 #ifdef CONFIG_VDE 
@@ -309,7 +301,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net none       use it alone to have zero network devices; if no -net option\n" \
 	"                is provided, the default is '-net nic -net user'\n")
 
-// netdev section
+	// netdev section
 #ifdef CONFIG_SLIRP
 #define NETDEV_SLIRP \
 "user|"
@@ -323,15 +315,14 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 #define NETDEV_VDE ""
 #endif
 
-DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
-"-netdev [" \
-NETDEV_SLIRP \
-"tap|" \
-NETDEV_VDE \
-"socket],id=str[,option][,option][,...]\n")
+	DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+		"-netdev [" \
+		NETDEV_SLIRP \
+		"tap|" \
+		NETDEV_VDE \
+		"socket],id=str[,option][,option][,...]\n")
 
 	// END HEAVILY MODIFIED SECTION 
-
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "\n" \
