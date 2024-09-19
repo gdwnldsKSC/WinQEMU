@@ -20,8 +20,12 @@
 
 #ifndef _MSC_VER
 #define QEMU_NORETURN __attribute__ ((__noreturn__))
+#ifdef CONFIG_GCC_ATTRIBUTE_WARN_UNUSED_RESULT
+#define QEMU_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#endif
 #else
 #define QEMU_NORETURN __declspec(noreturn)
+#define QEMU_WARN_UNUSED_RESULT
 #endif
 
 /* Hack around the mess dyngen-exec.h causes: We need QEMU_NORETURN in files that
@@ -75,7 +79,6 @@ struct iovec {
 #ifdef _WIN32
 #define fsync _commit
 #define lseek _lseeki64
-#define ENOTSUP 4096
 extern int qemu_ftruncate64(int, int64_t);
 #define ftruncate qemu_ftruncate64
 
@@ -202,6 +205,7 @@ char *qemu_strndup(const char *str, size_t size);
 
 void *get_mmap_addr(unsigned long size);
 
+
 void qemu_mutex_lock_iothread(void);
 void qemu_mutex_unlock_iothread(void);
 
@@ -288,7 +292,7 @@ typedef struct QEMUIOVector {
 void qemu_iovec_init(QEMUIOVector *qiov, int alloc_hint);
 void qemu_iovec_init_external(QEMUIOVector *qiov, struct iovec *iov, int niov);
 void qemu_iovec_add(QEMUIOVector *qiov, void *base, size_t len);
-void qemu_iovec_concat(QEMUIOVector* dst, QEMUIOVector* src, size_t size);
+void qemu_iovec_concat(QEMUIOVector *dst, QEMUIOVector *src, size_t size);
 void qemu_iovec_destroy(QEMUIOVector *qiov);
 void qemu_iovec_reset(QEMUIOVector *qiov);
 void qemu_iovec_to_buffer(QEMUIOVector *qiov, void *buf);

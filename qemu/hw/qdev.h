@@ -79,6 +79,7 @@ enum PropertyType {
     PROP_TYPE_MACADDR,
     PROP_TYPE_DRIVE,
     PROP_TYPE_CHR,
+    PROP_TYPE_STRING,
     PROP_TYPE_PTR,
 };
 
@@ -100,12 +101,7 @@ struct CompatProperty {
 
 DeviceState *qdev_create(BusState *bus, const char *name);
 DeviceState *qdev_device_add(QemuOpts *opts);
-#ifndef _MSC_VER
-int qdev_init(DeviceState *dev) __attribute__((warn_unused_result));
-#else
-#include <sal.h>
-int _Check_return_ qdev_init(DeviceState* dev);
-#endif
+int qdev_init(DeviceState *dev) QEMU_WARN_UNUSED_RESULT;
 void qdev_init_nofail(DeviceState *dev);
 int qdev_unplug(DeviceState *dev);
 void qdev_free(DeviceState *dev);
@@ -191,6 +187,7 @@ extern PropertyInfo qdev_prop_int32;
 extern PropertyInfo qdev_prop_uint64;
 extern PropertyInfo qdev_prop_hex32;
 extern PropertyInfo qdev_prop_hex64;
+extern PropertyInfo qdev_prop_string;
 extern PropertyInfo qdev_prop_chr;
 extern PropertyInfo qdev_prop_ptr;
 extern PropertyInfo qdev_prop_macaddr;
@@ -232,6 +229,8 @@ extern PropertyInfo qdev_prop_pci_devfn;
     DEFINE_PROP(_n, _s, _f, qdev_prop_ptr, void*)
 #define DEFINE_PROP_CHR(_n, _s, _f)             \
     DEFINE_PROP(_n, _s, _f, qdev_prop_chr, CharDriverState*)
+#define DEFINE_PROP_STRING(_n, _s, _f)             \
+    DEFINE_PROP(_n, _s, _f, qdev_prop_string, char*)
 #define DEFINE_PROP_DRIVE(_n, _s, _f)             \
     DEFINE_PROP(_n, _s, _f, qdev_prop_drive, DriveInfo*)
 #define DEFINE_PROP_MACADDR(_n, _s, _f)         \
