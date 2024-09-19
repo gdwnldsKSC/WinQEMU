@@ -132,7 +132,7 @@ static void qemu_announce_self_once(void *opaque)
             continue;
         len = announce_self_create(buf, nd_table[i].macaddr);
         vlan = nd_table[i].vlan;
-	for(vc = vlan->first_client; vc != NULL; vc = vc->next) {
+        QTAILQ_FOREACH(vc, &vlan->clients, next) {
             vc->receive(vc, buf, len);
         }
     }
@@ -1104,7 +1104,7 @@ void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
     if (vmsd->pre_save) {
         vmsd->pre_save(opaque);
     }
-    while (field->name) {
+    while(field->name) {
         if (!field->field_exists ||
             field->field_exists(opaque, vmsd->version_id)) {
             void* base_addr = (char *)opaque + field->offset;

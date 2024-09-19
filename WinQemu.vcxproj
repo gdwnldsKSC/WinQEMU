@@ -395,6 +395,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\module.c" />
+    <ClCompile Include="qemu\net-queue.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
     <ClCompile Include="qemu\qemu-io.c">
@@ -1711,6 +1712,7 @@
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\module.h" />
+    <ClInclude Include="qemu\net-queue.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />

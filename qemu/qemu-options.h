@@ -260,7 +260,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 #else // Non-Windows TAP options - we don't really need it, but having it as reference will help future updates
 #ifdef TUNSETSNDBUF
 #define TAP_OPTIONS \
-"-net tap[,vlan=n][,name=str],ifname=name\n"
+"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes]\n"
 "                connect the host TAP network interface to VLAN 'n'\n" \
 "                network scripts 'file' (default=%s)\n" \
 "                and 'dfile' (default=%s);\n" \
@@ -292,7 +292,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 
 
 // Put it all together... 
-DEFHEADING(Network options : )
+// DEFHEADING(Network options : ) we probably don't need this one again.... 
 
 DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]\n"
@@ -308,6 +308,27 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
 	"-net none       use it alone to have zero network devices; if no -net option\n" \
 	"                is provided, the default is '-net nic -net user'\n")
+
+// netdev section
+#ifdef CONFIG_SLIRP
+#define NETDEV_SLIRP \
+"user|"
+#else
+#define NETDEV_SLIRP ""
+#endif
+#ifdef CONFIG_VDE
+#define NETDEV_VDE \
+"vde|"
+#else
+#define NETDEV_VDE ""
+#endif
+
+DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+"-netdev [" \
+NETDEV_SLIRP \
+"tap|" \
+NETDEV_VDE \
+"socket],id=str[,option][,option][,...]\n")
 
 	// END HEAVILY MODIFIED SECTION 
 

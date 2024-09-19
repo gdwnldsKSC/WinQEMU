@@ -1290,6 +1290,9 @@
     <ClCompile Include="qemu\hw\ide\piix.c">
       <Filter>qemu\hw\IDE</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\net-queue.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1936,6 +1939,9 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\ide\pci.h">
       <Filter>qemu\hw\IDE</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net-queue.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
