@@ -1323,6 +1323,12 @@
     <ClCompile Include="qemu\net\tap-win32.c">
       <Filter>qemu\net\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\pcie_host.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\pci_host.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1703,7 +1709,7 @@
     <ClInclude Include="qemu\hw\scsi-disk.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\scsi.h">
+    <ClInclude Include="qemu\hw\esp.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\sd.h">
@@ -1987,6 +1993,9 @@
     </ClInclude>
     <ClInclude Include="qemu\net\tap-linux.h">
       <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\pcie_host.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

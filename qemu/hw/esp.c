@@ -31,8 +31,8 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
-#include "scsi-disk.h"
 #include "scsi.h"
+#include "esp.h"
 
 /* debug ESP card */
 //#define DEBUG_ESP

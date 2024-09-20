@@ -371,6 +371,8 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\msix.c" />
     <ClCompile Include="qemu\hw\ne2000-isa.c" />
+    <ClCompile Include="qemu\hw\pcie_host.c" />
+    <ClCompile Include="qemu\hw\pci_host.c" />
     <ClCompile Include="qemu\hw\piix4.c" />
     <ClCompile Include="qemu\hw\qdev-addr.c" />
     <ClCompile Include="qemu\hw\qdev-properties.c" />
@@ -1720,6 +1722,7 @@
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\ne2000.h" />
+    <ClInclude Include="qemu\hw\pcie_host.h" />
     <ClInclude Include="qemu\hw\pcnet.h" />
     <ClInclude Include="qemu\hw\poison.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
@@ -1900,7 +1903,7 @@
     <ClInclude Include="qemu\hw\pxa.h" />
     <ClInclude Include="qemu\hw\pxa2xx_template.h" />
     <ClInclude Include="qemu\hw\scsi-disk.h" />
-    <ClInclude Include="qemu\hw\scsi.h" />
+    <ClInclude Include="qemu\hw\esp.h" />
     <ClInclude Include="qemu\hw\sd.h" />
     <ClInclude Include="qemu\hw\sh.h" />
     <ClInclude Include="qemu\hw\sh7750_regnames.h" />

@@ -315,17 +315,76 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 #define NETDEV_VDE ""
 #endif
 
-	DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
-		"-netdev [" \
-		NETDEV_SLIRP \
-		"tap|" \
-		NETDEV_VDE \
-		"socket],id=str[,option][,option][,...]\n")
+DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+	"-netdev [" \
+	NETDEV_SLIRP \
+	"tap|" \
+	NETDEV_VDE \
+	"socket],id=str[,option][,option][,...]\n")
 
-	// END HEAVILY MODIFIED SECTION 
+
+
+
+DEFHEADING()
+
+DEFHEADING(Character device options:)
+
+#ifdef _WIN32
+#define CHARDEV_WIN32 \
+	"-chardev console,id=id\n" \
+	"-chardev serial,id=id,path=path\n"
+#else
+#define CHARDEV_WIN32 \
+	"-chardev pty,id=id\n" \
+	"-chardev stdio,id=id\n"
+#endif
+
+#ifdef CONFIG_BRLAPI
+#define CHARDEV_BRLAPI \
+	"-chardev braille,id=id\n"
+#else
+#define CHARDEV_BRLAPI ""
+#endif
+
+#if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) \
+|| defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+#define CHARDEV_TTY \
+	"-chardev tty,id=id,path=path\n"
+#else
+#define CHARDEV_TTY ""
+#endif
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
+#define CHARDEV_PARPORT \
+	"-chardev parport,id=id,path=path\n"
+#else
+#define CHARDEV_PARPORT ""
+#endif
+
+DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
+	"-chardev null,id=id\n"
+	"-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]\n"
+	"         [,server][,nowait][,telnet] (tcp)\n"
+	"-chardev socket,id=id,path=path[,server][,nowait][,telnet] (unix)\n"
+	"-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]\n"
+	"         [,localport=localport][,ipv4][,ipv6]\n"
+	"-chardev msmouse,id=id\n"
+	"-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n"
+	"-chardev file,id=id,path=path\n"
+	"-chardev pipe,id=id,path=path\n"
+	CHARDEV_WIN32 \
+	CHARDEV_BRLAPI \
+	CHARDEV_TTY \
+	CHARDEV_PARPORT
+)
+
+// END HEAVILY MODIFIED SECTION 
+
+DEFHEADING()
+
+DEFHEADING(Bluetooth(R) options:)
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
-"\n" \
 "-bt hci,null    dumb bluetooth HCI - doesn't respond to commands\n" \
 "-bt hci,host[:id]\n" \
 "                use host's HCI with the given name\n" \
@@ -355,8 +414,6 @@ DEFHEADING()
 DEFHEADING(Debug/Expert options:)
 
 
-DEF("chardev", HAS_ARG, QEMU_OPTION_chardev, \
-"-chardev spec   create unconnected chardev\n")
 DEF("serial", HAS_ARG, QEMU_OPTION_serial, \
 "-serial dev     redirect the serial port to char device 'dev'\n")
 
@@ -500,3 +557,8 @@ DEF("semihosting", 0, QEMU_OPTION_semihosting,
 DEF("old-param", 0, QEMU_OPTION_old_param,
 "-old-param      old param mode\n")
 #endif
+DEF("readconfig", HAS_ARG, QEMU_OPTION_readconfig,
+"-readconfig <file>\n")
+DEF("writeconfig", HAS_ARG, QEMU_OPTION_writeconfig,
+"-writeconfig <file>\n"
+"                read/write config file")
