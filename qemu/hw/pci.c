@@ -273,9 +273,9 @@ static int get_pci_config_device(QEMUFile *f, void *pv, size_t size)
 /* just put buffer */
 static void put_pci_config_device(QEMUFile *f, void *pv, size_t size)
 {
-    const uint8_t *v = pv;
+    const uint8_t **v = pv;
     assert(size == pci_config_size(container_of(pv, PCIDevice, config)));
-    qemu_put_buffer(f, v, size);
+    qemu_put_buffer(f, *v, size);
 }
 
 static VMStateInfo vmstate_info_pci_config = {
@@ -856,9 +856,9 @@ void pci_default_write_config(PCIDevice *d, uint32_t addr, uint32_t val, int l)
     int i;
     uint32_t config_size = pci_config_size(d);
 
-    for(i = 0; i < l && addr < config_size; val >>= 8, ++i, ++addr) {
-        uint8_t wmask = d->wmask[addr];
-        d->config[addr] = (d->config[addr] & ~wmask) | (val & wmask);
+    for (i = 0; i < l && addr + i < config_size; val >>= 8, ++i) {
+        uint8_t wmask = d->wmask[addr + i];
+        d->config[addr + i] = (d->config[addr + i] & ~wmask) | (val & wmask);
     }
     if (ranges_overlap(addr, l, PCI_BASE_ADDRESS_0, 24) ||
         ranges_overlap(addr, l, PCI_ROM_ADDRESS, 4) ||
