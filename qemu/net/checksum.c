@@ -15,8 +15,7 @@
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hw/hw.h"
-#include "net.h"
+#include "net/checksum.h"
 
 #define PROTO_TCP  6
 #define PROTO_UDP 17

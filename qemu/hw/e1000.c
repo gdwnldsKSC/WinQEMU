@@ -34,6 +34,7 @@
 #include "hw.h"
 #include "pci.h"
 #include "net.h"
+#include "net/checksum.h"
 #include "loader.h"
 
 #include "e1000_hw.h"
@@ -1135,7 +1136,6 @@ static int pci_e1000_init(PCIDevice *pci_dev)
     vmstate_register(-1, &vmstate_e1000, d);
     e1000_reset(d);
 
-#if 0 /* rom bev support is broken -> can't load unconditionally */
     if (!pci_dev->qdev.hotplugged) {
         static int loaded = 0;
         if (!loaded) {
@@ -1143,7 +1143,6 @@ static int pci_e1000_init(PCIDevice *pci_dev)
             loaded = 1;
         }
     }
-#endif
     return 0;
 }
 

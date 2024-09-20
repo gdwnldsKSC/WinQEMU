@@ -397,7 +397,24 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\module.c" />
-    <ClCompile Include="qemu\net-queue.c" />
+    <ClCompile Include="qemu\net\checksum.c" />
+    <ClCompile Include="qemu\net\queue.c" />
+    <ClCompile Include="qemu\net\tap-aix.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\net\tap-bsd.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\net\tap-linux.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\net\tap-solaris.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\net\tap-win32.c" />
+    <ClCompile Include="qemu\net\tap.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
     <ClCompile Include="qemu\qemu-io.c">
@@ -538,7 +555,6 @@
     <ClCompile Include="qemu\mips-dis.c" />
     <ClCompile Include="qemu\monitor.c" />
     <ClCompile Include="qemu\nbd.c" />
-    <ClCompile Include="qemu\net-checksum.c" />
     <ClCompile Include="qemu\net.c" />
     <ClCompile Include="qemu\osdep.c" />
     <ClCompile Include="qemu\posix-aio-compat.c">
@@ -579,7 +595,6 @@
     <ClCompile Include="qemu\sdl.c" />
     <ClCompile Include="qemu\sh4-dis.c" />
     <ClCompile Include="qemu\sparc-dis.c" />
-    <ClCompile Include="qemu\tap-win32.c" />
     <ClCompile Include="qemu\thunk.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -1715,7 +1730,10 @@
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\module.h" />
-    <ClInclude Include="qemu\net-queue.h" />
+    <ClInclude Include="qemu\net\checksum.h" />
+    <ClInclude Include="qemu\net\queue.h" />
+    <ClInclude Include="qemu\net\tap-linux.h" />
+    <ClInclude Include="qemu\net\tap.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />

@@ -23,8 +23,15 @@
 /* QEMU doesn't strictly need write barriers since everything runs in
  * lock-step.  We'll leave the calls to wmb() in though to make it obvious for
  * KVM or if kqemu gets SMP support.
+ * In any case, we must prevent the compiler from reordering the code.
+ * TODO: we likely need some rmb()/mb() as well.
  */
-#define wmb() do { } while (0)
+
+#ifdef _MSC_VER
+#define wmb() _WriteBarrier()
+#else
+#define wmb() __asm__ __volatile__("": : :"memory")
+#endif
 
 typedef struct VRingDesc
 {
@@ -481,7 +488,7 @@ uint32_t virtio_config_readw(VirtIODevice *vdev, uint32_t addr)
     if (addr > (vdev->config_len - sizeof(val)))
         return (uint32_t)-1;
 
-    memcpy(&val, (char*)vdev->config + addr, sizeof(val));
+    memcpy(&val, (char *)vdev->config + addr, sizeof(val));
     return val;
 }
 
@@ -494,7 +501,7 @@ uint32_t virtio_config_readl(VirtIODevice *vdev, uint32_t addr)
     if (addr > (vdev->config_len - sizeof(val)))
         return (uint32_t)-1;
 
-    memcpy(&val, (char*)vdev->config + addr, sizeof(val));
+    memcpy(&val, (char *)vdev->config + addr, sizeof(val));
     return val;
 }
 
@@ -505,7 +512,7 @@ void virtio_config_writeb(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char*)vdev->config + addr, &val, sizeof(val));
+    memcpy((char *)vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);
@@ -518,7 +525,7 @@ void virtio_config_writew(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char*)vdev->config + addr, &val, sizeof(val));
+    memcpy((char *)vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);
@@ -531,7 +538,7 @@ void virtio_config_writel(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char*)vdev->config + addr, &val, sizeof(val));
+    memcpy((char *)vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);
@@ -704,7 +711,7 @@ VirtIODevice *virtio_common_init(const char *name, uint16_t device_id,
     vdev->queue_sel = 0;
     vdev->config_vector = VIRTIO_NO_VECTOR;
     vdev->vq = qemu_mallocz(sizeof(VirtQueue) * VIRTIO_PCI_QUEUE_MAX);
-    for (i = 0; i < VIRTIO_PCI_QUEUE_MAX; i++)
+    for(i = 0; i < VIRTIO_PCI_QUEUE_MAX; i++)
         vdev->vq[i].vector = VIRTIO_NO_VECTOR;
 
     vdev->name = name;
