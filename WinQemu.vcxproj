@@ -312,6 +312,7 @@
     <ClCompile Include="qemu\async.c" />
     <ClCompile Include="qemu\audio\audio_win_int.c" />
     <ClCompile Include="qemu\audio\winwaveaudio.c" />
+    <ClCompile Include="qemu\block-migration.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
     <ClCompile Include="qemu\block\cow.c" />
@@ -349,7 +350,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\gdbstub.c" />
+    <ClCompile Include="qemu\hw\a9mpcore.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\arm11mpcore.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
+    <ClCompile Include="qemu\hw\ds1338.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
     <ClCompile Include="qemu\hw\ide\cmd646.c" />
     <ClCompile Include="qemu\hw\ide\core.c" />
@@ -395,6 +403,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\ioport.c" />
+    <ClCompile Include="qemu\json-lexer.c" />
+    <ClCompile Include="qemu\json-parser.c" />
+    <ClCompile Include="qemu\json-streamer.c" />
     <ClCompile Include="qemu\microblaze-dis.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -418,6 +429,7 @@
     <ClCompile Include="qemu\net\tap.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\qbool.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
     <ClCompile Include="qemu\qemu-io.c">
@@ -426,7 +438,9 @@
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qfloat.c" />
     <ClCompile Include="qemu\qint.c" />
+    <ClCompile Include="qemu\qjson.c" />
     <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\sdl_zoom.c" />
@@ -1714,9 +1728,11 @@
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\audio\audio_win_int.h" />
+    <ClInclude Include="qemu\block-migration.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\hw\bitbang_i2c.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
@@ -1733,17 +1749,23 @@
     <ClInclude Include="qemu\hw\sysbus.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
+    <ClInclude Include="qemu\json-lexer.h" />
+    <ClInclude Include="qemu\json-parser.h" />
+    <ClInclude Include="qemu\json-streamer.h" />
     <ClInclude Include="qemu\module.h" />
     <ClInclude Include="qemu\net\checksum.h" />
     <ClInclude Include="qemu\net\queue.h" />
     <ClInclude Include="qemu\net\tap-linux.h" />
     <ClInclude Include="qemu\net\tap.h" />
+    <ClInclude Include="qemu\qbool.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
+    <ClInclude Include="qemu\qfloat.h" />
     <ClInclude Include="qemu\qint.h" />
+    <ClInclude Include="qemu\qjson.h" />
     <ClInclude Include="qemu\qlist.h" />
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />

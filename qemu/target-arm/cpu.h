@@ -40,6 +40,7 @@
 #define EXCP_BKPT            7
 #define EXCP_EXCEPTION_EXIT  8   /* Return from v7M exception.  */
 #define EXCP_KERNEL_TRAP     9   /* Jumped to kernel code page.  */
+#define EXCP_STREX          10
 
 #define ARMV7M_EXCP_RESET   1
 #define ARMV7M_EXCP_NMI     2
@@ -180,10 +181,12 @@ typedef struct CPUARMState {
 
         float_status fp_status;
     } vfp;
+    uint32_t exclusive_addr;
+    uint32_t exclusive_val;
+    uint32_t exclusive_high;
 #if defined(CONFIG_USER_ONLY)
-    struct mmon_state *mmon_entry;
-#else
-    uint32_t mmon_addr;
+    uint32_t exclusive_test;
+    uint32_t exclusive_info;
 #endif
 
     /* iwMMXt coprocessor state.  */
@@ -337,6 +340,7 @@ enum arm_features {
     ARM_FEATURE_THUMB2,
     ARM_FEATURE_MPU,    /* Only has Memory Protection Unit, not full MMU.  */
     ARM_FEATURE_VFP3,
+    ARM_FEATURE_VFP_FP16,
     ARM_FEATURE_NEON,
     ARM_FEATURE_DIV,
     ARM_FEATURE_M, /* Microcontroller profile.  */
@@ -388,6 +392,7 @@ void cpu_arm_set_cp_io(CPUARMState *env, int cpnum,
 #define ARM_CPUID_ARM1136_R2  0x4107b362
 #define ARM_CPUID_ARM11MPCORE 0x410fb022
 #define ARM_CPUID_CORTEXA8    0x410fc080
+#define ARM_CPUID_CORTEXA9    0x410fc090
 #define ARM_CPUID_CORTEXM3    0x410fc231
 #define ARM_CPUID_ANY         0xffffffff
 

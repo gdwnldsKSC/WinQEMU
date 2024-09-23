@@ -15,8 +15,86 @@
 #include "net.h"
 #include "sysemu.h"
 #include "boards.h"
+#include "bitbang_i2c.h"
+#include "sysbus.h"
 
 #define SMP_BOOT_ADDR 0xe0000000
+
+typedef struct {
+    SysBusDevice busdev;
+    bitbang_i2c_interface *bitbang;
+    int out;
+    int in;
+} RealViewI2CState;
+
+static uint32_t realview_i2c_read(void *opaque, target_phys_addr_t offset)
+{
+    RealViewI2CState *s = (RealViewI2CState *)opaque;
+
+    if (offset == 0) {
+        return (s->out & 1) | (s->in << 1);
+    } else {
+        hw_error("realview_i2c_read: Bad offset 0x%x\n", (int)offset);
+        return -1;
+    }
+}
+
+static void realview_i2c_write(void *opaque, target_phys_addr_t offset,
+                               uint32_t value)
+{
+    RealViewI2CState *s = (RealViewI2CState *)opaque;
+
+    switch (offset) {
+    case 0:
+        s->out |= value & 3;
+        break;
+    case 4:
+        s->out &= ~value;
+        break;
+    default:
+        hw_error("realview_i2c_write: Bad offset 0x%x\n", (int)offset);
+    }
+    bitbang_i2c_set(s->bitbang, BITBANG_I2C_SCL, (s->out & 1) != 0);
+    s->in = bitbang_i2c_set(s->bitbang, BITBANG_I2C_SDA, (s->out & 2) != 0);
+}
+
+static CPUReadMemoryFunc * const realview_i2c_readfn[] = {
+   realview_i2c_read,
+   realview_i2c_read,
+   realview_i2c_read
+};
+
+static CPUWriteMemoryFunc * const realview_i2c_writefn[] = {
+   realview_i2c_write,
+   realview_i2c_write,
+   realview_i2c_write
+};
+
+static int realview_i2c_init(SysBusDevice *dev)
+{
+    RealViewI2CState *s = FROM_SYSBUS(RealViewI2CState, dev);
+    i2c_bus *bus;
+    int iomemtype;
+
+    bus = i2c_init_bus(&dev->qdev, "i2c");
+    s->bitbang = bitbang_i2c_init(bus);
+    iomemtype = cpu_register_io_memory(realview_i2c_readfn,
+                                       realview_i2c_writefn, s);
+    sysbus_init_mmio(dev, 0x1000, iomemtype);
+    return 0;
+}
+
+static SysBusDeviceInfo realview_i2c_info = {
+    .init = realview_i2c_init,
+    .qdev.name  = "realview_i2c",
+    .qdev.size  = sizeof(RealViewI2CState),
+};
+
+static void realview_register_devices(void)
+{
+    sysbus_register_withprop(&realview_i2c_info);
+}
+
 /* Board init.  */
 
 static struct arm_boot_info realview_binfo = {
@@ -34,10 +112,19 @@ static void secondary_cpu_reset(void *opaque)
   env->regs[15] = SMP_BOOT_ADDR;
 }
 
+/* The following two lists must be consistent.  */
 enum realview_board_type {
     BOARD_EB,
     BOARD_EB_MPCORE,
-    BOARD_PB_A8
+    BOARD_PB_A8,
+    BOARD_PBX_A9,
+};
+
+int realview_board_id[] = {
+    0x33b,
+    0x33b,
+    0x769,
+    0x76d
 };
 
 static void realview_init(ram_addr_t ram_size,
@@ -54,15 +141,30 @@ static void realview_init(ram_addr_t ram_size,
     qemu_irq pic[64];
     PCIBus *pci_bus;
     NICInfo *nd;
+    i2c_bus *i2c;
     int n;
     int done_nic = 0;
     qemu_irq cpu_irq[4];
-    int is_mpcore = (board_type == BOARD_EB_MPCORE);
-    int is_pb = (board_type == BOARD_PB_A8);
+    int is_mpcore = 0;
+    int is_pb = 0;
     uint32_t proc_id = 0;
     uint32_t sys_id;
     ram_addr_t low_ram_size;
 
+    switch (board_type) {
+    case BOARD_EB:
+        break;
+    case BOARD_EB_MPCORE:
+        is_mpcore = 1;
+        break;
+    case BOARD_PB_A8:
+        is_pb = 1;
+        break;
+    case BOARD_PBX_A9:
+        is_mpcore = 1;
+        is_pb = 1;
+        break;
+    }
     for (n = 0; n < smp_cpus; n++) {
         env = cpu_init(cpu_model);
         if (!env) {
@@ -76,7 +178,11 @@ static void realview_init(ram_addr_t ram_size,
         }
     }
     if (arm_feature(env, ARM_FEATURE_V7)) {
-        proc_id = 0x0e000000;
+        if (is_mpcore) {
+            proc_id = 0x0c000000;
+        } else {
+            proc_id = 0x0e000000;
+        }
     } else if (arm_feature(env, ARM_FEATURE_V6K)) {
         proc_id = 0x06000000;
     } else if (arm_feature(env, ARM_FEATURE_V6)) {
@@ -104,10 +210,16 @@ static void realview_init(ram_addr_t ram_size,
     arm_sysctl_init(0x10000000, sys_id, proc_id);
 
     if (is_mpcore) {
-        dev = qdev_create(NULL, "realview_mpcore");
+        dev = qdev_create(NULL, is_pb ? "a9mpcore_priv": "realview_mpcore");
         qdev_prop_set_uint32(dev, "num-cpu", smp_cpus);
         qdev_init_nofail(dev);
         busdev = sysbus_from_qdev(dev);
+        if (is_pb) {
+            realview_binfo.smp_priv_base = 0x1f000000;
+        } else {
+            realview_binfo.smp_priv_base = 0x10100000;
+        }
+        sysbus_mmio_map(busdev, 0, realview_binfo.smp_priv_base);
         for (n = 0; n < smp_cpus; n++) {
             sysbus_connect_irq(busdev, n, cpu_irq[n]);
         }
@@ -169,10 +281,14 @@ static void realview_init(ram_addr_t ram_size,
         }
     }
 
+    dev = sysbus_create_simple("realview_i2c", 0x10002000, NULL);
+    i2c = (i2c_bus *)qdev_get_child_bus(dev, "i2c");
+    i2c_create_slave(i2c, "ds1338", 0x68);
+
     /* Memory map for RealView Emulation Baseboard:  */
     /* 0x10000000 System registers.  */
     /*  0x10001000 System controller.  */
-    /*  0x10002000 Two-Wire Serial Bus.  */
+    /* 0x10002000 Two-Wire Serial Bus.  */
     /* 0x10003000 Reserved.  */
     /*  0x10004000 AACI.  */
     /*  0x10005000 MCI.  */
@@ -238,7 +354,7 @@ static void realview_init(ram_addr_t ram_size,
     realview_binfo.kernel_cmdline = kernel_cmdline;
     realview_binfo.initrd_filename = initrd_filename;
     realview_binfo.nb_cpus = smp_cpus;
-    realview_binfo.board_id = is_pb ? 0x769 : 0x33b;
+    realview_binfo.board_id = realview_board_id[board_type];
     realview_binfo.loader_start = is_pb ? 0x70000000 : 0;
     arm_load_kernel(first_cpu, &realview_binfo);
 }
@@ -279,6 +395,18 @@ static void realview_pb_a8_init(ram_addr_t ram_size,
                   initrd_filename, cpu_model, BOARD_PB_A8);
 }
 
+static void realview_pbx_a9_init(ram_addr_t ram_size,
+                     const char *boot_device,
+                     const char *kernel_filename, const char *kernel_cmdline,
+                     const char *initrd_filename, const char *cpu_model)
+{
+    if (!cpu_model) {
+        cpu_model = "cortex-a9";
+    }
+    realview_init(ram_size, boot_device, kernel_filename, kernel_cmdline,
+                  initrd_filename, cpu_model, BOARD_PBX_A9);
+}
+
 static QEMUMachine realview_eb_machine = {
     .name = "realview-eb",
     .desc = "ARM RealView Emulation Baseboard (ARM926EJ-S)",
@@ -298,7 +426,14 @@ static QEMUMachine realview_pb_a8_machine = {
     .name = "realview-pb-a8",
     .desc = "ARM RealView Platform Baseboard for Cortex-A8",
     .init = realview_pb_a8_init,
+};
+
+static QEMUMachine realview_pbx_a9_machine = {
+    .name = "realview-pbx-a9",
+    .desc = "ARM RealView Platform Baseboard Explore for Cortex-A9",
+    .init = realview_pbx_a9_init,
     .use_scsi = 1,
+    .max_cpus = 4,
 };
 
 static void realview_machine_init(void)
@@ -306,6 +441,8 @@ static void realview_machine_init(void)
     qemu_register_machine(&realview_eb_machine);
     qemu_register_machine(&realview_eb_mpcore_machine);
     qemu_register_machine(&realview_pb_a8_machine);
+    qemu_register_machine(&realview_pbx_a9_machine);
 }
 
 machine_init(realview_machine_init);
+device_init(realview_register_devices)

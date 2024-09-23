@@ -1332,6 +1332,36 @@
     <ClCompile Include="qemu\hw\lan9118.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\block-migration.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qfloat.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qbool.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\json-lexer.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\json-parser.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\json-streamer.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qjson.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\a9mpcore.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\arm11mpcore.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ds1338.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1998,6 +2028,30 @@
       <Filter>qemu\net\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\pcie_host.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\block-migration.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qfloat.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qbool.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\json-lexer.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\json-parser.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\json-streamer.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qjson.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\bitbang_i2c.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>

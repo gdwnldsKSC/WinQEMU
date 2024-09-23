@@ -9,6 +9,12 @@
 #include "qemu-common.h"
 #include "host-utils.h"
 
+static uint32_t cortexa9_cp15_c0_c1[8] =
+{ 0x1031, 0x11, 0x000, 0, 0x00100103, 0x20000000, 0x01230000, 0x00002111 };
+
+static uint32_t cortexa9_cp15_c0_c2[8] =
+{ 0x00101111, 0x13112111, 0x21232041, 0x11112131, 0x00111142, 0, 0, 0 };
+
 static uint32_t cortexa8_cp15_c0_c1[8] =
 { 0x1031, 0x11, 0x400, 0, 0x31100003, 0x20000000, 0x01202000, 0x11 };
 
@@ -101,6 +107,27 @@ static void cpu_reset_model_id(CPUARMState *env, uint32_t id)
         env->cp15.c0_ccsid[1] = 0x2007e01a; /* 16k L1 icache. */
         env->cp15.c0_ccsid[2] = 0xf0000000; /* No L2 icache. */
         break;
+    case ARM_CPUID_CORTEXA9:
+        set_feature(env, ARM_FEATURE_V6);
+        set_feature(env, ARM_FEATURE_V6K);
+        set_feature(env, ARM_FEATURE_V7);
+        set_feature(env, ARM_FEATURE_AUXCR);
+        set_feature(env, ARM_FEATURE_THUMB2);
+        set_feature(env, ARM_FEATURE_VFP);
+        set_feature(env, ARM_FEATURE_VFP3);
+        set_feature(env, ARM_FEATURE_VFP_FP16);
+        set_feature(env, ARM_FEATURE_NEON);
+        set_feature(env, ARM_FEATURE_THUMB2EE);
+        env->vfp.xregs[ARM_VFP_FPSID] = 0x41034000; /* Guess */
+        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11110222;
+        env->vfp.xregs[ARM_VFP_MVFR1] = 0x01111111;
+        memcpy(env->cp15.c0_c1, cortexa9_cp15_c0_c1, 8 * sizeof(uint32_t));
+        memcpy(env->cp15.c0_c2, cortexa9_cp15_c0_c2, 8 * sizeof(uint32_t));
+        env->cp15.c0_cachetype = 0x80038003;
+        env->cp15.c0_clid = (1 << 27) | (1 << 24) | 3;
+        env->cp15.c0_ccsid[0] = 0xe00fe015; /* 16k L1 dcache. */
+        env->cp15.c0_ccsid[1] = 0x200fe015; /* 16k L1 icache. */
+        break;
     case ARM_CPUID_CORTEXM3:
         set_feature(env, ARM_FEATURE_V6);
         set_feature(env, ARM_FEATURE_THUMB2);
@@ -115,6 +142,7 @@ static void cpu_reset_model_id(CPUARMState *env, uint32_t id)
         set_feature(env, ARM_FEATURE_THUMB2);
         set_feature(env, ARM_FEATURE_VFP);
         set_feature(env, ARM_FEATURE_VFP3);
+        set_feature(env, ARM_FEATURE_VFP_FP16);
         set_feature(env, ARM_FEATURE_NEON);
         set_feature(env, ARM_FEATURE_THUMB2EE);
         set_feature(env, ARM_FEATURE_DIV);
@@ -286,6 +314,7 @@ static const struct arm_cpu_t arm_cpu_names[] = {
     { ARM_CPUID_ARM11MPCORE, "arm11mpcore"},
     { ARM_CPUID_CORTEXM3, "cortex-m3"},
     { ARM_CPUID_CORTEXA8, "cortex-a8"},
+    { ARM_CPUID_CORTEXA9, "cortex-a9"},
     { ARM_CPUID_TI925T, "ti925t" },
     { ARM_CPUID_PXA250, "pxa250" },
     { ARM_CPUID_PXA255, "pxa255" },
@@ -441,16 +470,6 @@ void do_interrupt (CPUState *env)
     env->exception_index = -1;
 }
 
-/* Structure used to record exclusive memory locations.  */
-typedef struct mmon_state {
-    struct mmon_state *next;
-    CPUARMState *cpu_env;
-    uint32_t addr;
-} mmon_state;
-
-/* Chain of current locks.  */
-static mmon_state* mmon_head = NULL;
-
 int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
                               int mmu_idx, int is_softmmu)
 {
@@ -462,62 +481,6 @@ int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
         env->cp15.c6_data = address;
     }
     return 1;
-}
-
-static void allocate_mmon_state(CPUState *env)
-{
-    env->mmon_entry = malloc(sizeof (mmon_state));
-    memset (env->mmon_entry, 0, sizeof (mmon_state));
-    env->mmon_entry->cpu_env = env;
-    mmon_head = env->mmon_entry;
-}
-
-/* Flush any monitor locks for the specified address.  */
-static void flush_mmon(uint32_t addr)
-{
-    mmon_state *mon;
-
-    for (mon = mmon_head; mon; mon = mon->next)
-      {
-        if (mon->addr != addr)
-          continue;
-
-        mon->addr = 0;
-        break;
-      }
-}
-
-/* Mark an address for exclusive access.  */
-void HELPER(mark_exclusive)(CPUState *env, uint32_t addr)
-{
-    if (!env->mmon_entry)
-        allocate_mmon_state(env);
-    /* Clear any previous locks.  */
-    flush_mmon(addr);
-    env->mmon_entry->addr = addr;
-}
-
-/* Test if an exclusive address is still exclusive.  Returns zero
-   if the address is still exclusive.   */
-uint32_t HELPER(test_exclusive)(CPUState *env, uint32_t addr)
-{
-    int res;
-
-    if (!env->mmon_entry)
-        return 1;
-    if (env->mmon_entry->addr == addr)
-        res = 0;
-    else
-        res = 1;
-    flush_mmon(addr);
-    return res;
-}
-
-void HELPER(clrex)(CPUState *env)
-{
-    if (!(env->mmon_entry && env->mmon_entry->addr))
-        return;
-    flush_mmon(env->mmon_entry->addr);
 }
 
 target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
@@ -1244,24 +1207,6 @@ target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
     return phys_addr;
 }
 
-/* Not really implemented.  Need to figure out a sane way of doing this.
-   Maybe add generic watchpoint support and use that.  */
-
-void HELPER(mark_exclusive)(CPUState *env, uint32_t addr)
-{
-    env->mmon_addr = addr;
-}
-
-uint32_t HELPER(test_exclusive)(CPUState *env, uint32_t addr)
-{
-    return (env->mmon_addr != addr);
-}
-
-void HELPER(clrex)(CPUState *env)
-{
-    env->mmon_addr = -1;
-}
-
 void HELPER(set_cp)(CPUState *env, uint32_t insn, uint32_t val)
 {
     int cp_num = (insn >> 8) & 0xf;
@@ -1632,7 +1577,11 @@ uint32_t HELPER(get_cp15)(CPUState *env, uint32_t insn)
                 case 3: /* TLB type register.  */
                     return 0; /* No lockable TLB entries.  */
                 case 5: /* CPU ID */
-                    return env->cpu_index;
+                    if (ARM_CPUID(env) == ARM_CPUID_CORTEXA9) {
+                        return env->cpu_index | 0x80000900;
+                    } else {
+                        return env->cpu_index;
+                    }
                 default:
                     goto bad_reg;
                 }
@@ -1696,6 +1645,8 @@ uint32_t HELPER(get_cp15)(CPUState *env, uint32_t insn)
                 return 1;
             case ARM_CPUID_CORTEXA8:
                 return 2;
+            case ARM_CPUID_CORTEXA9:
+                return 0;
             default:
                 goto bad_reg;
             }
@@ -2567,6 +2518,21 @@ VFP_CONV_FIX(sl, s, float32, int32, )
 VFP_CONV_FIX(uh, s, float32, uint16, u)
 VFP_CONV_FIX(ul, s, float32, uint32, u)
 #undef VFP_CONV_FIX
+
+/* Half precision conversions.  */
+float32 HELPER(vfp_fcvt_f16_to_f32)(uint32_t a, CPUState *env)
+{
+    float_status *s = &env->vfp.fp_status;
+    int ieee = (env->vfp.xregs[ARM_VFP_FPSCR] & (1 << 26)) == 0;
+    return float16_to_float32(a, ieee, s);
+}
+
+uint32_t HELPER(vfp_fcvt_f32_to_f16)(float32 a, CPUState *env)
+{
+    float_status *s = &env->vfp.fp_status;
+    int ieee = (env->vfp.xregs[ARM_VFP_FPSCR] & (1 << 26)) == 0;
+    return float32_to_float16(a, ieee, s);
+}
 
 float32 HELPER(recps_f32)(float32 a, float32 b, CPUState *env)
 {

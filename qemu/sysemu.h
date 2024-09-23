@@ -61,7 +61,7 @@ void qemu_announce_self(void);
 
 void main_loop_wait(int timeout);
 
-int qemu_savevm_state_begin(QEMUFile *f);
+int qemu_savevm_state_begin(QEMUFile *f, int blk_enable, int shared);
 int qemu_savevm_state_iterate(QEMUFile *f);
 int qemu_savevm_state_complete(QEMUFile *f);
 int qemu_savevm_state(QEMUFile *f);
@@ -90,10 +90,6 @@ typedef void WaitObjectFunc(void *opaque);
 int qemu_add_wait_object(HANDLE handle, WaitObjectFunc *func, void *opaque);
 void qemu_del_wait_object(HANDLE handle, WaitObjectFunc *func, void *opaque);
 #endif
-
-/* TAP win32 */
-int tap_win32_init(VLANState *vlan, const char *model,
-                   const char *name, const char *ifname);
 
 /* SLIRP */
 void do_info_slirp(Monitor *mon);

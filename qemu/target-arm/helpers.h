@@ -68,10 +68,6 @@ DEF_HELPER_2(get_cp, i32, env, i32)
 DEF_HELPER_2(get_r13_banked, i32, env, i32)
 DEF_HELPER_3(set_r13_banked, void, env, i32, i32)
 
-DEF_HELPER_2(mark_exclusive, void, env, i32)
-DEF_HELPER_2(test_exclusive, i32, env, i32)
-DEF_HELPER_1(clrex, void, env)
-
 DEF_HELPER_1(get_user_reg, i32, i32)
 DEF_HELPER_2(set_user_reg, void, i32, i32)
 
@@ -130,6 +126,9 @@ DEF_HELPER_3(vfp_shtod, f64, f64, i32, env)
 DEF_HELPER_3(vfp_sltod, f64, f64, i32, env)
 DEF_HELPER_3(vfp_uhtod, f64, f64, i32, env)
 DEF_HELPER_3(vfp_ultod, f64, f64, i32, env)
+
+DEF_HELPER_2(vfp_fcvt_f16_to_f32, f32, i32, env)
+DEF_HELPER_2(vfp_fcvt_f32_to_f16, i32, f32, env)
 
 DEF_HELPER_3(recps_f32, f32, f32, f32, env)
 DEF_HELPER_3(rsqrts_f32, f32, f32, f32, env)

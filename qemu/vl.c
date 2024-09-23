@@ -159,6 +159,8 @@ int main(int argc, char **argv)
 #include "qemu-char.h"
 #include "cache-utils.h"
 #include "block.h"
+#include "block_int.h"
+#include "block-migration.h"
 #include "dma.h"
 #include "audio/audio.h"
 #include "migration.h"
@@ -2983,9 +2985,7 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
         bwidth = 0.000001;
 
     /* try transferring iterative blocks of memory */
-
     if (stage == 3) {
-
         /* flush all remaining blocks regardless of rate limiting */
         while (ram_save_block(f) != 0) {
             bytes_transferred += TARGET_PAGE_SIZE;
@@ -5059,11 +5059,9 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
             case QEMU_OPTION_S:
                 autostart = 0;
                 break;
-#ifndef _WIN32
 	    case QEMU_OPTION_k:
 		keyboard_layout = optarg;
 		break;
-#endif
             case QEMU_OPTION_localtime:
                 rtc_utc = 0;
                 break;
@@ -5570,6 +5568,8 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 
     bdrv_init_with_whitelist();
 
+    blk_mig_init();
+
     /* we always create the cdrom drive, even if no disk is there */
     drive_add(NULL, CDROM_ALIAS);
 
@@ -5586,7 +5586,8 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
 
     vmstate_register(0, &vmstate_timers ,&timers_state);
-    register_savevm_live("ram", 0, 3, ram_save_live, NULL, ram_load, NULL);
+    register_savevm_live("ram", 0, 3, NULL, ram_save_live, NULL, 
+                         ram_load, NULL);
 
     /* Maintain compatibility with multiple stdio monitors */
     if (!strcmp(monitor_devices[0],"stdio")) {
@@ -5807,7 +5808,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
 
     text_consoles_set_display(display_state);
-    qemu_chr_initial_reset();
 
     for (i = 0; i < MAX_MONITOR_DEVICES; i++) {
         if (monitor_devices[i] && monitor_hds[i]) {
