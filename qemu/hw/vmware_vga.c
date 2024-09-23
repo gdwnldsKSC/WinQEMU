@@ -911,9 +911,9 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
 				else
         printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
     }
-}
-#endif
     }
+#endif
+}
 }
 
 static uint32_t vmsvga_bios_read(void *opaque, uint32_t address)
@@ -1123,7 +1123,7 @@ static int vmsvga_post_load(void *opaque, int version_id)
     return 0;
 }
 
-const VMStateDescription vmstate_vmware_vga_internal = {
+static const VMStateDescription vmstate_vmware_vga_internal = {
     .name = "vmware_vga_internal",
     .version_id = 0,
     .minimum_version_id = 0,
@@ -1150,7 +1150,7 @@ const VMStateDescription vmstate_vmware_vga_internal = {
     }
 };
 
-const VMStateDescription vmstate_vmware_vga = {
+static const VMStateDescription vmstate_vmware_vga = {
     .name = "vmware_vga",
     .version_id = 0,
     .minimum_version_id = 0,

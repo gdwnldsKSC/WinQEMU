@@ -235,7 +235,7 @@ extern PropertyInfo qdev_prop_pci_devfn;
     DEFINE_PROP(_n, _s, _f, qdev_prop_macaddr, MACAddr)
 
 #define DEFINE_PROP_END_OF_LIST()               \
-    {}
+    { NULL }
 
 /* Set properties between creation and init.  */
 void *qdev_get_prop_ptr(DeviceState *dev, Property *prop);

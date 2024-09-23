@@ -13,16 +13,14 @@ extern Monitor *cur_mon;
 #define MONITOR_USE_READLINE  0x02
 #define MONITOR_USE_CONTROL   0x04
 
-
-#undef EVENT_MAX // defined in WinUser.h .... we want to use it here anyway though.... 
 /* QMP events */
 typedef enum MonitorEvent {
-    EVENT_DEBUG,
-    EVENT_SHUTDOWN,
-    EVENT_RESET,
-    EVENT_POWERDOWN,
-    EVENT_STOP,
-    EVENT_MAX,
+    QEVENT_DEBUG,
+    QEVENT_SHUTDOWN,
+    QEVENT_RESET,
+    QEVENT_POWERDOWN,
+    QEVENT_STOP,
+    QEVENT_MAX,
 } MonitorEvent;
 
 void monitor_protocol_event(MonitorEvent event, QObject *data);
