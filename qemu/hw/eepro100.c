@@ -44,6 +44,7 @@
 #include <stddef.h>             /* offsetof */
 #include <stdbool.h>
 #include "hw.h"
+#include "loader.h"             /* rom_add_option */
 #include "pci.h"
 #include "net.h"
 #include "eeprom93xx.h"
@@ -198,7 +199,7 @@ typedef struct {
     PCIDevice dev;
     uint8_t mult[8];            /* multicast mask array */
     int mmio_index;
-    VLANClientState *vc;
+    NICState *nic;
     NICConf conf;
     uint8_t scb_stat;           /* SCB stat/ack byte */
     uint8_t int_stat;           /* PCI interrupt status */
@@ -638,22 +639,22 @@ static void nic_reset(void *opaque)
 }
 
 #if defined(DEBUG_EEPRO100)
-static const char * const reg[PCI_IO_SIZE / 4] = {
+static const char * const e100_reg[PCI_IO_SIZE / 4] = {
     "Command/Status",
     "General Pointer",
     "Port",
     "EEPROM/Flash Control",
     "MDI Control",
     "Receive DMA Byte Count",
-    "Flow control",
+    "Flow Control",
     "General Status/Control"
 };
 
 static char *regname(uint32_t addr)
 {
-    static char buf[16];
+    static char buf[32];
     if (addr < PCI_IO_SIZE) {
-        const char *r = reg[addr / 4];
+        const char *r = e100_reg[addr / 4];
         if (r != 0) {
             snprintf(buf, sizeof(buf), "%s+%u", r, addr % 4);
         } else {
@@ -871,7 +872,7 @@ static void action_command(EEPRO100State *s)
                 }
             }
             TRACE(RXTX, logout("%p sending frame, len=%d,%s\n", s, size, nic_dump(buf, size)));
-            qemu_send_packet(s->vc, buf, size);
+            qemu_send_packet(&s->nic->nc, buf, size);
             s->statistics.tx_good_frames++;
             /* Transmit with bad status would raise an CX/TNO interrupt.
              * (82557 only). Emulation never has bad status. */
@@ -1602,21 +1603,21 @@ static void pci_mmio_map(PCIDevice * pci_dev, int region_num,
     }
 }
 
-static int nic_can_receive(VLANClientState *vc)
+static int nic_can_receive(VLANClientState *nc)
 {
-    EEPRO100State *s = vc->opaque;
+    EEPRO100State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     TRACE(RXTX, logout("%p\n", s));
     return get_ru_state(s) == ru_ready;
     //~ return !eepro100_buffer_full(s);
 }
 
-static ssize_t nic_receive(VLANClientState *vc, const uint8_t * buf, size_t size)
+static ssize_t nic_receive(VLANClientState *nc, const uint8_t * buf, size_t size)
 {
     /* TODO:
      * - Magic packets should set bit 30 in power management driver register.
      * - Interesting packets should set bit 29 in power management driver register.
      */
-    EEPRO100State *s = vc->opaque;
+    EEPRO100State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     uint16_t rfd_status = 0xa000;
     static const uint8_t broadcast_macaddr[6] =
         { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -1782,11 +1783,11 @@ static const VMStateDescription vmstate_eepro100 = {
     }
 };
 
-static void nic_cleanup(VLANClientState *vc)
+static void nic_cleanup(VLANClientState *nc)
 {
-    EEPRO100State *s = vc->opaque;
+    EEPRO100State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
-    s->vc = NULL;
+    s->nic = NULL;
 }
 
 static int pci_nic_uninit(PCIDevice *pci_dev)
@@ -1796,9 +1797,17 @@ static int pci_nic_uninit(PCIDevice *pci_dev)
     cpu_unregister_io_memory(s->mmio_index);
     vmstate_unregister(s->vmstate, s);
     eeprom93xx_free(s->eeprom);
-    qemu_del_vlan_client(s->vc);
+    qemu_del_vlan_client(&s->nic->nc);
     return 0;
 }
+
+static NetClientInfo net_eepro100_info = {
+    .type = NET_CLIENT_TYPE_NIC,
+    .size = sizeof(NICState),
+    .can_receive = nic_can_receive,
+    .receive = nic_receive,
+    .cleanup = nic_cleanup,
+};
 
 static int nic_init(PCIDevice *pci_dev, uint32_t device)
 {
@@ -1832,21 +1841,28 @@ static int nic_init(PCIDevice *pci_dev, uint32_t device)
 
     nic_reset(s);
 
-    s->vc = qemu_new_vlan_client(NET_CLIENT_TYPE_NIC,
-                                 s->conf.vlan, s->conf.peer,
-                                 pci_dev->qdev.info->name, pci_dev->qdev.id,
-                                 nic_can_receive, nic_receive, NULL, NULL,
-                                 nic_cleanup, s);
+    s->nic = qemu_new_nic(&net_eepro100_info, &s->conf,
+                          pci_dev->qdev.info->name, pci_dev->qdev.id, s);
 
-    qemu_format_nic_info_str(s->vc, s->conf.macaddr.a);
-    TRACE(OTHER, logout("%s\n", s->vc->info_str));
+    qemu_format_nic_info_str(&s->nic->nc, s->conf.macaddr.a);
+    TRACE(OTHER, logout("%s\n", s->nic->nc.info_str));
 
     qemu_register_reset(nic_reset, s);
 
     s->vmstate = qemu_malloc(sizeof(vmstate_eepro100));
     memcpy(s->vmstate, &vmstate_eepro100, sizeof(vmstate_eepro100));
-    s->vmstate->name = s->vc->model;
+    s->vmstate->name = s->nic->nc.model;
     vmstate_register(-1, s->vmstate, s);
+
+    if (!pci_dev->qdev.hotplugged) {
+        static int loaded = 0;
+        if (!loaded) {
+            char fname[32];
+            snprintf(fname, sizeof(fname), "pxe-%s.bin", s->nic->nc.model);
+            rom_add_option(fname);
+            loaded = 1;
+        }
+    }
     return 0;
 }
 
@@ -1915,6 +1931,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82550",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82550_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1932,6 +1949,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82557a",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82557a_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1949,6 +1967,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82557c",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82557c_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1957,6 +1976,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82558a",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82558a_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1965,6 +1985,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82558b",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82558b_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1973,6 +1994,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82559a",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82559a_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1981,6 +2003,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82559b",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82559b_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -1989,6 +2012,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82559c",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82559c_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),
@@ -2006,6 +2030,7 @@ static PCIDeviceInfo eepro100_info[] = {
         .qdev.name = "i82562",
         .qdev.size = sizeof(EEPRO100State),
         .init      = pci_i82562_init,
+        .exit      = pci_nic_uninit,
         .qdev.props = (Property[]) {
             DEFINE_NIC_PROPERTIES(EEPRO100State, conf),
             DEFINE_PROP_END_OF_LIST(),

@@ -321,7 +321,9 @@ static void cpu_pre_save(void *opaque)
     CPUState *env = opaque;
     int i;
 
+#ifndef _MSC_VER
     cpu_synchronize_state(env);
+#endif
 
     /* FPU */
     env->fpus_vmstate = (env->fpus & ~0x3800) | (env->fpstt & 0x7) << 11;
@@ -341,7 +343,9 @@ static int cpu_pre_load(void *opaque)
 {
     CPUState *env = opaque;
 
+#ifndef _MSC_VER
     cpu_synchronize_state(env);
+#endif
     return 0;
 }
 
@@ -448,6 +452,11 @@ static const VMStateDescription vmstate_cpu = {
         VMSTATE_INT32_V(interrupt_injected, CPUState, 9),
         VMSTATE_UINT32_V(mp_state, CPUState, 9),
         VMSTATE_UINT64_V(tsc, CPUState, 9),
+        VMSTATE_UINT8_V(soft_interrupt, CPUState, 11),
+        VMSTATE_UINT8_V(nmi_injected, CPUState, 11),
+        VMSTATE_UINT8_V(nmi_pending, CPUState, 11),
+        VMSTATE_UINT8_V(has_error_code, CPUState, 11),
+        VMSTATE_UINT32_V(sipi_vector, CPUState, 11),
         /* MCE */
         VMSTATE_UINT64_V(mcg_cap, CPUState, 10),
         VMSTATE_UINT64_V(mcg_status, CPUState, 10),
@@ -456,6 +465,7 @@ static const VMStateDescription vmstate_cpu = {
         /* rdtscp */
         VMSTATE_UINT64_V(tsc_aux, CPUState, 11),
         VMSTATE_END_OF_LIST()
+        /* The above list is not sorted /wrt version numbers, watch out! */
     }
 };
 

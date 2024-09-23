@@ -412,7 +412,10 @@
     </ClCompile>
     <ClCompile Include="qemu\module.c" />
     <ClCompile Include="qemu\net\checksum.c" />
+    <ClCompile Include="qemu\net\dump.c" />
     <ClCompile Include="qemu\net\queue.c" />
+    <ClCompile Include="qemu\net\slirp.c" />
+    <ClCompile Include="qemu\net\socket.c" />
     <ClCompile Include="qemu\net\tap-aix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -429,6 +432,10 @@
     <ClCompile Include="qemu\net\tap.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\net\util.c" />
+    <ClCompile Include="qemu\net\vde.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\qbool.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
@@ -438,6 +445,7 @@
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qerror.c" />
     <ClCompile Include="qemu\qfloat.c" />
     <ClCompile Include="qemu\qint.c" />
     <ClCompile Include="qemu\qjson.c" />
@@ -1722,7 +1730,6 @@
     <ClCompile Include="qemu\slirp\udp.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="config-devices.h" />
     <ClInclude Include="config-target.h" />
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
@@ -1746,6 +1753,7 @@
     <ClInclude Include="qemu\hw\prep_pci.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
     <ClInclude Include="qemu\hw\qdev.h" />
+    <ClInclude Include="qemu\hw\scsi-defs.h" />
     <ClInclude Include="qemu\hw\sh_pci.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
     <ClInclude Include="qemu\hw\ssi.h" />
@@ -1759,16 +1767,23 @@
     <ClInclude Include="qemu\json-parser.h" />
     <ClInclude Include="qemu\json-streamer.h" />
     <ClInclude Include="qemu\module.h" />
+    <ClInclude Include="qemu\monitor.h" />
     <ClInclude Include="qemu\net\checksum.h" />
+    <ClInclude Include="qemu\net\dump.h" />
     <ClInclude Include="qemu\net\queue.h" />
+    <ClInclude Include="qemu\net\slirp.h" />
+    <ClInclude Include="qemu\net\socket.h" />
     <ClInclude Include="qemu\net\tap-linux.h" />
     <ClInclude Include="qemu\net\tap.h" />
+    <ClInclude Include="qemu\net\util.h" />
+    <ClInclude Include="qemu\net\vde.h" />
     <ClInclude Include="qemu\qbool.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
+    <ClInclude Include="qemu\qerror.h" />
     <ClInclude Include="qemu\qfloat.h" />
     <ClInclude Include="qemu\qint.h" />
     <ClInclude Include="qemu\qjson.h" />
@@ -1931,7 +1946,6 @@
     <ClInclude Include="qemu\hw\ps2.h" />
     <ClInclude Include="qemu\hw\pxa.h" />
     <ClInclude Include="qemu\hw\pxa2xx_template.h" />
-    <ClInclude Include="qemu\hw\scsi-disk.h" />
     <ClInclude Include="qemu\hw\esp.h" />
     <ClInclude Include="qemu\hw\sd.h" />
     <ClInclude Include="qemu\hw\sh.h" />

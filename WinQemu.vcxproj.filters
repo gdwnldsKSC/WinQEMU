@@ -1362,6 +1362,24 @@
     <ClCompile Include="qemu\hw\ds1338.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qerror.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\dump.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\slirp.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\socket.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\util.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\vde.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1739,9 +1757,6 @@
     <ClInclude Include="qemu\hw\pxa2xx_template.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\scsi-disk.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\esp.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -1997,9 +2012,6 @@
     <ClInclude Include="config-target.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="config-devices.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\qlist.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2071,6 +2083,30 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\vmware_vga.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qerror.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\dump.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\slirp.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\socket.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\util.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\vde.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\scsi-defs.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\monitor.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

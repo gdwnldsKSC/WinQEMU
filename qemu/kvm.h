@@ -47,6 +47,7 @@ int kvm_log_stop(target_phys_addr_t phys_addr, ram_addr_t size);
 int kvm_set_migration_log(int enable);
 
 int kvm_has_sync_mmu(void);
+int kvm_has_vcpu_events(void);
 
 void kvm_setup_guest_memory(void *start, size_t size);
 
@@ -133,11 +134,9 @@ void kvm_cpu_synchronize_state(CPUState *env);
 
 static inline void cpu_synchronize_state(CPUState *env)
 {
-#ifndef _MSC_VER
     if (kvm_enabled()) {
         kvm_cpu_synchronize_state(env);
     }
-#endif
 }
 
 #endif

@@ -764,7 +764,9 @@ void cpu_dump_state(CPUState *env, FILE *f,
 	} tmp = {0};
 #endif
 
+#ifndef _MSC_VER
     cpu_synchronize_state(env);
+#endif
 
     eflags = env->eflags;
 #ifdef TARGET_X86_64

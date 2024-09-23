@@ -421,7 +421,7 @@ DEF("parallel", HAS_ARG, QEMU_OPTION_parallel, \
 "-parallel dev   redirect the parallel port to char device 'dev'\n")
 
 DEF("monitor", HAS_ARG, QEMU_OPTION_monitor, \
-"-monitor dev    redirect the monitor to char device 'dev'\n")
+"-monitor [control,]dev    redirect the monitor to char device 'dev'\n")
 
 DEF("pidfile", HAS_ARG, QEMU_OPTION_pidfile, \
 "-pidfile file   write PID to 'file'\n")

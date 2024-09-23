@@ -11,7 +11,22 @@ extern Monitor *cur_mon;
 /* flags for monitor_init */
 #define MONITOR_IS_DEFAULT    0x01
 #define MONITOR_USE_READLINE  0x02
+#define MONITOR_USE_CONTROL   0x04
 
+
+#undef EVENT_MAX // defined in WinUser.h .... we want to use it here anyway though.... 
+/* QMP events */
+typedef enum MonitorEvent {
+    EVENT_DEBUG,
+    EVENT_SHUTDOWN,
+    EVENT_RESET,
+    EVENT_POWERDOWN,
+    EVENT_STOP,
+    EVENT_MAX,
+} MonitorEvent;
+
+void monitor_protocol_event(MonitorEvent event, QObject *data);
+const char *monitor_cmdline_parse(const char *cmdline, int *flags);
 void monitor_init(CharDriverState *chr, int flags);
 
 int monitor_suspend(Monitor *mon);
@@ -32,5 +47,7 @@ void monitor_printf(Monitor *mon, const char *fmt, ...);
 #endif
 void monitor_print_filename(Monitor *mon, const char *filename);
 void monitor_flush(Monitor *mon);
+
+void qemu_error_internal(const char* file, int linenr, const char* func, const char* fmt, ...);
 
 #endif /* !MONITOR_H */

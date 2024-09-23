@@ -42,7 +42,7 @@
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *) 0)->MEMBER)
 #endif
 #ifndef container_of
-// MSVC modficiation ..... similar result, no GCC syntax
+ // MSVC modficiation ..... similar result, no GCC syntax
 #ifndef _MSC_VER
 #define container_of(ptr, type, member) ({                      \
         const typeof(((type *) 0)->member) *__mptr = (ptr);     \
@@ -51,6 +51,16 @@
 #define container_of(ptr, type, member) \
     ((type*)((char*)(ptr) - offsetof(type, member)))
 #endif
+#endif
+
+/* Convert from a base type to a parent type, with compile time checking.  */
+#ifdef __GNUC__
+#define DO_UPCAST(type, field, dev) ( __extension__ ( { \
+    char __attribute__((unused)) offset_must_be_zero[ \
+        -offsetof(type, field)]; \
+    container_of(dev, type, field);}))
+#else
+#define DO_UPCAST(type, field, dev) container_of(dev, type, field)
 #endif
 
 #define typeof_field(type, field) typeof(((type *)0)->field)

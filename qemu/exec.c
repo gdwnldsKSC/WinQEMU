@@ -522,14 +522,18 @@ static void cpu_common_pre_save(void *opaque)
 {
     CPUState *env = opaque;
 
+#ifndef _MSC_VER
     cpu_synchronize_state(env);
+#endif
 }
 
 static int cpu_common_pre_load(void *opaque)
 {
     CPUState *env = opaque;
 
+#ifndef _MSC_VER
     cpu_synchronize_state(env);
+#endif
     return 0;
 }
 
