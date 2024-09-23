@@ -45,7 +45,7 @@ config-all-devices.mak: $(SUBDIR_DEVICES_MAK)
 	$(call quiet-command,cat $< > $@.tmp, "  GEN   $@")
 	@if test -f $@ ; then \
 	  echo "WARNING: $@ out of date." ;\
-	  echo "Run \"make defconfing\" to regenerate." ; \
+	  echo "Run \"make defconfig\" to regenerate." ; \
 	  rm $@.tmp ; \
 	 else \
 	  mv $@.tmp $@ ; \
@@ -224,13 +224,11 @@ libqemu_common.a: $(obj-y)
 
 ######################################################################
 
-qemu-img.o: config-host.h qemu-img-cmds.h
+qemu-img.o: qemu-img-cmds.h
 
 qemu-img$(EXESUF): qemu-img.o qemu-tool.o $(block-obj-y)
 
 qemu-nbd$(EXESUF):  qemu-nbd.o qemu-tool.o $(block-obj-y)
-
-qemu-io.o: config-host.h
 
 qemu-io$(EXESUF):  qemu-io.o qemu-tool.o cmd.o $(block-obj-y)
 

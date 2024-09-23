@@ -29,6 +29,7 @@
 #include "sysbus.h"
 #include "pci.h"
 #include "pci_host.h"
+#include "apb_pci.h"
 
 /* debug APB */
 //#define DEBUG_APB
@@ -181,6 +182,25 @@ static void pci_apb_set_irq(void *opaque, int irq_num, int level)
     qemu_set_irq(pic[irq_num], level);
 }
 
+static void apb_pci_bridge_init(PCIBus *b)
+{
+    PCIDevice *dev = pci_bridge_get_device(b);
+
+    /*
+     * command register:
+     * According to PCI bridge spec, after reset
+     *   bus master bit is off
+     *   memory space enable bit is off
+     * According to manual (805-1251.pdf).
+     *   the reset value should be zero unless the boot pin is tied high
+     *   (which is true) and thus it should be PCI_COMMAND_MEMORY.
+     */
+    pci_set_word(dev->config + PCI_COMMAND,
+                 PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
+    dev->config[PCI_LATENCY_TIMER] = 0x10;
+    dev->config[PCI_HEADER_TYPE] |= PCI_HEADER_TYPE_MULTI_FUNCTION;
+}
+
 PCIBus *pci_apb_init(target_phys_addr_t special_base,
                      target_phys_addr_t mem_base,
                      qemu_irq *pic, PCIBus **bus2, PCIBus **bus3)
@@ -211,10 +231,13 @@ PCIBus *pci_apb_init(target_phys_addr_t special_base,
                             PCI_VENDOR_ID_SUN, PCI_DEVICE_ID_SUN_SIMBA,
                             pci_apb_map_irq,
                             "Advanced PCI Bus secondary bridge 1");
+    apb_pci_bridge_init(*bus2);
+
     *bus3 = pci_bridge_init(d->host_state.bus, PCI_DEVFN(1, 1),
                             PCI_VENDOR_ID_SUN, PCI_DEVICE_ID_SUN_SIMBA,
                             pci_apb_map_irq,
                             "Advanced PCI Bus secondary bridge 2");
+    apb_pci_bridge_init(*bus3);
 
     return d->host_state.bus;
 }
@@ -235,10 +258,10 @@ static int pci_pbm_init_device(SysBusDevice *dev)
                                           pci_apb_iowrite, s);
     sysbus_init_mmio(dev, 0x10000ULL, pci_ioport);
     /* mem_config  */
-    pci_mem_config = pci_host_config_register_io_memory(&s->host_state);
+    pci_mem_config = pci_host_conf_register_mmio(&s->host_state);
     sysbus_init_mmio(dev, 0x10ULL, pci_mem_config);
     /* mem_data */
-    pci_mem_data = pci_host_data_register_io_memory(&s->host_state);
+    pci_mem_data = pci_host_data_register_mmio(&s->host_state);
     sysbus_init_mmio(dev, 0x10000000ULL, pci_mem_data);
     return 0;
 }

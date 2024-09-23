@@ -12,7 +12,8 @@
  */
 #include <math.h>
 
-#if (defined(CONFIG_BSD) && !defined(__APPLE__)) || defined(CONFIG_SOLARIS)
+#if (defined(CONFIG_BSD) && !defined(__APPLE__) && !defined(__GLIBC__)) \
+    || defined(CONFIG_SOLARIS)
 #include <ieeefp.h>
 #define fabsf(f) ((float)fabs(f))
 #else
@@ -129,7 +130,8 @@ typedef union {
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE floating-point rounding mode.
 *----------------------------------------------------------------------------*/
-#if (defined(CONFIG_BSD) && !defined(__APPLE__)) || defined(CONFIG_SOLARIS)
+#if (defined(CONFIG_BSD) && !defined(__APPLE__) && !defined(__GLIBC__)) \
+    || defined(CONFIG_SOLARIS)
 #if defined(__OpenBSD__)
 #define FE_RM FP_RM
 #define FE_RP FP_RP

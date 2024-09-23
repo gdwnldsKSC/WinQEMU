@@ -2054,6 +2054,24 @@
     <ClInclude Include="qemu\hw\bitbang_i2c.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\hw\apb_pci.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\prep_pci.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\sh_pci.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\usb-ohci.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\usb-uhci.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\vmware_vga.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />

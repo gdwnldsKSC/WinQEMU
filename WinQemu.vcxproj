@@ -1732,6 +1732,7 @@
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\hw\apb_pci.h" />
     <ClInclude Include="qemu\hw\bitbang_i2c.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
@@ -1742,11 +1743,16 @@
     <ClInclude Include="qemu\hw\pcie_host.h" />
     <ClInclude Include="qemu\hw\pcnet.h" />
     <ClInclude Include="qemu\hw\poison.h" />
+    <ClInclude Include="qemu\hw\prep_pci.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
     <ClInclude Include="qemu\hw\qdev.h" />
+    <ClInclude Include="qemu\hw\sh_pci.h" />
     <ClInclude Include="qemu\hw\smbios.h" />
     <ClInclude Include="qemu\hw\ssi.h" />
     <ClInclude Include="qemu\hw\sysbus.h" />
+    <ClInclude Include="qemu\hw\usb-ohci.h" />
+    <ClInclude Include="qemu\hw\usb-uhci.h" />
+    <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\json-lexer.h" />

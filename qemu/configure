@@ -91,6 +91,26 @@ ar="${cross_prefix}${ar}"
 objcopy="${cross_prefix}${objcopy}"
 ld="${cross_prefix}${ld}"
 
+# default flags for all hosts
+QEMU_CFLAGS="-fno-strict-aliasing $QEMU_CFLAGS"
+CFLAGS="-g $CFLAGS"
+QEMU_CFLAGS="-Wall -Wundef -Wendif-labels -Wwrite-strings -Wmissing-prototypes $QEMU_CFLAGS"
+QEMU_CFLAGS="-Wstrict-prototypes -Wredundant-decls $QEMU_CFLAGS"
+QEMU_CFLAGS="-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE $QEMU_CFLAGS"
+QEMU_CFLAGS="-U_FORTIFY_SOURCE $QEMU_CFLAGS"
+QEMU_CFLAGS="-I. -I\$(SRC_PATH) $QEMU_CFLAGS"
+LDFLAGS="-g $LDFLAGS"
+
+gcc_flags="-Wold-style-declaration -Wold-style-definition"
+cat > $TMPC << EOF
+int main(void) { }
+EOF
+for flag in $gcc_flags; do
+    if compile_prog "$QEMU_CFLAGS" "$flag" ; then
+	QEMU_CFLAGS="$flag $QEMU_CFLAGS"
+    fi
+done
+
 # check that the C compiler works.
 cat > $TMPC <<EOF
 int main(void) {}
@@ -134,13 +154,15 @@ elif check_define _ARCH_PPC ; then
   else
     cpu="ppc"
   fi
+elif check_define __mips__ ; then
+  cpu="mips"
 else
   cpu=`uname -m`
 fi
 
 target_list=""
 case "$cpu" in
-  alpha|cris|ia64|m68k|microblaze|mips|mips64|ppc|ppc64|sparc64)
+  alpha|cris|ia64|m68k|microblaze|ppc|ppc64|sparc64)
     cpu="$cpu"
   ;;
   i386|i486|i586|i686|i86pc|BePC)
@@ -157,6 +179,9 @@ case "$cpu" in
   ;;
   parisc|parisc64)
     cpu="hppa"
+  ;;
+  mips*)
+    cpu="mips"
   ;;
   s390*)
     cpu="s390"
@@ -255,27 +280,32 @@ MINGW32*)
   audio_drv_list="winwave"
 ;;
 GNU/kFreeBSD)
+  bsd="yes"
   audio_drv_list="oss"
   audio_possible_drivers="oss sdl esd pa"
 ;;
 FreeBSD)
   bsd="yes"
+  make="gmake"
   audio_drv_list="oss"
   audio_possible_drivers="oss sdl esd pa"
 ;;
 DragonFly)
   bsd="yes"
+  make="gmake"
   audio_drv_list="oss"
   audio_possible_drivers="oss sdl esd pa"
 ;;
 NetBSD)
   bsd="yes"
+  make="gmake"
   audio_drv_list="oss"
   audio_possible_drivers="oss sdl esd"
   oss_lib="-lossaudio"
 ;;
 OpenBSD)
   bsd="yes"
+  make="gmake"
   audio_drv_list="oss"
   audio_possible_drivers="oss sdl esd"
   oss_lib="-lossaudio"
@@ -360,7 +390,6 @@ esac
 
 if [ "$bsd" = "yes" ] ; then
   if [ "$darwin" != "yes" ] ; then
-    make="gmake"
     usb="bsd"
   fi
   bsd_user="yes"
@@ -1587,7 +1616,7 @@ int main(void)
     return 0;
 }
 EOF
-if compile_prog "" "" ; then
+if compile_prog "$ARCH_CFLAGS" "" ; then
   fallocate=yes
 fi
 
@@ -1735,28 +1764,9 @@ fi
 # End of CC checks
 # After here, no more $cc or $ld runs
 
-# default flags for all hosts
-QEMU_CFLAGS="-fno-strict-aliasing $QEMU_CFLAGS"
-CFLAGS="-g $CFLAGS"
 if test "$debug" = "no" ; then
   CFLAGS="-O2 $CFLAGS"
 fi
-QEMU_CFLAGS="-Wall -Wundef -Wendif-labels -Wwrite-strings -Wmissing-prototypes $QEMU_CFLAGS"
-QEMU_CFLAGS="-Wstrict-prototypes -Wredundant-decls $QEMU_CFLAGS"
-QEMU_CFLAGS="-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE $QEMU_CFLAGS"
-QEMU_CFLAGS="-U_FORTIFY_SOURCE $QEMU_CFLAGS"
-QEMU_CFLAGS="-I. -I\$(SRC_PATH) $QEMU_CFLAGS"
-LDFLAGS="-g $LDFLAGS"
-
-gcc_flags="-Wold-style-declaration -Wold-style-definition"
-cat > $TMPC << EOF
-int main(void) { }
-EOF
-for flag in $gcc_flags; do
-    if compile_prog "$QEMU_CFLAGS" "$flag" ; then
-	QEMU_CFLAGS="$flag $QEMU_CFLAGS"
-    fi
-done
 
 # Consult white-list to determine whether to enable werror
 # by default.  Only enable by default for git builds
