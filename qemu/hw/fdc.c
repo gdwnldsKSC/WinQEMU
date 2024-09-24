@@ -661,7 +661,7 @@ static int fdc_post_load(void *opaque, int version_id)
 }
 
 static const VMStateDescription vmstate_fdc = {
-    .name = "fdctrl",
+    .name = "fdc",
     .version_id = 2,
     .minimum_version_id = 2,
     .minimum_version_id_old = 2,
@@ -698,31 +698,6 @@ static const VMStateDescription vmstate_fdc = {
         VMSTATE_END_OF_LIST()
     }
 };
-
-static const VMStateDescription vmstate_fdc_isa = {
-    .name = "fdc",
-    .version_id = 2,
-    .minimum_version_id = 2,
-    .minimum_version_id_old = 2,
-    .fields      = (VMStateField []) {
-        /* Controller State */
-        VMSTATE_STRUCT(state, fdctrl_isabus_t, 0, vmstate_fdc, fdctrl_t),
-        VMSTATE_END_OF_LIST()
-    }
-};
-
-static const VMStateDescription vmstate_fdc_sysbus = {
-    .name = "fdc",
-    .version_id = 2,
-    .minimum_version_id = 2,
-    .minimum_version_id_old = 2,
-    .fields      = (VMStateField []) {
-        /* Controller State */
-        VMSTATE_STRUCT(state, fdctrl_sysbus_t, 0, vmstate_fdc, fdctrl_t),
-        VMSTATE_END_OF_LIST()
-    }
-};
-
 
 static void fdctrl_external_reset_sysbus(DeviceState *d)
 {
@@ -959,6 +934,12 @@ static uint32_t fdctrl_read_main_status (fdctrl_t *fdctrl)
 
     fdctrl->dsr &= ~FD_DSR_PWRDOWN;
     fdctrl->dor |= FD_DOR_nRESET;
+
+    /* Sparc mutation */
+    if (fdctrl->sun4m) {
+        retval |= FD_MSR_DIO;
+        fdctrl_reset_irq(fdctrl);
+    };
 
     FLOPPY_DPRINTF("main status register: 0x%02x\n", retval);
 
@@ -1926,7 +1907,7 @@ fdctrl_t *sun4m_fdctrl_init (qemu_irq irq, target_phys_addr_t io_base,
     return fdctrl;
 }
 
-static int fdctrl_init_common(fdctrl_t *fdctrl)
+static int fdctrl_init_common(fdctrl_t *fdctrl, target_phys_addr_t io_base)
 {
     int i, j;
     static int command_tables_inited = 0;
@@ -1957,6 +1938,7 @@ static int fdctrl_init_common(fdctrl_t *fdctrl)
         DMA_register_channel(fdctrl->dma_chann, &fdctrl_transfer_handler, fdctrl);
     fdctrl_connect_drives(fdctrl);
 
+    vmstate_register(io_base, &vmstate_fdc, fdctrl);
     return 0;
 }
 
@@ -1980,7 +1962,7 @@ static int isabus_fdc_init1(ISADevice *dev)
     isa_init_irq(&isa->busdev, &fdctrl->irq, isairq);
     fdctrl->dma_chann = dma_chann;
 
-    ret = fdctrl_init_common(fdctrl);
+    ret = fdctrl_init_common(fdctrl, iobase);
 
     return ret;
 }
@@ -1998,7 +1980,7 @@ static int sysbus_fdc_init1(SysBusDevice *dev)
     qdev_init_gpio_in(&dev->qdev, fdctrl_handle_tc, 1);
     fdctrl->dma_chann = -1;
 
-    ret = fdctrl_init_common(fdctrl);
+    ret = fdctrl_init_common(fdctrl, io);
 
     return ret;
 }
@@ -2015,7 +1997,7 @@ static int sun4m_fdc_init1(SysBusDevice *dev)
     qdev_init_gpio_in(&dev->qdev, fdctrl_handle_tc, 1);
 
     fdctrl->sun4m = 1;
-    return fdctrl_init_common(fdctrl);
+    return fdctrl_init_common(fdctrl, io);
 }
 
 static ISADeviceInfo isa_fdc_info = {
@@ -2023,7 +2005,6 @@ static ISADeviceInfo isa_fdc_info = {
     .qdev.name  = "isa-fdc",
     .qdev.size  = sizeof(fdctrl_isabus_t),
     .qdev.no_user = 1,
-    .qdev.vmsd  = &vmstate_fdc_isa,
     .qdev.reset = fdctrl_external_reset_isa,
     .qdev.props = (Property[]) {
         DEFINE_PROP_DRIVE("driveA", fdctrl_isabus_t, state.drives[0].dinfo),
@@ -2036,7 +2017,6 @@ static SysBusDeviceInfo sysbus_fdc_info = {
     .init = sysbus_fdc_init1,
     .qdev.name  = "sysbus-fdc",
     .qdev.size  = sizeof(fdctrl_sysbus_t),
-    .qdev.vmsd  = &vmstate_fdc_sysbus,
     .qdev.reset = fdctrl_external_reset_sysbus,
     .qdev.props = (Property[]) {
         DEFINE_PROP_DRIVE("driveA", fdctrl_sysbus_t, state.drives[0].dinfo),
@@ -2049,7 +2029,6 @@ static SysBusDeviceInfo sun4m_fdc_info = {
     .init = sun4m_fdc_init1,
     .qdev.name  = "SUNW,fdtwo",
     .qdev.size  = sizeof(fdctrl_sysbus_t),
-    .qdev.vmsd  = &vmstate_fdc_sysbus,
     .qdev.reset = fdctrl_external_reset_sysbus,
     .qdev.props = (Property[]) {
         DEFINE_PROP_DRIVE("drive", fdctrl_sysbus_t, state.drives[0].dinfo),

@@ -54,4 +54,8 @@ int kvm_log_start(target_phys_addr_t phys_addr, ram_addr_t size) {
     return 0;
 }
 
+int kvm_log_stop(target_phys_addr_t phys_addr, ram_addr_t size) {
+    return 0;
+}
+
 #endif

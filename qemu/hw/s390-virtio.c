@@ -142,6 +142,13 @@ static void s390_init(ram_addr_t ram_size,
     ram_addr_t initrd_size = 0;
     int i;
 
+    /* XXX we only work on KVM for now */
+
+    if (!kvm_enabled()) {
+        fprintf(stderr, "The S390 target only works with KVM enabled\n");
+        exit(1);
+    }
+
     /* get a BUS */
     s390_bus = s390_virtio_bus_init(&ram_size);
 
@@ -181,7 +188,7 @@ static void s390_init(ram_addr_t ram_size,
 
         cpu_synchronize_state(env);
         env->psw.addr = KERN_IMAGE_START;
-        env->psw.mask = 0x0000000180000000UL;
+        env->psw.mask = 0x0000000180000000ULL;
     }
 
     if (initrd_filename) {
@@ -201,7 +208,11 @@ static void s390_init(ram_addr_t ram_size,
     }
 
     /* Create VirtIO console */
-    qdev_init_nofail(qdev_create((BusState *)s390_bus, "virtio-console-s390"));
+    for(i = 0; i < MAX_VIRTIO_CONSOLES; i++) {
+        if (virtcon_hds[i]) {
+            qdev_init_nofail(qdev_create((BusState *)s390_bus, "virtio-console-s390"));
+        }
+    }
 
     /* Create VirtIO network adapters */
     for(i = 0; i < nb_nics; i++) {
@@ -209,7 +220,7 @@ static void s390_init(ram_addr_t ram_size,
         DeviceState *dev;
 
         if (!nd->model) {
-            nd->model = (char*)"virtio";
+            nd->model = qemu_strdup("virtio");
         }
 
         if (strcmp(nd->model, "virtio")) {
@@ -245,7 +256,7 @@ static QEMUMachine s390_machine = {
     .init = s390_init,
     .no_serial = 1,
     .no_parallel = 1,
-    .use_virtcon = 1.
+    .use_virtcon = 1,
     .no_vga = 1,
     .max_cpus = 255,
     .is_default = 1,
