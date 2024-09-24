@@ -12,6 +12,8 @@
 #ifndef QEMU_COMMON_H
 #define QEMU_COMMON_H
 
+#include "config-host.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define WINVER 0x0501  /* needed for ipv6 bits */
@@ -48,7 +50,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
-#include "config-host.h"
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0

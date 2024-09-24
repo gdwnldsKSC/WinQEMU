@@ -1610,4 +1610,4 @@ static void pci_register_devices(void)
     pci_qdev_register(&bridge_info);
 }
 
-device_init(pci_register_devices)
+device_init(pci_register_devices);

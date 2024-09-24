@@ -102,8 +102,7 @@ spinlock_t tb_lock = SPIN_LOCK_UNLOCKED;
 #endif
 
 #ifndef _MSC_VER
-uint8_t code_gen_prologue[1024] 
-code_gen_section;
+uint8_t code_gen_prologue[1024] code_gen_section;
 #else
 uint8_t code_gen_prologue[1024];
 #endif
@@ -3320,7 +3319,7 @@ void cpu_physical_memory_unmap(void *buffer, target_phys_addr_t len,
     if (is_write) {
         cpu_physical_memory_write(bounce.addr, bounce.buffer, access_len);
     }
-    qemu_free(bounce.buffer);
+    qemu_vfree(bounce.buffer);
     bounce.buffer = NULL;
     cpu_notify_map_clients();
 }
