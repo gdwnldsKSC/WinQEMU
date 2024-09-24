@@ -64,6 +64,7 @@ static struct BusInfo pci_bus_info = {
     .props      = (Property[]) {
         DEFINE_PROP_PCI_DEVFN("addr", PCIDevice, devfn, -1),
         DEFINE_PROP_STRING("romfile", PCIDevice, romfile),
+        DEFINE_PROP_UINT32("rombar",  PCIDevice, rom_bar, 1),
         DEFINE_PROP_END_OF_LIST()
     }
 };
@@ -1464,6 +1465,20 @@ static int pci_add_option_rom(PCIDevice *pdev)
     if (strlen(pdev->romfile) == 0)
         return 0;
 
+    if (!pdev->rom_bar) {
+        /*
+         * Load rom via fw_cfg instead of creating a rom bar,
+         * for 0.11 compatibility.
+         */
+        int class = pci_get_word(pdev->config + PCI_CLASS_DEVICE);
+        if (class == 0x0300) {
+            rom_add_vga(pdev->romfile);
+        } else {
+            rom_add_option(pdev->romfile);
+        }
+        return 0;
+    }
+
     path = qemu_find_file(QEMU_FILE_TYPE_BIOS, pdev->romfile);
     if (path == NULL) {
         path = qemu_strdup(pdev->romfile);
@@ -1595,4 +1610,4 @@ static void pci_register_devices(void)
     pci_qdev_register(&bridge_info);
 }
 
-device_init(pci_register_devices);
+device_init(pci_register_devices)
