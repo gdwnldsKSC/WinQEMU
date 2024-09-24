@@ -45,6 +45,4 @@ void monitor_printf(Monitor *mon, const char *fmt, ...);
 void monitor_print_filename(Monitor *mon, const char *filename);
 void monitor_flush(Monitor *mon);
 
-void qemu_error_internal(const char* file, int linenr, const char* func, const char* fmt, ...);
-
 #endif /* !MONITOR_H */

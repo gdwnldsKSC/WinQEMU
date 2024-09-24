@@ -78,7 +78,13 @@ void qemu_error(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 void qemu_error(_Printf_format_string_ const char* fmt, ...);
 #endif
 
+#ifndef _MSC_VER
+void qemu_error_internal(const char *file, int linenr, const char *func,
+                         const char *fmt, ...)
+                         __attribute__ ((format(printf, 4, 5)));
+#else
 void qemu_error_internal(const char* file, int linenr, const char* func, const char* fmt, ...);
+#endif
 
 #define qemu_error_new(fmt, ...) \
     qemu_error_internal(__FILE__, __LINE__, __func__, fmt, ## __VA_ARGS__)
@@ -215,7 +221,8 @@ extern DriveInfo *drive_init(QemuOpts *arg, void *machine, int *fatal_error);
 DriveInfo *add_init_drive(const char *opts);
 
 /* pci-hotplug */
-void pci_device_hot_add(Monitor *mon, const QDict *qdict);
+void pci_device_hot_add_print(Monitor *mon, const QObject *data);
+void pci_device_hot_add(Monitor *mon, const QDict *qdict, QObject **ret_data);
 void drive_hot_add(Monitor *mon, const QDict *qdict);
 void pci_device_hot_remove(Monitor *mon, const char *pci_addr);
 void do_pci_device_hot_remove(Monitor *mon, const QDict *qdict,

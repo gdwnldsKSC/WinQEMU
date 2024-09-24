@@ -1588,6 +1588,15 @@ serial port).
 The default device is @code{vc} in graphical mode and @code{stdio} in
 non graphical mode.
 ETEXI
+DEF("qmp", HAS_ARG, QEMU_OPTION_qmp, \
+    "-qmp dev        like -monitor but opens in 'control' mode.\n")
+
+DEF("mon", HAS_ARG, QEMU_OPTION_mon, \
+    "-mon chardev=[name][,mode=readline|control][,default]\n")
+STEXI
+@item -mon chardev=[name][,mode=readline|control][,default]
+Setup monitor on chardev @var{name}.
+ETEXI
 
 DEF("pidfile", HAS_ARG, QEMU_OPTION_pidfile, \
     "-pidfile file   write PID to 'file'\n")
@@ -1878,6 +1887,11 @@ ETEXI
 
 DEF("incoming", HAS_ARG, QEMU_OPTION_incoming, \
     "-incoming p     prepare for incoming migration, listen on port p\n")
+STEXI
+ETEXI
+
+DEF("nodefaults", 0, QEMU_OPTION_nodefaults, \
+    "-nodefaults     don't create default devices.\n")
 STEXI
 ETEXI
 

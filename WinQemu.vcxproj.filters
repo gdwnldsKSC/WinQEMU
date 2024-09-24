@@ -2108,6 +2108,9 @@
     <ClInclude Include="qemu\monitor.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\qemu-objects.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />
