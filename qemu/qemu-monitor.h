@@ -53,7 +53,8 @@
 .args_type  = "device:B,target:F,arg:s?",
 .params     = "device filename [format]",
 .help       = "change a removable medium, optional format",
-.mhandler.cmd = do_change,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_change,
 },
 
 
@@ -584,6 +585,16 @@
 .help       = "close a file descriptor previously passed via SCM rights",
 .user_print = monitor_user_noop,
 .mhandler.cmd_new = do_closefd,
+},
+
+
+{
+.name       = "block_passwd",
+.args_type  = "device:B,password:s",
+.params     = "block_passwd device password",
+.help       = "set the password of encrypted block devices",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_block_set_passwd,
 },
 
 

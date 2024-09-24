@@ -202,7 +202,7 @@ typedef int sig_atomic_t;
                                                                         \
     /* Core interrupt code */                                           \
     jmp_buf jmp_env;                                                    \
-    int exception_index;                                                \
+    int32_t exception_index;                                                \
                                                                         \
     CPUState *next_cpu; /* next CPU sharing TB cache */                 \
     int cpu_index; /* CPU index (informative) */                        \

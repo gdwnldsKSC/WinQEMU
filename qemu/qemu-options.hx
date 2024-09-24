@@ -109,6 +109,9 @@ DEF("set", HAS_ARG, QEMU_OPTION_set,
     "-set group.id.arg=value\n"
     "                set <arg> parameter for item <id> of type <group>\n"
     "                i.e. -set drive.$id.file=/path/to/image\n")
+DEF("global", HAS_ARG, QEMU_OPTION_global,
+    "-global driver.property=value\n"
+    "                set a global default for a driver property\n")
 STEXI
 @item -drive @var{option}[,@var{option}[,@var{option}[,...]]]
 
@@ -1577,14 +1580,13 @@ Use @code{-parallel none} to disable all parallel ports.
 ETEXI
 
 DEF("monitor", HAS_ARG, QEMU_OPTION_monitor, \
-    "-monitor [control,]dev    redirect the monitor to char device 'dev'\n")
+    "-monitor dev    redirect the monitor to char device 'dev'\n")
 STEXI
-@item -monitor [@var{control},]@var{dev}
+@item -monitor @var{dev}
 Redirect the monitor to host device @var{dev} (same devices as the
 serial port).
 The default device is @code{vc} in graphical mode and @code{stdio} in
 non graphical mode.
-The option @var{control} enables the QEMU Monitor Protocol.
 ETEXI
 
 DEF("pidfile", HAS_ARG, QEMU_OPTION_pidfile, \

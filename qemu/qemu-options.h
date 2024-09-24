@@ -49,6 +49,9 @@ DEF("set", HAS_ARG, QEMU_OPTION_set,
 "-set group.id.arg=value\n"
 "                set <arg> parameter for item <id> of type <group>\n"
 "                i.e. -set drive.$id.file=/path/to/image\n")
+DEF("global", HAS_ARG, QEMU_OPTION_global,
+"-global driver.property=value\n"
+"                set a global default for a driver property\n")
 
 DEF("mtdblock", HAS_ARG, QEMU_OPTION_mtdblock,
 "-mtdblock file  use 'file' as on-board Flash memory image\n")
@@ -219,7 +222,7 @@ DEF("smbios", HAS_ARG, QEMU_OPTION_smbios,
 DEFHEADING()
 #endif
 
-DEFHEADING(Network options:)
+DEFHEADING(Network options : )
 
 // BEGIN HEAVILY MODIFIED SECTION
 
@@ -287,21 +290,21 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "")
 // DEFHEADING(Network options : ) we probably don't need this one again.... 
 
 DEF("net", HAS_ARG, QEMU_OPTION_net,
-	"-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]\n"
-	"                create a new Network Interface Card and connect it to VLAN 'n'\n" \
-	SLIRP_OPTIONS \
-	TAP_OPTIONS \
-	"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n" \
-	"                connect the vlan 'n' to another VLAN using a socket connection\n" \
-	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
-	"                connect the vlan 'n' to multicast maddr and port\n" \
-	VDE_OPTIONS \
-	"-net dump[,vlan=n][,file=f][,len=n]\n" \
-	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
-	"-net none       use it alone to have zero network devices; if no -net option\n" \
-	"                is provided, the default is '-net nic -net user'\n")
+"-net nic[,vlan=n][,macaddr=mac][,model=type][,name=str][,addr=str][,vectors=v]\n"
+"                create a new Network Interface Card and connect it to VLAN 'n'\n" \
+SLIRP_OPTIONS \
+TAP_OPTIONS \
+"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n" \
+"                connect the vlan 'n' to another VLAN using a socket connection\n" \
+"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
+"                connect the vlan 'n' to multicast maddr and port\n" \
+VDE_OPTIONS \
+"-net dump[,vlan=n][,file=f][,len=n]\n" \
+"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
+"-net none       use it alone to have zero network devices; if no -net option\n" \
+"                is provided, the default is '-net nic -net user'\n")
 
-	// netdev section
+// netdev section
 #ifdef CONFIG_SLIRP
 #define NETDEV_SLIRP \
 "user|"
@@ -316,18 +319,18 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 #endif
 
 DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
-	"-netdev [" \
-	NETDEV_SLIRP \
-	"tap|" \
-	NETDEV_VDE \
-	"socket],id=str[,option][,option][,...]\n")
+"-netdev [" \
+NETDEV_SLIRP \
+"tap|" \
+NETDEV_VDE \
+"socket],id=str[,option][,option][,...]\n")
 
 
 
 
 DEFHEADING()
 
-DEFHEADING(Character device options:)
+DEFHEADING(Character device options : )
 
 #ifdef _WIN32
 #define CHARDEV_WIN32 \
@@ -362,20 +365,20 @@ DEFHEADING(Character device options:)
 #endif
 
 DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
-	"-chardev null,id=id\n"
-	"-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]\n"
-	"         [,server][,nowait][,telnet] (tcp)\n"
-	"-chardev socket,id=id,path=path[,server][,nowait][,telnet] (unix)\n"
-	"-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]\n"
-	"         [,localport=localport][,ipv4][,ipv6]\n"
-	"-chardev msmouse,id=id\n"
-	"-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n"
-	"-chardev file,id=id,path=path\n"
-	"-chardev pipe,id=id,path=path\n"
-	CHARDEV_WIN32 \
-	CHARDEV_BRLAPI \
-	CHARDEV_TTY \
-	CHARDEV_PARPORT
+"-chardev null,id=id\n"
+"-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]\n"
+"         [,server][,nowait][,telnet] (tcp)\n"
+"-chardev socket,id=id,path=path[,server][,nowait][,telnet] (unix)\n"
+"-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]\n"
+"         [,localport=localport][,ipv4][,ipv6]\n"
+"-chardev msmouse,id=id\n"
+"-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n"
+"-chardev file,id=id,path=path\n"
+"-chardev pipe,id=id,path=path\n"
+CHARDEV_WIN32 \
+CHARDEV_BRLAPI \
+CHARDEV_TTY \
+CHARDEV_PARPORT
 )
 
 // END HEAVILY MODIFIED SECTION 
@@ -421,7 +424,7 @@ DEF("parallel", HAS_ARG, QEMU_OPTION_parallel, \
 "-parallel dev   redirect the parallel port to char device 'dev'\n")
 
 DEF("monitor", HAS_ARG, QEMU_OPTION_monitor, \
-"-monitor [control,]dev    redirect the monitor to char device 'dev'\n")
+"-monitor dev    redirect the monitor to char device 'dev'\n")
 
 DEF("pidfile", HAS_ARG, QEMU_OPTION_pidfile, \
 "-pidfile file   write PID to 'file'\n")

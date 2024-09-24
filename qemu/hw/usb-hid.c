@@ -733,7 +733,7 @@ static int usb_hid_handle_control(USBDevice *dev, int request, int value,
                 break;
             case 2:
                 /* product description */
-                ret = set_usb_string(data, s->dev.devname);
+                ret = set_usb_string(data, s->dev.product_desc);
                 break;
             case 3:
                 /* vendor description */
@@ -912,8 +912,8 @@ void usb_hid_datain_cb(USBDevice *dev, void *opaque, void (*datain)(void *))
 
 static struct USBDeviceInfo hid_info[] = {
     {
-        .qdev.name      = "QEMU USB Tablet",
-        .qdev.alias     = "usb-tablet",
+        .product_desc   = "QEMU USB Tablet",
+        .qdev.name      = "usb-tablet",
         .usbdevice_name = "tablet",
         .qdev.size      = sizeof(USBHIDState),
         .init           = usb_tablet_initfn,
@@ -923,8 +923,8 @@ static struct USBDeviceInfo hid_info[] = {
         .handle_data    = usb_hid_handle_data,
         .handle_destroy = usb_hid_handle_destroy,
     },{
-        .qdev.name      = "QEMU USB Mouse",
-        .qdev.alias     = "usb-mouse",
+        .product_desc   = "QEMU USB Mouse",
+        .qdev.name      = "usb-mouse",
         .usbdevice_name = "mouse",
         .qdev.size      = sizeof(USBHIDState),
         .init           = usb_mouse_initfn,
@@ -934,8 +934,8 @@ static struct USBDeviceInfo hid_info[] = {
         .handle_data    = usb_hid_handle_data,
         .handle_destroy = usb_hid_handle_destroy,
     },{
-        .qdev.name      = "QEMU USB Keyboard",
-        .qdev.alias     = "usb-kbd",
+        .product_desc   = "QEMU USB Keyboard",
+        .qdev.name      = "usb-kbd",
         .usbdevice_name = "keyboard",
         .qdev.size      = sizeof(USBHIDState),
         .init           = usb_keyboard_initfn,

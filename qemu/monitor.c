@@ -55,7 +55,7 @@
 #include "qjson.h"
 #include "json-streamer.h"
 #include "json-parser.h"
-#include <WinSock2.h>
+#include "osdep.h"
 
 //#define DEBUG
 //#define DEBUG_COMPLETION
@@ -148,7 +148,10 @@ static void monitor_read_command(Monitor *mon, int show_prompt)
 static int monitor_read_password(Monitor *mon, ReadLineFunc *readline_func,
                                  void *opaque)
 {
-    if (mon->rs) {
+    if (monitor_ctrl_mode(mon)) {
+        qemu_error_new(QERR_MISSING_PARAMETER, "password");
+        return -EINVAL;
+    } else if (mon->rs) {
         readline_start(mon->rs, "Password: ", 1, readline_func, opaque);
         /* prompt is printed on return from the command handler */
         return 0;
@@ -302,6 +305,7 @@ static void monitor_protocol_emitter(Monitor *mon, QObject *data)
         }
     } else {
         /* error response */
+        qdict_put(mon->error->error, "desc", qerror_human(mon->error));
         qdict_put(qmp, "error", mon->error->error);
         QINCREF(mon->error->error);
         QDECREF(mon->error);
@@ -749,11 +753,12 @@ static int eject_device(Monitor *mon, BlockDriverState *bs, int force)
     if (bdrv_is_inserted(bs)) {
         if (!force) {
             if (!bdrv_is_removable(bs)) {
-                monitor_printf(mon, "device is not removable\n");
+                qemu_error_new(QERR_DEVICE_NOT_REMOVABLE,
+                               bdrv_get_device_name(bs));
                 return -1;
             }
             if (bdrv_is_locked(bs)) {
-                monitor_printf(mon, "device is locked\n");
+                qemu_error_new(QERR_DEVICE_LOCKED, bdrv_get_device_name(bs));
                 return -1;
             }
         }
@@ -770,10 +775,26 @@ static void do_eject(Monitor *mon, const QDict *qdict, QObject **ret_data)
 
     bs = bdrv_find(filename);
     if (!bs) {
-        monitor_printf(mon, "device not found\n");
+        qemu_error_new(QERR_DEVICE_NOT_FOUND, filename);
         return;
     }
     eject_device(mon, bs, force);
+}
+
+static void do_block_set_passwd(Monitor *mon, const QDict *qdict,
+                                QObject **ret_data)
+{
+    BlockDriverState *bs;
+
+    bs = bdrv_find(qdict_get_str(qdict, "device"));
+    if (!bs) {
+        qemu_error_new(QERR_DEVICE_NOT_FOUND, qdict_get_str(qdict, "device"));
+        return;
+    }
+
+    if (bdrv_set_key(bs, qdict_get_str(qdict, "password")) < 0) {
+        qemu_error_new(QERR_INVALID_PASSWORD);
+    }
 }
 
 static void do_change_block(Monitor *mon, const char *device,
@@ -784,13 +805,13 @@ static void do_change_block(Monitor *mon, const char *device,
 
     bs = bdrv_find(device);
     if (!bs) {
-        monitor_printf(mon, "device not found\n");
+        qemu_error_new(QERR_DEVICE_NOT_FOUND, device);
         return;
     }
     if (fmt) {
         drv = bdrv_find_whitelisted_format(fmt);
         if (!drv) {
-            monitor_printf(mon, "invalid format %s\n", fmt);
+            qemu_error_new(QERR_INVALID_BLOCK_FORMAT, fmt);
             return;
         }
     }
@@ -800,12 +821,17 @@ static void do_change_block(Monitor *mon, const char *device,
     monitor_read_bdrv_key_start(mon, bs, NULL, NULL);
 }
 
+static void change_vnc_password(const char *password)
+{
+    if (vnc_display_password(NULL, password) < 0)
+        qemu_error_new(QERR_SET_PASSWD_FAILED);
+
+}
+
 static void change_vnc_password_cb(Monitor *mon, const char *password,
                                    void *opaque)
 {
-    if (vnc_display_password(NULL, password) < 0)
-        monitor_printf(mon, "could not set VNC server password\n");
-
+    change_vnc_password(password);
     monitor_read_command(mon, 1);
 }
 
@@ -817,17 +843,20 @@ static void do_change_vnc(Monitor *mon, const char *target, const char *arg)
             char password[9];
             strncpy(password, arg, sizeof(password));
             password[sizeof(password) - 1] = '\0';
-            change_vnc_password_cb(mon, password, NULL);
+            change_vnc_password(password);
         } else {
             monitor_read_password(mon, change_vnc_password_cb, NULL);
         }
     } else {
         if (vnc_display_open(NULL, target) < 0)
-            monitor_printf(mon, "could not start VNC server on %s\n", target);
+            qemu_error_new(QERR_VNC_SERVER_FAILED, target);
     }
 }
 
-static void do_change(Monitor *mon, const QDict *qdict)
+/**
+ * do_change(): Change a removable medium, or VNC configuration
+ */
+static void do_change(Monitor *mon, const QDict *qdict, QObject **ret_data)
 {
     const char *device = qdict_get_str(qdict, "device");
     const char *target = qdict_get_str(qdict, "target");
@@ -2047,19 +2076,21 @@ static void do_getfd(Monitor *mon, const QDict *qdict, QObject **ret_data)
 
     fd = qemu_chr_get_msgfd(mon->chr);
     if (fd == -1) {
-        monitor_printf(mon, "getfd: no file descriptor supplied via SCM_RIGHTS\n");
+        qemu_error_new(QERR_FD_NOT_SUPPLIED);
         return;
     }
 
     if (qemu_isdigit(fdname[0])) {
-        monitor_printf(mon, "getfd: monitor names may not begin with a number\n");
+        qemu_error_new(QERR_INVALID_PARAMETER, "fdname");
         return;
     }
 
     fd = dup(fd);
     if (fd == -1) {
-        monitor_printf(mon, "Failed to dup() file descriptor: %s\n",
-                       strerror(errno));
+        if (errno == EMFILE)
+            qemu_error_new(QERR_TOO_MANY_FILES);
+        else
+            qemu_error_new(QERR_UNDEFINED_ERROR);
         return;
     }
 
@@ -2097,8 +2128,7 @@ static void do_closefd(Monitor *mon, const QDict *qdict, QObject **ret_data)
         return;
     }
 
-    monitor_printf(mon, "Failed to find file descriptor named %s\n",
-                   fdname);
+    qemu_error_new(QERR_FD_NOT_FOUND, fdname);
 }
 
 static void do_loadvm(Monitor *mon, const QDict *qdict)
@@ -4012,24 +4042,6 @@ static void monitor_event(void *opaque, int event)
  * End:
  */
 
-const char *monitor_cmdline_parse(const char *cmdline, int *flags)
-{
-    const char *dev;
-
-    if (strstart(cmdline, "control,", &dev)) {
-        if (strstart(dev, "vc", NULL)) {
-            fprintf(stderr, "qemu: control mode is for low-level interaction ");
-            fprintf(stderr, "cannot be used with device 'vc'\n");
-            exit(1);
-        }
-        *flags &= ~MONITOR_USE_READLINE;
-        *flags |= MONITOR_USE_CONTROL;
-        return dev;
-    }
-
-    return cmdline;
-}
-
 void monitor_init(CharDriverState *chr, int flags)
 {
     static int is_first_init = 1;
@@ -4088,6 +4100,11 @@ void monitor_read_bdrv_key_start(Monitor *mon, BlockDriverState *bs,
     if (!bdrv_key_required(bs)) {
         if (completion_cb)
             completion_cb(opaque, 0);
+        return;
+    }
+
+    if (monitor_ctrl_mode(mon)) {
+        qemu_error_new(QERR_DEVICE_ENCRYPTED, bdrv_get_device_name(bs));
         return;
     }
 

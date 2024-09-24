@@ -282,6 +282,30 @@ uint8_t qemu_uuid[16];
 static QEMUBootSetHandler *boot_set_handler;
 static void *boot_set_opaque;
 
+static int default_serial = 1;
+
+static struct {
+    const char *driver;
+    int *flag;
+} default_list[] = {
+    { .driver = "isa-serial",           .flag = &default_serial },
+};
+
+static int default_driver_check(QemuOpts *opts, void *opaque)
+{
+    const char *driver = qemu_opt_get(opts, "driver");
+    int i;
+
+    if (!driver)
+        return 0;
+    for (i = 0; i < ARRAY_SIZE(default_list); i++) {
+        if (strcmp(default_list[i].driver, driver) != 0)
+            continue;
+        *(default_list[i].flag) = 0;
+    }
+    return 0;
+}
+
 /***********************************************************/
 /* x86 ISA bus support */
 
@@ -4598,10 +4622,21 @@ static int device_init_func(QemuOpts *opts, void *opaque)
     return 0;
 }
 
+static int chardev_init_func(QemuOpts *opts, void *opaque)
+{
+    CharDriverState *chr;
+
+    chr = qemu_chr_open_opts(opts, NULL);
+    if (!chr)
+        return -1;
+    return 0;
+}
+
 struct device_config {
     enum {
         DEV_USB,       /* -usbdevice   */
         DEV_BT,        /* -bt          */
+        DEV_SERIAL,    /* -serial      */
     } type;
     const char *cmdline;
     QTAILQ_ENTRY(device_config) next;
@@ -4633,6 +4668,50 @@ static int foreach_device_config(int type, int (*func)(const char *cmdline))
     return 0;
 }
 
+static void serial_monitor_mux(const char *monitor_devices[])
+{
+    struct device_config *serial;
+    const char *devname;
+
+    if (strcmp(monitor_devices[0],"stdio") != 0)
+        return;
+    QTAILQ_FOREACH(serial, &device_configs, next) {
+        if (serial->type != DEV_SERIAL)
+            continue;
+        devname = serial->cmdline;
+        if (devname && !strcmp(devname,"mon:stdio")) {
+            monitor_devices[0] = NULL;
+            break;
+        } else if (devname && !strcmp(devname,"stdio")) {
+            monitor_devices[0] = NULL;
+            serial->cmdline = "mon:stdio";
+            break;
+        }
+    }
+}
+
+static int serial_parse(const char *devname)
+{
+    static int index = 0;
+    char label[32];
+
+    if (strcmp(devname, "none") == 0)
+        return 0;
+    if (index == MAX_SERIAL_PORTS) {
+        fprintf(stderr, "qemu: too many serial ports\n");
+        exit(1);
+    }
+    snprintf(label, sizeof(label), "serial%d", index);
+    serial_hds[index] = qemu_chr_open(label, devname, NULL);
+    if (!serial_hds[index]) {
+        fprintf(stderr, "qemu: could not open serial device '%s': %s\n",
+                devname, strerror(errno));
+        return -1;
+    }
+    index++;
+    return 0;
+}
+
 #ifndef _MSC_VER
 int main(int argc, char** argv, char** envp)
 #else
@@ -4655,10 +4734,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     const char *r, *optarg;
     CharDriverState *monitor_hds[MAX_MONITOR_DEVICES];
     const char *monitor_devices[MAX_MONITOR_DEVICES];
-    int monitor_flags[MAX_MONITOR_DEVICES];
     int monitor_device_index;
-    const char *serial_devices[MAX_SERIAL_PORTS];
-    int serial_device_index;
     const char *parallel_devices[MAX_PARALLEL_PORTS];
     int parallel_device_index;
     const char *virtio_consoles[MAX_VIRTIO_CONSOLES];
@@ -4728,25 +4804,6 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     cyls = heads = secs = 0;
     translation = BIOS_ATA_TRANSLATION_AUTO;
 
-#ifdef TARGET_S390X
-    for(i = 0; i < MAX_SERIAL_PORTS; i++)
-        serial_devices[i] = NULL;
-    serial_device_index = 0;
-
-    for(i = 0; i < MAX_PARALLEL_PORTS; i++)
-        parallel_devices[i] = NULL;
-    parallel_device_index = 0;
-
-    virtio_consoles[0] = "mon:stdio";
-    for(i = 1; i < MAX_VIRTIO_CONSOLES; i++)
-        virtio_consoles[i] = NULL;
-    virtio_console_index = 0;
-#else
-    serial_devices[0] = "vc:80Cx24C";
-    for(i = 1; i < MAX_SERIAL_PORTS; i++)
-        serial_devices[i] = NULL;
-    serial_device_index = 0;
-
     parallel_devices[0] = "vc:80Cx24C";
     for(i = 1; i < MAX_PARALLEL_PORTS; i++)
         parallel_devices[i] = NULL;
@@ -4755,13 +4812,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     for(i = 0; i < MAX_VIRTIO_CONSOLES; i++)
         virtio_consoles[i] = NULL;
     virtio_console_index = 0;
-#endif
 
     monitor_devices[0] = "vc:80Cx24C";
-    monitor_flags[0] = MONITOR_IS_DEFAULT | MONITOR_USE_READLINE;
     for (i = 1; i < MAX_MONITOR_DEVICES; i++) {
         monitor_devices[i] = NULL;
-        monitor_flags[i] = MONITOR_USE_READLINE;
     }
     monitor_device_index = 0;
 
@@ -4866,6 +4920,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 	        break;
             case QEMU_OPTION_set:
                 if (qemu_set_option(optarg) != 0)
+                    exit(1);
+	        break;
+            case QEMU_OPTION_global:
+                if (qemu_global_option(optarg) != 0)
                     exit(1);
 	        break;
             case QEMU_OPTION_mtdblock:
@@ -5182,9 +5240,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     fprintf(stderr, "qemu: too many monitor devices\n");
                     exit(1);
                 }
-                monitor_devices[monitor_device_index] =
-                                monitor_cmdline_parse(optarg,
-                                        &monitor_flags[monitor_device_index]);
+                monitor_devices[monitor_device_index] = optarg;
                 monitor_device_index++;
                 break;
             case QEMU_OPTION_chardev:
@@ -5193,17 +5249,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                     fprintf(stderr, "parse error: %s\n", optarg);
                     exit(1);
                 }
-                if (qemu_chr_open_opts(opts, NULL) == NULL) {
-                    exit(1);
-                }
                 break;
             case QEMU_OPTION_serial:
-                if (serial_device_index >= MAX_SERIAL_PORTS) {
-                    fprintf(stderr, "qemu: too many serial ports\n");
-                    exit(1);
-                }
-                serial_devices[serial_device_index] = optarg;
-                serial_device_index++;
+                add_device_config(DEV_SERIAL, optarg);
+                default_serial = 0;
                 break;
             case QEMU_OPTION_watchdog:
                 if (watchdog) {
@@ -5496,7 +5545,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     if (!max_cpus)
         max_cpus = smp_cpus;
 
-    machine->max_cpus = machine->max_cpus ? machine->max_cpus : 1; /* Default to UP */ // add removal of GCCism
+    machine->max_cpus = machine->max_cpus ? machine -> max_cpus : 1; /* Default to UP */ // another tri GCCism fixed
     if (smp_cpus > machine->max_cpus) {
         fprintf(stderr, "Number of SMP cpus requested (%d), exceeds max cpus "
                 "supported by machine `%s' (%d)\n", smp_cpus,  machine->name,
@@ -5504,15 +5553,23 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
     }
 
+    qemu_opts_foreach(&qemu_device_opts, default_driver_check, NULL, 0);
+
     if (display_type == DT_NOGRAPHIC) {
-       if (serial_device_index == 0)
-           serial_devices[0] = "stdio";
+        if (default_serial)
+            add_device_config(DEV_SERIAL, "stdio");
        if (parallel_device_index == 0)
            parallel_devices[0] = "null";
        if (strncmp(monitor_devices[0], "vc", 2) == 0) {
            monitor_devices[0] = "stdio";
        }
+    } else {
+        if (default_serial)
+            add_device_config(DEV_SERIAL, "vc:80Cx24C");
     }
+
+    if (qemu_opts_foreach(&qemu_chardev_opts, chardev_init_func, NULL, 1) != 0)
+        exit(1);
 
 #ifndef _WIN32
     if (daemonize) {
@@ -5660,30 +5717,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                          ram_load, NULL);
 
     /* Maintain compatibility with multiple stdio monitors */
-    if (!strcmp(monitor_devices[0],"stdio")) {
-        for (i = 0; i < MAX_SERIAL_PORTS; i++) {
-            const char *devname = serial_devices[i];
-            if (devname && !strcmp(devname,"mon:stdio")) {
-                monitor_devices[0] = NULL;
-                break;
-            } else if (devname && !strcmp(devname,"stdio")) {
-                monitor_devices[0] = NULL;
-                serial_devices[i] = "mon:stdio";
-                break;
-            }
-        }
-        for (i = 0; i < MAX_VIRTIO_CONSOLES; i++) {
-            const char *devname = virtio_consoles[i];
-            if (devname && !strcmp(devname,"mon:stdio")) {
-                monitor_devices[0] = NULL;
-                break;
-            } else if (devname && !strcmp(devname,"stdio")) {
-                monitor_devices[0] = NULL;
-                virtio_consoles[i] = "mon:stdio";
-                break;
-            }
-        }
-    }
+    serial_monitor_mux(monitor_devices);
 
     if (nb_numa_nodes > 0) {
         int i;
@@ -5745,19 +5779,8 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         }
     }
 
-    for(i = 0; i < MAX_SERIAL_PORTS; i++) {
-        const char *devname = serial_devices[i];
-        if (devname && strcmp(devname, "none")) {
-            char label[32];
-            snprintf(label, sizeof(label), "serial%d", i);
-            serial_hds[i] = qemu_chr_open(label, devname, NULL);
-            if (!serial_hds[i]) {
-                fprintf(stderr, "qemu: could not open serial device '%s': %s\n",
-                        devname, strerror(errno));
-                exit(1);
-            }
-        }
-    }
+    if (foreach_device_config(DEV_SERIAL, serial_parse) < 0)
+        exit(1);
 
     for(i = 0; i < MAX_PARALLEL_PORTS; i++) {
         const char *devname = parallel_devices[i];
@@ -5796,8 +5819,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
 
     if (machine->compat_props) {
-        qdev_prop_register_compat(machine->compat_props);
+        qdev_prop_register_global_list(machine->compat_props);
     }
+    qemu_add_globals();
+
     machine->init(ram_size, boot_devices,
                   kernel_filename, kernel_cmdline, initrd_filename, cpu_model);
 
@@ -5892,31 +5917,9 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 
     for (i = 0; i < MAX_MONITOR_DEVICES; i++) {
         if (monitor_devices[i] && monitor_hds[i]) {
-            monitor_init(monitor_hds[i], monitor_flags[i]);
-        }
-    }
-
-    for(i = 0; i < MAX_SERIAL_PORTS; i++) {
-        const char *devname = serial_devices[i];
-        if (devname && strcmp(devname, "none")) {
-            if (strstart(devname, "vc", 0))
-                qemu_chr_printf(serial_hds[i], "serial%d console\r\n", i);
-        }
-    }
-
-    for(i = 0; i < MAX_PARALLEL_PORTS; i++) {
-        const char *devname = parallel_devices[i];
-        if (devname && strcmp(devname, "none")) {
-            if (strstart(devname, "vc", 0))
-                qemu_chr_printf(parallel_hds[i], "parallel%d console\r\n", i);
-        }
-    }
-
-    for(i = 0; i < MAX_VIRTIO_CONSOLES; i++) {
-        const char *devname = virtio_consoles[i];
-        if (virtcon_hds[i] && devname) {
-            if (strstart(devname, "vc", 0))
-                qemu_chr_printf(virtcon_hds[i], "virtio console%d\r\n", i);
+            monitor_init(monitor_hds[i],
+                         MONITOR_USE_READLINE |
+                         ((i == 0) ? MONITOR_IS_DEFAULT : 0));
         }
     }
 
