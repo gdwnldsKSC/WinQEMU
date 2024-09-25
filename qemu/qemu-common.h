@@ -219,7 +219,7 @@ void *get_mmap_addr(unsigned long size);
 void qemu_mutex_lock_iothread(void);
 void qemu_mutex_unlock_iothread(void);
 
-int qemu_open(const char* name, int flags, ...);
+int qemu_open(const char *name, int flags, ...);
 void qemu_set_cloexec(int fd);
 
 #ifndef _WIN32
@@ -326,10 +326,12 @@ static inline uint8_t to_bcd(uint8_t val)
 {
     return ((val / 10) << 4) | (val % 10);
 }
+
 static inline uint8_t from_bcd(uint8_t val)
 {
     return ((val >> 4) * 10) + (val & 0x0f);
 }
+
 #include "module.h"
 
 #endif /* dyngen-exec.h hack */

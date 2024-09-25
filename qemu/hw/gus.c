@@ -311,8 +311,8 @@ static ISADeviceInfo gus_info = {
     },
 };
 
-static void gus_register(void)
+static void gus_register (void)
 {
-    isa_qdev_register(&gus_info);
+    isa_qdev_register (&gus_info);
 }
 device_init(gus_register);

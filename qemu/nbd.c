@@ -75,9 +75,9 @@ size_t nbd_wr_sync(int fd, void *buffer, size_t size, bool do_read)
         ssize_t len;
 
         if (do_read) {
-			len = recv(fd, (char*)buffer + offset, size - offset, 0);
+            len = recv(fd, (char *)buffer + offset, size - offset, 0);
         } else {
-            len = send(fd, (char*)buffer + offset, size - offset, 0);
+            len = send(fd, (char *)buffer + offset, size - offset, 0);
         }
 
         if (len == -1)

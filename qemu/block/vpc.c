@@ -22,17 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "block_int.h"
 #include "module.h"
@@ -257,9 +246,6 @@ static inline int64_t get_sector_offset(BlockDriverState *bs,
     uint64_t offset = sector_num * 512;
     uint64_t bitmap_offset, block_offset;
     uint32_t pagetable_index, pageentry_index;
-#ifdef _MSC_VER
-    uint8_t *bitmap = NULL;
-#endif
 
     pagetable_index = offset / s->block_size;
     pageentry_index = (offset % s->block_size) / 512;
@@ -279,17 +265,13 @@ static inline int64_t get_sector_offset(BlockDriverState *bs,
 #ifndef _MSC_VER
         uint8_t bitmap[s->bitmap_size];
 #else
-        bitmap = malloc(s->bitmap_size);
-        assert (bitmap);
+        uint8_t* bitmap = malloc(s->bitmap_size);
+        assert(bitmap);
 #endif
 
         s->last_bitmap_offset = bitmap_offset;
         memset(bitmap, 0xff, s->bitmap_size);
-        bdrv_pwrite(s->hd, bitmap_offset, bitmap, s->bitmap_size);
-
-#ifdef _MSC_VER
-		free (bitmap);
-#endif
+        bdrv_pwrite_sync(s->hd, bitmap_offset, bitmap, s->bitmap_size);
     }
 
 //    printf("sector: %" PRIx64 ", index: %x, offset: %x, bioff: %" PRIx64 ", bloff: %" PRIx64 "\n",
@@ -339,7 +321,7 @@ static int rewrite_footer(BlockDriverState* bs)
     BDRVVPCState *s = bs->opaque;
     int64_t offset = s->free_data_block_offset;
 
-    ret = bdrv_pwrite(s->hd, offset, s->footer_buf, HEADER_SIZE);
+    ret = bdrv_pwrite_sync(s->hd, offset, s->footer_buf, HEADER_SIZE);
     if (ret < 0)
         return ret;
 
@@ -354,56 +336,17 @@ static int rewrite_footer(BlockDriverState* bs)
  * Returns the sectors' offset in the image file on success and < 0 on error
  */
 static int64_t alloc_block(BlockDriverState* bs, int64_t sector_num)
-#ifndef _MSC_VER
 {
     BDRVVPCState *s = bs->opaque;
     int64_t bat_offset;
     uint32_t index, bat_value;
     int ret;
+#ifndef _MSC_VER
     uint8_t bitmap[s->bitmap_size];
-
-    // Check if sector_num is valid
-    if ((sector_num < 0) || (sector_num > bs->total_sectors))
-        return -1;
-
-    // Write entry into in-memory BAT
-    index = (sector_num * 512) / s->block_size;
-    if (s->pagetable[index] != 0xFFFFFFFF)
-        return -1;
-
-    s->pagetable[index] = s->free_data_block_offset / 512;
-
-    // Initialize the block's bitmap
-    memset(bitmap, 0xff, s->bitmap_size);
-    bdrv_pwrite(s->hd, s->free_data_block_offset, bitmap, s->bitmap_size);
-
-    // Write new footer (the old one will be overwritten)
-    s->free_data_block_offset += s->block_size + s->bitmap_size;
-    ret = rewrite_footer(bs);
-    if (ret < 0)
-        goto fail;
-
-    // Write BAT entry to disk
-    bat_offset = s->bat_offset + (4 * index);
-    bat_value = be32_to_cpu(s->pagetable[index]);
-    ret = bdrv_pwrite(s->hd, bat_offset, &bat_value, 4);
-    if (ret < 0)
-        goto fail;
-
-    return get_sector_offset(bs, sector_num, 0);
-
-fail:
-    s->free_data_block_offset -= (s->block_size + s->bitmap_size);
-    return -1;
-}
 #else
-{
-	BDRVVPCState *s = bs->opaque;
-	int64_t bat_offset;
-	uint32_t index, bat_value;
-	int ret;
-	uint8_t *bitmap = NULL;
-	
+    uint8_t* bitmap = malloc(s->bitmap_size);
+    assert(bitmap);
+#endif
 
     // Check if sector_num is valid
     if ((sector_num < 0) || (sector_num > bs->total_sectors))
@@ -416,12 +359,10 @@ fail:
 
     s->pagetable[index] = s->free_data_block_offset / 512;
 
-	bitmap = malloc(s->bitmap_size);
-	assert (bitmap);
-
     // Initialize the block's bitmap
     memset(bitmap, 0xff, s->bitmap_size);
-    bdrv_pwrite(s->hd, s->free_data_block_offset, bitmap, s->bitmap_size);
+    bdrv_pwrite_sync(s->hd, s->free_data_block_offset, bitmap,
+        s->bitmap_size);
 
     // Write new footer (the old one will be overwritten)
     s->free_data_block_offset += s->block_size + s->bitmap_size;
@@ -432,19 +373,16 @@ fail:
     // Write BAT entry to disk
     bat_offset = s->bat_offset + (4 * index);
     bat_value = be32_to_cpu(s->pagetable[index]);
-    ret = bdrv_pwrite(s->hd, bat_offset, &bat_value, 4);
+    ret = bdrv_pwrite_sync(s->hd, bat_offset, &bat_value, 4);
     if (ret < 0)
         goto fail;
 
-	free (bitmap);
     return get_sector_offset(bs, sector_num, 0);
 
 fail:
-	free (bitmap);
     s->free_data_block_offset -= (s->block_size + s->bitmap_size);
     return -1;
 }
-#endif
 
 static int vpc_read(BlockDriverState *bs, int64_t sector_num,
                     uint8_t *buf, int nb_sectors)
@@ -543,9 +481,7 @@ static int calculate_geometry(int64_t total_sectors, uint16_t* cyls,
         }
     }
 
-    // Note: Rounding up deviates from the Virtual PC behaviour
-    // However, we need this to avoid truncating images in qemu-img convert
-    *cyls = (cyls_times_heads + *heads - 1) / *heads;
+    *cyls = cyls_times_heads / *heads;
 
     return 0;
 }
@@ -557,9 +493,9 @@ static int vpc_create(const char *filename, QEMUOptionParameter *options)
     struct vhd_dyndisk_header* dyndisk_header =
         (struct vhd_dyndisk_header*) buf;
     int fd, i;
-    uint16_t cyls;
-    uint8_t heads;
-    uint8_t secs_per_cyl;
+    uint16_t cyls = 0;
+    uint8_t heads = 0;
+    uint8_t secs_per_cyl = 0;
     size_t block_size, num_bat_entries;
     int64_t total_sectors = 0;
 
@@ -576,9 +512,14 @@ static int vpc_create(const char *filename, QEMUOptionParameter *options)
     if (fd < 0)
         return -EIO;
 
-    // Calculate matching total_size and geometry
-    if (calculate_geometry(total_sectors, &cyls, &heads, &secs_per_cyl))
-        return -EFBIG;
+    /* Calculate matching total_size and geometry. Increase the number of
+       sectors requested until we get enough (or fail). */
+    for (i = 0; total_sectors > (int64_t)cyls * heads * secs_per_cyl; i++) {
+        if (calculate_geometry(total_sectors + i,
+                               &cyls, &heads, &secs_per_cyl)) {
+            return -EFBIG;
+        }
+    }
     total_sectors = (int64_t) cyls * heads * secs_per_cyl;
 
     // Prepare the Hard Disk Footer

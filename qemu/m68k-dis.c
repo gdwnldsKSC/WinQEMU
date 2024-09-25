@@ -1,26 +1,11 @@
 /* This file is composed of several different files from the upstream
    sourceware.org CVS.  Original file boundaries marked with **** */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
 
 #include "dis-asm.h"
-
-#ifdef _MSC_VER
-static unsigned int __qnan[] = {0x7fc00001};
-#define NAN (*((float *)__qnan))
-#endif
 
 /* **** floatformat.h from sourceware.org CVS 2005-08-14.  */
 /* IEEE floating point support declarations, for GDB, the GNU Debugger.

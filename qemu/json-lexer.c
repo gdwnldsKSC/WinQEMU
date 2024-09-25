@@ -227,10 +227,10 @@ static const uint8_t json_lexer[][256] =  {
     },
     [IN_DQ_STRING_ESCAPE] = {
         ['b'] = IN_DQ_STRING,
-        ['f'] =  IN_DQ_STRING,
-        ['n'] =  IN_DQ_STRING,
-        ['r'] =  IN_DQ_STRING,
-        ['t'] =  IN_DQ_STRING,
+        ['f'] = IN_DQ_STRING,
+        ['n'] = IN_DQ_STRING,
+        ['r'] = IN_DQ_STRING,
+        ['t'] = IN_DQ_STRING,
         ['\''] = IN_DQ_STRING,
         ['\"'] = IN_DQ_STRING,
         ['u'] = IN_DQ_UCODE0,
@@ -264,10 +264,10 @@ static const uint8_t json_lexer[][256] =  {
     },
     [IN_SQ_STRING_ESCAPE] = {
         ['b'] = IN_SQ_STRING,
-        ['f'] =  IN_SQ_STRING,
-        ['n'] =  IN_SQ_STRING,
-        ['r'] =  IN_SQ_STRING,
-        ['t'] =  IN_SQ_STRING,
+        ['f'] = IN_SQ_STRING,
+        ['n'] = IN_SQ_STRING,
+        ['r'] = IN_SQ_STRING,
+        ['t'] = IN_SQ_STRING,
         ['\''] = IN_SQ_STRING,
         ['\"'] = IN_SQ_STRING,
         ['u'] = IN_SQ_UCODE0,
@@ -339,7 +339,7 @@ static const uint8_t json_lexer[][256] =  {
         ['\t'] = IN_WHITESPACE,
         ['\r'] = IN_WHITESPACE,
         ['\n'] = IN_WHITESPACE,
-    },        
+    },
 
     /* operator */
     [IN_OPERATOR_DONE] = {
@@ -360,6 +360,18 @@ static const uint8_t json_lexer[][256] =  {
         ['l'] = IN_ESCAPE_LL,
     },
 
+    [IN_ESCAPE_I64] = {
+        ['d'] = IN_ESCAPE_DONE,
+    },
+
+    [IN_ESCAPE_I6] = {
+        ['4'] = IN_ESCAPE_I64,
+    },
+
+    [IN_ESCAPE_I] = {
+        ['6'] = IN_ESCAPE_I6,
+    },
+
     [IN_ESCAPE] = {
         ['d'] = IN_ESCAPE_DONE,
         ['i'] = IN_ESCAPE_DONE,
@@ -367,6 +379,7 @@ static const uint8_t json_lexer[][256] =  {
         ['s'] = IN_ESCAPE_DONE,
         ['f'] = IN_ESCAPE_DONE,
         ['l'] = IN_ESCAPE_L,
+        ['I'] = IN_ESCAPE_I,
     },
 
     /* top level rule */
@@ -1305,12 +1318,14 @@ static const uint8_t json_lexer[][256] =  {
 [IN_ESCAPE_I64] = {
     ['d'] = IN_ESCAPE_DONE,
     },
-    [IN_ESCAPE_I6] = {
-        ['4'] = IN_ESCAPE_I64,
-    },
-    [IN_ESCAPE_I] = {
-        ['6'] = IN_ESCAPE_I6,
-    },
+
+[IN_ESCAPE_I6] = {
+    ['4'] = IN_ESCAPE_I64,
+},
+
+[IN_ESCAPE_I] = {
+    ['6'] = IN_ESCAPE_I6,
+},
 
 [IN_ESCAPE] = {
     ['d'] = IN_ESCAPE_DONE,

@@ -413,16 +413,20 @@ void readline_handle_byte(ReadLineState *rs, int ch)
         case 'C':
             readline_forward_char(rs);
             break;
+#ifndef _MSC_VER
+        case '0' ... '9':
+#else
         case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+#endif
             rs->esc_param = rs->esc_param * 10 + (ch - '0');
             goto the_end;
         case '~':

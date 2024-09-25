@@ -4,7 +4,7 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#define WINVER 0x0501  /* needed for ipv6 bits */
+#define WINVER 0x0501 /* needed for ipv6 bits */
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -34,6 +34,8 @@ int inet_aton(const char *cp, struct in_addr *ia);
 #include "qemu-option.h"
 
 /* misc helpers */
+int qemu_socket(int domain, int type, int protocol);
+int qemu_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 void socket_set_nonblock(int fd);
 int send_all(int fd, const void *buf, int len1);
 

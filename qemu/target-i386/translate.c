@@ -3168,7 +3168,7 @@ static void gen_sse(DisasContext *s, int b, target_ulong pc_start, int rex_r)
             if (mod == 3)
                 goto illegal_op;
             gen_lea_modrm(s, modrm, &reg_addr, &offset_addr);
-            gen_sto_env_A0(s->mem_index, offsetof(CPUX86State, xmm_regs[reg]));
+            gen_sto_env_A0(s->mem_index, offsetof(CPUX86State,xmm_regs[reg]));
             break;
         case 0x3f0: /* lddqu */
             if (mod == 3)
@@ -4396,7 +4396,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
         /**************************/
         /* inc, dec, and other misc arith */
 #ifndef _MSC_VER
-	case 0x40 ... 0x47: /* inc Gv */ 
+    case 0x40 ... 0x47: /* inc Gv */
 #else
 	case 0x40:
 	case 0x41:
@@ -4411,7 +4411,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
         gen_inc(s, ot, OR_EAX + (b & 7), 1);
         break;
 #ifndef _MSC_VER
-	case 0x48 ... 0x4f: /* dec Gv */
+    case 0x48 ... 0x4f: /* dec Gv */
 #else
 	case 0x48:
 	case 0x49:
@@ -5013,7 +5013,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
         /**************************/
         /* push/pop */
 #ifndef _MSC_VER
-	case 0x50 ... 0x57: /* push */ 
+    case 0x50 ... 0x57: /* push */
 #else
 	case 0x50:
 	case 0x51:
@@ -5028,7 +5028,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
         gen_push_T0(s);
         break;
 #ifndef _MSC_VER
-	case 0x58 ... 0x5f: /* pop */
+    case 0x58 ... 0x5f: /* pop */
 #else
 	case 0x58:
 	case 0x59:
@@ -5429,6 +5429,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
 	case 0x96:
 	case 0x97:
 #endif
+    do_xchg_reg_eax:
         ot = dflag + OT_WORD;
         reg = (b & 7) | REX_B(s);
         rm = R_EAX;
@@ -6499,7 +6500,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
             tval += next_eip;
             if (s->dflag == 0)
                 tval &= 0xffff;
-            else if (!CODE64(s))
+            else if(!CODE64(s))
                 tval &= 0xffffffff;
             gen_movtl_T0_im(next_eip);
             gen_push_T0(s);
@@ -6891,13 +6892,13 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
             ot = dflag + OT_WORD;
             modrm = ldub_code(s->pc++);
             reg = ((modrm >> 3) & 7) | rex_r;
-            gen_ldst_modrm(s, modrm, ot, OR_TMP0, 0);
+            gen_ldst_modrm(s,modrm, ot, OR_TMP0, 0);
             gen_extu(ot, cpu_T[0]);
             t0 = tcg_temp_local_new();
             tcg_gen_mov_tl(t0, cpu_T[0]);
             if ((b & 1) && (prefixes & PREFIX_REPZ) &&
                 (s->cpuid_ext3_features & CPUID_EXT3_ABM)) {
-                switch (ot) {
+                switch(ot) {
                 case OT_WORD: gen_helper_lzcnt(cpu_T[0], t0,
                     tcg_const_i32(16)); break;
                 case OT_LONG: gen_helper_lzcnt(cpu_T[0], t0,
@@ -6912,8 +6913,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
                 tcg_gen_brcondi_tl(TCG_COND_EQ, t0, 0, label1);
                 if (b & 1) {
                     gen_helper_bsr(cpu_T[0], t0);
-                }
-                else {
+                } else {
                     gen_helper_bsf(cpu_T[0], t0);
                 }
                 gen_op_mov_reg_T0(ot, reg);
@@ -6980,10 +6980,14 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
         /************************/
         /* misc */
     case 0x90: /* nop */
-        /* XXX: xchg + rex handling */
         /* XXX: correct lock test for all insn */
-        if (prefixes & PREFIX_LOCK)
+        if (prefixes & PREFIX_LOCK) {
             goto illegal_op;
+        }
+        /* If REX_B is set, then this is xchg eax, r8d, not a nop.  */
+        if (REX_B(s)) {
+            goto do_xchg_reg_eax;
+        }
         if (prefixes & PREFIX_REPZ) {
             gen_svm_check_intercept(s, pc_start, SVM_EXIT_PAUSE);
         }
@@ -7682,7 +7686,7 @@ static target_ulong disas_insn(DisasContext *s, target_ulong pc_start)
             if (mod != 3) {
                 gen_op_st_v(ot + s->mem_index, t0, a0);
                 tcg_temp_free(a0);
-            } else {
+           } else {
                 gen_op_mov_reg_v(ot, rm, t0);
             }
             if (s->cc_op != CC_OP_DYNAMIC)

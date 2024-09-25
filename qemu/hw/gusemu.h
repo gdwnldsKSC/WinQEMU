@@ -27,21 +27,20 @@
 
 /* data types (need to be adjusted if neither a VC6 nor a C99 compatible compiler is used) */
 
-/* #if defined _WIN32 && defined _MSC_VER  doesnt support other win32 compilers yet, do it yourself... 
-// we no longer need this workaround on MSVC 2022 (and other older ones, maybe....)
+#if defined _WIN32 && defined _MSC_VER >= 1900 /* doesnt support other win32 compilers yet, do it yourself... */
  typedef unsigned char GUSbyte;
  typedef unsigned short GUSword;
  typedef unsigned int GUSdword;
  typedef signed char GUSchar;
  typedef signed short GUSsample;
-#else */
+#else
  #include <stdint.h>
  typedef int8_t GUSchar;
  typedef uint8_t GUSbyte;
  typedef uint16_t GUSword;
  typedef uint32_t GUSdword;
  typedef int16_t GUSsample;
-//#endif 
+#endif
 
 typedef struct _GUSEmuState
 {
