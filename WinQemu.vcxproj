@@ -372,6 +372,8 @@
     <ClCompile Include="qemu\hw\a9mpcore.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\acpi_piix4.c" />
+    <ClCompile Include="qemu\hw\apm.c" />
     <ClCompile Include="qemu\hw\arm11mpcore.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -403,7 +405,9 @@
     <ClCompile Include="qemu\hw\ne2000-isa.c" />
     <ClCompile Include="qemu\hw\pcie_host.c" />
     <ClCompile Include="qemu\hw\pci_host.c" />
+    <ClCompile Include="qemu\hw\pc_piix.c" />
     <ClCompile Include="qemu\hw\piix4.c" />
+    <ClCompile Include="qemu\hw\pm_smbus.c" />
     <ClCompile Include="qemu\hw\qdev-addr.c" />
     <ClCompile Include="qemu\hw\qdev-properties.c" />
     <ClCompile Include="qemu\hw\qdev.c" />
@@ -1798,8 +1802,10 @@
     <ClInclude Include="qemu\cpus.h" />
     <ClInclude Include="qemu\fsdev\qemu-fsdev.h" />
     <ClInclude Include="qemu\hw\9p.h" />
+    <ClInclude Include="qemu\hw\acpi.h" />
     <ClInclude Include="qemu\hw\apb_pci.h" />
     <ClInclude Include="qemu\hw\apic.h" />
+    <ClInclude Include="qemu\hw\apm.h" />
     <ClInclude Include="qemu\hw\bitbang_i2c.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\event_notifier.h" />
@@ -1807,11 +1813,13 @@
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
     <ClInclude Include="qemu\hw\loader.h" />
+    <ClInclude Include="qemu\hw\mc146818rtc.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\multiboot.h" />
     <ClInclude Include="qemu\hw\ne2000.h" />
     <ClInclude Include="qemu\hw\pcie_host.h" />
     <ClInclude Include="qemu\hw\pcnet.h" />
+    <ClInclude Include="qemu\hw\pm_smbus.h" />
     <ClInclude Include="qemu\hw\poison.h" />
     <ClInclude Include="qemu\hw\prep_pci.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
