@@ -179,7 +179,7 @@ static inline int mon_print_count_get(const Monitor *mon) { return 0; }
 
 static QLIST_HEAD(mon_list, Monitor) mon_list;
 
-static const mon_cmd_t mon_cmds[62]; // must define these two due to MSVC not supporting variable length arrays 
+static const mon_cmd_t mon_cmds[64]; // must define these two due to MSVC not supporting variable length arrays 
 static const mon_cmd_t info_cmds[36];
 
 Monitor *cur_mon;
@@ -2856,7 +2856,8 @@ static target_long monitor_get_tbl (const struct MonitorDef *md, int val)
 static target_long monitor_get_psr (const struct MonitorDef *md, int val)
 {
     CPUState *env = mon_get_cpu();
-    return GET_PSR(env);
+
+    return cpu_get_psr(env);
 }
 #endif
 

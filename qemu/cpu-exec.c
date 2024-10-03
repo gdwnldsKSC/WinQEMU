@@ -344,12 +344,11 @@ int cpu_exec(CPUState *env1)
                 }
             }
 
-#ifndef _MSC_VER
             if (kvm_enabled()) {
                 kvm_cpu_exec(env);
                 longjmp(env->jmp_env, 1);
             }
-#endif
+
             next_tb = 0; /* force lookup of first TB */
             for(;;) {
                 interrupt_request = env->interrupt_request;
@@ -564,7 +563,7 @@ int cpu_exec(CPUState *env1)
                     env->exception_index = EXCP_INTERRUPT;
                     cpu_loop_exit();
                 }
-#if defined(DEBUG_DISAS) ||  defined(CONFIG_DEBUG_EXEC)
+#if defined(DEBUG_DISAS) || defined(CONFIG_DEBUG_EXEC)
                 if (qemu_loglevel_mask(CPU_LOG_TB_CPU)) {
                     /* restore flags in standard format */
 #if defined(TARGET_I386)

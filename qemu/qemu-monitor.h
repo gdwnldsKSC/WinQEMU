@@ -63,7 +63,8 @@
 .args_type  = "filename:F",
 .params     = "filename",
 .help       = "save screen into PPM image 'filename'",
-.mhandler.cmd = do_screen_dump,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_screen_dump,
 },
 
 
@@ -253,10 +254,11 @@
 
 {
 .name       = "device_add",
-.args_type  = "config:s",
-.params     = "device",
+.args_type  = "device:O",
+.params     = "driver[,prop=value][,...]",
 .help       = "add device, like -device on the command line",
-.mhandler.cmd = do_device_add,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_device_add,
 },
 
 
@@ -265,7 +267,8 @@
 .args_type  = "id:s",
 .params     = "device",
 .help       = "remove device",
-.mhandler.cmd = do_device_del,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_device_del,
 },
 
 
@@ -274,7 +277,8 @@
 .args_type  = "index:i",
 .params     = "index",
 .help       = "set the default CPU",
-.mhandler.cmd = do_cpu_set,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_cpu_set,
 },
 
 
@@ -391,19 +395,21 @@
 
 {
 .name       = "migrate_set_speed",
-.args_type  = "value:s",
+.args_type  = "value:f",
 .params     = "value",
 .help       = "set maximum speed (in bytes) for migrations",
-.mhandler.cmd = do_migrate_set_speed,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_migrate_set_speed,
 },
 
 
 {
 .name       = "migrate_set_downtime",
-.args_type  = "value:s",
+.args_type  = "value:T",
 .params     = "value",
 .help       = "set maximum tolerated downtime (in seconds) for migrations",
-.mhandler.cmd = do_migrate_set_downtime,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_migrate_set_downtime,
 },
 
 
@@ -464,6 +470,26 @@
 },
 
 
+{
+.name       = "netdev_add",
+.args_type  = "netdev:O",
+.params     = "[user|tap|socket],id=str[,prop=value][,...]",
+.help       = "add host network device",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_netdev_add,
+},
+
+
+{
+.name       = "netdev_del",
+.args_type  = "id:s",
+.params     = "id",
+.help       = "remove host network device",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_netdev_del,
+},
+
+
 #ifdef CONFIG_SLIRP
 {
 .name       = "hostfwd_add",
@@ -472,7 +498,9 @@
 .help       = "redirect TCP or UDP connections from host to guest (requires -net user)",
 .mhandler.cmd = net_slirp_hostfwd_add,
 },
+#endif
 
+#ifdef CONFIG_SLIRP
 {
 .name       = "hostfwd_remove",
 .args_type  = "arg1:s,arg2:s?,arg3:s?",
@@ -489,16 +517,18 @@
 .params     = "target",
 .help       = "request VM to change it's memory allocation (in MB)",
 .user_print = monitor_user_noop,
-.mhandler.cmd_new = do_balloon,
+.mhandler.cmd_async = do_balloon,
+.async      = 1,
 },
 
 
 {
 .name       = "set_link",
-.args_type  = "name:s,up_or_down:s",
-.params     = "name up|down",
+.args_type  = "name:s,up:b",
+.params     = "name on|off",
 .help       = "change the link status of a network adapter",
-.mhandler.cmd = do_set_link,
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_set_link,
 },
 
 
@@ -595,6 +625,16 @@
 .help       = "set the password of encrypted block devices",
 .user_print = monitor_user_noop,
 .mhandler.cmd_new = do_block_set_passwd,
+},
+
+
+{
+.name       = "qmp_capabilities",
+.args_type  = "",
+.params     = "",
+.help       = "enable QMP capabilities",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_qmp_capabilities,
 },
 
 

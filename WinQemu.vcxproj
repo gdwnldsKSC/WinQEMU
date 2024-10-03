@@ -392,7 +392,6 @@
     <ClCompile Include="qemu\hw\ide\piix.c" />
     <ClCompile Include="qemu\hw\ide\qdev.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
-    <ClCompile Include="qemu\hw\iov.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
@@ -446,6 +445,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\ioport.c" />
+    <ClCompile Include="qemu\iov.c" />
     <ClCompile Include="qemu\json-lexer.c" />
     <ClCompile Include="qemu\json-parser.c" />
     <ClCompile Include="qemu\json-streamer.c" />
@@ -1809,7 +1809,6 @@
     <ClInclude Include="qemu\hw\file-op-9p.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
-    <ClInclude Include="qemu\hw\iov.h" />
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\msix.h" />
     <ClInclude Include="qemu\hw\multiboot.h" />
@@ -1835,6 +1834,7 @@
     <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
+    <ClInclude Include="qemu\iov.h" />
     <ClInclude Include="qemu\json-lexer.h" />
     <ClInclude Include="qemu\json-parser.h" />
     <ClInclude Include="qemu\json-streamer.h" />

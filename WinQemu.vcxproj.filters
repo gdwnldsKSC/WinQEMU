@@ -1473,8 +1473,8 @@
     <ClCompile Include="qemu\hw\virtio-serial-bus.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\iov.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\iov.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2264,8 +2264,8 @@
     <ClInclude Include="qemu\hw\virtio-serial.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\iov.h">
-      <Filter>qemu\hw\inc</Filter>
+    <ClInclude Include="qemu\iov.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

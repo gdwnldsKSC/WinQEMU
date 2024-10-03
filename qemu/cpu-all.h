@@ -756,7 +756,7 @@ extern unsigned long qemu_host_page_mask;
    code */
 #define PAGE_WRITE_ORG 0x0010
 #if defined(CONFIG_BSD) && defined(CONFIG_USER_ONLY)
-/* FIXME: Code that sets/uses this is broken and needs to go away. */
+/* FIXME: Code that sets/uses this is broken and needs to go away.  */
 #define PAGE_RESERVED  0x0020
 #endif
 
