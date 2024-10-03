@@ -3,6 +3,7 @@
 
 #include "qemu-char.h"
 #include "qdict.h"
+#include "notify.h"
 
 /* keyboard/mouse support */
 
@@ -10,10 +11,16 @@
 #define MOUSE_EVENT_RBUTTON 0x02
 #define MOUSE_EVENT_MBUTTON 0x04
 
+/* identical to the ps/2 keyboard bits */
+#define QEMU_SCROLL_LOCK_LED (1 << 0)
+#define QEMU_NUM_LOCK_LED    (1 << 1)
+#define QEMU_CAPS_LOCK_LED   (1 << 2)
+
 /* in ms */
 #define GUI_REFRESH_INTERVAL 30
 
 typedef void QEMUPutKBDEvent(void *opaque, int keycode);
+typedef void QEMUPutLEDEvent(void *opaque, int ledstate);
 typedef void QEMUPutMouseEvent(void *opaque, int dx, int dy, int dz, int buttons_state);
 
 typedef struct QEMUPutMouseEntry {
@@ -22,19 +29,39 @@ typedef struct QEMUPutMouseEntry {
     int qemu_put_mouse_event_absolute;
     char *qemu_put_mouse_event_name;
 
+    int index;
+
     /* used internally by qemu for handling mice */
-    struct QEMUPutMouseEntry *next;
+    QTAILQ_ENTRY(QEMUPutMouseEntry) node;
 } QEMUPutMouseEntry;
+
+typedef struct QEMUPutLEDEntry {
+    QEMUPutLEDEvent *put_led;
+    void *opaque;
+    QTAILQ_ENTRY(QEMUPutLEDEntry) next;
+} QEMUPutLEDEntry;
 
 void qemu_add_kbd_event_handler(QEMUPutKBDEvent *func, void *opaque);
 QEMUPutMouseEntry *qemu_add_mouse_event_handler(QEMUPutMouseEvent *func,
                                                 void *opaque, int absolute,
                                                 const char *name);
 void qemu_remove_mouse_event_handler(QEMUPutMouseEntry *entry);
+void qemu_activate_mouse_event_handler(QEMUPutMouseEntry *entry);
+
+QEMUPutLEDEntry *qemu_add_led_event_handler(QEMUPutLEDEvent *func, void *opaque);
+void qemu_remove_led_event_handler(QEMUPutLEDEntry *entry);
 
 void kbd_put_keycode(int keycode);
+void kbd_put_ledstate(int ledstate);
 void kbd_mouse_event(int dx, int dy, int dz, int buttons_state);
+
+/* Does the current mouse generate absolute events */
 int kbd_mouse_is_absolute(void);
+void qemu_add_mouse_mode_change_notifier(Notifier *notify);
+void qemu_remove_mouse_mode_change_notifier(Notifier *notify);
+
+/* Of all the mice, is there one that generates absolute events */
+int kbd_mouse_has_absolute(void);
 
 struct MouseTransformInfo {
     /* Touchscreen resolution */
@@ -144,11 +171,7 @@ DisplaySurface* qemu_create_displaysurface_from(int width, int height, int bpp,
 PixelFormat qemu_different_endianness_pixelformat(int bpp);
 PixelFormat qemu_default_pixelformat(int bpp);
 
-extern struct DisplayAllocator default_allocator;
 DisplayAllocator *register_displayallocator(DisplayState *ds, DisplayAllocator *da);
-DisplaySurface* defaultallocator_create_displaysurface(int width, int height);
-DisplaySurface* defaultallocator_resize_displaysurface(DisplaySurface *surface, int width, int height);
-void defaultallocator_free_displaysurface(DisplaySurface *surface);
 
 static inline DisplaySurface* qemu_create_displaysurface(DisplayState *ds, int width, int height)
 {

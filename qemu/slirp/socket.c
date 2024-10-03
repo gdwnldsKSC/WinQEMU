@@ -90,8 +90,6 @@ size_t sopreprbuf(struct socket *so, struct iovec *iov, int *np)
 	DEBUG_CALL("sopreprbuf");
 	DEBUG_ARG("so = %lx", (long )so);
 
-	len = sb->sb_datalen - sb->sb_cc;
-
 	if (len <= 0)
 		return 0;
 
@@ -363,8 +361,6 @@ sowrite(struct socket *so)
 	 * sowrite wouldn't have been called otherwise
 	 */
 
-        len = sb->sb_cc;
-
 	iov[0].iov_base = sb->sb_rptr;
         iov[1].iov_base = NULL;
         iov[1].iov_len = 0;
@@ -591,6 +587,7 @@ tcp_listen(Slirp *slirp, u_int32_t haddr, u_int hport, u_int32_t laddr,
 	struct socket *so;
 	int s, opt = 1;
 	socklen_t addrlen = sizeof(addr);
+	memset(&addr, 0, addrlen);
 
 	DEBUG_CALL("tcp_listen");
 	DEBUG_ARG("haddr = %x", haddr);

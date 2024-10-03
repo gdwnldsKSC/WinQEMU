@@ -97,11 +97,6 @@ int cpu_ppc_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
     return 1;
 }
 
-target_phys_addr_t cpu_get_phys_page_debug (CPUState *env, target_ulong addr)
-{
-    return addr;
-}
-
 #else
 /* Common routines used by software and hardware TLBs emulation */
 static inline int pte_is_valid(target_ulong pte0)
@@ -203,7 +198,6 @@ static inline int _pte_check(mmu_ctx_t *ctx, int is_64b, target_ulong pte0,
     target_ulong ptem, mmask;
     int access, ret, pteh, ptev, pp;
 
-    access = 0;
     ret = -1;
     /* Check validity and table match */
 #if defined(TARGET_PPC64)
@@ -498,7 +492,7 @@ static inline int get_bat(CPUState *env, mmu_ctx_t *ctx, target_ulong virtual,
                           int rw, int type)
 {
     target_ulong *BATlt, *BATut, *BATu, *BATl;
-    target_ulong base, BEPIl, BEPIu, bl;
+    target_ulong BEPIl, BEPIu, bl;
     int i, valid, prot;
     int ret = -1;
 
@@ -514,7 +508,6 @@ static inline int get_bat(CPUState *env, mmu_ctx_t *ctx, target_ulong virtual,
         BATut = env->DBAT[0];
         break;
     }
-    base = virtual & 0xFFFC0000;
     for (i = 0; i < env->nb_BATs; i++) {
         BATu = &BATut[i];
         BATl = &BATlt[i];
@@ -736,14 +729,13 @@ static inline int slb_lookup(CPUPPCState *env, target_ulong eaddr,
                     PRIx32 "\n", __func__, n, slb->tmp64, slb->tmp);
         if (slb_is_valid(slb)) {
             /* SLB entry is valid */
+            mask = 0xFFFFFFFFF0000000ULL;
             if (slb->tmp & 0x8) {
-                /* 1 TB Segment */
-                mask = 0xFFFF000000000000ULL;
+                /* 16 MB PTEs */
                 if (target_page_bits)
-                    *target_page_bits = 24; // XXX 16M pages?
+                    *target_page_bits = 24;
             } else {
-                /* 256MB Segment */
-                mask = 0xFFFFFFFFF0000000ULL;
+                /* 4 KB PTEs */
                 if (target_page_bits)
                     *target_page_bits = TARGET_PAGE_BITS;
             }
@@ -1155,7 +1147,7 @@ static int mmu40x_get_physical_address (CPUState *env, mmu_ctx_t *ctx,
                              env->spr[SPR_40x_PID], 0, i) < 0)
             continue;
         zsel = (tlb->attr >> 4) & 0xF;
-        zpr = (env->spr[SPR_40x_ZPR] >> (28 - (2 * zsel))) & 0x3;
+        zpr = (env->spr[SPR_40x_ZPR] >> (30 - (2 * zsel))) & 0x3;
         LOG_SWTLB("%s: TLB %d zsel %d zpr %d rw %d attr %08x\n",
                     __func__, i, zsel, zpr, rw, tlb->attr);
         /* Check execute enable bit */
@@ -1171,6 +1163,8 @@ static int mmu40x_get_physical_address (CPUState *env, mmu_ctx_t *ctx,
             break;
         case 0x0:
             if (pr != 0) {
+                /* Raise Zone protection fault.  */
+                env->spr[SPR_40x_ESR] = 1 << 22;
                 ctx->prot = 0;
                 ret = -2;
                 break;
@@ -1183,6 +1177,8 @@ static int mmu40x_get_physical_address (CPUState *env, mmu_ctx_t *ctx,
             ctx->prot = tlb->prot;
             ctx->prot |= PAGE_EXEC;
             ret = check_prot(ctx->prot, rw, access_type);
+            if (ret == -2)
+                env->spr[SPR_40x_ESR] = 0;
             break;
         }
         if (ret >= 0) {
@@ -1412,9 +1408,10 @@ int cpu_ppc_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
     }
     ret = get_physical_address(env, &ctx, address, rw, access_type);
     if (ret == 0) {
-        ret = tlb_set_page_exec(env, address & TARGET_PAGE_MASK,
-                                ctx.raddr & TARGET_PAGE_MASK, ctx.prot,
-                                mmu_idx, is_softmmu);
+        tlb_set_page(env, address & TARGET_PAGE_MASK,
+                     ctx.raddr & TARGET_PAGE_MASK, ctx.prot,
+                     mmu_idx, TARGET_PAGE_SIZE);
+        ret = 0;
     } else if (ret < 0) {
         LOG_MMU_STATE(env);
         if (access_type == ACCESS_CODE) {
@@ -1580,11 +1577,20 @@ int cpu_ppc_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
                 /* Access rights violation */
                 env->exception_index = POWERPC_EXCP_DSI;
                 env->error_code = 0;
-                env->spr[SPR_DAR] = address;
-                if (rw == 1)
-                    env->spr[SPR_DSISR] = 0x0A000000;
-                else
-                    env->spr[SPR_DSISR] = 0x08000000;
+                if (env->mmu_model == POWERPC_MMU_SOFT_4xx
+                    || env->mmu_model == POWERPC_MMU_SOFT_4xx_Z) {
+                    env->spr[SPR_40x_DEAR] = address;
+                    if (rw) {
+                        env->spr[SPR_40x_ESR] |= 0x00800000;
+                    }
+                } else {
+                    env->spr[SPR_DAR] = address;
+                    if (rw == 1) {
+                        env->spr[SPR_DSISR] = 0x0A000000;
+                    } else {
+                        env->spr[SPR_DSISR] = 0x08000000;
+                    }
+                }
                 break;
             case -4:
                 /* Direct store exception */
@@ -1747,11 +1753,15 @@ void ppc_store_dbatl (CPUPPCState *env, int nr, target_ulong value)
 void ppc_store_ibatu_601 (CPUPPCState *env, int nr, target_ulong value)
 {
     target_ulong mask;
+#if defined(FLUSH_ALL_TLBS)
     int do_inval;
+#endif
 
     dump_store_bat(env, 'I', 0, nr, value);
     if (env->IBAT[0][nr] != value) {
+#if defined(FLUSH_ALL_TLBS)
         do_inval = 0;
+#endif
         mask = (env->IBAT[1][nr] << 17) & 0x0FFE0000UL;
         if (env->IBAT[1][nr] & 0x40) {
             /* Invalidate BAT only if it is valid */
@@ -1784,11 +1794,15 @@ void ppc_store_ibatu_601 (CPUPPCState *env, int nr, target_ulong value)
 void ppc_store_ibatl_601 (CPUPPCState *env, int nr, target_ulong value)
 {
     target_ulong mask;
+#if defined(FLUSH_ALL_TLBS)
     int do_inval;
+#endif
 
     dump_store_bat(env, 'I', 1, nr, value);
     if (env->IBAT[1][nr] != value) {
+#if defined(FLUSH_ALL_TLBS)
         do_inval = 0;
+#endif
         if (env->IBAT[1][nr] & 0x40) {
 #if !defined(FLUSH_ALL_TLBS)
             mask = (env->IBAT[1][nr] << 17) & 0x0FFE0000UL;
@@ -2066,6 +2080,7 @@ static inline void powerpc_excp(CPUState *env, int excp_model, int excp)
     srr1 = SPR_SRR1;
     asrr0 = -1;
     asrr1 = -1;
+    msr &= ~((target_ulong)0x783F0000);
     switch (excp) {
     case POWERPC_EXCP_NONE:
         /* Should never happen */

@@ -27,6 +27,8 @@
 #include "pc.h"
 #include "console.h"
 #include "devices.h"
+#include "sysbus.h"
+#include "qdev-addr.h"
 
 /*
  * Status: 2008/11/02
@@ -434,6 +436,8 @@
 
 /* end of register definitions */
 
+#define SM501_HWC_WIDTH                       (64)
+#define SM501_HWC_HEIGHT                      (64)
 
 /* SM501 local memory size taken from "linux/drivers/mfd/sm501.c" */
 static const uint32_t sm501_mem_local_size[] = {
@@ -526,6 +530,95 @@ static uint32_t get_local_mem_size_index(uint32_t size)
     return index;
 }
 
+/**
+ * Check the availability of hardware cursor.
+ * @param crt  0 for PANEL, 1 for CRT.
+ */
+static inline int is_hwc_enabled(SM501State *state, int crt)
+{
+    uint32_t addr = crt ? state->dc_crt_hwc_addr : state->dc_panel_hwc_addr;
+    return addr & 0x80000000;
+}
+
+/**
+ * Get the address which holds cursor pattern data.
+ * @param crt  0 for PANEL, 1 for CRT.
+ */
+static inline uint32_t get_hwc_address(SM501State *state, int crt)
+{
+    uint32_t addr = crt ? state->dc_crt_hwc_addr : state->dc_panel_hwc_addr;
+    return (addr & 0x03FFFFF0)/* >> 4*/;
+}
+
+/**
+ * Get the cursor position in y coordinate.
+ * @param crt  0 for PANEL, 1 for CRT.
+ */
+static inline uint32_t get_hwc_y(SM501State *state, int crt)
+{
+    uint32_t location = crt ? state->dc_crt_hwc_location
+                            : state->dc_panel_hwc_location;
+    return (location & 0x07FF0000) >> 16;
+}
+
+/**
+ * Get the cursor position in x coordinate.
+ * @param crt  0 for PANEL, 1 for CRT.
+ */
+static inline uint32_t get_hwc_x(SM501State *state, int crt)
+{
+    uint32_t location = crt ? state->dc_crt_hwc_location
+                            : state->dc_panel_hwc_location;
+    return location & 0x000007FF;
+}
+
+/**
+ * Get the cursor position in x coordinate.
+ * @param crt  0 for PANEL, 1 for CRT.
+ * @param index  0, 1, 2 or 3 which specifies color of corsor dot.
+ */
+static inline uint16_t get_hwc_color(SM501State *state, int crt, int index)
+{
+    uint16_t color_reg = 0;
+    uint16_t color_565 = 0;
+
+    if (index == 0) {
+        return 0;
+    }
+
+    switch (index) {
+    case 1:
+    case 2:
+        color_reg = crt ? state->dc_crt_hwc_color_1_2
+                        : state->dc_panel_hwc_color_1_2;
+        break;
+    case 3:
+        color_reg = crt ? state->dc_crt_hwc_color_3
+                        : state->dc_panel_hwc_color_3;
+        break;
+    default:
+        printf("invalid hw cursor color.\n");
+        abort();
+    }
+
+    switch (index) {
+    case 1:
+    case 3:
+        color_565 = (uint16_t)(color_reg & 0xFFFF);
+        break;
+    case 2:
+        color_565 = (uint16_t)((color_reg >> 16) & 0xFFFF);
+        break;
+    }
+    return color_565;
+}
+
+static int within_hwc_y_range(SM501State *state, int y, int crt)
+{
+    int hwc_y = get_hwc_y(state, crt);
+    return (hwc_y <= y && y < hwc_y + SM501_HWC_HEIGHT);
+}
+
 static uint32_t sm501_system_config_read(void *opaque, target_phys_addr_t addr)
 {
     SM501State * s = (SM501State *)opaque;
@@ -572,7 +665,7 @@ static uint32_t sm501_system_config_read(void *opaque, target_phys_addr_t addr)
     default:
 	printf("sm501 system config : not implemented register read."
 	       " addr=%x\n", (int)addr);
-	assert(0);
+        abort();
     }
 
     return ret;
@@ -622,7 +715,7 @@ static void sm501_system_config_write(void *opaque,
     default:
 	printf("sm501 system config : not implemented register write."
 	       " addr=%x, val=%x\n", (int)addr, value);
-	assert(0);
+        abort();
     }
 }
 
@@ -736,13 +829,13 @@ static uint32_t sm501_disp_ctrl_read(void *opaque, target_phys_addr_t addr)
 	ret = s->dc_crt_hwc_addr;
 	break;
     case SM501_DC_CRT_HWC_LOC:
-	ret = s->dc_crt_hwc_addr;
+	ret = s->dc_crt_hwc_location;
 	break;
     case SM501_DC_CRT_HWC_COLOR_1_2:
-	ret = s->dc_crt_hwc_addr;
+	ret = s->dc_crt_hwc_color_1_2;
 	break;
     case SM501_DC_CRT_HWC_COLOR_3:
-	ret = s->dc_crt_hwc_addr;
+	ret = s->dc_crt_hwc_color_3;
 	break;
 
     case SM501_DC_PANEL_PALETTE ... SM501_DC_PANEL_PALETTE + 0x400*3 - 4:
@@ -752,7 +845,7 @@ static uint32_t sm501_disp_ctrl_read(void *opaque, target_phys_addr_t addr)
     default:
 	printf("sm501 disp ctrl : not implemented register read."
 	       " addr=%x\n", (int)addr);
-	assert(0);
+        abort();
     }
 
     return ret;
@@ -809,13 +902,13 @@ static void sm501_disp_ctrl_write(void *opaque,
 	s->dc_panel_hwc_addr = value & 0x8FFFFFF0;
 	break;
     case SM501_DC_PANEL_HWC_LOC:
-	s->dc_panel_hwc_addr = value & 0x0FFF0FFF;
+	s->dc_panel_hwc_location = value & 0x0FFF0FFF;
 	break;
     case SM501_DC_PANEL_HWC_COLOR_1_2:
-	s->dc_panel_hwc_addr = value;
+	s->dc_panel_hwc_color_1_2 = value;
 	break;
     case SM501_DC_PANEL_HWC_COLOR_3:
-	s->dc_panel_hwc_addr = value & 0x0000FFFF;
+	s->dc_panel_hwc_color_3 = value & 0x0000FFFF;
 	break;
 
     case SM501_DC_CRT_CONTROL:
@@ -844,13 +937,13 @@ static void sm501_disp_ctrl_write(void *opaque,
 	s->dc_crt_hwc_addr = value & 0x8FFFFFF0;
 	break;
     case SM501_DC_CRT_HWC_LOC:
-	s->dc_crt_hwc_addr = value & 0x0FFF0FFF;
+	s->dc_crt_hwc_location = value & 0x0FFF0FFF;
 	break;
     case SM501_DC_CRT_HWC_COLOR_1_2:
-	s->dc_crt_hwc_addr = value;
+	s->dc_crt_hwc_color_1_2 = value;
 	break;
     case SM501_DC_CRT_HWC_COLOR_3:
-	s->dc_crt_hwc_addr = value & 0x0000FFFF;
+	s->dc_crt_hwc_color_3 = value & 0x0000FFFF;
 	break;
 
     case SM501_DC_PANEL_PALETTE ... SM501_DC_PANEL_PALETTE + 0x400*3 - 4:
@@ -860,7 +953,7 @@ static void sm501_disp_ctrl_write(void *opaque,
     default:
 	printf("sm501 disp ctrl : not implemented register write."
 	       " addr=%x, val=%x\n", (int)addr, value);
-	assert(0);
+        abort();
     }
 }
 
@@ -882,6 +975,9 @@ static CPUWriteMemoryFunc * const sm501_disp_ctrl_writefn[] = {
 
 typedef void draw_line_func(uint8_t *d, const uint8_t *s,
 			    int width, const uint32_t *pal);
+
+typedef void draw_hwc_line_func(SM501State * s, int crt, uint8_t * palette,
+                                int c_y, uint8_t *d, int width);
 
 #define DEPTH 8
 #include "sm501_template.h"
@@ -937,6 +1033,16 @@ static draw_line_func * draw_line32_funcs[] = {
     draw_line32_16bgr,
 };
 
+static draw_hwc_line_func * draw_hwc_line_funcs[] = {
+    draw_hwc_line_8,
+    draw_hwc_line_15,
+    draw_hwc_line_16,
+    draw_hwc_line_32,
+    draw_hwc_line_32bgr,
+    draw_hwc_line_15bgr,
+    draw_hwc_line_16bgr,
+};
+
 static inline int get_depth_index(DisplayState *s)
 {
     switch(ds_get_bits_per_pixel(s)) {
@@ -966,8 +1072,10 @@ static void sm501_draw_crt(SM501State * s)
     int dst_bpp = ds_get_bytes_per_pixel(s->ds) + (ds_get_bits_per_pixel(s->ds) % 8 ? 1 : 0);
     uint32_t * palette = (uint32_t *)&s->dc_palette[SM501_DC_CRT_PALETTE
 						    - SM501_DC_PANEL_PALETTE];
+    uint8_t hwc_palette[3 * 3];
     int ds_depth_index = get_depth_index(s->ds);
     draw_line_func * draw_line = NULL;
+    draw_hwc_line_func * draw_hwc_line = NULL;
     int full_update = 0;
     int y_start = -1;
     int page_min = 0x7fffffff;
@@ -991,8 +1099,24 @@ static void sm501_draw_crt(SM501State * s)
     default:
 	printf("sm501 draw crt : invalid DC_CRT_CONTROL=%x.\n",
 	       s->dc_crt_control);
-	assert(0);
+        abort();
 	break;
+    }
+
+    /* set up to draw hardware cursor */
+    if (is_hwc_enabled(s, 1)) {
+        int i;
+
+        /* get cursor palette */
+        for (i = 0; i < 3; i++) {
+            uint16_t rgb565 = get_hwc_color(s, 1, i + 1);
+            hwc_palette[i * 3 + 0] = (rgb565 & 0xf800) >> 8; /* red */
+            hwc_palette[i * 3 + 1] = (rgb565 & 0x07e0) >> 3; /* green */
+            hwc_palette[i * 3 + 2] = (rgb565 & 0x001f) << 3; /* blue */
+        }
+
+        /* choose cursor draw line function */
+        draw_hwc_line = draw_hwc_line_funcs[ds_depth_index];
     }
 
     /* adjust console size */
@@ -1005,7 +1129,8 @@ static void sm501_draw_crt(SM501State * s)
 
     /* draw each line according to conditions */
     for (y = 0; y < height; y++) {
-	int update = full_update;
+	int update_hwc = draw_hwc_line ? within_hwc_y_range(s, y, 1) : 0;
+	int update = full_update || update_hwc;
 	ram_addr_t page0 = offset & TARGET_PAGE_MASK;
 	ram_addr_t page1 = (offset + width * src_bpp - 1) & TARGET_PAGE_MASK;
 	ram_addr_t page;
@@ -1017,7 +1142,16 @@ static void sm501_draw_crt(SM501State * s)
 
 	/* draw line and change status */
 	if (update) {
-	    draw_line(&(ds_get_data(s->ds)[y * width * dst_bpp]), src, width, palette);
+            uint8_t * d = &(ds_get_data(s->ds)[y * width * dst_bpp]);
+
+            /* draw graphics layer */
+            draw_line(d, src, width, palette);
+
+            /* draw haredware cursor */
+            if (update_hwc) {
+                draw_hwc_line(s, 1, hwc_palette, y - get_hwc_y(s, 1), d, width);
+            }
+
 	    if (y_start < 0)
 		y_start = y;
 	    if (page0 < page_min)
@@ -1058,6 +1192,7 @@ void sm501_init(uint32_t base, uint32_t local_mem_bytes, qemu_irq irq,
                 CharDriverState *chr)
 {
     SM501State * s;
+    DeviceState *dev;
     int sm501_system_config_index;
     int sm501_disp_ctrl_index;
 
@@ -1090,14 +1225,26 @@ void sm501_init(uint32_t base, uint32_t local_mem_bytes, qemu_irq irq,
                                  0x1000, sm501_disp_ctrl_index);
 
     /* bridge to usb host emulation module */
-    usb_ohci_init_sm501(base + MMIO_BASE_OFFSET + SM501_USB_HOST, base,
-                        2, -1, irq);
+    dev = qdev_create(NULL, "sysbus-ohci");
+    qdev_prop_set_uint32(dev, "num-ports", 2);
+    qdev_prop_set_taddr(dev, "dma-offset", base);
+    qdev_init_nofail(dev);
+    sysbus_mmio_map(sysbus_from_qdev(dev), 0,
+                    base + MMIO_BASE_OFFSET + SM501_USB_HOST);
+    sysbus_connect_irq(sysbus_from_qdev(dev), 0, irq);
 
     /* bridge to serial emulation module */
-    if (chr)
-	serial_mm_init(base + MMIO_BASE_OFFSET + SM501_UART0, 2,
-		       NULL, /* TODO : chain irq to IRL */
-		       115200, chr, 1);
+    if (chr) {
+#ifdef TARGET_WORDS_BIGENDIAN
+        serial_mm_init(base + MMIO_BASE_OFFSET + SM501_UART0, 2,
+                       NULL, /* TODO : chain irq to IRL */
+                       115200, chr, 1, 1);
+#else
+        serial_mm_init(base + MMIO_BASE_OFFSET + SM501_UART0, 2,
+                       NULL, /* TODO : chain irq to IRL */
+                       115200, chr, 1, 0);
+#endif
+    }
 
     /* create qemu graphic console */
     s->ds = graphic_console_init(sm501_update_display, NULL,

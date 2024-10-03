@@ -26,8 +26,8 @@
 #define GUSEMU_H
 
 /* data types (need to be adjusted if neither a VC6 nor a C99 compatible compiler is used) */
-
-#if defined _WIN32 && defined _MSC_VER >= 1900 /* doesnt support other win32 compilers yet, do it yourself... */
+// MSVC since 2010 supports now, so we check based on version.... 
+#if defined _WIN32 && defined _MSC_VER >= 1600 /* doesnt support other win32 compilers yet, do it yourself... */
  typedef unsigned char GUSbyte;
  typedef unsigned short GUSword;
  typedef unsigned int GUSdword;

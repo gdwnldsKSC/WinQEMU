@@ -30,16 +30,6 @@
  * ip.h,v 1.3 1994/08/21 05:27:30 paul Exp
  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef _IP_H_
 #define _IP_H_
 
@@ -79,6 +69,10 @@ typedef u_int32_t n_long;                 /* long as received from the net */
  */
 #define	IPVERSION	4
 
+#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
 /*
  * Structure of an internet header, naked of options.
  */
@@ -101,7 +95,16 @@ struct ip {
 	u_int8_t ip_p;			/* protocol */
 	u_int16_t	ip_sum;			/* checksum */
 	struct	in_addr ip_src,ip_dst;	/* source and dest address */
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif
 
 #define	IP_MAXPACKET	65535		/* maximum packet size */
 
@@ -142,6 +145,10 @@ struct ip {
 #define IPOPT_OFFSET		2		/* offset within option */
 #define	IPOPT_MINOFF		4		/* min value of above */
 
+#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
 /*
  * Time stamp option structure.
  */
@@ -163,7 +170,16 @@ struct	ip_timestamp {
 			n_long ipt_time;
 		} ipt_ta[1];
 	} ipt_timestamp;
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif
 
 /* flag bits for ipt_flg */
 #define	IPOPT_TS_TSONLY		0		/* timestamps only */
@@ -189,15 +205,33 @@ struct	ip_timestamp {
 
 #define	IP_MSS		576		/* default maximum segment size */
 
+#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
+
 #if SIZEOF_CHAR_P == 4
 struct mbuf_ptr {
 	struct mbuf *mptr;
 	uint32_t dummy;
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
 #else
 struct mbuf_ptr {
 	struct mbuf *mptr;
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+#endif
+#ifdef _MSC_VER
+#pragma pack (pop)
 #endif
 struct qlink {
 	void *next, *prev;
@@ -224,10 +258,6 @@ __attribute__((packed));
 ;
 #endif
 
-#ifdef _MSC_VER
-#pragma pack (pop)
-#endif
-
 /*
  * Ip reassembly queue structure.  Each fragment
  * being reassembled is attached to one of these structures.
@@ -242,7 +272,12 @@ struct ipq {
 	u_int8_t	ipq_p;			/* protocol of this fragment */
 	u_int16_t	ipq_id;			/* sequence id for reassembly */
 	struct	in_addr ipq_src,ipq_dst;
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+	;
+#endif
 
 /*
  * Ip header, when holding a fragment.
@@ -252,7 +287,16 @@ struct ipq {
 struct	ipasfrag {
 	struct qlink ipf_link;
 	struct ip ipf_ip;
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif
 
 #define ipf_off      ipf_ip.ip_off
 #define ipf_tos      ipf_ip.ip_tos
@@ -268,9 +312,22 @@ struct	ipasfrag {
  */
 #define MAX_IPOPTLEN	40
 
+#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
 struct ipoption {
 	struct	in_addr ipopt_dst;	/* first-hop dst if source routed */
 	int8_t	ipopt_list[MAX_IPOPTLEN];	/* options proper */
-};
+} 
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif
 
 #endif

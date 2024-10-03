@@ -91,7 +91,7 @@ void kvm_arch_reset_vcpu(CPUState *env)
     /* FIXME: add code to reset vcpu. */
 }
 
-int kvm_arch_put_registers(CPUState *env)
+int kvm_arch_put_registers(CPUState *env, int level)
 {
     struct kvm_regs regs;
     int ret;
@@ -186,7 +186,7 @@ static void kvm_s390_interrupt_internal(CPUState *env, int type, uint32_t parm,
     }
 
     env->halted = 0;
-    env->exception_index = 0;
+    env->exception_index = -1;
 
     kvmint.type = type;
     kvmint.parm = parm;
@@ -296,7 +296,6 @@ static int handle_hypercall(CPUState *env, struct kvm_run *run)
 
     cpu_synchronize_state(env);
     r = s390_virtio_hypercall(env);
-    kvm_arch_put_registers(env);
 
     return r;
 }
@@ -325,7 +324,7 @@ static int s390_cpu_restart(CPUState *env)
 {
     kvm_s390_interrupt(env, KVM_S390_RESTART, 0);
     env->halted = 0;
-    env->exception_index = 0;
+    env->exception_index = -1;
     qemu_cpu_kick(env);
     dprintf("DONE: SIGP cpu restart: %p\n", env);
     return 0;

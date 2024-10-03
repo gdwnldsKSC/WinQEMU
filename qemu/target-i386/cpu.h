@@ -714,7 +714,8 @@ typedef struct CPUX86State {
     uint8_t nmi_pending;
     uint8_t has_error_code;
     uint32_t sipi_vector;
-
+    uint32_t cpuid_kvm_features;
+    
     /* in order to simplify APIC support, we leave this pointer to the
        user */
     struct APICState *apic_state;
@@ -735,8 +736,10 @@ typedef struct CPUX86State {
 CPUX86State *cpu_x86_init(const char *cpu_model);
 int cpu_x86_exec(CPUX86State *s);
 void cpu_x86_close(CPUX86State *s);
-void x86_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt,
-                                                 ...));
+void x86_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
+                   const char *optarg);
+void x86_cpudef_setup(void);
+
 int cpu_get_pic_interrupt(CPUX86State *s);
 /* MSDOS compatibility mode FPU exception support */
 void cpu_set_ferr(CPUX86State *s);
@@ -832,14 +835,17 @@ void cpu_x86_frstor(CPUX86State *s, target_ulong ptr, int data32);
 int cpu_x86_signal_handler(int host_signum, void *pinfo,
                            void *puc);
 
+/* cpuid.c */
+void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
+                   uint32_t *eax, uint32_t *ebx,
+                   uint32_t *ecx, uint32_t *edx);
+int cpu_x86_register (CPUX86State *env, const char *cpu_model);
+
 /* helper.c */
 int cpu_x86_handle_mmu_fault(CPUX86State *env, target_ulong addr,
                              int is_write, int mmu_idx, int is_softmmu);
 #define cpu_handle_mmu_fault cpu_x86_handle_mmu_fault
 void cpu_x86_set_a20(CPUX86State *env, int a20_state);
-void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
-                   uint32_t *eax, uint32_t *ebx,
-                   uint32_t *ecx, uint32_t *edx);
 
 static inline int hw_breakpoint_enabled(unsigned long dr7, int index)
 {
@@ -884,11 +890,23 @@ uint64_t cpu_get_tsc(CPUX86State *env);
 
 #define TARGET_PAGE_BITS 12
 
+#ifdef TARGET_X86_64
+#define TARGET_PHYS_ADDR_SPACE_BITS 52
+/* ??? This is really 48 bits, sign-extended, but the only thing
+   accessible to userland with bit 48 set is the VSYSCALL, and that
+   is handled via other mechanisms.  */
+#define TARGET_VIRT_ADDR_SPACE_BITS 47
+#else
+#define TARGET_PHYS_ADDR_SPACE_BITS 36
+#define TARGET_VIRT_ADDR_SPACE_BITS 32
+#endif
+
 #define cpu_init cpu_x86_init
 #define cpu_exec cpu_x86_exec
 #define cpu_gen_code cpu_x86_gen_code
 #define cpu_signal_handler cpu_x86_signal_handler
-#define cpu_list x86_cpu_list
+#define cpu_list_id x86_cpu_list
+#define cpudef_setup	x86_cpudef_setup
 
 #define CPU_SAVE_VERSION 11
 

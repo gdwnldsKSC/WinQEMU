@@ -26,7 +26,6 @@
 #include <hw/pc.h>
 #include <hw/pci.h>
 #include <hw/scsi.h>
-#include <hw/sh.h>
 #include "block.h"
 #include "block_int.h"
 #include "qemu-timer.h"
@@ -34,6 +33,8 @@
 #include "dma.h"
 
 #include <hw/ide/internal.h>
+
+#define IDE_PAGE_SIZE 4096
 
 static int smart_attributes[][5] = {
     /* id,  flags, val, wrst, thrsh */
@@ -164,6 +165,8 @@ static void ide_identify(IDEState *s)
     put_le16(p + 101, s->nb_sectors >> 16);
     put_le16(p + 102, s->nb_sectors >> 32);
     put_le16(p + 103, s->nb_sectors >> 48);
+    if (s->conf && s->conf->physical_block_size)
+        put_le16(p + 106, 0x6000 | get_physical_block_exp(s->conf));
 
     memcpy(s->identify_data, p, sizeof(s->identify_data));
     s->identify_set = 1;
@@ -432,13 +435,13 @@ static int dma_buf_prepare(BMDMAState *bm, int is_write)
     } prd;
     int l, len;
 
-    qemu_sglist_init(&s->sg, s->nsector / (TARGET_PAGE_SIZE/512) + 1);
+    qemu_sglist_init(&s->sg, s->nsector / (IDE_PAGE_SIZE / 512) + 1);
     s->io_buffer_size = 0;
     for(;;) {
         if (bm->cur_prd_len == 0) {
             /* end of table (with a fail safe of one page) */
             if (bm->cur_prd_last ||
-                (bm->cur_addr - bm->addr) >= 4096)
+                (bm->cur_addr - bm->addr) >= IDE_PAGE_SIZE)
                 return s->io_buffer_size != 0;
             cpu_physical_memory_read(bm->cur_addr, (uint8_t *)&prd, 8);
             bm->cur_addr += 8;
@@ -480,13 +483,16 @@ static int ide_handle_rw_error(IDEState *s, int error, int op)
     int is_read = (op & BM_STATUS_RETRY_READ);
     BlockInterfaceErrorAction action = drive_get_on_error(s->bs, is_read);
 
-    if (action == BLOCK_ERR_IGNORE)
+    if (action == BLOCK_ERR_IGNORE) {
+        bdrv_mon_event(s->bs, BDRV_ACTION_IGNORE, is_read);
         return 0;
+    }
 
     if ((error == ENOSPC && action == BLOCK_ERR_STOP_ENOSPC)
             || action == BLOCK_ERR_STOP_ANY) {
         s->bus->bmdma->unit = s->unit;
         s->bus->bmdma->status |= op;
+        bdrv_mon_event(s->bs, BDRV_ACTION_STOP, is_read);
         vm_stop(0);
     } else {
         if (op & BM_STATUS_DMA_RETRY) {
@@ -495,6 +501,7 @@ static int ide_handle_rw_error(IDEState *s, int error, int op)
         } else {
             ide_rw_error(s);
         }
+        bdrv_mon_event(s->bs, BDRV_ACTION_REPORT, is_read);
     }
 
     return 1;
@@ -517,7 +524,7 @@ static int dma_buf_rw(BMDMAState *bm, int is_write)
         if (bm->cur_prd_len == 0) {
             /* end of table (with a fail safe of one page) */
             if (bm->cur_prd_last ||
-                (bm->cur_addr - bm->addr) >= 4096)
+                (bm->cur_addr - bm->addr) >= IDE_PAGE_SIZE)
                 return 0;
             cpu_physical_memory_read(bm->cur_addr, (uint8_t *)&prd, 8);
             bm->cur_addr += 8;
@@ -645,7 +652,6 @@ static void ide_sector_write(IDEState *s)
     }
     ide_set_sector(s, sector_num + n);
 
-#ifdef TARGET_I386
     if (win2k_install_hack && ((++s->irq_count % 16) == 0)) {
         /* It seems there is a bug in the Windows 2000 installer HDD
            IDE driver which fills the disk with empty logs when the
@@ -653,11 +659,9 @@ static void ide_sector_write(IDEState *s)
            that at the expense of slower write performances. Use this
            option _only_ to install Windows 2000. You must disable it
            for normal use. */
-        qemu_mod_timer(s->sector_write_timer, 
+        qemu_mod_timer(s->sector_write_timer,
                        qemu_get_clock(vm_clock) + (get_ticks_per_sec() / 1000));
-    } else 
-#endif
-    {
+    } else {
         ide_set_irq(s->bus);
     }
 }
@@ -2616,7 +2620,8 @@ void ide_bus_reset(IDEBus *bus)
     ide_clear_hob(bus);
 }
 
-void ide_init_drive(IDEState *s, DriveInfo *dinfo, const char *version)
+void ide_init_drive(IDEState *s, DriveInfo *dinfo, BlockConf *conf,
+        const char *version)
 {
     int cylinders, heads, secs;
     uint64_t nb_sectors;
@@ -2641,6 +2646,9 @@ void ide_init_drive(IDEState *s, DriveInfo *dinfo, const char *version)
         }
         strncpy(s->drive_serial_str, drive_get_serial(s->bs),
                 sizeof(s->drive_serial_str));
+        if (conf) {
+            s->conf = conf;
+        }
     }
     if (strlen(s->drive_serial_str) == 0)
         snprintf(s->drive_serial_str, sizeof(s->drive_serial_str),
@@ -2671,9 +2679,9 @@ void ide_init2(IDEBus *bus, DriveInfo *hd0, DriveInfo *hd1,
         s->sector_write_timer = qemu_new_timer(vm_clock,
                                                ide_sector_write_timer_cb, s);
         if (i == 0)
-            ide_init_drive(s, hd0, NULL);
+            ide_init_drive(s, hd0, NULL, NULL);
         if (i == 1)
-            ide_init_drive(s, hd1, NULL);
+            ide_init_drive(s, hd1, NULL, NULL);
     }
     bus->irq = irq;
 }
@@ -2743,6 +2751,7 @@ static int ide_drive_post_load(void *opaque, int version_id)
 static void ide_drive_pre_save(void *opaque)
 {
     IDEState *s = opaque;
+    int idx;
 
     s->cur_io_buffer_len = 0;
 
@@ -2752,11 +2761,13 @@ static void ide_drive_pre_save(void *opaque)
     s->cur_io_buffer_offset = s->data_ptr - s->io_buffer;
     s->cur_io_buffer_len = s->data_end - s->data_ptr;
 
-    s->end_transfer_fn_idx = transfer_end_table_idx(s->end_transfer_func);
-    if (s->end_transfer_fn_idx == -1) {
+    idx = transfer_end_table_idx(s->end_transfer_func);
+    if (idx == -1) {
         fprintf(stderr, "%s: invalid end_transfer_func for DRQ_STAT\n",
                         __func__);
         s->end_transfer_fn_idx = 2;
+    } else {
+        s->end_transfer_fn_idx = idx;
     }
 }
 
@@ -2853,6 +2864,10 @@ static void ide_dma_restart(IDEState *s, int is_read)
 void ide_dma_cancel(BMDMAState *bm)
 {
     if (bm->status & BM_STATUS_DMAING) {
+        bm->status &= ~BM_STATUS_DMAING;
+        /* cancel DMA request */
+        bm->unit = -1;
+        bm->dma_cb = NULL;
         if (bm->aiocb) {
 #ifdef DEBUG_AIO
             printf("aio_cancel\n");
@@ -2860,10 +2875,6 @@ void ide_dma_cancel(BMDMAState *bm)
             bdrv_aio_cancel(bm->aiocb);
             bm->aiocb = NULL;
         }
-        bm->status &= ~BM_STATUS_DMAING;
-        /* cancel DMA request */
-        bm->unit = -1;
-        bm->dma_cb = NULL;
     }
 }
 

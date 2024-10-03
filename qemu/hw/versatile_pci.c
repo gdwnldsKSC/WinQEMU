@@ -108,7 +108,11 @@ static void pci_vpb_map(SysBusDevice *dev, target_phys_addr_t base)
 
     if (s->realview) {
         /* IO memory area.  */
-        isa_mmio_init(base + 0x03000000, 0x00100000);
+#ifdef TARGET_WORDS_BIGENDIAN
+        isa_mmio_init(base + 0x03000000, 0x00100000, 1);
+#else
+        isa_mmio_init(base + 0x03000000, 0x00100000, 0);
+#endif
     }
 }
 
@@ -147,14 +151,10 @@ static int versatile_pci_host_init(PCIDevice *d)
     pci_config_set_vendor_id(d->config, PCI_VENDOR_ID_XILINX);
     /* Both boards have the same device ID.  Oh well.  */
     pci_config_set_device_id(d->config, PCI_DEVICE_ID_XILINX_XC2VP30);
-    d->config[0x04] = 0x00;
-    d->config[0x05] = 0x00;
-    d->config[0x06] = 0x20;
-    d->config[0x07] = 0x02;
-    d->config[0x08] = 0x00; // revision
-    d->config[0x09] = 0x00; // programming i/f
+    pci_set_word(d->config + PCI_STATUS,
+		 PCI_STATUS_66MHZ | PCI_STATUS_DEVSEL_MEDIUM);
     pci_config_set_class(d->config, PCI_CLASS_PROCESSOR_CO);
-    d->config[0x0D] = 0x10; // latency_timer
+    pci_set_byte(d->config + PCI_LATENCY_TIMER, 0x10);
     return 0;
 }
 

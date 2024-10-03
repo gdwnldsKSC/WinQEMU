@@ -2784,7 +2784,7 @@ print_insn_sparc (bfd_vma memaddr, disassemble_info *info)
           int found_plus = 0;
 
           /* Nonzero means we have an annulled branch.  */
-          int is_annulled = 0;
+          /* int is_annulled = 0; */ /* see FIXME below */
 
           /* Do we have an `add' or `or' instruction combining an
              immediate with rs1?  */
@@ -2802,7 +2802,7 @@ print_insn_sparc (bfd_vma memaddr, disassemble_info *info)
               /* Can't do simple format if source and dest are different.  */
               continue;
 
-          (*info->fprintf_func) (stream, opcode->name);
+          (*info->fprintf_func) (stream, "%s", opcode->name);
 
           {
             const char *s;
@@ -2820,7 +2820,7 @@ print_insn_sparc (bfd_vma memaddr, disassemble_info *info)
                       {
                       case 'a':
                         (*info->fprintf_func) (stream, "a");
-                        is_annulled = 1;
+                        /* is_annulled = 1; */ /* see FIXME below */
                         ++s;
                         continue;
                       case 'N':

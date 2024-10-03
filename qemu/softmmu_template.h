@@ -16,17 +16,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
+#include "qemu-timer.h"
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #define DATA_SIZE (1 << SHIFT)
 
 #if DATA_SIZE == 8
@@ -97,7 +88,8 @@ DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
     DATA_TYPE res;
     int index;
     target_ulong tlb_addr;
-    target_phys_addr_t addend;
+    target_phys_addr_t ioaddr;
+    unsigned long addend;
     void *retaddr;
 
     /* test if there is match for unaligned or IO access */
@@ -111,8 +103,8 @@ DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
             if ((addr & (DATA_SIZE - 1)) != 0)
                 goto do_unaligned_access;
             retaddr = GETPC();
-            addend = env->iotlb[mmu_idx][index];
-            res = glue(io_read, SUFFIX)(addend, addr, retaddr);
+            ioaddr = env->iotlb[mmu_idx][index];
+            res = glue(io_read, SUFFIX)(ioaddr, addr, retaddr);
         } else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
             /* slow unaligned access (it spans two pages or IO) */
         do_unaligned_access:
@@ -234,7 +226,8 @@ static DATA_TYPE glue(glue(slow_ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
 {
     DATA_TYPE res, res1, res2;
     int index, shift;
-    target_phys_addr_t addend;
+    target_phys_addr_t ioaddr;
+    unsigned long addend;
     target_ulong tlb_addr, addr1, addr2;
 
     index = (addr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
@@ -245,9 +238,8 @@ static DATA_TYPE glue(glue(slow_ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
             /* IO access */
             if ((addr & (DATA_SIZE - 1)) != 0)
                 goto do_unaligned_access;
-            retaddr = GETPC();
-            addend = env->iotlb[mmu_idx][index];
-            res = glue(io_read, SUFFIX)(addend, addr, retaddr);
+            ioaddr = env->iotlb[mmu_idx][index];
+            res = glue(io_read, SUFFIX)(ioaddr, addr, retaddr);
         } else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
         do_unaligned_access:
             /* slow unaligned access (it spans two pages) */
@@ -317,7 +309,8 @@ void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
                                                  DATA_TYPE val,
                                                  int mmu_idx)
 {
-    target_phys_addr_t addend;
+    target_phys_addr_t ioaddr;
+    unsigned long addend;
     target_ulong tlb_addr;
     void *retaddr;
     int index;
@@ -331,8 +324,8 @@ void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
             if ((addr & (DATA_SIZE - 1)) != 0)
                 goto do_unaligned_access;
             retaddr = GETPC();
-            addend = env->iotlb[mmu_idx][index];
-            glue(io_write, SUFFIX)(addend, val, addr, retaddr);
+            ioaddr = env->iotlb[mmu_idx][index];
+            glue(io_write, SUFFIX)(ioaddr, val, addr, retaddr);
         } else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
         do_unaligned_access:
             retaddr = GETPC();
@@ -419,8 +412,8 @@ do_unaligned_access:
 		{
 			addr = addr_backup;
 		}
-		goto redo;
-	}
+        goto redo;
+    }
 }
 
 __declspec (naked) void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
@@ -476,7 +469,8 @@ static void glue(glue(slow_st, SUFFIX), MMUSUFFIX)(target_ulong addr,
                                                    int mmu_idx,
                                                    void *retaddr)
 {
-    target_phys_addr_t addend;
+    target_phys_addr_t ioaddr;
+    unsigned long addend;
     target_ulong tlb_addr;
     int index, i;
 
@@ -488,8 +482,8 @@ static void glue(glue(slow_st, SUFFIX), MMUSUFFIX)(target_ulong addr,
             /* IO access */
             if ((addr & (DATA_SIZE - 1)) != 0)
                 goto do_unaligned_access;
-            addend = env->iotlb[mmu_idx][index];
-            glue(io_write, SUFFIX)(addend, val, addr, retaddr);
+            ioaddr = env->iotlb[mmu_idx][index];
+            glue(io_write, SUFFIX)(ioaddr, val, addr, retaddr);
         } else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
         do_unaligned_access:
             /* XXX: not efficient, but simple */

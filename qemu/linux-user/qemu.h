@@ -133,9 +133,7 @@ void init_task_state(TaskState *ts);
 void task_settid(TaskState *);
 void stop_all_tasks(void);
 extern const char *qemu_uname_release;
-#if defined(CONFIG_USE_GUEST_BASE)
 extern unsigned long mmap_min_addr;
-#endif
 
 /* ??? See if we can avoid exposing so much of the loader internals.  */
 /*
@@ -173,11 +171,6 @@ int load_elf_binary(struct linux_binprm * bprm, struct target_pt_regs * regs,
                     struct image_info * info);
 int load_flt_binary(struct linux_binprm * bprm, struct target_pt_regs * regs,
                     struct image_info * info);
-#ifdef TARGET_HAS_ELFLOAD32
-int load_elf_binary_multi(struct linux_binprm *bprm,
-                          struct target_pt_regs *regs,
-                          struct image_info *info);
-#endif
 
 abi_long memcpy_to_target(abi_ulong dest, const void *src,
                           unsigned long len);
@@ -248,7 +241,7 @@ void mmap_fork_end(int child);
 #endif
 
 /* main.c */
-extern unsigned long x86_stack_size;
+extern unsigned long guest_stack_size;
 
 /* user access */
 

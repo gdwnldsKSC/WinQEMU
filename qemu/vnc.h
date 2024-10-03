@@ -28,6 +28,7 @@
 #define __QEMU_VNC_H
 
 #include "qemu-common.h"
+#include "qemu-queue.h"
 #include "console.h"
 #include "monitor.h"
 #include "audio/audio.h"
@@ -68,7 +69,7 @@ typedef void VncSendHextileTile(VncState *vs,
                                 void *last_fg,
                                 int *has_bg, int *has_fg);
 
-#define VNC_MAX_WIDTH 2048
+#define VNC_MAX_WIDTH 2560
 #define VNC_MAX_HEIGHT 2048
 #define VNC_DIRTY_WORDS (VNC_MAX_WIDTH / (16 * 32))
 
@@ -92,12 +93,13 @@ struct VncSurface
 
 struct VncDisplay
 {
+    QTAILQ_HEAD(, VncState) clients;
     QEMUTimer *timer;
     int timer_interval;
     int lsock;
     DisplayState *ds;
-    VncState *clients;
     kbd_layout_t *kbd_layout;
+    int lock_key_sync;
 
     struct VncSurface guest;   /* guest visible surface (aka ds->surface) */
     DisplaySurface *server;  /* vnc server surface */
@@ -130,8 +132,6 @@ struct VncState
     int last_y;
 
     uint32_t vnc_encoding;
-    uint8_t tight_quality;
-    uint8_t tight_compression;
 
     int major;
     int minor;
@@ -144,11 +144,12 @@ struct VncState
     VncStateSASL sasl;
 #endif
 
+    QObject *info;
+
     Buffer output;
     Buffer input;
     /* current output mode information */
     VncWritePixels *write_pixels;
-    VncSendHextileTile *send_hextile_tile;
     DisplaySurface clientds;
 
     CaptureVoiceOut *audio_cap;
@@ -158,12 +159,25 @@ struct VncState
     size_t read_handler_expect;
     /* input */
     uint8_t modifiers_state[256];
+    QEMUPutLEDEntry *led;
 
+    /* Encoding specific */
+
+    /* Tight */
+    uint8_t tight_quality;
+    uint8_t tight_compression;
+
+    /* Hextile */
+    VncSendHextileTile *send_hextile_tile;
+
+    /* Zlib */
     Buffer zlib;
     Buffer zlib_tmp;
     z_stream zlib_stream[4];
 
-    VncState *next;
+    Notifier mouse_mode_notifier;
+
+    QTAILQ_ENTRY(VncState) next;
 };
 
 
@@ -269,6 +283,57 @@ enum {
 #define VNC_FEATURE_COPYRECT_MASK            (1 << VNC_FEATURE_COPYRECT)
 
 
+/* Client -> Server message IDs */
+#define VNC_MSG_CLIENT_SET_PIXEL_FORMAT           0
+#define VNC_MSG_CLIENT_SET_ENCODINGS              2
+#define VNC_MSG_CLIENT_FRAMEBUFFER_UPDATE_REQUEST 3
+#define VNC_MSG_CLIENT_KEY_EVENT                  4
+#define VNC_MSG_CLIENT_POINTER_EVENT              5
+#define VNC_MSG_CLIENT_CUT_TEXT                   6
+#define VNC_MSG_CLIENT_VMWARE_0                   127
+#define VNC_MSG_CLIENT_CALL_CONTROL               249
+#define VNC_MSG_CLIENT_XVP                        250
+#define VNC_MSG_CLIENT_SET_DESKTOP_SIZE           251
+#define VNC_MSG_CLIENT_TIGHT                      252
+#define VNC_MSG_CLIENT_GII                        253
+#define VNC_MSG_CLIENT_VMWARE_1                   254
+#define VNC_MSG_CLIENT_QEMU                       255
+
+/* Server -> Client message IDs */
+#define VNC_MSG_SERVER_FRAMEBUFFER_UPDATE         0
+#define VNC_MSG_SERVER_SET_COLOUR_MAP_ENTRIES     1
+#define VNC_MSG_SERVER_BELL                       2
+#define VNC_MSG_SERVER_CUT_TEXT                   3
+#define VNC_MSG_SERVER_VMWARE_0                   127
+#define VNC_MSG_SERVER_CALL_CONTROL               249
+#define VNC_MSG_SERVER_XVP                        250
+#define VNC_MSG_SERVER_TIGHT                      252
+#define VNC_MSG_SERVER_GII                        253
+#define VNC_MSG_SERVER_VMWARE_1                   254
+#define VNC_MSG_SERVER_QEMU                       255
+
+
+
+/* QEMU client -> server message IDs */
+#define VNC_MSG_CLIENT_QEMU_EXT_KEY_EVENT         0
+#define VNC_MSG_CLIENT_QEMU_AUDIO                 1
+
+/* QEMU server -> client message IDs */
+#define VNC_MSG_SERVER_QEMU_AUDIO                 1
+
+
+
+/* QEMU client -> server audio message IDs */
+#define VNC_MSG_CLIENT_QEMU_AUDIO_ENABLE          0
+#define VNC_MSG_CLIENT_QEMU_AUDIO_DISABLE         1
+#define VNC_MSG_CLIENT_QEMU_AUDIO_SET_FORMAT      2
+
+/* QEMU server -> client audio message IDs */
+#define VNC_MSG_SERVER_QEMU_AUDIO_END             0
+#define VNC_MSG_SERVER_QEMU_AUDIO_BEGIN           1
+#define VNC_MSG_SERVER_QEMU_AUDIO_DATA            2
+
+
 /*****************************************************************************
  *
  * Internal APIs
@@ -317,5 +382,21 @@ void buffer_append(Buffer *buffer, const void *data, size_t len);
 
 char *vnc_socket_local_addr(const char *format, int fd);
 char *vnc_socket_remote_addr(const char *format, int fd);
+
+/* Framebuffer */
+void vnc_framebuffer_update(VncState *vs, int x, int y, int w, int h,
+                            int32_t encoding);
+
+void vnc_convert_pixel(VncState *vs, uint8_t *buf, uint32_t v);
+
+/* Encodings */
+void vnc_raw_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
+
+void vnc_hextile_send_framebuffer_update(VncState *vs, int x,
+                                         int y, int w, int h);
+void vnc_hextile_set_pixel_conversion(VncState *vs, int generic);
+
+void vnc_zlib_init(VncState *vs);
+void vnc_zlib_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
 
 #endif /* __QEMU_VNC_H */

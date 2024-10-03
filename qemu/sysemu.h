@@ -6,8 +6,6 @@
 #include "qemu-option.h"
 #include "qemu-queue.h"
 #include "qemu-timer.h"
-#include "qdict.h"
-#include "qerror.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,20 +45,26 @@ void cpu_disable_ticks(void);
 void qemu_system_reset_request(void);
 void qemu_system_shutdown_request(void);
 void qemu_system_powerdown_request(void);
+void qemu_system_exit_request(void);
 int qemu_shutdown_requested(void);
 int qemu_reset_requested(void);
 int qemu_powerdown_requested(void);
+int qemu_exit_requested(void);
 extern qemu_irq qemu_system_powerdown;
 void qemu_system_reset(void);
 
 void do_savevm(Monitor *mon, const QDict *qdict);
-int load_vmstate(Monitor *mon, const char *name);
+int load_vmstate(const char *name);
 void do_delvm(Monitor *mon, const QDict *qdict);
 void do_info_snapshots(Monitor *mon);
 
+void cpu_synchronize_all_states(void);
+void cpu_synchronize_all_post_reset(void);
+void cpu_synchronize_all_post_init(void);
+
 void qemu_announce_self(void);
 
-void main_loop_wait(int timeout);
+void main_loop_wait(int nonblocking);
 
 int qemu_savevm_state_begin(Monitor *mon, QEMUFile *f, int blk_enable,
                             int shared);
@@ -68,26 +72,6 @@ int qemu_savevm_state_iterate(Monitor *mon, QEMUFile *f);
 int qemu_savevm_state_complete(Monitor *mon, QEMUFile *f);
 void qemu_savevm_state_cancel(Monitor *mon, QEMUFile *f);
 int qemu_loadvm_state(QEMUFile *f);
-
-void qemu_errors_to_file(FILE *fp);
-void qemu_errors_to_mon(Monitor *mon);
-void qemu_errors_to_previous(void);
-#ifndef _MSC_VER
-void qemu_error(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-#else
-void qemu_error(_Printf_format_string_ const char* fmt, ...);
-#endif
-
-#ifndef _MSC_VER
-void qemu_error_internal(const char *file, int linenr, const char *func,
-                         const char *fmt, ...)
-                         __attribute__ ((format(printf, 4, 5)));
-#else
-void qemu_error_internal(const char* file, int linenr, const char* func, const char* fmt, ...);
-#endif
-
-#define qemu_error_new(fmt, ...) \
-    qemu_error_internal(__FILE__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 
 #ifdef _WIN32
 /* Polling handling */
@@ -160,13 +144,9 @@ extern uint64_t node_cpumask[MAX_NODES];
 extern const char *option_rom[MAX_OPTION_ROMS];
 extern int nb_option_roms;
 
-#ifdef NEED_CPU_H
-#if defined(TARGET_SPARC) || defined(TARGET_PPC)
 #define MAX_PROM_ENVS 128
 extern const char *prom_envs[MAX_PROM_ENVS];
 extern unsigned int nb_prom_envs;
-#endif
-#endif
 
 typedef enum {
     IF_NONE,
@@ -222,11 +202,11 @@ DriveInfo *add_init_drive(const char *opts);
 
 /* pci-hotplug */
 void pci_device_hot_add_print(Monitor *mon, const QObject *data);
-void pci_device_hot_add(Monitor *mon, const QDict *qdict, QObject **ret_data);
+int pci_device_hot_add(Monitor *mon, const QDict *qdict, QObject **ret_data);
 void drive_hot_add(Monitor *mon, const QDict *qdict);
-void pci_device_hot_remove(Monitor *mon, const char *pci_addr);
-void do_pci_device_hot_remove(Monitor *mon, const QDict *qdict,
-                              QObject **ret_data);
+int pci_device_hot_remove(Monitor *mon, const char *pci_addr);
+int do_pci_device_hot_remove(Monitor *mon, const QDict *qdict,
+                             QObject **ret_data);
 
 /* serial ports */
 
@@ -239,12 +219,6 @@ extern CharDriverState *serial_hds[MAX_SERIAL_PORTS];
 #define MAX_PARALLEL_PORTS 3
 
 extern CharDriverState *parallel_hds[MAX_PARALLEL_PORTS];
-
-/* virtio consoles */
-
-#define MAX_VIRTIO_CONSOLES 1
-
-extern CharDriverState *virtcon_hds[MAX_VIRTIO_CONSOLES];
 
 #define TFR(expr) do { if ((expr) != -1) break; } while (errno == EINTR)
 
@@ -266,6 +240,8 @@ extern struct soundhw soundhw[];
 void do_usb_add(Monitor *mon, const QDict *qdict);
 void do_usb_del(Monitor *mon, const QDict *qdict);
 void usb_info(Monitor *mon);
+
+void rtc_change_mon_event(struct tm *tm);
 
 void register_devices(void);
 

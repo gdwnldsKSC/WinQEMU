@@ -258,8 +258,8 @@ float128 int64_to_float128( int64_t STATUS_PARAM );
 /*----------------------------------------------------------------------------
 | Software half-precision conversion routines.
 *----------------------------------------------------------------------------*/
-bits16 float32_to_float16(float32, flag STATUS_PARAM);
-float32 float16_to_float32(bits16, flag STATUS_PARAM);
+bits16 float32_to_float16( float32, flag STATUS_PARAM );
+float32 float16_to_float32( bits16, flag STATUS_PARAM );
 
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE single-precision conversion routines.

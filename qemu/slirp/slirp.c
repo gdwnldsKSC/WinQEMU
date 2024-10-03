@@ -1082,9 +1082,8 @@ static int slirp_state_load(QEMUFile *f, void *opaque, int version_id)
 {
     Slirp *slirp = opaque;
     struct ex_list *ex_ptr;
-    int r;
 
-    while ((r = qemu_get_byte(f))) {
+    while (qemu_get_byte(f)) {
         int ret;
         struct socket *so = socreate(slirp);
 

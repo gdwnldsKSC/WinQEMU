@@ -7,10 +7,18 @@
 #define TARGET_LONG_BITS 32
 #define TARGET_FPREGS 32
 #define TARGET_PAGE_BITS 12 /* 4k */
+#define TARGET_PHYS_ADDR_SPACE_BITS 36
+#define TARGET_VIRT_ADDR_SPACE_BITS 32
 #else
 #define TARGET_LONG_BITS 64
 #define TARGET_FPREGS 64
 #define TARGET_PAGE_BITS 13 /* 8k */
+#define TARGET_PHYS_ADDR_SPACE_BITS 41
+# ifdef TARGET_ABI32
+#  define TARGET_VIRT_ADDR_SPACE_BITS 32
+# else
+#  define TARGET_VIRT_ADDR_SPACE_BITS 44
+# endif
 #endif
 
 #define CPUState struct CPUSPARCState
@@ -292,6 +300,22 @@ typedef struct SparcTLBEntry {
     uint64_t tte;
 } SparcTLBEntry;
 
+struct CPUTimer
+{
+    const char *name;
+    uint32_t    frequency;
+    uint32_t    disabled;
+    uint64_t    disabled_mask;
+    int64_t     clock_offset;
+    struct QEMUTimer  *qtimer;
+};
+
+typedef struct CPUTimer CPUTimer;
+
+struct QEMUFile;
+void cpu_put_timer(struct QEMUFile *f, CPUTimer *s);
+void cpu_get_timer(struct QEMUFile *f, CPUTimer *s);
+
 typedef struct CPUSPARCState {
     target_ulong gregs[8]; /* general registers */
     target_ulong *regwptr; /* pointer to current register window */
@@ -393,15 +417,19 @@ typedef struct CPUSPARCState {
     uint64_t mgregs[8]; /* mmu general registers */
     uint64_t fprs;
     uint64_t tick_cmpr, stick_cmpr;
-    void *tick, *stick;
+    CPUTimer *tick, *stick;
+#define TICK_NPT_MASK        0x8000000000000000ULL
+#define TICK_INT_DIS         0x8000000000000000ULL
     uint64_t gsr;
     uint32_t gl; // UA2005
     /* UA 2005 hyperprivileged registers */
     uint64_t hpstate, htstate[MAXTL_MAX], hintp, htba, hver, hstick_cmpr, ssr;
-    void *hstick; // UA 2005
+    CPUTimer *hstick; // UA 2005
     uint32_t softint;
 #define SOFTINT_TIMER   1
 #define SOFTINT_STIMER  (1 << 16)
+#define SOFTINT_INTRMASK (0xFFFE)
+#define SOFTINT_REG_MASK (SOFTINT_STIMER|SOFTINT_INTRMASK|SOFTINT_TIMER)
 #endif
     sparc_def_t *def;
 } CPUSPARCState;
@@ -515,15 +543,17 @@ static inline void PUT_PSR(CPUSPARCState *env1, target_ulong val)
 static inline void PUT_CWP64(CPUSPARCState *env1, int cwp)
 {
     if (unlikely(cwp >= env1->nwindows || cwp < 0))
-        cwp = 0;
+        cwp %= env1->nwindows;
     cpu_set_cwp(env1, env1->nwindows - 1 - cwp);
 }
 #endif
 #endif
 
 /* cpu-exec.c */
+#if !defined(CONFIG_USER_ONLY)
 void do_unassigned_access(target_phys_addr_t addr, int is_write, int is_exec,
                           int is_asi, int size);
+#endif
 int cpu_sparc_signal_handler(int host_signum, void *pinfo, void *puc);
 
 #define cpu_init cpu_sparc_init
@@ -532,7 +562,7 @@ int cpu_sparc_signal_handler(int host_signum, void *pinfo, void *puc);
 #define cpu_signal_handler cpu_sparc_signal_handler
 #define cpu_list sparc_cpu_list
 
-#define CPU_SAVE_VERSION 5
+#define CPU_SAVE_VERSION 6
 
 /* MMU modes definitions */
 #define MMU_MODE0_SUFFIX _user
@@ -557,6 +587,29 @@ static inline int cpu_mmu_index(CPUState *env1)
         return MMU_KERNEL_IDX;
     else
         return MMU_HYPV_IDX;
+#endif
+}
+
+static inline int cpu_interrupts_enabled(CPUState *env1)
+{
+#if !defined (TARGET_SPARC64)
+    if (env1->psret != 0)
+        return 1;
+#else
+    if (env1->pstate & PS_IE)
+        return 1;
+#endif
+
+    return 0;
+}
+
+static inline int cpu_pil_allowed(CPUState *env1, int pil)
+{
+#if !defined(TARGET_SPARC64)
+    /* level 15 is non-maskable on sparc v8 */
+    return pil == 15 || pil > env1->psrpil;
+#else
+    return pil > env1->psrpil;
 #endif
 }
 
@@ -588,9 +641,9 @@ static inline void cpu_clone_regs(CPUState *env, target_ulong newsp)
 
 #ifdef TARGET_SPARC64
 /* sun4u.c */
-void cpu_tick_set_count(void *opaque, uint64_t count);
-uint64_t cpu_tick_get_count(void *opaque);
-void cpu_tick_set_limit(void *opaque, uint64_t limit);
+void cpu_tick_set_count(CPUTimer *timer, uint64_t count);
+uint64_t cpu_tick_get_count(CPUTimer *timer);
+void cpu_tick_set_limit(CPUTimer *timer, uint64_t limit);
 trap_state* cpu_tsptr(CPUState* env);
 #endif
 

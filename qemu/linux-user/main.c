@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#include <sys/resource.h>
 
 #include "qemu.h"
 #include "qemu-common.h"
@@ -31,7 +32,7 @@
 /* For tb_lock */
 #include "exec-all.h"
 
-
+#include "qemu-timer.h"
 #include "envlist.h"
 
 #define DEBUG_LOGFILE "/tmp/qemu.log"
@@ -39,8 +40,8 @@
 char *exec_path;
 
 int singlestep;
-#if defined(CONFIG_USE_GUEST_BASE)
 unsigned long mmap_min_addr;
+#if defined(CONFIG_USE_GUEST_BASE)
 unsigned long guest_base;
 int have_guest_base;
 #endif
@@ -51,7 +52,7 @@ const char *qemu_uname_release = CONFIG_UNAME_RELEASE;
 /* XXX: on x86 MAP_GROWSDOWN only works if ESP <= address + 32, so
    we allocate a bigger stack. Need a better solution, for example
    by remapping the process stack directly at the right place */
-unsigned long x86_stack_size = 512 * 1024;
+unsigned long guest_stack_size = 8 * 1024 * 1024UL;
 
 void gemu_log(const char *fmt, ...)
 {
@@ -99,13 +100,14 @@ static int pending_cpus;
 /* Make sure everything is in a consistent state for calling fork().  */
 void fork_start(void)
 {
-    mmap_fork_start();
     pthread_mutex_lock(&tb_lock);
     pthread_mutex_lock(&exclusive_lock);
+    mmap_fork_start();
 }
 
 void fork_end(int child)
 {
+    mmap_fork_end(child);
     if (child) {
         /* Child processes created by fork() only have a single thread.
            Discard information about the parent threads.  */
@@ -122,7 +124,6 @@ void fork_end(int child)
         pthread_mutex_unlock(&exclusive_lock);
         pthread_mutex_unlock(&tb_lock);
     }
-    mmap_fork_end(child);
 }
 
 /* Wait for pending exclusive operations to complete.  The exclusive lock
@@ -548,6 +549,8 @@ static int do_strex(CPUARMState *env)
     case 3:
         segv = get_user_u32(val, addr);
         break;
+    default:
+        abort();
     }
     if (segv) {
         env->cp15.c6_data = addr;
@@ -937,7 +940,8 @@ static void flush_windows(CPUSPARCState *env)
 
 void cpu_loop (CPUSPARCState *env)
 {
-    int trapnr, ret;
+    int trapnr;
+    abi_long ret;
     target_siginfo_t info;
 
     while (1) {
@@ -955,7 +959,7 @@ void cpu_loop (CPUSPARCState *env)
                               env->regwptr[0], env->regwptr[1],
                               env->regwptr[2], env->regwptr[3],
                               env->regwptr[4], env->regwptr[5]);
-            if ((unsigned int)ret >= (unsigned int)(-515)) {
+            if ((abi_ulong)ret >= (abi_ulong)(-515)) {
 #if defined(TARGET_SPARC64) && !defined(TARGET_ABI32)
                 env->xcc |= PSR_CARRY;
 #else
@@ -1068,9 +1072,9 @@ static inline uint64_t cpu_ppc_get_tb (CPUState *env)
     return 0;
 }
 
-uint32_t cpu_ppc_load_tbl (CPUState *env)
+uint64_t cpu_ppc_load_tbl (CPUState *env)
 {
-    return cpu_ppc_get_tb(env) & 0xFFFFFFFF;
+    return cpu_ppc_get_tb(env);
 }
 
 uint32_t cpu_ppc_load_tbu (CPUState *env)
@@ -1078,9 +1082,9 @@ uint32_t cpu_ppc_load_tbu (CPUState *env)
     return cpu_ppc_get_tb(env) >> 32;
 }
 
-uint32_t cpu_ppc_load_atbl (CPUState *env)
+uint64_t cpu_ppc_load_atbl (CPUState *env)
 {
-    return cpu_ppc_get_tb(env) & 0xFFFFFFFF;
+    return cpu_ppc_get_tb(env);
 }
 
 uint32_t cpu_ppc_load_atbu (CPUState *env)
@@ -1097,12 +1101,12 @@ uint32_t cpu_ppc601_load_rtcl (CPUState *env)
 }
 
 /* XXX: to be fixed */
-int ppc_dcr_read (ppc_dcr_t *dcr_env, int dcrn, target_ulong *valp)
+int ppc_dcr_read (ppc_dcr_t *dcr_env, int dcrn, uint32_t *valp)
 {
     return -1;
 }
 
-int ppc_dcr_write (ppc_dcr_t *dcr_env, int dcrn, target_ulong val)
+int ppc_dcr_write (ppc_dcr_t *dcr_env, int dcrn, uint32_t val)
 {
     return -1;
 }
@@ -2345,13 +2349,64 @@ void cpu_loop(CPUM68KState *env)
 #endif /* TARGET_M68K */
 
 #ifdef TARGET_ALPHA
+static void do_store_exclusive(CPUAlphaState *env, int reg, int quad)
+{
+    target_ulong addr, val, tmp;
+    target_siginfo_t info;
+    int ret = 0;
+
+    addr = env->lock_addr;
+    tmp = env->lock_st_addr;
+    env->lock_addr = -1;
+    env->lock_st_addr = 0;
+
+    start_exclusive();
+    mmap_lock();
+
+    if (addr == tmp) {
+        if (quad ? get_user_s64(val, addr) : get_user_s32(val, addr)) {
+            goto do_sigsegv;
+        }
+
+        if (val == env->lock_value) {
+            tmp = env->ir[reg];
+            if (quad ? put_user_u64(tmp, addr) : put_user_u32(tmp, addr)) {
+                goto do_sigsegv;
+            }
+            ret = 1;
+        }
+    }
+    env->ir[reg] = ret;
+    env->pc += 4;
+
+    mmap_unlock();
+    end_exclusive();
+    return;
+
+ do_sigsegv:
+    mmap_unlock();
+    end_exclusive();
+
+    info.si_signo = TARGET_SIGSEGV;
+    info.si_errno = 0;
+    info.si_code = TARGET_SEGV_MAPERR;
+    info._sifields._sigfault._addr = addr;
+    queue_signal(env, TARGET_SIGSEGV, &info);
+}
+
 void cpu_loop (CPUState *env)
 {
     int trapnr;
     target_siginfo_t info;
+    abi_long sysret;
 
     while (1) {
         trapnr = cpu_alpha_exec (env);
+
+        /* All of the traps imply a transition through PALcode, which
+           implies an REI instruction has been executed.  Which means
+           that the intr_flag should be cleared.  */
+        env->intr_flag = 0;
 
         switch (trapnr) {
         case EXCP_RESET:
@@ -2363,16 +2418,24 @@ void cpu_loop (CPUState *env)
             exit(1);
             break;
         case EXCP_ARITH:
-            fprintf(stderr, "Arithmetic trap.\n");
-            exit(1);
+            env->lock_addr = -1;
+            info.si_signo = TARGET_SIGFPE;
+            info.si_errno = 0;
+            info.si_code = TARGET_FPE_FLTINV;
+            info._sifields._sigfault._addr = env->pc;
+            queue_signal(env, info.si_signo, &info);
             break;
         case EXCP_HW_INTERRUPT:
             fprintf(stderr, "External interrupt. Exit\n");
             exit(1);
             break;
         case EXCP_DFAULT:
-            fprintf(stderr, "MMU data fault\n");
-            exit(1);
+            env->lock_addr = -1;
+            info.si_signo = TARGET_SIGSEGV;
+            info.si_errno = 0;
+            info.si_code = 0;  /* ??? SEGV_MAPERR vs SEGV_ACCERR.  */
+            info._sifields._sigfault._addr = env->pc;
+            queue_signal(env, info.si_signo, &info);
             break;
         case EXCP_DTB_MISS_PAL:
             fprintf(stderr, "MMU data TLB miss in PALcode\n");
@@ -2391,37 +2454,125 @@ void cpu_loop (CPUState *env)
             exit(1);
             break;
         case EXCP_UNALIGN:
-            fprintf(stderr, "Unaligned access\n");
-            exit(1);
+            env->lock_addr = -1;
+            info.si_signo = TARGET_SIGBUS;
+            info.si_errno = 0;
+            info.si_code = TARGET_BUS_ADRALN;
+            info._sifields._sigfault._addr = env->pc;
+            queue_signal(env, info.si_signo, &info);
             break;
         case EXCP_OPCDEC:
-            fprintf(stderr, "Invalid instruction\n");
-            exit(1);
+        do_sigill:
+            env->lock_addr = -1;
+            info.si_signo = TARGET_SIGILL;
+            info.si_errno = 0;
+            info.si_code = TARGET_ILL_ILLOPC;
+            info._sifields._sigfault._addr = env->pc;
+            queue_signal(env, info.si_signo, &info);
             break;
         case EXCP_FEN:
-            fprintf(stderr, "Floating-point not allowed\n");
-            exit(1);
+            /* No-op.  Linux simply re-enables the FPU.  */
             break;
         case EXCP_CALL_PAL ... (EXCP_CALL_PALP - 1):
-            call_pal(env, (trapnr >> 6) | 0x80);
+            env->lock_addr = -1;
+            switch ((trapnr >> 6) | 0x80) {
+            case 0x80:
+                /* BPT */
+                info.si_signo = TARGET_SIGTRAP;
+                info.si_errno = 0;
+                info.si_code = TARGET_TRAP_BRKPT;
+                info._sifields._sigfault._addr = env->pc;
+                queue_signal(env, info.si_signo, &info);
+                break;
+            case 0x81:
+                /* BUGCHK */
+                info.si_signo = TARGET_SIGTRAP;
+                info.si_errno = 0;
+                info.si_code = 0;
+                info._sifields._sigfault._addr = env->pc;
+                queue_signal(env, info.si_signo, &info);
+                break;
+            case 0x83:
+                /* CALLSYS */
+                trapnr = env->ir[IR_V0];
+                sysret = do_syscall(env, trapnr,
+                                    env->ir[IR_A0], env->ir[IR_A1],
+                                    env->ir[IR_A2], env->ir[IR_A3],
+                                    env->ir[IR_A4], env->ir[IR_A5]);
+                if (trapnr != TARGET_NR_sigreturn
+                    && trapnr != TARGET_NR_rt_sigreturn) {
+                    env->ir[IR_V0] = (sysret < 0 ? -sysret : sysret);
+                    env->ir[IR_A3] = (sysret < 0);
+                }
+                break;
+            case 0x86:
+                /* IMB */
+                /* ??? We can probably elide the code using page_unprotect
+                   that is checking for self-modifying code.  Instead we
+                   could simply call tb_flush here.  Until we work out the
+                   changes required to turn off the extra write protection,
+                   this can be a no-op.  */
+                break;
+            case 0x9E:
+                /* RDUNIQUE */
+                /* Handled in the translator for usermode.  */
+                abort();
+            case 0x9F:
+                /* WRUNIQUE */
+                /* Handled in the translator for usermode.  */
+                abort();
+            case 0xAA:
+                /* GENTRAP */
+                info.si_signo = TARGET_SIGFPE;
+                switch (env->ir[IR_A0]) {
+                case TARGET_GEN_INTOVF:
+                    info.si_code = TARGET_FPE_INTOVF;
+                    break;
+                case TARGET_GEN_INTDIV:
+                    info.si_code = TARGET_FPE_INTDIV;
+                    break;
+                case TARGET_GEN_FLTOVF:
+                    info.si_code = TARGET_FPE_FLTOVF;
+                    break;
+                case TARGET_GEN_FLTUND:
+                    info.si_code = TARGET_FPE_FLTUND;
+                    break;
+                case TARGET_GEN_FLTINV:
+                    info.si_code = TARGET_FPE_FLTINV;
+                    break;
+                case TARGET_GEN_FLTINE:
+                    info.si_code = TARGET_FPE_FLTRES;
+                    break;
+                case TARGET_GEN_ROPRAND:
+                    info.si_code = 0;
+                    break;
+                default:
+                    info.si_signo = TARGET_SIGTRAP;
+                    info.si_code = 0;
+                    break;
+                }
+                info.si_errno = 0;
+                info._sifields._sigfault._addr = env->pc;
+                queue_signal(env, info.si_signo, &info);
+                break;
+            default:
+                goto do_sigill;
+            }
             break;
         case EXCP_CALL_PALP ... (EXCP_CALL_PALE - 1):
-            fprintf(stderr, "Privileged call to PALcode\n");
-            exit(1);
-            break;
+            goto do_sigill;
         case EXCP_DEBUG:
-            {
-                int sig;
-
-                sig = gdb_handlesig (env, TARGET_SIGTRAP);
-                if (sig)
-                  {
-                    info.si_signo = sig;
-                    info.si_errno = 0;
-                    info.si_code = TARGET_TRAP_BRKPT;
-                    queue_signal(env, info.si_signo, &info);
-                  }
+            info.si_signo = gdb_handlesig (env, TARGET_SIGTRAP);
+            if (info.si_signo) {
+                env->lock_addr = -1;
+                info.si_errno = 0;
+                info.si_code = TARGET_TRAP_BRKPT;
+                queue_signal(env, info.si_signo, &info);
             }
+            break;
+        case EXCP_STL_C:
+        case EXCP_STQ_C:
+            do_store_exclusive(env, env->error_code, trapnr - EXCP_STL_C);
             break;
         default:
             printf ("Unhandled trap: 0x%x\n", trapnr);
@@ -2471,7 +2622,7 @@ static void usage(void)
            ,
            TARGET_ARCH,
            interp_prefix,
-           x86_stack_size,
+           guest_stack_size,
            DEBUG_LOGFILE);
     exit(1);
 }
@@ -2550,7 +2701,21 @@ int main(int argc, char **argv, char **envp)
         (void) envlist_setenv(envlist, *wrk);
     }
 
+    /* Read the stack limit from the kernel.  If it's "unlimited",
+       then we can do little else besides use the default.  */
+    {
+        struct rlimit lim;
+        if (getrlimit(RLIMIT_STACK, &lim) == 0
+            && lim.rlim_cur != RLIM_INFINITY) {
+            guest_stack_size = lim.rlim_cur;
+        }
+    }
+
     cpu_model = NULL;
+#if defined(cpudef_setup)
+    cpudef_setup(); /* parse cpu definitions in target config file (TBD) */
+#endif
+
     optind = 1;
     for(;;) {
         if (optind >= argc)
@@ -2594,13 +2759,13 @@ int main(int argc, char **argv, char **envp)
             if (optind >= argc)
                 break;
             r = argv[optind++];
-            x86_stack_size = strtol(r, (char **)&r, 0);
-            if (x86_stack_size <= 0)
+            guest_stack_size = strtoul(r, (char **)&r, 0);
+            if (guest_stack_size == 0)
                 usage();
             if (*r == 'M')
-                x86_stack_size *= 1024 * 1024;
+                guest_stack_size *= 1024 * 1024;
             else if (*r == 'k' || *r == 'K')
-                x86_stack_size *= 1024;
+                guest_stack_size *= 1024;
         } else if (!strcmp(r, "L")) {
             interp_prefix = argv[optind++];
         } else if (!strcmp(r, "p")) {
@@ -2622,8 +2787,8 @@ int main(int argc, char **argv, char **envp)
             cpu_model = argv[optind++];
             if (cpu_model == NULL || strcmp(cpu_model, "?") == 0) {
 /* XXX: implement xxx_cpu_list for targets that still miss it */
-#if defined(cpu_list)
-                    cpu_list(stdout, &fprintf);
+#if defined(cpu_list_id)
+                cpu_list_id(stdout, &fprintf, "");
 #endif
                 exit(1);
             }
@@ -2719,16 +2884,14 @@ int main(int argc, char **argv, char **envp)
      * proper page alignment for guest_base.
      */
     guest_base = HOST_PAGE_ALIGN(guest_base);
+#endif /* CONFIG_USE_GUEST_BASE */
 
     /*
      * Read in mmap_min_addr kernel parameter.  This value is used
      * When loading the ELF image to determine whether guest_base
-     * is needed.
-     *
-     * When user has explicitly set the quest base, we skip this
-     * test.
+     * is needed.  It is also used in mmap_find_vma.
      */
-    if (!have_guest_base) {
+    {
         FILE *fp;
 
         if ((fp = fopen("/proc/sys/vm/mmap_min_addr", "r")) != NULL) {
@@ -2740,7 +2903,6 @@ int main(int argc, char **argv, char **envp)
             fclose(fp);
         }
     }
-#endif /* CONFIG_USE_GUEST_BASE */
 
     /*
      * Prepare copy of argv vector for target.
@@ -3048,10 +3210,8 @@ int main(int argc, char **argv, char **envp)
         for(i = 0; i < 28; i++) {
             env->ir[i] = ((abi_ulong *)regs)[i];
         }
-        env->ipr[IPR_USP] = regs->usp;
-        env->ir[30] = regs->usp;
+        env->ir[IR_SP] = regs->usp;
         env->pc = regs->pc;
-        env->unique = regs->unique;
     }
 #elif defined(TARGET_CRIS)
     {

@@ -13,7 +13,7 @@ CPU cores:
 x86                Fabrice Bellard
 ARM                Paul Brook
 SPARC              Blue Swirl
-MIPS               Thiemo Seufer
+MIPS               ?
 PowerPC            ?
 M68K               Paul Brook
 SH4                ?
@@ -45,7 +45,7 @@ MIPS
   mips_r4k.c              Aurelien Jarno
   mips_malta.c            Aurelien Jarno
   mips_jazz.c             Hervé Poussineau
-  mips_mipssim.c          Thiemo Seufer
+  mips_mipssim.c          ?
 PowerPC
   ppc_prep.c              ?
   ppc_oldworld.c          Fabrice Bellard
@@ -75,7 +75,7 @@ Main loop                 Fabrice Bellard (new maintainer needed)
 TCG                       Fabrice Bellard
 IDE device                ?
 SCSI device               Paul Brook
-PCI layer                 ?
+PCI layer                 Michael S. Tsirkin
 USB layer                 ?
 Block layer               ?
 Graphic layer             ?

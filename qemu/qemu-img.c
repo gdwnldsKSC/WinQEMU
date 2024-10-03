@@ -52,7 +52,7 @@ typedef struct img_cmd_t {
 } img_cmd_t;
 
 /* Default to cache=writeback as data integrity is not important for qemu-tcg. */
-#define BRDV_O_FLAGS BDRV_O_CACHE_WB
+#define BDRV_O_FLAGS BDRV_O_CACHE_WB
 
 static void QEMU_NORETURN error(const char *fmt, ...)
 {
@@ -73,7 +73,8 @@ static void format_print(void *opaque, const char *name)
 /* Please keep in synch with qemu-img.texi */
 static void help(void)
 {
-    printf("qemu-img version " QEMU_VERSION ", Copyright (c) 2004-2008 Fabrice Bellard\n"
+    const char *help_msg =
+           "qemu-img version " QEMU_VERSION ", Copyright (c) 2004-2008 Fabrice Bellard\n"
            "usage: qemu-img command [command options]\n"
            "QEMU disk image utility\n"
            "\n"
@@ -96,6 +97,9 @@ static void help(void)
            "    name=value format. Use -o ? for an overview of the options supported by the\n"
            "    used format\n"
            "  '-c' indicates that target image must be compressed (qcow format only)\n"
+           "  '-u' enables unsafe rebasing. It is assumed that old and new backing file\n"
+           "       match exactly. The image doesn't need a working backing file before\n"
+           "       rebasing in this case (useful for renaming the backing file)\n"
            "  '-h' with or without a command shows this help and lists the supported formats\n"
            "\n"
            "Parameters to snapshot subcommand:\n"
@@ -103,9 +107,9 @@ static void help(void)
            "  '-a' applies a snapshot (revert disk to saved state)\n"
            "  '-c' creates a snapshot\n"
            "  '-d' deletes a snapshot\n"
-           "  '-l' lists all snapshots in the given image\n"
-           );
-    printf("\nSupported formats:");
+           "  '-l' lists all snapshots in the given image\n";
+
+    printf("%s\nSupported formats:", help_msg);
     bdrv_iterate_format(format_print, NULL);
     printf("\n");
     exit(1);
@@ -200,7 +204,8 @@ static int read_password(char *buf, int buf_size)
 #endif
 
 static BlockDriverState *bdrv_new_open(const char *filename,
-                                       const char *fmt)
+                                       const char *fmt,
+                                       int flags)
 {
     BlockDriverState *bs;
     BlockDriver *drv;
@@ -216,7 +221,7 @@ static BlockDriverState *bdrv_new_open(const char *filename,
     } else {
         drv = NULL;
     }
-    if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
+    if (bdrv_open(bs, filename, flags, drv) < 0) {
         error("Could not open '%s'", filename);
     }
     if (bdrv_is_encrypted(bs)) {
@@ -355,7 +360,7 @@ static int img_create(int argc, char **argv)
                 }
             }
 
-            bs = bdrv_new_open(backing_file->value.s, fmt);
+            bs = bdrv_new_open(backing_file->value.s, fmt, BDRV_O_FLAGS);
             bdrv_get_geometry(bs, &size);
             size *= 512;
             bdrv_delete(bs);
@@ -380,7 +385,7 @@ static int img_create(int argc, char **argv)
         } else if (ret == -EFBIG) {
             error("The image size is too large for file format '%s'", fmt);
         } else {
-            error("Error while formatting");
+            error("%s: error while creating %s: %s", filename, fmt, strerror(-ret));
         }
     }
     return 0;
@@ -390,7 +395,6 @@ static int img_check(int argc, char **argv)
 {
     int c, ret;
     const char *filename, *fmt;
-    BlockDriver *drv;
     BlockDriverState *bs;
 
     fmt = NULL;
@@ -411,19 +415,7 @@ static int img_check(int argc, char **argv)
         help();
     filename = argv[optind++];
 
-    bs = bdrv_new("");
-    if (!bs)
-        error("Not enough memory");
-    if (fmt) {
-        drv = bdrv_find_format(fmt);
-        if (!drv)
-            error("Unknown file format '%s'", fmt);
-    } else {
-        drv = NULL;
-    }
-    if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
-        error("Could not open '%s'", filename);
-    }
+    bs = bdrv_new_open(filename, fmt, BDRV_O_FLAGS);
     ret = bdrv_check(bs);
     switch(ret) {
     case 0:
@@ -449,7 +441,6 @@ static int img_commit(int argc, char **argv)
 {
     int c, ret;
     const char *filename, *fmt;
-    BlockDriver *drv;
     BlockDriverState *bs;
 
     fmt = NULL;
@@ -470,19 +461,7 @@ static int img_commit(int argc, char **argv)
         help();
     filename = argv[optind++];
 
-    bs = bdrv_new("");
-    if (!bs)
-        error("Not enough memory");
-    if (fmt) {
-        drv = bdrv_find_format(fmt);
-        if (!drv)
-            error("Unknown file format '%s'", fmt);
-    } else {
-        drv = NULL;
-    }
-    if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
-        error("Could not open '%s'", filename);
-    }
+    bs = bdrv_new_open(filename, fmt, BDRV_O_FLAGS | BDRV_O_RDWR);
     ret = bdrv_commit(bs);
     switch(ret) {
     case 0:
@@ -540,6 +519,37 @@ static int is_allocated_sectors(const uint8_t *buf, int n, int *pnum)
     }
     *pnum = i;
     return v;
+}
+
+/*
+ * Compares two buffers sector by sector. Returns 0 if the first sector of both
+ * buffers matches, non-zero otherwise.
+ *
+ * pnum is set to the number of sectors (including and immediately following
+ * the first one) that are known to have the same comparison result
+ */
+static int compare_sectors(const uint8_t *buf1, const uint8_t *buf2, int n,
+    int *pnum)
+{
+    int res, i;
+
+    if (n <= 0) {
+        *pnum = 0;
+        return 0;
+    }
+
+    res = !!memcmp(buf1, buf2, 512);
+    for(i = 1; i < n; i++) {
+        buf1 += 512;
+        buf2 += 512;
+
+        if (!!memcmp(buf1, buf2, 512) != res) {
+            break;
+        }
+    }
+
+    *pnum = i;
+    return res;
 }
 
 #define IO_BUF_SIZE (2 * 1024 * 1024)
@@ -608,7 +618,7 @@ static int img_convert(int argc, char **argv)
 
     total_sectors = 0;
     for (bs_i = 0; bs_i < bs_n; bs_i++) {
-        bs[bs_i] = bdrv_new_open(argv[optind + bs_i], fmt);
+        bs[bs_i] = bdrv_new_open(argv[optind + bs_i], fmt, BDRV_O_FLAGS);
         if (!bs[bs_i])
             error("Could not open '%s'", argv[optind + bs_i]);
         bdrv_get_geometry(bs[bs_i], &bs_sectors);
@@ -662,11 +672,11 @@ static int img_convert(int argc, char **argv)
         } else if (ret == -EFBIG) {
             error("The image size is too large for file format '%s'", out_fmt);
         } else {
-            error("Error while formatting '%s'", out_filename);
+            error("%s: error while converting %s: %s", out_filename, out_fmt, strerror(-ret));
         }
     }
 
-    out_bs = bdrv_new_open(out_filename, out_fmt);
+    out_bs = bdrv_new_open(out_filename, out_fmt, BDRV_O_FLAGS | BDRV_O_RDWR);
 
     bs_i = 0;
     bs_offset = 0;
@@ -737,6 +747,8 @@ static int img_convert(int argc, char **argv)
         /* signal EOF to align */
         bdrv_write_compressed(out_bs, 0, NULL, 0);
     } else {
+        int has_zero_init = bdrv_has_zero_init(out_bs);
+
         sector_num = 0; // total number of sectors converted so far
         for(;;) {
             nb_sectors = total_sectors - sector_num;
@@ -760,7 +772,7 @@ static int img_convert(int argc, char **argv)
             if (n > bs_offset + bs_sectors - sector_num)
                 n = bs_offset + bs_sectors - sector_num;
 
-            if (!drv->no_zero_init) {
+            if (has_zero_init) {
                 /* If the output image is being created as a copy on write image,
                    assume that sectors which are unallocated in the input image
                    are present in both the output's and input's base images (no
@@ -793,7 +805,7 @@ static int img_convert(int argc, char **argv)
                    If the output is to a host device, we also write out
                    sectors that are entirely 0, since whatever data was
                    already there is garbage, not 0s. */
-                if (drv->no_zero_init || out_baseimg ||
+                if (!has_zero_init || out_baseimg ||
                     is_allocated_sectors(buf1, n, &n1)) {
                     if (bdrv_write(out_bs, sector_num, buf1, n1) < 0)
                         error("error while writing");
@@ -864,7 +876,6 @@ static int img_info(int argc, char **argv)
 {
     int c;
     const char *filename, *fmt;
-    BlockDriver *drv;
     BlockDriverState *bs;
     char fmt_name[128], size_buf[128], dsize_buf[128];
     uint64_t total_sectors;
@@ -891,19 +902,7 @@ static int img_info(int argc, char **argv)
         help();
     filename = argv[optind++];
 
-    bs = bdrv_new("");
-    if (!bs)
-        error("Not enough memory");
-    if (fmt) {
-        drv = bdrv_find_format(fmt);
-        if (!drv)
-            error("Unknown file format '%s'", fmt);
-    } else {
-        drv = NULL;
-    }
-    if (bdrv_open2(bs, filename, BRDV_O_FLAGS, drv) < 0) {
-        error("Could not open '%s'", filename);
-    }
+    bs = bdrv_new_open(filename, fmt, BDRV_O_FLAGS | BDRV_O_NO_BACKING);
     bdrv_get_format(bs, fmt_name, sizeof(fmt_name));
     bdrv_get_geometry(bs, &total_sectors);
     get_human_readable_size(size_buf, sizeof(size_buf), total_sectors * 512);
@@ -949,10 +948,11 @@ static int img_snapshot(int argc, char **argv)
     BlockDriverState *bs;
     QEMUSnapshotInfo sn;
     char *filename, *snapshot_name = NULL;
-    int c, ret;
+    int c, ret, bdrv_oflags;
     int action = 0;
     qemu_timeval tv;
 
+    bdrv_oflags = BDRV_O_RDWR;
     /* Parse commandline parameters */
     for(;;) {
         c = getopt(argc, argv, "la:c:d:h");
@@ -968,6 +968,7 @@ static int img_snapshot(int argc, char **argv)
                 return 0;
             }
             action = SNAPSHOT_LIST;
+            bdrv_oflags &= ~BDRV_O_RDWR; /* no need for RW */
             break;
         case 'a':
             if (action) {
@@ -1001,13 +1002,7 @@ static int img_snapshot(int argc, char **argv)
     filename = argv[optind++];
 
     /* Open the image */
-    bs = bdrv_new("");
-    if (!bs)
-        error("Not enough memory");
-
-    if (bdrv_open2(bs, filename, 0, NULL) < 0) {
-        error("Could not open '%s'", filename);
-    }
+    bs = bdrv_new_open(filename, NULL, bdrv_oflags);
 
     /* Perform the requested action */
     switch(action) {
@@ -1047,6 +1042,293 @@ static int img_snapshot(int argc, char **argv)
     /* Cleanup */
     bdrv_delete(bs);
 
+    return 0;
+}
+
+static int img_rebase(int argc, char **argv)
+{
+    BlockDriverState *bs, *bs_old_backing, *bs_new_backing;
+    BlockDriver *old_backing_drv, *new_backing_drv;
+    char *filename;
+    const char *fmt, *out_basefmt, *out_baseimg;
+    int c, flags, ret;
+    int unsafe = 0;
+
+    /* Parse commandline parameters */
+    fmt = NULL;
+    out_baseimg = NULL;
+    out_basefmt = NULL;
+
+    for(;;) {
+        c = getopt(argc, argv, "uhf:F:b:");
+        if (c == -1)
+            break;
+        switch(c) {
+        case 'h':
+            help();
+            return 0;
+        case 'f':
+            fmt = optarg;
+            break;
+        case 'F':
+            out_basefmt = optarg;
+            break;
+        case 'b':
+            out_baseimg = optarg;
+            break;
+        case 'u':
+            unsafe = 1;
+            break;
+        }
+    }
+
+    if ((optind >= argc) || !out_baseimg)
+        help();
+    filename = argv[optind++];
+
+    /*
+     * Open the images.
+     *
+     * Ignore the old backing file for unsafe rebase in case we want to correct
+     * the reference to a renamed or moved backing file.
+     */
+    flags = BDRV_O_FLAGS | BDRV_O_RDWR | (unsafe ? BDRV_O_NO_BACKING : 0);
+    bs = bdrv_new_open(filename, fmt, flags);
+
+    /* Find the right drivers for the backing files */
+    old_backing_drv = NULL;
+    new_backing_drv = NULL;
+
+    if (!unsafe && bs->backing_format[0] != '\0') {
+        old_backing_drv = bdrv_find_format(bs->backing_format);
+        if (old_backing_drv == NULL) {
+            error("Invalid format name: '%s'", bs->backing_format);
+        }
+    }
+
+    if (out_basefmt != NULL) {
+        new_backing_drv = bdrv_find_format(out_basefmt);
+        if (new_backing_drv == NULL) {
+            error("Invalid format name: '%s'", out_basefmt);
+        }
+    }
+
+    /* For safe rebasing we need to compare old and new backing file */
+    if (unsafe) {
+        /* Make the compiler happy */
+        bs_old_backing = NULL;
+        bs_new_backing = NULL;
+    } else {
+        char backing_name[1024];
+
+        bs_old_backing = bdrv_new("old_backing");
+        bdrv_get_backing_filename(bs, backing_name, sizeof(backing_name));
+        if (bdrv_open(bs_old_backing, backing_name, BDRV_O_FLAGS,
+            old_backing_drv))
+        {
+            error("Could not open old backing file '%s'", backing_name);
+            return -1;
+        }
+
+        bs_new_backing = bdrv_new("new_backing");
+        if (bdrv_open(bs_new_backing, out_baseimg, BDRV_O_FLAGS | BDRV_O_RDWR,
+            new_backing_drv))
+        {
+            error("Could not open new backing file '%s'", out_baseimg);
+            return -1;
+        }
+    }
+
+    /*
+     * Check each unallocated cluster in the COW file. If it is unallocated,
+     * accesses go to the backing file. We must therefore compare this cluster
+     * in the old and new backing file, and if they differ we need to copy it
+     * from the old backing file into the COW file.
+     *
+     * If qemu-img crashes during this step, no harm is done. The content of
+     * the image is the same as the original one at any time.
+     */
+    if (!unsafe) {
+        uint64_t num_sectors;
+        uint64_t sector;
+        int n;
+        uint8_t * buf_old;
+        uint8_t * buf_new;
+
+        buf_old = qemu_malloc(IO_BUF_SIZE);
+        buf_new = qemu_malloc(IO_BUF_SIZE);
+
+        bdrv_get_geometry(bs, &num_sectors);
+
+        for (sector = 0; sector < num_sectors; sector += n) {
+
+            /* How many sectors can we handle with the next read? */
+            if (sector + (IO_BUF_SIZE / 512) <= num_sectors) {
+                n = (IO_BUF_SIZE / 512);
+            } else {
+                n = num_sectors - sector;
+            }
+
+            /* If the cluster is allocated, we don't need to take action */
+            ret = bdrv_is_allocated(bs, sector, n, &n);
+            if (ret) {
+                continue;
+            }
+
+            /* Read old and new backing file */
+            if (bdrv_read(bs_old_backing, sector, buf_old, n) < 0) {
+                error("error while reading from old backing file");
+            }
+            if (bdrv_read(bs_new_backing, sector, buf_new, n) < 0) {
+                error("error while reading from new backing file");
+            }
+
+            /* If they differ, we need to write to the COW file */
+            uint64_t written = 0;
+
+            while (written < n) {
+                int pnum;
+
+                if (compare_sectors(buf_old + written * 512,
+                    buf_new + written * 512, n - written, &pnum))
+                {
+                    ret = bdrv_write(bs, sector + written,
+                        buf_old + written * 512, pnum);
+                    if (ret < 0) {
+                        error("Error while writing to COW image: %s",
+                            strerror(-ret));
+                    }
+                }
+
+                written += pnum;
+            }
+        }
+
+        qemu_free(buf_old);
+        qemu_free(buf_new);
+    }
+
+    /*
+     * Change the backing file. All clusters that are different from the old
+     * backing file are overwritten in the COW file now, so the visible content
+     * doesn't change when we switch the backing file.
+     */
+    ret = bdrv_change_backing_file(bs, out_baseimg, out_basefmt);
+    if (ret == -ENOSPC) {
+        error("Could not change the backing file to '%s': No space left in "
+            "the file header", out_baseimg);
+    } else if (ret < 0) {
+        error("Could not change the backing file to '%s': %s",
+            out_baseimg, strerror(-ret));
+    }
+
+    /*
+     * TODO At this point it is possible to check if any clusters that are
+     * allocated in the COW file are the same in the backing file. If so, they
+     * could be dropped from the COW file. Don't do this before switching the
+     * backing file, in case of a crash this would lead to corruption.
+     */
+
+    /* Cleanup */
+    if (!unsafe) {
+        bdrv_delete(bs_old_backing);
+        bdrv_delete(bs_new_backing);
+    }
+
+    bdrv_delete(bs);
+
+    return 0;
+}
+
+static int img_resize(int argc, char **argv)
+{
+    int c, ret, relative;
+    const char *filename, *fmt, *size;
+    int64_t n, total_size;
+    BlockDriverState *bs;
+    QEMUOptionParameter *param;
+    QEMUOptionParameter resize_options[] = {
+        {
+            .name = BLOCK_OPT_SIZE,
+            .type = OPT_SIZE,
+            .help = "Virtual disk size"
+        },
+        { NULL }
+    };
+
+    fmt = NULL;
+    for(;;) {
+        c = getopt(argc, argv, "f:h");
+        if (c == -1) {
+            break;
+        }
+        switch(c) {
+        case 'h':
+            help();
+            break;
+        case 'f':
+            fmt = optarg;
+            break;
+        }
+    }
+    if (optind + 1 >= argc) {
+        help();
+    }
+    filename = argv[optind++];
+    size = argv[optind++];
+
+    /* Choose grow, shrink, or absolute resize mode */
+    switch (size[0]) {
+    case '+':
+        relative = 1;
+        size++;
+        break;
+    case '-':
+        relative = -1;
+        size++;
+        break;
+    default:
+        relative = 0;
+        break;
+    }
+
+    /* Parse size */
+    param = parse_option_parameters("", resize_options, NULL);
+    if (set_option_parameter(param, BLOCK_OPT_SIZE, size)) {
+        /* Error message already printed when size parsing fails */
+        exit(1);
+    }
+    n = get_option_parameter(param, BLOCK_OPT_SIZE)->value.n;
+    free_option_parameters(param);
+
+    bs = bdrv_new_open(filename, fmt, BDRV_O_FLAGS | BDRV_O_RDWR);
+
+    if (relative) {
+        total_size = bdrv_getlength(bs) + n * relative;
+    } else {
+        total_size = n;
+    }
+    if (total_size <= 0) {
+        error("New image size must be positive");
+    }
+
+    ret = bdrv_truncate(bs, total_size);
+    switch (ret) {
+    case 0:
+        printf("Image resized.\n");
+        break;
+    case -ENOTSUP:
+        error("This image format does not support resize");
+        break;
+    case -EACCES:
+        error("Image is read-only");
+        break;
+    default:
+        error("Error resizing image (%d)", -ret);
+        break;
+    }
+
+    bdrv_delete(bs);
     return 0;
 }
 

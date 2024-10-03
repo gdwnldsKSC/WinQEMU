@@ -21,10 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef _tcg_h__ // include guard, prevent multiple inclusions preventing redefinitions
-#define _tcg_h__
-
-
 #include "qemu-common.h"
 #include "tcg-target.h"
 #include "tcg-runtime.h"
@@ -51,12 +47,12 @@ typedef uint64_t TCGRegSet;
 #error unsupported
 #endif
 
-enum {
+typedef enum TCGOpcode {
 #define DEF(s, n, copy_size) INDEX_op_ ## s,
 #include "tcg-opc.h"
 #undef DEF
     NB_OPS,
-};
+} TCGOpcode;
 
 #define tcg_regset_clear(d) (d) = 0
 #define tcg_regset_set(d, s) (d) = (s)
@@ -112,17 +108,22 @@ typedef struct TCGPool {
    this value, they are statically allocated in the TB stack frame */
 #define TCG_STATIC_CALL_ARGS_SIZE 128
 
-typedef int TCGType;
-
-#define TCG_TYPE_I32 0
-#define TCG_TYPE_I64 1
-#define TCG_TYPE_COUNT 2 /* number of different types */
+typedef enum TCGType {
+    TCG_TYPE_I32,
+    TCG_TYPE_I64,
+    TCG_TYPE_COUNT, /* number of different types */
 
 #if TCG_TARGET_REG_BITS == 32
-#define TCG_TYPE_PTR TCG_TYPE_I32
+    TCG_TYPE_PTR = TCG_TYPE_I32,
 #else
-#define TCG_TYPE_PTR TCG_TYPE_I64
+    TCG_TYPE_PTR = TCG_TYPE_I64,
 #endif
+#if TARGET_LONG_BITS == 64
+    TCG_TYPE_TL = TCG_TYPE_I64,
+#else
+    TCG_TYPE_TL = TCG_TYPE_I32,
+#endif
+} TCGType;
 
 typedef tcg_target_ulong TCGArg;
 
@@ -220,6 +221,24 @@ typedef enum {
     TCG_COND_LEU,
     TCG_COND_GTU,
 } TCGCond;
+
+/* Invert the sense of the comparison.  */
+static inline TCGCond tcg_invert_cond(TCGCond c)
+{
+    return (TCGCond)(c ^ 1);
+}
+
+/* Swap the operands in a comparison.  */
+static inline TCGCond tcg_swap_cond(TCGCond c)
+{
+    int mask = (c < TCG_COND_LT ? 0 : c < TCG_COND_LTU ? 7 : 15);
+    return (TCGCond)(c ^ mask);
+}
+
+static inline TCGCond tcg_unsigned_cond(TCGCond c)
+{
+    return (c >= TCG_COND_LT && c <= TCG_COND_GT ? c + 4 : c);
+}
 
 #define TEMP_VAL_DEAD  0
 #define TEMP_VAL_REG   1
@@ -410,10 +429,13 @@ typedef struct TCGOpDef {
     uint16_t copy_size;
     TCGArgConstraint *args_ct;
     int *sorted_args;
+#if defined(CONFIG_DEBUG_TCG)
+    int used;
+#endif
 } TCGOpDef;
         
 typedef struct TCGTargetOpDef {
-    int op;
+    TCGOpcode op;
     const char *args_ct_str[TCG_MAX_OP_ARGS];
 } TCGTargetOpDef;
 
@@ -477,4 +499,3 @@ extern uint8_t code_gen_prologue[];
 #else
 #define tcg_qemu_tb_exec(tb_ptr) ((long REGPARM (*)(void *))code_gen_prologue)(tb_ptr)
 #endif
-#endif // end include guard

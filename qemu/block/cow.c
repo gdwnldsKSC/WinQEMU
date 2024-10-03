@@ -209,6 +209,7 @@ static int cow_create(const char *filename, QEMUOptionParameter *options)
     struct stat st;
     int64_t image_sectors = 0;
     const char *image_filename = NULL;
+    int ret;
 
     /* Read out options */
     while (options && options->name) {
@@ -223,7 +224,7 @@ static int cow_create(const char *filename, QEMUOptionParameter *options)
     cow_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
               0644);
     if (cow_fd < 0)
-        return -1;
+        return -errno;
     memset(&cow_header, 0, sizeof(cow_header));
     cow_header.magic = cpu_to_be32(COW_MAGIC);
     cow_header.version = cpu_to_be32(COW_VERSION);
@@ -248,11 +249,22 @@ static int cow_create(const char *filename, QEMUOptionParameter *options)
     }
     cow_header.sectorsize = cpu_to_be32(512);
     cow_header.size = cpu_to_be64(image_sectors * 512);
-    write(cow_fd, &cow_header, sizeof(cow_header));
+    ret = qemu_write_full(cow_fd, &cow_header, sizeof(cow_header));
+    if (ret != sizeof(cow_header)) {
+        ret = -errno;
+        goto exit;
+    }
+
     /* resize to include at least all the bitmap */
-    ftruncate(cow_fd, sizeof(cow_header) + ((image_sectors + 7) >> 3));
+    ret = ftruncate(cow_fd, sizeof(cow_header) + ((image_sectors + 7) >> 3));
+    if (ret) {
+        ret = -errno;
+        goto exit;
+    }
+
+exit:
     close(cow_fd);
-    return 0;
+    return ret;
 }
 
 static void cow_flush(BlockDriverState *bs)
@@ -279,7 +291,7 @@ static BlockDriver bdrv_cow = {
     .format_name	= "cow",
     .instance_size	= sizeof(BDRVCowState),
     .bdrv_probe		= cow_probe,
-    .bdrv_open		= cow_open,
+    .bdrv_file_open	= cow_open,
     .bdrv_read		= cow_read,
     .bdrv_write		= cow_write,
     .bdrv_close		= cow_close,

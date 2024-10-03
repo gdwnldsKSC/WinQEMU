@@ -1,6 +1,9 @@
 /*
  * QEMU e1000 emulation
  *
+ * Software developer's manual:
+ * http://download.intel.com/design/network/manuals/8254x_GBe_SDM.pdf
+ *
  * Nir Peleg, Tutis Systems Ltd. for Qumranet Inc.
  * Copyright (c) 2008 Qumranet
  * Based on work done by:
@@ -21,15 +24,6 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
- /*
-  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
-  * other than GPL is available it will apply instead, WinQEMU elects to use only the
-  * General Public License version 3 (GPLv3) at this time for any software where a choice of
-  * GPL license versions is made available with the language indicating that GPLv3 or any later
-  * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
-  *
-  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
-  */
 
 #include "hw.h"
 #include "pci.h"
@@ -648,7 +642,7 @@ e1000_receive(VLANClientState *nc, const uint8_t *buf, size_t size)
 
     if (vlan_enabled(s) && is_vlan_packet(s, buf)) {
         vlan_special = cpu_to_le16(be16_to_cpup((uint16_t *)(buf + 14)));
-        memmove((void *)(buf + 4), buf, 12);
+        memmove((uint8_t *)buf + 4, buf, 12);
         vlan_status = E1000_RXD_STAT_VP;
         vlan_offset = 4;
         size -= 4;
@@ -1110,12 +1104,15 @@ static int pci_e1000_init(PCIDevice *pci_dev)
 
     pci_config_set_vendor_id(pci_conf, PCI_VENDOR_ID_INTEL);
     pci_config_set_device_id(pci_conf, E1000_DEVID);
-    *(uint16_t *)(pci_conf+0x06) = cpu_to_le16(0x0010);
-    pci_conf[0x08] = 0x03;
+    /* TODO: we have no capabilities, so why is this bit set? */
+    pci_set_word(pci_conf + PCI_STATUS, PCI_STATUS_CAP_LIST);
+    pci_conf[PCI_REVISION_ID] = 0x03;
     pci_config_set_class(pci_conf, PCI_CLASS_NETWORK_ETHERNET);
-    pci_conf[0x0c] = 0x10;
+    /* TODO: RST# value should be 0, PCI spec 6.2.4 */
+    pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
 
-    pci_conf[0x3d] = 1; // interrupt pin 0
+    /* TODO: RST# value should be 0 if programmable, PCI spec 6.2.4 */
+    pci_conf[PCI_INTERRUPT_PIN] = 1; // interrupt pin 0
 
     d->mmio_index = cpu_register_io_memory(e1000_mmio_read,
             e1000_mmio_write, d);

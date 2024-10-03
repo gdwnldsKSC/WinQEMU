@@ -107,10 +107,10 @@ struct ppc4xx_plb_t {
     uint32_t besr;
 };
 
-static target_ulong dcr_read_plb (void *opaque, int dcrn)
+static uint32_t dcr_read_plb (void *opaque, int dcrn)
 {
     ppc4xx_plb_t *plb;
-    target_ulong ret;
+    uint32_t ret;
 
     plb = opaque;
     switch (dcrn) {
@@ -132,7 +132,7 @@ static target_ulong dcr_read_plb (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_plb (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_plb (void *opaque, int dcrn, uint32_t val)
 {
     ppc4xx_plb_t *plb;
 
@@ -189,10 +189,10 @@ struct ppc4xx_pob_t {
     uint32_t besr[2];
 };
 
-static target_ulong dcr_read_pob (void *opaque, int dcrn)
+static uint32_t dcr_read_pob (void *opaque, int dcrn)
 {
     ppc4xx_pob_t *pob;
-    target_ulong ret;
+    uint32_t ret;
 
     pob = opaque;
     switch (dcrn) {
@@ -212,7 +212,7 @@ static target_ulong dcr_read_pob (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_pob (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_pob (void *opaque, int dcrn, uint32_t val)
 {
     ppc4xx_pob_t *pob;
 
@@ -410,10 +410,10 @@ enum {
     EBC0_CFGDATA = 0x013,
 };
 
-static target_ulong dcr_read_ebc (void *opaque, int dcrn)
+static uint32_t dcr_read_ebc (void *opaque, int dcrn)
 {
     ppc4xx_ebc_t *ebc;
-    target_ulong ret;
+    uint32_t ret;
 
     ebc = opaque;
     switch (dcrn) {
@@ -486,6 +486,7 @@ static target_ulong dcr_read_ebc (void *opaque, int dcrn)
             ret = 0x00000000;
             break;
         }
+        break;
     default:
         ret = 0x00000000;
         break;
@@ -494,7 +495,7 @@ static target_ulong dcr_read_ebc (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_ebc (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_ebc (void *opaque, int dcrn, uint32_t val)
 {
     ppc4xx_ebc_t *ebc;
 
@@ -627,7 +628,7 @@ struct ppc405_dma_t {
     uint32_t pol;
 };
 
-static target_ulong dcr_read_dma (void *opaque, int dcrn)
+static uint32_t dcr_read_dma (void *opaque, int dcrn)
 {
     ppc405_dma_t *dma;
 
@@ -636,7 +637,7 @@ static target_ulong dcr_read_dma (void *opaque, int dcrn)
     return 0;
 }
 
-static void dcr_write_dma (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_dma (void *opaque, int dcrn, uint32_t val)
 {
     ppc405_dma_t *dma;
 
@@ -914,10 +915,10 @@ static void ocm_update_mappings (ppc405_ocm_t *ocm,
     }
 }
 
-static target_ulong dcr_read_ocm (void *opaque, int dcrn)
+static uint32_t dcr_read_ocm (void *opaque, int dcrn)
 {
     ppc405_ocm_t *ocm;
-    target_ulong ret;
+    uint32_t ret;
 
     ocm = opaque;
     switch (dcrn) {
@@ -941,7 +942,7 @@ static target_ulong dcr_read_ocm (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_ocm (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_ocm (void *opaque, int dcrn, uint32_t val)
 {
     ppc405_ocm_t *ocm;
     uint32_t isarc, dsarc, isacntl, dsacntl;
@@ -1578,10 +1579,10 @@ struct ppc40x_mal_t {
 
 static void ppc40x_mal_reset (void *opaque);
 
-static target_ulong dcr_read_mal (void *opaque, int dcrn)
+static uint32_t dcr_read_mal (void *opaque, int dcrn)
 {
     ppc40x_mal_t *mal;
-    target_ulong ret;
+    uint32_t ret;
 
     mal = opaque;
     switch (dcrn) {
@@ -1650,7 +1651,7 @@ static target_ulong dcr_read_mal (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_mal (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_mal (void *opaque, int dcrn, uint32_t val)
 {
     ppc40x_mal_t *mal;
     int idx;
@@ -1951,10 +1952,10 @@ static void ppc405cr_clk_setup (ppc405cr_cpc_t *cpc)
     clk_setup(&cpc->clk_setup[PPC405CR_UART_CLK], UART_clk);
 }
 
-static target_ulong dcr_read_crcpc (void *opaque, int dcrn)
+static uint32_t dcr_read_crcpc (void *opaque, int dcrn)
 {
     ppc405cr_cpc_t *cpc;
-    target_ulong ret;
+    uint32_t ret;
 
     cpc = opaque;
     switch (dcrn) {
@@ -1991,7 +1992,7 @@ static target_ulong dcr_read_crcpc (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_crcpc (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_crcpc (void *opaque, int dcrn, uint32_t val)
 {
     ppc405cr_cpc_t *cpc;
 
@@ -2182,11 +2183,11 @@ CPUState *ppc405cr_init (target_phys_addr_t ram_bases[4],
     /* Serial ports */
     if (serial_hds[0] != NULL) {
         serial_mm_init(0xef600300, 0, pic[0], PPC_SERIAL_MM_BAUDBASE,
-                       serial_hds[0], 1);
+                       serial_hds[0], 1, 1);
     }
     if (serial_hds[1] != NULL) {
         serial_mm_init(0xef600400, 0, pic[1], PPC_SERIAL_MM_BAUDBASE,
-                       serial_hds[1], 1);
+                       serial_hds[1], 1, 1);
     }
     /* IIC controller */
     ppc405_i2c_init(0xef600500, pic[2]);
@@ -2353,10 +2354,10 @@ static void ppc405ep_compute_clocks (ppc405ep_cpc_t *cpc)
     clk_setup(&cpc->clk_setup[PPC405EP_UART1_CLK], UART1_clk);
 }
 
-static target_ulong dcr_read_epcpc (void *opaque, int dcrn)
+static uint32_t dcr_read_epcpc (void *opaque, int dcrn)
 {
     ppc405ep_cpc_t *cpc;
-    target_ulong ret;
+    uint32_t ret;
 
     cpc = opaque;
     switch (dcrn) {
@@ -2393,7 +2394,7 @@ static target_ulong dcr_read_epcpc (void *opaque, int dcrn)
     return ret;
 }
 
-static void dcr_write_epcpc (void *opaque, int dcrn, target_ulong val)
+static void dcr_write_epcpc (void *opaque, int dcrn, uint32_t val)
 {
     ppc405ep_cpc_t *cpc;
 
@@ -2535,11 +2536,11 @@ CPUState *ppc405ep_init (target_phys_addr_t ram_bases[2],
     /* Serial ports */
     if (serial_hds[0] != NULL) {
         serial_mm_init(0xef600300, 0, pic[0], PPC_SERIAL_MM_BAUDBASE,
-                       serial_hds[0], 1);
+                       serial_hds[0], 1, 1);
     }
     if (serial_hds[1] != NULL) {
         serial_mm_init(0xef600400, 0, pic[1], PPC_SERIAL_MM_BAUDBASE,
-                       serial_hds[1], 1);
+                       serial_hds[1], 1, 1);
     }
     /* OCM */
     ppc405_ocm_init(env);

@@ -669,6 +669,10 @@ static sd_rsp_type_t sd_normal_command(SDState *sd,
         }
         break;
 
+    case 5: /* CMD5: reserved for SDIO cards */
+        sd->card_status |= ILLEGAL_COMMAND;
+        return sd_r0;
+
     case 6:	/* CMD6:   SWITCH_FUNCTION */
         if (sd->spi)
             goto bad_cmd;
@@ -1139,12 +1143,8 @@ static sd_rsp_type_t sd_normal_command(SDState *sd,
 }
 
 static sd_rsp_type_t sd_app_command(SDState *sd,
-                                    SDRequest req) {
-    uint32_t rca;
-
-    if (sd_cmd_type[req.cmd] == sd_ac || sd_cmd_type[req.cmd] == sd_adtc)
-        rca = req.arg >> 16;
-
+                                    SDRequest req)
+{
     DPRINTF("ACMD%d 0x%08x\n", req.cmd, req.arg);
     switch (req.cmd) {
     case 6:	/* ACMD6:  SET_BUS_WIDTH */

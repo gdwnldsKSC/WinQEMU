@@ -67,9 +67,7 @@ int qemu_cpu_has_work(CPUState *env)
 
 void cpu_loop_exit(void)
 {
-    /* NOTE: the register at this point must be saved by hand because
-       longjmp restore them */
-    regs_to_env();
+    env->current_tb = NULL;
     longjmp(env->jmp_env, 1);
 }
 
@@ -94,7 +92,11 @@ void cpu_resume_from_signal(CPUState *env1, void *puc)
     if (puc) {
         /* XXX: use siglongjmp ? */
 #ifdef __linux__
+#ifdef __ia64
+        sigprocmask(SIG_SETMASK, (sigset_t *)&uc->uc_sigmask, NULL);
+#else
         sigprocmask(SIG_SETMASK, &uc->uc_sigmask, NULL);
+#endif
 #elif defined(__OpenBSD__)
         sigprocmask(SIG_SETMASK, &uc->sc_mask, NULL);
 #endif
@@ -121,6 +123,7 @@ static void cpu_exec_nocache(int max_cycles, TranslationBlock *orig_tb)
     env->current_tb = tb;
     /* execute the generated code */
     next_tb = tcg_qemu_tb_exec(tb->tc_ptr);
+    env->current_tb = NULL;
 
     if ((next_tb & 3) == 2) {
         /* Restore PC.  This may happen if async event occurs before
@@ -137,14 +140,13 @@ static TranslationBlock *tb_find_slow(target_ulong pc,
 {
     TranslationBlock *tb, **ptb1;
     unsigned int h;
-    target_ulong phys_pc, phys_page1, phys_page2, virt_page2;
+    tb_page_addr_t phys_pc, phys_page1, phys_page2;
+    target_ulong virt_page2;
 
     tb_invalidated_flag = 0;
 
-    regs_to_env(); /* XXX: do it just before cpu_gen_code() */
-
     /* find translated block using physical mappings */
-    phys_pc = get_phys_addr_code(env, pc);
+    phys_pc = get_page_addr_code(env, pc);
     phys_page1 = phys_pc & TARGET_PAGE_MASK;
     phys_page2 = -1;
     h = tb_phys_hash_func(phys_pc);
@@ -161,7 +163,7 @@ static TranslationBlock *tb_find_slow(target_ulong pc,
             if (tb->page_addr[1] != -1) {
                 virt_page2 = (pc & TARGET_PAGE_MASK) +
                     TARGET_PAGE_SIZE;
-                phys_page2 = get_phys_addr_code(env, virt_page2);
+                phys_page2 = get_page_addr_code(env, virt_page2);
                 if (tb->page_addr[1] == phys_page2)
                     goto found;
             } else {
@@ -230,8 +232,7 @@ static void *pGenCodeBuffer = NULL;
 
 int cpu_exec(CPUState *env1)
 {
-#define DECLARE_HOST_REGS 1
-#include "hostregs_helper.h"
+    volatile host_reg_t saved_env_reg;
     int ret, interrupt_request;
     TranslationBlock *tb;
     uint8_t *tc_ptr;
@@ -242,12 +243,14 @@ int cpu_exec(CPUState *env1)
 
     cpu_single_env = env1;
 
-    /* first we save global registers */
-#define SAVE_HOST_REGS 1
-#include "hostregs_helper.h"
+    /* the access to env below is actually saving the global register's
+       value, so that files not including target-xyz/exec.h are free to
+       use it.  */
+    QEMU_BUILD_BUG_ON (sizeof (saved_env_reg) != sizeof (env));
+    saved_env_reg = (host_reg_t) env;
+    asm("");
     env = env1;
 
-    env_to_regs();
 #if defined(TARGET_I386)
     if (!kvm_enabled()) {
         /* put eflags in CPU temporary format */
@@ -283,7 +286,6 @@ int cpu_exec(CPUState *env1)
                     env = cpu_single_env;
 #define env cpu_single_env
 #endif
-            env->current_tb = NULL;
             /* if an exception is pending, we execute it here */
             if (env->exception_index >= 0) {
                 if (env->exception_index >= EXCP_INTERRUPT) {
@@ -337,9 +339,9 @@ int cpu_exec(CPUState *env1)
 #elif defined(TARGET_M68K)
                     do_interrupt(0);
 #endif
+                    env->exception_index = -1;
 #endif
                 }
-                env->exception_index = -1;
             }
 
 #ifndef _MSC_VER
@@ -469,20 +471,20 @@ int cpu_exec(CPUState *env1)
                         next_tb = 0;
                     }
 #elif defined(TARGET_SPARC)
-                    if ((interrupt_request & CPU_INTERRUPT_HARD) &&
-			cpu_interrupts_enabled(env)) {
-			int pil = env->interrupt_index & 15;
-			int type = env->interrupt_index & 0xf0;
+                    if (interrupt_request & CPU_INTERRUPT_HARD) {
+                        if (cpu_interrupts_enabled(env) &&
+                            env->interrupt_index > 0) {
+                            int pil = env->interrupt_index & 0xf;
+                            int type = env->interrupt_index & 0xf0;
 
-			if (((type == TT_EXTINT) &&
-			     (pil == 15 || pil > env->psrpil)) ||
-			    type != TT_EXTINT) {
-			    env->interrupt_request &= ~CPU_INTERRUPT_HARD;
-                            env->exception_index = env->interrupt_index;
-                            do_interrupt(env);
-			    env->interrupt_index = 0;
-                        next_tb = 0;
-			}
+                            if (((type == TT_EXTINT) &&
+                                  cpu_pil_allowed(env, pil)) ||
+                                  type != TT_EXTINT) {
+                                env->exception_index = env->interrupt_index;
+                                do_interrupt(env);
+                                next_tb = 0;
+                            }
+                        }
 		    } else if (interrupt_request & CPU_INTERRUPT_TIMER) {
 			//do_interrupt(0, 0, 0, 0, 0);
 			env->interrupt_request &= ~CPU_INTERRUPT_TIMER;
@@ -522,7 +524,8 @@ int cpu_exec(CPUState *env1)
                     }
 #elif defined(TARGET_CRIS)
                     if (interrupt_request & CPU_INTERRUPT_HARD
-                        && (env->pregs[PR_CCS] & I_FLAG)) {
+                        && (env->pregs[PR_CCS] & I_FLAG)
+                        && !env->locked_irq) {
                         env->exception_index = EXCP_IRQ;
                         do_interrupt(env);
                         next_tb = 0;
@@ -564,7 +567,6 @@ int cpu_exec(CPUState *env1)
 #ifdef CONFIG_DEBUG_EXEC
                 if (qemu_loglevel_mask(CPU_LOG_TB_CPU)) {
                     /* restore flags in standard format */
-                    regs_to_env();
 #if defined(TARGET_I386)
                     env->eflags = env->eflags | helper_cc_compute_all(CC_OP) | (DF & DF_MASK);
                     log_cpu_state(env, X86_DUMP_CCOP);
@@ -615,22 +617,17 @@ int cpu_exec(CPUState *env1)
                 /* see if we can patch the calling TB. When the TB
                    spans two pages, we cannot safely do a direct
                    jump. */
-                {
-                    if (next_tb != 0 && tb->page_addr[1] == -1) {
+                if (next_tb != 0 && tb->page_addr[1] == -1) {
                     tb_add_jump((TranslationBlock *)(next_tb & ~3), next_tb & 3, tb);
                 }
-                }
                 spin_unlock(&tb_lock);
-                env->current_tb = tb;
 
                 /* cpu_interrupt might be called while translating the
                    TB, but before it is linked into a potentially
                    infinite loop and becomes env->current_tb. Avoid
                    starting execution if there is a pending interrupt. */
-                if (unlikely (env->exit_request))
-                    env->current_tb = NULL;
-
-                while (env->current_tb) {
+                if (!unlikely (env->exit_request)) {
+                    env->current_tb = tb;
                     tc_ptr = tb->tc_ptr;
                 /* execute the generated code */
 #if defined(__sparc__) && !defined(CONFIG_SOLARIS)
@@ -692,8 +689,6 @@ int cpu_exec(CPUState *env1)
                 /* reset soft MMU for next block (it can currently
                    only be set by a memory fault) */
             } /* for(;;) */
-        } else {
-            env_to_regs();
         }
     } /* for(;;) */
 
@@ -722,7 +717,8 @@ int cpu_exec(CPUState *env1)
 #endif
 
     /* restore global registers */
-#include "hostregs_helper.h"
+    asm("");
+    env = (void *) saved_env_reg;
 
     /* fail safe : never use cpu_single_env outside cpu_exec() */
     cpu_single_env = NULL;
@@ -974,6 +970,20 @@ int cpu_signal_handler(int host_signum, void *pinfo,
 # define TRAP_sig(context)			REG_sig(trap, context)
 #endif /* linux */
 
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#include <ucontext.h>
+# define IAR_sig(context)		((context)->uc_mcontext.mc_srr0)
+# define MSR_sig(context)		((context)->uc_mcontext.mc_srr1)
+# define CTR_sig(context)		((context)->uc_mcontext.mc_ctr)
+# define XER_sig(context)		((context)->uc_mcontext.mc_xer)
+# define LR_sig(context)		((context)->uc_mcontext.mc_lr)
+# define CR_sig(context)		((context)->uc_mcontext.mc_cr)
+/* Exception Registers access */
+# define DAR_sig(context)		((context)->uc_mcontext.mc_dar)
+# define DSISR_sig(context)		((context)->uc_mcontext.mc_dsisr)
+# define TRAP_sig(context)		((context)->uc_mcontext.mc_exc)
+#endif /* __FreeBSD__|| __FreeBSD_kernel__ */
+
 #ifdef __APPLE__
 # include <sys/ucontext.h>
 typedef struct ucontext SIGCONTEXT;
@@ -1003,7 +1013,11 @@ int cpu_signal_handler(int host_signum, void *pinfo,
                        void *puc)
 {
     siginfo_t *info = pinfo;
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    ucontext_t *uc = puc;
+#else
     struct ucontext *uc = puc;
+#endif
     unsigned long pc;
     int is_write;
 
@@ -1179,7 +1193,7 @@ int cpu_signal_handler(int host_signum, void *pinfo, void *puc)
     }
     return handle_cpu_signal(ip, (unsigned long)info->si_addr,
                              is_write,
-                             &uc->uc_sigmask, puc);
+                             (sigset_t *)&uc->uc_sigmask, puc);
 }
 
 #elif defined(__s390__)
@@ -1222,15 +1236,39 @@ int cpu_signal_handler(int host_signum, void *pinfo,
 {
     struct siginfo *info = pinfo;
     struct ucontext *uc = puc;
-    unsigned long pc;
-    int is_write;
+    unsigned long pc = uc->uc_mcontext.sc_iaoq[0];
+    uint32_t insn = *(uint32_t *)pc;
+    int is_write = 0;
 
-    pc = uc->uc_mcontext.sc_iaoq[0];
-    /* FIXME: compute is_write */
-    is_write = 0;
+    /* XXX: need kernel patch to get write flag faster.  */
+    switch (insn >> 26) {
+    case 0x1a: /* STW */
+    case 0x19: /* STH */
+    case 0x18: /* STB */
+    case 0x1b: /* STWM */
+        is_write = 1;
+        break;
+
+    case 0x09: /* CSTWX, FSTWX, FSTWS */
+    case 0x0b: /* CSTDX, FSTDX, FSTDS */
+        /* Distinguish from coprocessor load ... */
+        is_write = (insn >> 9) & 1;
+        break;
+
+    case 0x03:
+        switch ((insn >> 6) & 15) {
+        case 0xa: /* STWS */
+        case 0x9: /* STHS */
+        case 0x8: /* STBS */
+        case 0xe: /* STWAS */
+        case 0xc: /* STBYS */
+            is_write = 1;
+        }
+        break;
+    }
+
     return handle_cpu_signal(pc, (unsigned long)info->si_addr, 
-                             is_write,
-                             &uc->uc_sigmask, puc);
+                             is_write, &uc->uc_sigmask, puc);
 }
 
 #else

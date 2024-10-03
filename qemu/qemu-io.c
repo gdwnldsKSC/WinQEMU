@@ -492,7 +492,8 @@ readv_f(int argc, char **argv)
 	int c, cnt;
 	char *buf;
 	int64_t offset;
-	int total;
+        /* Some compilers get confused and warn if this is not initialized.  */
+        int total = 0;
 	int nr_iov;
 	QEMUIOVector qiov;
 	int pattern = 0;
@@ -747,7 +748,8 @@ writev_f(int argc, char **argv)
 	int c, cnt;
 	char *buf;
 	int64_t offset;
-	int total;
+        /* Some compilers get confused and warn if this is not initialized.  */
+        int total = 0;
 	int nr_iov;
 	int pattern = 0xcd;
 	QEMUIOVector qiov;
@@ -902,8 +904,8 @@ aio_read_help(void)
 "\n"
 " Reads a segment of the currently open file, optionally dumping it to the\n"
 " standard output stream (with -v option) for subsequent inspection.\n"
-" The read is performed asynchronously and should the aio_flush command \n"
-" should be used to ensure all outstanding aio requests have been completed\n"
+" The read is performed asynchronously and the aio_flush command must be\n"
+" used to ensure all outstanding aio requests have been completed\n"
 " -C, -- report statistics in a machine parsable format\n"
 " -P, -- use a pattern to verify read data\n"
 " -v, -- dump buffer to standard output\n"
@@ -1001,8 +1003,8 @@ aio_write_help(void)
 "\n"
 " Writes into a segment of the currently open file, using a buffer\n"
 " filled with a set pattern (0xcdcdcdcd).\n"
-" The write is performed asynchronously and should the aio_flush command \n"
-" should be used to ensure all outstanding aio requests have been completed\n"
+" The write is performed asynchronously and the aio_flush command must be\n"
+" used to ensure all outstanding aio requests have been completed\n"
 " -P, -- use different pattern to fill file\n"
 " -C, -- report statistics in a machine parsable format\n"
 " -q, -- quite mode, do not show I/O statistics\n"
@@ -1093,7 +1095,7 @@ aio_flush_f(int argc, char **argv)
 static const cmdinfo_t aio_flush_cmd = {
 	.name		= "aio_flush",
 	.cfunc		= aio_flush_f,
-	.oneline	= "completes all outstanding aio requets"
+	.oneline	= "completes all outstanding aio requests"
 };
 
 static int
@@ -1274,23 +1276,23 @@ static int openfile(char *name, int flags, int growable)
 		return 1;
 	}
 
-	bs = bdrv_new("hda");
-	if (!bs)
-		return 1;
-
 	if (growable) {
-		flags |= BDRV_O_FILE;
+		if (bdrv_file_open(&bs, name, flags)) {
+			fprintf(stderr, "%s: can't open device %s\n", progname, name);
+			return 1;
+		}
+	} else {
+		bs = bdrv_new("hda");
+		if (!bs)
+			return 1;
+
+		if (bdrv_open(bs, name, flags, NULL) < 0) {
+			fprintf(stderr, "%s: can't open device %s\n", progname, name);
+			bs = NULL;
+			return 1;
+		}
 	}
 
-	if (bdrv_open(bs, name, flags) == -1) {
-		fprintf(stderr, "%s: can't open device %s\n", progname, name);
-		bs = NULL;
-		return 1;
-	}
-
-	if (growable) {
-		bs->growable = 1;
-	}
 	return 0;
 }
 
@@ -1305,7 +1307,6 @@ open_help(void)
 " 'open -Cn /tmp/data' - creates/opens data file read-write and uncached\n"
 "\n"
 " Opens a file for subsequent use by all of the other qemu-io commands.\n"
-" -C, -- create new file if it doesn't exist\n"
 " -r, -- open file read-only\n"
 " -s, -- use snapshot file\n"
 " -n, -- disable host cache\n"
@@ -1335,16 +1336,13 @@ open_f(int argc, char **argv)
 	int growable = 0;
 	int c;
 
-	while ((c = getopt(argc, argv, "snCrg")) != EOF) {
+	while ((c = getopt(argc, argv, "snrg")) != EOF) {
 		switch (c) {
 		case 's':
 			flags |= BDRV_O_SNAPSHOT;
 			break;
 		case 'n':
 			flags |= BDRV_O_NOCACHE;
-			break;
-		case 'C':
-			flags |= BDRV_O_CREAT;
 			break;
 		case 'r':
 			readonly = 1;
@@ -1357,10 +1355,9 @@ open_f(int argc, char **argv)
 		}
 	}
 
-	if (readonly)
-		flags |= BDRV_O_RDONLY;
-	else
-		flags |= BDRV_O_RDWR;
+	if (!readonly) {
+            flags |= BDRV_O_RDWR;
+        }
 
 	if (optind != argc - 1)
 		return command_usage(&open_cmd);
@@ -1394,10 +1391,9 @@ init_check_command(
 static void usage(const char *name)
 {
 	printf(
-"Usage: %s [-h] [-V] [-Crsnm] [-c cmd] ... [file]\n"
+"Usage: %s [-h] [-V] [-rsnm] [-c cmd] ... [file]\n"
 "QEMU Disk exerciser\n"
 "\n"
-"  -C, --create         create new file if it doesn't exist\n"
 "  -c, --cmd            command to execute\n"
 "  -r, --read-only      export read-only\n"
 "  -s, --snapshot       use snapshot file\n"
@@ -1416,13 +1412,12 @@ int main(int argc, char **argv)
 {
 	int readonly = 0;
 	int growable = 0;
-	const char *sopt = "hVc:Crsnmgk";
-	struct option lopt[] = {
+	const char *sopt = "hVc:rsnmgk";
+        const struct option lopt[] = {
 		{ "help", 0, NULL, 'h' },
 		{ "version", 0, NULL, 'V' },
 		{ "offset", 1, NULL, 'o' },
 		{ "cmd", 1, NULL, 'c' },
-		{ "create", 0, NULL, 'C' },
 		{ "read-only", 0, NULL, 'r' },
 		{ "snapshot", 0, NULL, 's' },
 		{ "nocache", 0, NULL, 'n' },
@@ -1447,9 +1442,6 @@ int main(int argc, char **argv)
 			break;
 		case 'c':
 			add_user_command(optarg);
-			break;
-		case 'C':
-			flags |= BDRV_O_CREAT;
 			break;
 		case 'r':
 			readonly = 1;
@@ -1504,10 +1496,9 @@ int main(int argc, char **argv)
 	add_check_command(init_check_command);
 
 	/* open the device */
-	if (readonly)
-		flags |= BDRV_O_RDONLY;
-	else
-		flags |= BDRV_O_RDWR;
+	if (!readonly) {
+            flags |= BDRV_O_RDWR;
+        }
 
 	if ((argc - optind) == 1)
 		openfile(argv[optind], flags, growable);

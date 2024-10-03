@@ -69,7 +69,6 @@ __attribute__((packed));
 #pragma pack (pop)
 #endif
 
-
 typedef struct BDRVParallelsState {
     int fd;
 
@@ -99,11 +98,9 @@ static int parallels_open(BlockDriverState *bs, const char *filename, int flags)
     int fd, i;
     struct parallels_header ph;
 
-    fd = open(filename, O_RDWR | O_BINARY | O_LARGEFILE);
+    fd = open(filename, O_RDONLY | O_BINARY | O_LARGEFILE);
     if (fd < 0) {
-        fd = open(filename, O_RDONLY | O_BINARY | O_LARGEFILE);
-        if (fd < 0)
-            return -1;
+        return -1;
     }
 
     bs->read_only = 1; // no write support yet
@@ -194,7 +191,7 @@ static BlockDriver bdrv_parallels = {
     .format_name	= "parallels",
     .instance_size	= sizeof(BDRVParallelsState),
     .bdrv_probe		= parallels_probe,
-    .bdrv_open		= parallels_open,
+    .bdrv_file_open	= parallels_open,
     .bdrv_read		= parallels_read,
     .bdrv_close		= parallels_close,
 };

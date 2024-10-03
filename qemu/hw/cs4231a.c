@@ -682,5 +682,4 @@ static void cs4231a_register (void)
 {
     isa_qdev_register (&cs4231a_info);
 }
-device_init(cs4231a_register)
-;
+device_init(cs4231a_register);

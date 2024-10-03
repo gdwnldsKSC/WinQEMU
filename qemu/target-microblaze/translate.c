@@ -713,6 +713,9 @@ static void dec_bit(DisasContext *dc)
             tcg_gen_ext16s_i32(cpu_R[dc->rd], cpu_R[dc->ra]);
             break;
         case 0x64:
+        case 0x66:
+        case 0x74:
+        case 0x76:
             /* wdc.  */
             LOG_DIS("wdc r%d\n", dc->ra);
             if ((dc->tb_flags & MSR_EE_FLAG)
@@ -990,6 +993,7 @@ static void dec_bcc(DisasContext *dc)
 static void dec_br(DisasContext *dc)
 {
     unsigned int dslot, link, abs;
+    int mem_index = cpu_mmu_index(dc->env);
 
     dslot = dc->ir & (1 << 20);
     abs = dc->ir & (1 << 19);
@@ -1013,13 +1017,21 @@ static void dec_br(DisasContext *dc)
     if (abs) {
         tcg_gen_movi_tl(env_btaken, 1);
         tcg_gen_mov_tl(env_btarget, *(dec_alu_op_b(dc)));
-        if (link && !(dc->tb_flags & IMM_FLAG)
-            && (dc->imm == 8 || dc->imm == 0x18))
-            t_gen_raise_exception(dc, EXCP_BREAK);
-        if (dc->imm == 0)
-            t_gen_raise_exception(dc, EXCP_DEBUG);
+        if (link && !dslot) {
+            if (!(dc->tb_flags & IMM_FLAG) && (dc->imm == 8 || dc->imm == 0x18))
+                t_gen_raise_exception(dc, EXCP_BREAK);
+            if (dc->imm == 0) {
+                if ((dc->tb_flags & MSR_EE_FLAG) && mem_index == MMU_USER_IDX) {
+                    tcg_gen_movi_tl(cpu_SR[SR_ESR], ESR_EC_PRIVINSN);
+                    t_gen_raise_exception(dc, EXCP_HW_EXCP);
+                    return;
+                }
+
+                t_gen_raise_exception(dc, EXCP_DEBUG);
+            }
+        }
     } else {
-        if (dc->tb_flags & IMM_FLAG) {
+        if (!dc->type_b || (dc->tb_flags & IMM_FLAG)) {
             tcg_gen_movi_tl(env_btaken, 1);
             tcg_gen_movi_tl(env_btarget, dc->pc);
             tcg_gen_add_tl(env_btarget, env_btarget, *(dec_alu_op_b(dc)));
@@ -1445,13 +1457,16 @@ void cpu_dump_state (CPUState *env, FILE *f,
 
     cpu_fprintf(f, "IN: PC=%x %s\n",
                 env->sregs[SR_PC], lookup_symbol(env->sregs[SR_PC]));
-    cpu_fprintf(f, "rmsr=%x resr=%x debug[%x] imm=%x iflags=%x\n",
-             env->sregs[SR_MSR], env->sregs[SR_ESR],
+    cpu_fprintf(f, "rmsr=%x resr=%x rear=%x debug[%x] imm=%x iflags=%x\n",
+             env->sregs[SR_MSR], env->sregs[SR_ESR], env->sregs[SR_EAR],
              env->debug, env->imm, env->iflags);
-    cpu_fprintf(f, "btaken=%d btarget=%x mode=%s(saved=%s)\n",
+    cpu_fprintf(f, "btaken=%d btarget=%x mode=%s(saved=%s) eip=%d ie=%d\n",
              env->btaken, env->btarget,
              (env->sregs[SR_MSR] & MSR_UM) ? "user" : "kernel",
-             (env->sregs[SR_MSR] & MSR_UMS) ? "user" : "kernel");
+             (env->sregs[SR_MSR] & MSR_UMS) ? "user" : "kernel",
+             (env->sregs[SR_MSR] & MSR_EIP),
+             (env->sregs[SR_MSR] & MSR_IE));
+
     for (i = 0; i < 32; i++) {
         cpu_fprintf(f, "r%2.2d=%8.8x ", i, env->regs[i]);
         if ((i + 1) % 4 == 0)

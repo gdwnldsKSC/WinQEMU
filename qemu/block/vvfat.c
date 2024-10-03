@@ -1145,8 +1145,8 @@ static inline void vvfat_close_current_file(BDRVVVFATState *s)
  */
 static inline int find_mapping_for_cluster_aux(BDRVVVFATState* s,int cluster_num,int index1,int index2)
 {
-    int index3=index1+1;
     while(1) {
+        int index3;
 	mapping_t* mapping;
 	index3=(index1+index2)/2;
 	mapping=array_get(&(s->mapping),index3);
@@ -1684,7 +1684,7 @@ static uint32_t get_cluster_count_for_direntry(BDRVVVFATState* s,
 	    /* new file */
 	    schedule_new_file(s, qemu_strdup(path), cluster_num);
 	else {
-	    assert(0);
+            abort();
 	    return 0;
 	}
     }
@@ -1705,7 +1705,7 @@ static uint32_t get_cluster_count_for_direntry(BDRVVVFATState* s,
 		    if (offset != mapping->info.file.offset + s->cluster_size
 			    * (cluster_num - mapping->begin)) {
 			/* offset of this cluster in file chain has changed */
-			assert(0);
+                        abort();
 			copy_it = 1;
 		    } else if (offset == 0) {
 			const char* basename = get_basename(mapping->path);
@@ -1717,7 +1717,7 @@ static uint32_t get_cluster_count_for_direntry(BDRVVVFATState* s,
 
 		    if (mapping->first_mapping_index != first_mapping_index
 			    && mapping->info.file.offset > 0) {
-			assert(0);
+                        abort();
 			copy_it = 1;
 		    }
 
@@ -1883,7 +1883,7 @@ DLOG(fprintf(stderr, "check direntry %d: \n", i); print_direntry(direntries + i)
 		    goto fail;
 		}
 	    } else
-		assert(0); /* cluster_count = 0; */
+                abort(); /* cluster_count = 0; */
 
 	    ret += cluster_count;
 	}
@@ -2504,14 +2504,17 @@ static int handle_commits(BDRVVVFATState* s)
 	commit_t* commit = array_get(&(s->commits), i);
 	switch(commit->action) {
 	case ACTION_RENAME: case ACTION_MKDIR:
-	    assert(0);
+            abort();
 	    fail = -2;
 	    break;
 	case ACTION_WRITEOUT: {
+#ifndef NDEBUG
+            /* these variables are only used by assert() below */
 	    direntry_t* entry = array_get(&(s->directory),
 		    commit->param.writeout.dir_index);
 	    uint32_t begin = begin_of_direntry(entry);
 	    mapping_t* mapping = find_mapping_for_cluster(s, begin);
+#endif
 
 	    assert(mapping);
 	    assert(mapping->begin == begin);
@@ -2562,7 +2565,7 @@ static int handle_commits(BDRVVVFATState* s)
 	    break;
 	}
 	default:
-	    assert(0);
+            abort();
 	}
     }
     if (i > 0 && array_remove_slice(&(s->commits), 0, i))
@@ -2650,7 +2653,7 @@ static int do_commit(BDRVVVFATState* s)
     ret = handle_renames_and_mkdirs(s);
     if (ret) {
 	fprintf(stderr, "Error handling renames (%d)\n", ret);
-	assert(0);
+        abort();
 	return ret;
     }
 
@@ -2661,21 +2664,21 @@ static int do_commit(BDRVVVFATState* s)
     ret = commit_direntries(s, 0, -1);
     if (ret) {
 	fprintf(stderr, "Fatal: error while committing (%d)\n", ret);
-	assert(0);
+        abort();
 	return ret;
     }
 
     ret = handle_commits(s);
     if (ret) {
 	fprintf(stderr, "Error handling commits (%d)\n", ret);
-	assert(0);
+        abort();
 	return ret;
     }
 
     ret = handle_deletes(s);
     if (ret) {
 	fprintf(stderr, "Error deleting\n");
-        assert(0);
+        abort();
 	return ret;
     }
 
@@ -2838,8 +2841,11 @@ static int enable_write_target(BDRVVVFATState *s)
     if (bdrv_create(bdrv_qcow, s->qcow_filename, options) < 0)
 	return -1;
     s->qcow = bdrv_new("");
-    if (s->qcow == NULL || bdrv_open(s->qcow, s->qcow_filename, 0) < 0)
+    if (s->qcow == NULL ||
+        bdrv_open(s->qcow, s->qcow_filename, BDRV_O_RDWR, bdrv_qcow) < 0)
+    {
 	return -1;
+    }
 
 #ifndef _WIN32
     unlink(s->qcow_filename);
@@ -2867,7 +2873,7 @@ static void vvfat_close(BlockDriverState *bs)
 static BlockDriver bdrv_vvfat = {
     .format_name	= "vvfat",
     .instance_size	= sizeof(BDRVVVFATState),
-    .bdrv_open		= vvfat_open,
+    .bdrv_file_open	= vvfat_open,
     .bdrv_read		= vvfat_read,
     .bdrv_write		= vvfat_write,
     .bdrv_close		= vvfat_close,

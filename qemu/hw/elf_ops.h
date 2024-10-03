@@ -149,9 +149,14 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
         }
         i++;
     }
-    syms = qemu_realloc(syms, nsyms * sizeof(*syms));
+    if (nsyms) {
+        syms = qemu_realloc(syms, nsyms * sizeof(*syms));
 
-    qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
+        qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
+    } else {
+        qemu_free(syms);
+        syms = NULL;
+    }
 
     /* String table */
     if (symtab->sh_link >= ehdr->e_shnum)
@@ -179,7 +184,9 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
     return -1;
 }
 
-static int glue(load_elf, SZ)(const char *name, int fd, int64_t address_offset,
+static int glue(load_elf, SZ)(const char *name, int fd,
+                              uint64_t (*translate_fn)(void *, uint64_t),
+                              void *translate_opaque,
                               int must_swab, uint64_t *pentry,
                               uint64_t *lowaddr, uint64_t *highaddr,
                               int elf_machine, int clear_lsb)
@@ -248,7 +255,11 @@ static int glue(load_elf, SZ)(const char *name, int fd, int64_t address_offset,
             }
             /* address_offset is hack for kernel images that are
                linked at the wrong physical address.  */
-            addr = ph->p_paddr + address_offset;
+            if (translate_fn) {
+                addr = translate_fn(translate_opaque, ph->p_paddr);
+            } else {
+                addr = ph->p_paddr;
+            }
 
             snprintf(label, sizeof(label), "phdr #%d: %s", i, name);
             rom_add_blob_fixed(label, data, mem_size, addr);

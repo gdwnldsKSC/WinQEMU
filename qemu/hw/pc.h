@@ -2,6 +2,7 @@
 #define HW_PC_H
 
 #include "qemu-common.h"
+#include "ioport.h"
 
 /* PC-style peripherals (also used by other machines).  */
 
@@ -11,7 +12,8 @@ SerialState *serial_init(int base, qemu_irq irq, int baudbase,
                          CharDriverState *chr);
 SerialState *serial_mm_init (target_phys_addr_t base, int it_shift,
                              qemu_irq irq, int baudbase,
-                             CharDriverState *chr, int ioregister);
+                             CharDriverState *chr, int ioregister,
+                             int be);
 SerialState *serial_isa_init(int index, CharDriverState *chr);
 void serial_set_frequency(SerialState *s, uint32_t frequency);
 
@@ -33,21 +35,6 @@ void pic_update_irq(PicState2 *s);
 uint32_t pic_intack_read(PicState2 *s);
 void pic_info(Monitor *mon);
 void irq_info(Monitor *mon);
-
-/* APIC */
-typedef struct IOAPICState IOAPICState;
-void apic_deliver_irq(uint8_t dest, uint8_t dest_mode,
-                             uint8_t delivery_mode,
-                             uint8_t vector_num, uint8_t polarity,
-                             uint8_t trigger_mode);
-int apic_init(CPUState *env);
-int apic_accept_pic_intr(CPUState *env);
-void apic_deliver_pic_intr(CPUState *env, int level);
-int apic_get_interrupt(CPUState *env);
-qemu_irq *ioapic_init(void);
-void ioapic_set_irq(void *opaque, int vector, int level);
-void apic_reset_irq_delivered(void);
-int apic_get_irq_delivered(void);
 
 /* i8254.c */
 
@@ -86,7 +73,6 @@ typedef struct RTCState RTCState;
 RTCState *rtc_init(int base_year);
 void rtc_set_memory(RTCState *s, int addr, int val);
 void rtc_set_date(RTCState *s, const struct tm *tm);
-void cmos_set_s3_resume(void);
 
 /* pc.c */
 extern int fd_bootchk;
@@ -103,8 +89,10 @@ void acpi_bios_init(void);
 int acpi_table_add(const char *table_desc);
 
 /* acpi_piix.c */
+
 i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
-                       qemu_irq sci_irq);
+                       qemu_irq sci_irq, qemu_irq cmos_s3, qemu_irq smi_irq,
+                       int kvm_enabled);
 void piix4_smbus_register_device(SMBusDevice *dev, uint8_t addr);
 void piix4_acpi_system_hot_add_init(PCIBus *bus);
 
@@ -119,7 +107,7 @@ int pcspk_audio_init(qemu_irq *pic);
 struct PCII440FXState;
 typedef struct PCII440FXState PCII440FXState;
 
-PCIBus *i440fx_init(PCII440FXState **pi440fx_state, int *piix_devfn, qemu_irq *pic);
+PCIBus *i440fx_init(PCII440FXState **pi440fx_state, int *piix_devfn, qemu_irq *pic, int ram_size);
 void i440fx_set_smm(PCII440FXState *d, int val);
 void i440fx_init_memory_mappings(PCII440FXState *d);
 
@@ -149,5 +137,13 @@ void isa_cirrus_vga_init(void);
 
 void isa_ne2000_init(int base, int irq, NICInfo *nd);
 
-int cpu_is_bsp(CPUState *env);
+/* e820 types */
+#define E820_RAM        1
+#define E820_RESERVED   2
+#define E820_ACPI       3
+#define E820_NVS        4
+#define E820_UNUSABLE   5
+
+int e820_add_entry(uint64_t, uint64_t, uint32_t);
+
 #endif

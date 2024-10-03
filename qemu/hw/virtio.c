@@ -77,9 +77,10 @@ struct VirtQueue
     int inuse;
     uint16_t vector;
     void (*handle_output)(VirtIODevice *vdev, VirtQueue *vq);
+    VirtIODevice *vdev;
+    EventNotifier guest_notifier;
+    EventNotifier host_notifier;
 };
-
-#define VIRTIO_PCI_QUEUE_MAX        16
 
 /* virt queue functions */
 static void virtqueue_init(VirtQueue *vq)
@@ -449,7 +450,7 @@ void virtio_reset(void *opaque)
     if (vdev->reset)
         vdev->reset(vdev);
 
-    vdev->features = 0;
+    vdev->guest_features = 0;
     vdev->queue_sel = 0;
     vdev->status = 0;
     vdev->isr = 0;
@@ -598,11 +599,17 @@ VirtQueue *virtio_add_queue(VirtIODevice *vdev, int queue_size,
     return &vdev->vq[i];
 }
 
+void virtio_irq(VirtQueue *vq)
+{
+    vq->vdev->isr |= 0x01;
+    virtio_notify_vector(vq->vdev, vq->vector);
+}
+
 void virtio_notify(VirtIODevice *vdev, VirtQueue *vq)
 {
     /* Always notify when queue is empty (when feature acknowledge) */
     if ((vring_avail_flags(vq) & VRING_AVAIL_F_NO_INTERRUPT) &&
-        (!(vdev->features & (1 << VIRTIO_F_NOTIFY_ON_EMPTY)) ||
+        (!(vdev->guest_features & (1 << VIRTIO_F_NOTIFY_ON_EMPTY)) ||
          (vq->inuse || vring_avail_idx(vq) != vq->last_avail_idx)))
         return;
 
@@ -629,7 +636,7 @@ void virtio_save(VirtIODevice *vdev, QEMUFile *f)
     qemu_put_8s(f, &vdev->status);
     qemu_put_8s(f, &vdev->isr);
     qemu_put_be16s(f, &vdev->queue_sel);
-    qemu_put_be32s(f, &vdev->features);
+    qemu_put_be32s(f, &vdev->guest_features);
     qemu_put_be32(f, vdev->config_len);
     qemu_put_buffer(f, vdev->config, vdev->config_len);
 
@@ -656,7 +663,7 @@ int virtio_load(VirtIODevice *vdev, QEMUFile *f)
 {
     int num, i, ret;
     uint32_t features;
-    uint32_t supported_features = vdev->get_features(vdev) |
+    uint32_t supported_features =
         vdev->binding->get_features(vdev->binding_opaque);
 
     if (vdev->binding->load_config) {
@@ -674,7 +681,7 @@ int virtio_load(VirtIODevice *vdev, QEMUFile *f)
                 features, supported_features);
         return -1;
     }
-    vdev->features = features;
+    vdev->guest_features = features;
     vdev->config_len = qemu_get_be32(f);
     qemu_get_buffer(f, vdev->config, vdev->config_len);
 
@@ -720,8 +727,10 @@ VirtIODevice *virtio_common_init(const char *name, uint16_t device_id,
     vdev->queue_sel = 0;
     vdev->config_vector = VIRTIO_NO_VECTOR;
     vdev->vq = qemu_mallocz(sizeof(VirtQueue) * VIRTIO_PCI_QUEUE_MAX);
-    for(i = 0; i < VIRTIO_PCI_QUEUE_MAX; i++)
+    for(i = 0; i < VIRTIO_PCI_QUEUE_MAX; i++) {
         vdev->vq[i].vector = VIRTIO_NO_VECTOR;
+        vdev->vq[i].vdev = vdev;
+    }
 
     vdev->name = name;
     vdev->config_len = config_size;
@@ -738,4 +747,71 @@ void virtio_bind_device(VirtIODevice *vdev, const VirtIOBindings *binding,
 {
     vdev->binding = binding;
     vdev->binding_opaque = opaque;
+}
+
+target_phys_addr_t virtio_queue_get_desc_addr(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].vring.desc;
+}
+
+target_phys_addr_t virtio_queue_get_avail_addr(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].vring.avail;
+}
+
+target_phys_addr_t virtio_queue_get_used_addr(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].vring.used;
+}
+
+target_phys_addr_t virtio_queue_get_ring_addr(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].vring.desc;
+}
+
+target_phys_addr_t virtio_queue_get_desc_size(VirtIODevice *vdev, int n)
+{
+    return sizeof(VRingDesc) * vdev->vq[n].vring.num;
+}
+
+target_phys_addr_t virtio_queue_get_avail_size(VirtIODevice *vdev, int n)
+{
+    return offsetof(VRingAvail, ring) +
+        sizeof(uint64_t) * vdev->vq[n].vring.num;
+}
+
+target_phys_addr_t virtio_queue_get_used_size(VirtIODevice *vdev, int n)
+{
+    return offsetof(VRingUsed, ring) +
+        sizeof(VRingUsedElem) * vdev->vq[n].vring.num;
+}
+
+target_phys_addr_t virtio_queue_get_ring_size(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].vring.used - vdev->vq[n].vring.desc +
+	    virtio_queue_get_used_size(vdev, n);
+}
+
+uint16_t virtio_queue_get_last_avail_idx(VirtIODevice *vdev, int n)
+{
+    return vdev->vq[n].last_avail_idx;
+}
+
+void virtio_queue_set_last_avail_idx(VirtIODevice *vdev, int n, uint16_t idx)
+{
+    vdev->vq[n].last_avail_idx = idx;
+}
+
+VirtQueue *virtio_get_queue(VirtIODevice *vdev, int n)
+{
+    return vdev->vq + n;
+}
+
+EventNotifier *virtio_queue_get_guest_notifier(VirtQueue *vq)
+{
+    return &vq->guest_notifier;
+}
+EventNotifier *virtio_queue_get_host_notifier(VirtQueue *vq)
+{
+    return &vq->host_notifier;
 }

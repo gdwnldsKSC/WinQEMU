@@ -11,6 +11,7 @@
 //#define DEBUG_UNASSIGNED
 //#define DEBUG_ASI
 //#define DEBUG_PCALL
+//#define DEBUG_PSTATE
 
 #ifdef DEBUG_MMU
 #define DPRINTF_MMU(fmt, ...)                                   \
@@ -31,12 +32,24 @@
     do { printf("ASI: " fmt , ## __VA_ARGS__); } while (0)
 #endif
 
+#ifdef DEBUG_PSTATE
+#define DPRINTF_PSTATE(fmt, ...)                                   \
+    do { printf("PSTATE: " fmt , ## __VA_ARGS__); } while (0)
+#else
+#define DPRINTF_PSTATE(fmt, ...) do {} while (0)
+#endif
+
 #ifdef TARGET_SPARC64
 #ifndef TARGET_ABI32
 #define AM_CHECK(env1) ((env1)->pstate & PS_AM)
 #else
 #define AM_CHECK(env1) (1)
 #endif
+#endif
+
+#if defined(CONFIG_USER_ONLY) && defined(TARGET_SPARC64)
+static void do_unassigned_access(target_ulong addr, int is_write, int is_exec,
+                          int is_asi, int size);
 #endif
 
 #if defined(TARGET_SPARC64) && !defined(CONFIG_USER_ONLY)
@@ -188,12 +201,13 @@ static void replace_tlb_1bit_lru(SparcTLBEntry *tlb,
 
 #endif
 
-static inline void address_mask(CPUState *env1, target_ulong *addr)
+static inline target_ulong address_mask(CPUState *env1, target_ulong addr)
 {
 #ifdef TARGET_SPARC64
     if (AM_CHECK(env1))
-        *addr &= 0xffffffffULL;
+        addr &= 0xffffffffULL;
 #endif
+    return addr;
 }
 
 static void raise_exception(int tt)
@@ -1910,7 +1924,7 @@ uint64_t helper_ld_asi(target_ulong addr, int asi, int size, int sign)
         raise_exception(TT_PRIV_ACT);
 
     helper_check_align(addr, size - 1);
-    address_mask(env, &addr);
+    addr = address_mask(env, addr);
 
     switch (asi) {
     case 0x82: // Primary no-fault
@@ -2013,7 +2027,7 @@ void helper_st_asi(target_ulong addr, target_ulong val, int asi, int size)
         raise_exception(TT_PRIV_ACT);
 
     helper_check_align(addr, size - 1);
-    address_mask(env, &addr);
+    addr = address_mask(env, addr);
 
     /* Convert to little endian */
     switch (asi) {
@@ -2931,8 +2945,7 @@ void helper_stdf(target_ulong addr, int mem_idx)
         break;
     }
 #else
-    address_mask(env, &addr);
-    stfq_raw(addr, DT0);
+    stfq_raw(address_mask(env, addr), DT0);
 #endif
 }
 
@@ -2956,8 +2969,7 @@ void helper_lddf(target_ulong addr, int mem_idx)
         break;
     }
 #else
-    address_mask(env, &addr);
-    DT0 = ldfq_raw(addr);
+    DT0 = ldfq_raw(address_mask(env, addr));
 #endif
 }
 
@@ -2990,9 +3002,8 @@ void helper_ldqf(target_ulong addr, int mem_idx)
         break;
     }
 #else
-    address_mask(env, &addr);
-    u.ll.upper = ldq_raw(addr);
-    u.ll.lower = ldq_raw((addr + 8) & 0xffffffffULL);
+    u.ll.upper = ldq_raw(address_mask(env, addr));
+    u.ll.lower = ldq_raw(address_mask(env, addr + 8));
     QT0 = u.q;
 #endif
 }
@@ -3027,9 +3038,8 @@ void helper_stqf(target_ulong addr, int mem_idx)
     }
 #else
     u.q = QT0;
-    address_mask(env, &addr);
-    stq_raw(addr, u.ll.upper);
-    stq_raw((addr + 8) & 0xffffffffULL, u.ll.lower);
+    stq_raw(address_mask(env, addr), u.ll.upper);
+    stq_raw(address_mask(env, addr + 8), u.ll.lower);
 #endif
 }
 
@@ -3240,10 +3250,16 @@ target_ulong helper_popc(target_ulong val)
     return ctpop64(val);
 }
 
-static inline uint64_t *get_gregset(uint64_t pstate)
+static inline uint64_t *get_gregset(uint32_t pstate)
 {
     switch (pstate) {
     default:
+        DPRINTF_PSTATE("ERROR in get_gregset: active pstate bits=%x%s%s%s\n",
+                pstate,
+                (pstate & PS_IG) ? " IG" : "",
+                (pstate & PS_MG) ? " MG" : "",
+                (pstate & PS_AG) ? " AG" : "");
+        /* pass through to normal set of global registers */
     case 0:
         return env->bgregs;
     case PS_AG:
@@ -3255,9 +3271,9 @@ static inline uint64_t *get_gregset(uint64_t pstate)
     }
 }
 
-static inline void change_pstate(uint64_t new_pstate)
+static inline void change_pstate(uint32_t new_pstate)
 {
-    uint64_t pstate_regs, new_pstate_regs;
+    uint32_t pstate_regs, new_pstate_regs;
     uint64_t *src, *dst;
 
     if (env->def->features & CPU_FEATURE_GL) {
@@ -3269,11 +3285,17 @@ static inline void change_pstate(uint64_t new_pstate)
     new_pstate_regs = new_pstate & 0xc01;
 
     if (new_pstate_regs != pstate_regs) {
+        DPRINTF_PSTATE("change_pstate: switching regs old=%x new=%x\n",
+                       pstate_regs, new_pstate_regs);
         // Switch global register bank
         src = get_gregset(new_pstate_regs);
         dst = get_gregset(pstate_regs);
         memcpy32(dst, env->gregs);
         memcpy32(env->gregs, src);
+    }
+    else {
+        DPRINTF_PSTATE("change_pstate: regs new=%x (unchanged)\n",
+                       new_pstate_regs);
     }
     env->pstate = new_pstate;
 }
@@ -3281,6 +3303,26 @@ static inline void change_pstate(uint64_t new_pstate)
 void helper_wrpstate(target_ulong new_state)
 {
     change_pstate(new_state & 0xf3f);
+
+#if !defined(CONFIG_USER_ONLY)
+    if (cpu_interrupts_enabled(env)) {
+        cpu_check_irqs(env);
+    }
+#endif
+}
+
+void helper_wrpil(target_ulong new_pil)
+{
+#if !defined(CONFIG_USER_ONLY)
+    DPRINTF_PSTATE("helper_wrpil old=%x new=%x\n",
+                   env->psrpil, (uint32_t)new_pil);
+
+    env->psrpil = new_pil;
+
+    if (cpu_interrupts_enabled(env)) {
+        cpu_check_irqs(env);
+    }
+#endif
 }
 
 void helper_done(void)
@@ -3294,6 +3336,14 @@ void helper_done(void)
     change_pstate((tsptr->tstate >> 8) & 0xf3f);
     PUT_CWP64(env, tsptr->tstate & 0xff);
     env->tl--;
+
+    DPRINTF_PSTATE("... helper_done tl=%d\n", env->tl);
+
+#if !defined(CONFIG_USER_ONLY)
+    if (cpu_interrupts_enabled(env)) {
+        cpu_check_irqs(env);
+    }
+#endif
 }
 
 void helper_retry(void)
@@ -3307,21 +3357,42 @@ void helper_retry(void)
     change_pstate((tsptr->tstate >> 8) & 0xf3f);
     PUT_CWP64(env, tsptr->tstate & 0xff);
     env->tl--;
+
+    DPRINTF_PSTATE("... helper_retry tl=%d\n", env->tl);
+
+#if !defined(CONFIG_USER_ONLY)
+    if (cpu_interrupts_enabled(env)) {
+        cpu_check_irqs(env);
+    }
+#endif
+}
+
+static void do_modify_softint(const char* operation, uint32_t value)
+{
+    if (env->softint != value) {
+        env->softint = value;
+        DPRINTF_PSTATE(": %s new %08x\n", operation, env->softint);
+#if !defined(CONFIG_USER_ONLY)
+        if (cpu_interrupts_enabled(env)) {
+            cpu_check_irqs(env);
+        }
+#endif
+    }
 }
 
 void helper_set_softint(uint64_t value)
 {
-    env->softint |= (uint32_t)value;
+    do_modify_softint("helper_set_softint", env->softint | (uint32_t)value);
 }
 
 void helper_clear_softint(uint64_t value)
 {
-    env->softint &= (uint32_t)~value;
+    do_modify_softint("helper_clear_softint", env->softint & (uint32_t)~value);
 }
 
 void helper_write_softint(uint64_t value)
 {
-    env->softint = (uint32_t)value;
+    do_modify_softint("helper_write_softint", (uint32_t)value);
 }
 #endif
 
@@ -3447,10 +3518,10 @@ void do_interrupt(CPUState *env)
         change_pstate(PS_PEF | PS_PRIV | PS_IG);
         break;
     case TT_TFAULT:
-    case TT_TMISS:
     case TT_DFAULT:
-    case TT_DMISS:
-    case TT_DPROT:
+    case TT_TMISS ... TT_TMISS + 3:
+    case TT_DMISS ... TT_DMISS + 3:
+    case TT_DPROT ... TT_DPROT + 3:
         change_pstate(PS_PEF | PS_PRIV | PS_MG);
         break;
     default:
@@ -3468,7 +3539,7 @@ void do_interrupt(CPUState *env)
     env->tbr |= ((env->tl > 1) ? 1 << 14 : 0) | (intno << 5);
     env->pc = env->tbr;
     env->npc = env->pc + 4;
-    env->exception_index = 0;
+    env->exception_index = -1;
 }
 #else
 #ifdef DEBUG_PCALL
@@ -3563,7 +3634,7 @@ void do_interrupt(CPUState *env)
     env->tbr = (env->tbr & TBR_BASE_MASK) | (intno << 4);
     env->pc = env->tbr;
     env->npc = env->pc + 4;
-    env->exception_index = 0;
+    env->exception_index = -1;
 }
 #endif
 
@@ -3638,13 +3709,15 @@ void tlb_fill(target_ulong addr, int is_write, int mmu_idx, void *retaddr)
     env = saved_env;
 }
 
-#endif
+#endif /* !CONFIG_USER_ONLY */
 
 #ifndef TARGET_SPARC64
+#if !defined(CONFIG_USER_ONLY)
 void do_unassigned_access(target_phys_addr_t addr, int is_write, int is_exec,
                           int is_asi, int size)
 {
     CPUState *saved_env;
+    int fault_type;
 
     /* XXX: hack to restore env in all cases, even if not called from
        generated code */
@@ -3662,47 +3735,75 @@ void do_unassigned_access(target_phys_addr_t addr, int is_write, int is_exec,
                is_exec ? "exec" : is_write ? "write" : "read", size,
                size == 1 ? "" : "s", addr, env->pc);
 #endif
-    if (env->mmuregs[3]) /* Fault status register */
-        env->mmuregs[3] = 1; /* overflow (not read before another fault) */
-    if (is_asi)
-        env->mmuregs[3] |= 1 << 16;
-    if (env->psrs)
-        env->mmuregs[3] |= 1 << 5;
-    if (is_exec)
-        env->mmuregs[3] |= 1 << 6;
-    if (is_write)
-        env->mmuregs[3] |= 1 << 7;
-    env->mmuregs[3] |= (5 << 2) | 2;
-    env->mmuregs[4] = addr; /* Fault address register */
+    /* Don't overwrite translation and access faults */
+    fault_type = (env->mmuregs[3] & 0x1c) >> 2;
+    if ((fault_type > 4) || (fault_type == 0)) {
+        env->mmuregs[3] = 0; /* Fault status register */
+        if (is_asi)
+            env->mmuregs[3] |= 1 << 16;
+        if (env->psrs)
+            env->mmuregs[3] |= 1 << 5;
+        if (is_exec)
+            env->mmuregs[3] |= 1 << 6;
+        if (is_write)
+            env->mmuregs[3] |= 1 << 7;
+        env->mmuregs[3] |= (5 << 2) | 2;
+        /* SuperSPARC will never place instruction fault addresses in the FAR */
+        if (!is_exec) {
+            env->mmuregs[4] = addr; /* Fault address register */
+        }
+    }
+    /* overflow (same type fault was not read before another fault) */
+    if (fault_type == ((env->mmuregs[3] & 0x1c)) >> 2) {
+        env->mmuregs[3] |= 1;
+    }
+
     if ((env->mmuregs[0] & MMU_E) && !(env->mmuregs[0] & MMU_NF)) {
         if (is_exec)
             raise_exception(TT_CODE_ACCESS);
         else
             raise_exception(TT_DATA_ACCESS);
     }
+
+    /* flush neverland mappings created during no-fault mode,
+       so the sequential MMU faults report proper fault types */
+    if (env->mmuregs[0] & MMU_NF) {
+        tlb_flush(env, 1);
+    }
+
     env = saved_env;
 }
+#endif
+#else
+#if defined(CONFIG_USER_ONLY)
+static void do_unassigned_access(target_ulong addr, int is_write, int is_exec,
+                          int is_asi, int size)
 #else
 void do_unassigned_access(target_phys_addr_t addr, int is_write, int is_exec,
                           int is_asi, int size)
+#endif
 {
-#ifdef DEBUG_UNASSIGNED
     CPUState *saved_env;
 
     /* XXX: hack to restore env in all cases, even if not called from
        generated code */
     saved_env = env;
     env = cpu_single_env;
+
+#ifdef DEBUG_UNASSIGNED
     printf("Unassigned mem access to " TARGET_FMT_plx " from " TARGET_FMT_lx
            "\n", addr, env->pc);
-    env = saved_env;
 #endif
+
     if (is_exec)
         raise_exception(TT_CODE_ACCESS);
     else
         raise_exception(TT_DATA_ACCESS);
+
+    env = saved_env;
 }
 #endif
+
 
 #ifdef TARGET_SPARC64
 void helper_tick_set_count(void *opaque, uint64_t count)

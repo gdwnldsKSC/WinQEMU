@@ -24,6 +24,10 @@ enum DevState {
     DEV_STATE_INITIALIZED,
 };
 
+enum {
+    DEV_NVECTORS_UNSPECIFIED = -1,
+};
+
 /* This structure should not be accessed directly.  We declare it here
    so that it can be embedded in individual device state structures.  */
 struct DeviceState {
@@ -64,6 +68,7 @@ struct Property {
     const char   *name;
     PropertyInfo *info;
     int          offset;
+    int          bitnr;
     void         *defval;
 };
 
@@ -82,6 +87,7 @@ enum PropertyType {
     PROP_TYPE_NETDEV,
     PROP_TYPE_VLAN,
     PROP_TYPE_PTR,
+    PROP_TYPE_BIT,
 };
 
 struct PropertyInfo {
@@ -102,6 +108,7 @@ typedef struct GlobalProperty {
 /*** Board API.  This should go away once we have a machine config file.  ***/
 
 DeviceState *qdev_create(BusState *bus, const char *name);
+int qdev_device_help(QemuOpts *opts);
 DeviceState *qdev_device_add(QemuOpts *opts);
 int qdev_init(DeviceState *dev) QEMU_WARN_UNUSED_RESULT;
 void qdev_init_nofail(DeviceState *dev);
@@ -168,11 +175,12 @@ void qbus_free(BusState *bus);
 
 void do_info_qtree(Monitor *mon);
 void do_info_qdm(Monitor *mon);
-void do_device_add(Monitor *mon, const QDict *qdict);
-void do_device_del(Monitor *mon, const QDict *qdict);
+int do_device_add(Monitor *mon, const QDict *qdict, QObject **ret_data);
+int do_device_del(Monitor *mon, const QDict *qdict, QObject **ret_data);
 
 /*** qdev-properties.c ***/
 
+extern PropertyInfo qdev_prop_bit;
 extern PropertyInfo qdev_prop_uint8;
 extern PropertyInfo qdev_prop_uint16;
 extern PropertyInfo qdev_prop_uint32;
@@ -201,6 +209,14 @@ extern PropertyInfo qdev_prop_pci_devfn;
         .offset    = offsetof(_state, _field)                           \
             + type_check(_type,typeof_field(_state, _field)),           \
         .defval    = (_type[]) { _defval },                             \
+        }
+#define DEFINE_PROP_BIT(_name, _state, _field, _bit, _defval) {  \
+        .name      = (_name),                                    \
+        .info      = &(qdev_prop_bit),                           \
+        .bitnr    = (_bit),                                      \
+        .offset    = offsetof(_state, _field)                    \
+            + type_check(uint32_t,typeof_field(_state, _field)), \
+        .defval    = (bool[]) { (_defval) },                     \
         }
 
 #define DEFINE_PROP_UINT8(_n, _s, _f, _d)                       \
@@ -257,7 +273,6 @@ void qdev_prop_set_macaddr(DeviceState *dev, const char *name, uint8_t *value);
 void qdev_prop_set_ptr(DeviceState *dev, const char *name, void *value);
 void qdev_prop_set_defaults(DeviceState *dev, Property *props);
 
-void qdev_prop_register_global(GlobalProperty *prop);
 void qdev_prop_register_global_list(GlobalProperty *props);
 void qdev_prop_set_globals(DeviceState *dev);
 

@@ -2758,6 +2758,7 @@ static void cirrus_vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 		case 0x0e:
 		case 0x0f:
 #endif
+        s->ar[index] = val & 0x3f;
 		break;
 	    case 0x10:
 		s->ar[index] = val & ~0x10;

@@ -35,6 +35,7 @@
 #include "sysemu.h"
 #include "qemu-common.h"
 #include "qemu_socket.h"
+#include "hw/qdev.h"
 
 static QTAILQ_HEAD(, VLANState) vlans;
 static QTAILQ_HEAD(, VLANClientState) non_vlan_clients;
@@ -245,6 +246,7 @@ VLANClientState *qemu_new_net_client(NetClientInfo *info,
         QTAILQ_INSERT_TAIL(&vc->vlan->clients, vc, next);
     } else {
         if (peer) {
+            assert(!peer->peer);
             vc->peer = peer;
             peer->peer = vc;
         }
@@ -731,7 +733,7 @@ int qemu_find_nic_model(NICInfo *nd, const char * const *models,
             return i;
     }
 
-    qemu_error("qemu: Unsupported NIC model: %s\n", nd->model);
+    error_report("qemu: Unsupported NIC model: %s", nd->model);
     return -1;
 }
 
@@ -742,7 +744,7 @@ int net_handle_fd_param(Monitor *mon, const char *param)
 
         fd = monitor_get_fd(mon, param);
         if (fd == -1) {
-            qemu_error("No file descriptor named %s found", param);
+            error_report("No file descriptor named %s found", param);
             return -1;
         }
 
@@ -763,7 +765,7 @@ static int net_init_nic(QemuOpts *opts,
 
     idx = nic_get_free_idx();
     if (idx == -1 || nb_nics >= MAX_NICS) {
-        qemu_error("Too Many NICs\n");
+        error_report("Too Many NICs");
         return -1;
     }
 
@@ -774,7 +776,7 @@ static int net_init_nic(QemuOpts *opts,
     if ((netdev = qemu_opt_get(opts, "netdev"))) {
         nd->netdev = qemu_find_netdev(netdev);
         if (!nd->netdev) {
-            qemu_error("netdev '%s' not found\n", netdev);
+            error_report("netdev '%s' not found", netdev);
             return -1;
         }
     } else {
@@ -800,14 +802,15 @@ static int net_init_nic(QemuOpts *opts,
 
     if (qemu_opt_get(opts, "macaddr") &&
         net_parse_macaddr(nd->macaddr, qemu_opt_get(opts, "macaddr")) < 0) {
-        qemu_error("invalid syntax for ethernet address\n");
+        error_report("invalid syntax for ethernet address");
         return -1;
     }
 
-    nd->nvectors = qemu_opt_get_number(opts, "vectors", NIC_NVECTORS_UNSPECIFIED);
-    if (nd->nvectors != NIC_NVECTORS_UNSPECIFIED &&
+    nd->nvectors = qemu_opt_get_number(opts, "vectors",
+                                       DEV_NVECTORS_UNSPECIFIED);
+    if (nd->nvectors != DEV_NVECTORS_UNSPECIFIED &&
         (nd->nvectors < 0 || nd->nvectors > 0x7ffffff)) {
-        qemu_error("invalid # of vectors: %d\n", nd->nvectors);
+        error_report("invalid # of vectors: %d", nd->nvectors);
         return -1;
     }
 
@@ -840,7 +843,7 @@ typedef int (*net_client_init_func)(QemuOpts *opts,
 /* magic number, but compiler will warn if too small */
 #define NET_MAX_DESC 20
 
-static struct {
+static const struct {
     const char *type;
     net_client_init_func init;
     QemuOptDesc desc[NET_MAX_DESC];
@@ -973,6 +976,14 @@ static struct {
                 .name = "vnet_hdr",
                 .type = QEMU_OPT_BOOL,
                 .help = "enable the IFF_VNET_HDR flag on the tap interface"
+            }, {
+                .name = "vhost",
+                .type = QEMU_OPT_BOOL,
+                .help = "enable vhost-net network accelerator",
+            }, {
+                .name = "vhostfd",
+                .type = QEMU_OPT_STRING,
+                .help = "file descriptor of an already opened vhost net device",
             },
 #endif /* _WIN32 */
             { /* end of list */ }
@@ -1054,18 +1065,12 @@ int net_client_init(Monitor *mon, QemuOpts *opts, int is_netdev)
     int i;
 
     type = qemu_opt_get(opts, "type");
+    if (!type) {
+        qerror_report(QERR_MISSING_PARAMETER, "type");
+        return -1;
+    }
 
-    if (!is_netdev) {
-        if (!type) {
-            qemu_error("No type specified for -net\n");
-            return -1;
-        }
-    } else {
-        if (!type) {
-            qemu_error("No type specified for -netdev\n");
-            return -1;
-        }
-
+    if (is_netdev) {
         if (strcmp(type, "tap") != 0 &&
 #ifdef CONFIG_SLIRP
             strcmp(type, "user") != 0 &&
@@ -1074,21 +1079,21 @@ int net_client_init(Monitor *mon, QemuOpts *opts, int is_netdev)
             strcmp(type, "vde") != 0 &&
 #endif
             strcmp(type, "socket") != 0) {
-            qemu_error("The '%s' network backend type is not valid with -netdev\n",
-                       type);
+            qerror_report(QERR_INVALID_PARAMETER_VALUE, "type",
+                          "a netdev backend type");
             return -1;
         }
 
         if (qemu_opt_get(opts, "vlan")) {
-            qemu_error("The 'vlan' parameter is not valid with -netdev\n");
+            qerror_report(QERR_INVALID_PARAMETER, "vlan");
             return -1;
         }
         if (qemu_opt_get(opts, "name")) {
-            qemu_error("The 'name' parameter is not valid with -netdev\n");
+            qerror_report(QERR_INVALID_PARAMETER, "name");
             return -1;
         }
         if (!qemu_opts_id(opts)) {
-            qemu_error("The id= parameter is required with -netdev\n");
+            qerror_report(QERR_MISSING_PARAMETER, "id");
             return -1;
         }
     }
@@ -1114,14 +1119,18 @@ int net_client_init(Monitor *mon, QemuOpts *opts, int is_netdev)
             }
 
             if (net_client_types[i].init) {
-                return net_client_types[i].init(opts, mon, name, vlan);
-            } else {
-                return 0;
+                if (net_client_types[i].init(opts, mon, name, vlan) < 0) {
+                    /* TODO push error reporting into init() methods */
+                    qerror_report(QERR_DEVICE_INIT_FAILED, type);
+                    return -1;
+                }
             }
+            return 0;
         }
     }
 
-    qemu_error("Invalid -net type '%s'\n", type);
+    qerror_report(QERR_INVALID_PARAMETER_VALUE, "type",
+                  "a network client type");
     return -1;
 }
 
@@ -1156,10 +1165,8 @@ void net_host_device_add(Monitor *mon, const QDict *qdict)
         return;
     }
 
-    opts = qemu_opts_parse(&qemu_net_opts, opts_str ? opts_str : "", NULL);
+    opts = qemu_opts_parse(&qemu_net_opts, opts_str ? opts_str : "", 0);
     if (!opts) {
-        monitor_printf(mon, "parsing network options '%s' failed\n",
-                       opts_str ? opts_str : "");
         return;
     }
 
@@ -1187,6 +1194,61 @@ void net_host_device_remove(Monitor *mon, const QDict *qdict)
     qemu_del_vlan_client(vc);
 }
 
+/**
+ * do_netdev_add(): Add a host network device
+ *
+ * Argument qdict contains
+ * - "type": the device type, "tap", "user", ...
+ * - "id": the device's ID (must be unique)
+ * - device options
+ *
+ * Example:
+ *
+ * { "type": "user", "id": "netdev1", "hostname": "a-guest" }
+ */
+int do_netdev_add(Monitor *mon, const QDict *qdict, QObject **ret_data)
+{
+    QemuOpts *opts;
+    int res;
+
+    opts = qemu_opts_from_qdict(&qemu_netdev_opts, qdict);
+    if (!opts) {
+        return -1;
+    }
+
+    res = net_client_init(mon, opts, 1);
+    return res;
+}
+
+/**
+ * do_netdev_del(): Delete a host network device
+ *
+ * Argument qdict contains
+ * - "id": the device's ID
+ *
+ * Example:
+ *
+ * { "id": "netdev1" }
+ */
+int do_netdev_del(Monitor *mon, const QDict *qdict, QObject **ret_data)
+{
+    const char *id = qdict_get_str(qdict, "id");
+    VLANClientState *vc;
+
+    vc = qemu_find_netdev(id);
+    if (!vc || vc->info->type == NET_CLIENT_TYPE_NIC) {
+        qerror_report(QERR_DEVICE_NOT_FOUND, id);
+        return -1;
+    }
+    if (vc->peer) {
+        qerror_report(QERR_DEVICE_IN_USE, id);
+        return -1;
+    }
+    qemu_del_vlan_client(vc);
+    qemu_opts_del(qemu_opts_find(&qemu_netdev_opts, id));
+    return 0;
+}
+
 void do_info_network(Monitor *mon)
 {
     VLANState *vlan;
@@ -1209,12 +1271,12 @@ void do_info_network(Monitor *mon)
     }
 }
 
-void do_set_link(Monitor *mon, const QDict *qdict)
+int do_set_link(Monitor *mon, const QDict *qdict, QObject **ret_data)
 {
     VLANState *vlan;
     VLANClientState *vc = NULL;
     const char *name = qdict_get_str(qdict, "name");
-    const char *up_or_down = qdict_get_str(qdict, "up_or_down");
+    int up = qdict_get_bool(qdict, "up");
 
     QTAILQ_FOREACH(vlan, &vlans, next) {
         QTAILQ_FOREACH(vc, &vlan->clients, next) {
@@ -1227,21 +1289,16 @@ void do_set_link(Monitor *mon, const QDict *qdict)
 done:
 
     if (!vc) {
-        monitor_printf(mon, "could not find network device '%s'\n", name);
-        return;
+        qerror_report(QERR_DEVICE_NOT_FOUND, name);
+        return -1;
     }
 
-    if (strcmp(up_or_down, "up") == 0)
-        vc->link_down = 0;
-    else if (strcmp(up_or_down, "down") == 0)
-        vc->link_down = 1;
-    else
-        monitor_printf(mon, "invalid link status '%s'; only 'up' or 'down' "
-                       "valid\n", up_or_down);
+    vc->link_down = !up;
 
     if (vc->info->link_status_changed) {
         vc->info->link_status_changed(vc);
     }
+    return 0;
 }
 
 void net_cleanup(void)
@@ -1264,7 +1321,7 @@ void net_check_clients(void)
 {
     VLANState *vlan;
     VLANClientState *vc;
-    int has_nic = 0, has_host_dev = 0; // naughty upstream, using uninitialized..
+    int has_nic = 0, has_host_dev = 0;
 
     QTAILQ_FOREACH(vlan, &vlans, next) {
         QTAILQ_FOREACH(vc, &vlan->clients, next) {
@@ -1341,7 +1398,7 @@ int net_client_parse(QemuOptsList *opts_list, const char *optarg)
     }
 #endif
 
-    if (!qemu_opts_parse(opts_list, optarg, "type")) {
+    if (!qemu_opts_parse(opts_list, optarg, 1)) {
         return -1;
     }
 

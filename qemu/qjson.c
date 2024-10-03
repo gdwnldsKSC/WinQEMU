@@ -53,6 +53,10 @@ QObject *qobject_from_json(const char *string)
     return qobject_from_jsonv(string, NULL);
 }
 
+/*
+ * IMPORTANT: This function aborts on error, thus it must not
+ * be used with untrusted arguments.
+ */
 QObject *qobject_from_jsonf(const char *string, ...)
 {
     QObject *obj;
@@ -62,6 +66,7 @@ QObject *qobject_from_jsonf(const char *string, ...)
     obj = qobject_from_jsonv(string, &ap);
     va_end(ap);
 
+    assert(obj != NULL);
     return obj;
 }
 
@@ -163,8 +168,14 @@ static void to_json(const QObject *obj, QString *str)
                     qstring_append(str, "\\t");
                     break;
                 default: {
-                    char buf[2] = { ptr[0], 0 };
-                    qstring_append(str, buf);
+                    if (ptr[0] <= 0x1F) {
+                        char escape[7];
+                        snprintf(escape, sizeof(escape), "\\u%04X", ptr[0]);
+                        qstring_append(str, escape);
+                    } else {
+                        char buf[2] = { ptr[0], 0 };
+                        qstring_append(str, buf);
+                    }
                     break;
                 }
                 }

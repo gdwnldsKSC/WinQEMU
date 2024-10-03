@@ -148,7 +148,6 @@ typedef struct icount_decr_u16 {
 
 struct kvm_run;
 struct KVMState;
-struct qemu_work_item;
 
 typedef struct CPUBreakpoint {
     target_ulong pc;
@@ -179,6 +178,8 @@ typedef int sig_atomic_t;
     target_ulong mem_io_vaddr; /* target virtual addr at which the      \
                                      memory was accessed */             \
     uint32_t halted; /* Nonzero if the CPU is in suspend state */       \
+    uint32_t stop;   /* Stop request */                                 \
+    uint32_t stopped; /* Artificially stopped */                        \
     uint32_t interrupt_request;                                         \
     volatile sig_atomic_t exit_request;                                 \
     CPU_COMMON_TLB                                                      \
@@ -221,11 +222,8 @@ typedef int sig_atomic_t;
     void *opaque;                                                       \
                                                                         \
     uint32_t created;                                                   \
-    uint32_t stop;   /* Stop request */                                 \
-    uint32_t stopped; /* Artificially stopped */                        \
     struct QemuThread *thread;                                          \
     struct QemuCond *halt_cond;                                         \
-    struct qemu_work_item *queued_work_first, *queued_work_last;        \
     const char *cpu_model_str;                                          \
     struct KVMState *kvm_state;                                         \
     struct kvm_run *kvm_run;                                            \

@@ -29,6 +29,7 @@
  
 #include "hw.h"
 #include "pc.h"
+#include "apic.h"
 #include "pci.h"
 #include "msix.h"
 #include "qemu-timer.h"
@@ -1026,10 +1027,6 @@ static void apic_reset(void *opaque)
 {
     APICState *s = opaque;
     int bsp;
-
-#ifndef _MSC_VER
-    cpu_synchornize_state(s->cpu_env);
-#endif
 
     bsp = cpu_is_bsp(s->cpu_env);
     s->apicbase = 0xfee00000 |

@@ -57,6 +57,7 @@ static SDL_Cursor *guest_sprite = NULL;
 static uint8_t allocator;
 static SDL_PixelFormat host_format;
 static int scaling_active = 0;
+static Notifier mouse_mode_notifier;
 
 static void sdl_update(DisplayState *ds, int x, int y, int w, int h)
 {
@@ -112,7 +113,8 @@ static void do_sdl_resize(int new_width, int new_height, int bpp)
     height = new_height;
     real_screen = SDL_SetVideoMode(width, height, bpp, flags);
     if (!real_screen) {
-        fprintf(stderr, "Could not open SDL display\n");
+	fprintf(stderr, "Could not open SDL display (%dx%dx%d): %s\n", width, 
+		height, bpp, SDL_GetError());
         exit(1);
     }
 }
@@ -248,7 +250,7 @@ static uint8_t sdl_keyevent_to_keycode_generic(const SDL_KeyboardEvent *ev)
     if (keysym == 92 && ev->keysym.scancode == 133) {
         keysym = 0xa5;
     }
-    return keysym2scancode(kbd_layout, keysym);
+    return keysym2scancode(kbd_layout, keysym) & SCANCODE_KEYMASK;
 }
 
 /* specific keyboard conversions from scan codes */
@@ -343,9 +345,9 @@ static void reset_keys(void)
     int i;
     for(i = 0; i < 256; i++) {
         if (modifiers_state[i]) {
-            if (i & 0x80)
-                kbd_put_keycode(0xe0);
-            kbd_put_keycode(i | 0x80);
+            if (i & SCANCODE_GREY)
+                kbd_put_keycode(SCANCODE_EMUL0);
+            kbd_put_keycode(i | SCANCODE_UP);
             modifiers_state[i] = 0;
         }
     }
@@ -359,7 +361,7 @@ static void sdl_process_key(SDL_KeyboardEvent *ev)
         /* specific case */
         v = 0;
         if (ev->type == SDL_KEYUP)
-            v |= 0x80;
+            v |= SCANCODE_UP;
         kbd_put_keycode(0xe1);
         kbd_put_keycode(0x1d | v);
         kbd_put_keycode(0x45 | v);
@@ -392,17 +394,17 @@ static void sdl_process_key(SDL_KeyboardEvent *ev)
     case 0x3a: /* caps lock */
         /* SDL does not send the key up event, so we generate it */
         kbd_put_keycode(keycode);
-        kbd_put_keycode(keycode | 0x80);
+        kbd_put_keycode(keycode | SCANCODE_UP);
         return;
     }
 
     /* now send the key code */
-    if (keycode & 0x80)
-        kbd_put_keycode(0xe0);
+    if (keycode & SCANCODE_GREY)
+        kbd_put_keycode(SCANCODE_EMUL0);
     if (ev->type == SDL_KEYUP)
-        kbd_put_keycode(keycode | 0x80);
+        kbd_put_keycode(keycode | SCANCODE_UP);
     else
-        kbd_put_keycode(keycode & 0x7f);
+        kbd_put_keycode(keycode & SCANCODE_KEYCODEMASK);
 }
 
 static void sdl_update_caption(void)
@@ -415,11 +417,11 @@ static void sdl_update_caption(void)
         status = " [Stopped]";
     else if (gui_grab) {
         if (alt_grab)
-            status = " - Press Ctrl-Alt-Shift to exit grab";
+            status = " - Press Ctrl-Alt-Shift to exit mouse grab";
         else if (ctrl_grab)
-            status = " - Press Right-Ctrl to exit grab";
+            status = " - Press Right-Ctrl to exit mouse grab";
         else
-            status = " - Press Ctrl-Alt to exit grab";
+            status = " - Press Ctrl-Alt to exit mouse grab";
     }
 
     if (qemu_name) {
@@ -485,6 +487,22 @@ static void sdl_grab_end(void)
     sdl_update_caption();
 }
 
+static void sdl_mouse_mode_change(Notifier *notify)
+{
+    if (kbd_mouse_is_absolute()) {
+        if (!absolute_enabled) {
+            sdl_hide_cursor();
+            if (gui_grab) {
+                sdl_grab_end();
+            }
+            absolute_enabled = 1;
+        }
+    } else if (absolute_enabled) {
+	sdl_show_cursor();
+	absolute_enabled = 0;
+    }
+}
+
 static void sdl_send_mouse_event(int dx, int dy, int dz, int x, int y, int state)
 {
     int buttons;
@@ -497,19 +515,8 @@ static void sdl_send_mouse_event(int dx, int dy, int dz, int x, int y, int state
         buttons |= MOUSE_EVENT_MBUTTON;
 
     if (kbd_mouse_is_absolute()) {
-	if (!absolute_enabled) {
-	    sdl_hide_cursor();
-	    if (gui_grab) {
-		sdl_grab_end();
-	    }
-	    absolute_enabled = 1;
-	}
-
        dx = x * 0x7FFF / (width - 1);
        dy = y * 0x7FFF / (height - 1);
-    } else if (absolute_enabled) {
-	sdl_show_cursor();
-	absolute_enabled = 0;
     } else if (guest_cursor) {
         x -= guest_x;
         y -= guest_y;
@@ -585,7 +592,7 @@ static void sdl_refresh(DisplayState *ds)
                         vga_hw_update();
                         break;
 #ifndef _MSC_VER
-                    case 0x02 ... 0x0a:  /* '1' to '9' keys */
+                    case 0x02 ... 0x0a: /* '1' to '9' keys */
 #else
                     case 0x02:
                     case 0x03:
@@ -862,7 +869,8 @@ void sdl_display_init(DisplayState *ds, int full_screen, int no_frame)
 
     flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
     if (SDL_Init (flags)) {
-        fprintf(stderr, "Could not initialize SDL - exiting\n");
+        fprintf(stderr, "Could not initialize SDL(%s) - exiting\n",
+                SDL_GetError());
         exit(1);
     }
     vi = SDL_GetVideoInfo();
@@ -883,12 +891,11 @@ void sdl_display_init(DisplayState *ds, int full_screen, int no_frame)
     da->resize_displaysurface = sdl_resize_displaysurface;
     da->free_displaysurface = sdl_free_displaysurface;
     if (register_displayallocator(ds, da) == da) {
-        DisplaySurface *surf;
-        surf = sdl_create_displaysurface(ds_get_width(ds), ds_get_height(ds));
-        defaultallocator_free_displaysurface(ds->surface);
-        ds->surface = surf;
         dpy_resize(ds);
     }
+
+    mouse_mode_notifier.notify = sdl_mouse_mode_change;
+    qemu_add_mouse_mode_change_notifier(&mouse_mode_notifier);
 
     sdl_update_caption();
     SDL_EnableKeyRepeat(250, 50);

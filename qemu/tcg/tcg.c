@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-#ifndef CONFIG_DEBUG_TCG
+#if !defined(CONFIG_DEBUG_TCG) && !defined(NDEBUG)
 /* define it to suppress various consistency checks (faster) */
 #define NDEBUG
 #endif
@@ -47,6 +47,7 @@
 #include "qemu-common.h"
 #include "cache-utils.h"
 #include "host-utils.h"
+#include "qemu-timer.h"
 
 /* Note: the long term plan is to reduce the dependancies on the QEMU
    CPU definitions. Currently they are used for qemu_ld/st
@@ -549,14 +550,18 @@ void tcg_register_helper(void *func, const char *name)
 void tcg_gen_callN(TCGContext *s, TCGv_ptr func, unsigned int flags,
                    int sizemask, TCGArg ret, int nargs, TCGArg *args)
 {
+#ifdef TCG_TARGET_I386
     int call_type;
+#endif
     int i;
     int real_args;
     int nb_rets;
     TCGArg *nparam;
     *gen_opc_ptr++ = INDEX_op_call;
     nparam = gen_opparam_ptr++;
+#ifdef TCG_TARGET_I386
     call_type = (flags & TCG_CALL_TYPE_MASK);
+#endif
     if (ret != TCG_CALL_DUMMY_ARG) {
 #if TCG_TARGET_REG_BITS < 64
         if (sizemask & 1) {
@@ -596,7 +601,17 @@ void tcg_gen_callN(TCGContext *s, TCGv_ptr func, unsigned int flags,
                 real_args++;
             }
 #endif
-#ifdef TCG_TARGET_WORDS_BIGENDIAN
+	    /* If stack grows up, then we will be placing successive
+	       arguments at lower addresses, which means we need to
+	       reverse the order compared to how we would normally
+	       treat either big or little-endian.  For those arguments
+	       that will wind up in registers, this still works for
+	       HPPA (the only current STACK_GROWSUP target) since the
+	       argument registers are *also* allocated in decreasing
+	       order.  If another such target is added, this logic may
+	       have to get more complicated to differentiate between
+	       stack arguments and register arguments.  */
+#if defined(TCG_TARGET_WORDS_BIGENDIAN) != defined(TCG_TARGET_STACK_GROWSUP)
             *gen_opparam_ptr++ = args[i] + 1;
             *gen_opparam_ptr++ = args[i];
 #else
@@ -669,6 +684,7 @@ void tcg_gen_shifti_i64(TCGv_i64 ret, TCGv_i64 arg1,
     }
 }
 #endif
+
 
 static void tcg_reg_alloc_start(TCGContext *s)
 {
@@ -782,7 +798,8 @@ void tcg_dump_ops(TCGContext *s, FILE *outfile)
     const uint16_t *opc_ptr;
     const TCGArg *args;
     TCGArg arg;
-    int c, i, k, nb_oargs, nb_iargs, nb_cargs, first_insn;
+    TCGOpcode c;
+    int i, k, nb_oargs, nb_iargs, nb_cargs, first_insn;
     const TCGOpDef *def;
     char buf[128];
 
@@ -888,21 +905,29 @@ void tcg_dump_ops(TCGContext *s, FILE *outfile)
                 fprintf(outfile, "%s",
                         tcg_get_arg_str_idx(s, buf, sizeof(buf), args[k++]));
             }
-            if (c == INDEX_op_brcond_i32
+            switch (c) {
+            case INDEX_op_brcond_i32:
 #if TCG_TARGET_REG_BITS == 32
-                || c == INDEX_op_brcond2_i32
+            case INDEX_op_brcond2_i32:
 #elif TCG_TARGET_REG_BITS == 64
-                || c == INDEX_op_brcond_i64
+            case INDEX_op_brcond_i64:
 #endif
-                ) {
+            case INDEX_op_setcond_i32:
+#if TCG_TARGET_REG_BITS == 32
+            case INDEX_op_setcond2_i32:
+#elif TCG_TARGET_REG_BITS == 64
+            case INDEX_op_setcond_i64:
+#endif
                 if (args[k] < ARRAY_SIZE(cond_name) && cond_name[args[k]])
                     fprintf(outfile, ",%s", cond_name[args[k++]]);
                 else
                     fprintf(outfile, ",$0x%" TCG_PRIlx, args[k++]);
                 i = 1;
-            }
-            else
+                break;
+            default:
                 i = 0;
+                break;
+            }
             for(; i < nb_cargs; i++) {
                 if (k != 0)
                     fprintf(outfile, ",");
@@ -961,20 +986,27 @@ static void sort_constraints(TCGOpDef *def, int start, int n)
 
 void tcg_add_target_add_op_defs(const TCGTargetOpDef *tdefs)
 {
-    int op;
+    TCGOpcode op;
     TCGOpDef *def;
     const char *ct_str;
     int i, nb_args;
 
     for(;;) {
-        if (tdefs->op < 0)
+        if (tdefs->op == (TCGOpcode)-1)
             break;
         op = tdefs->op;
         assert(op >= 0 && op < NB_OPS);
         def = &tcg_op_defs[op];
+#if defined(CONFIG_DEBUG_TCG)
+        /* Duplicate entry in op definitions? */
+        assert(!def->used);
+        def->used = 1;
+#endif
         nb_args = def->nb_iargs + def->nb_oargs;
         for(i = 0; i < nb_args; i++) {
             ct_str = tdefs->args_ct_str[i];
+            /* Incomplete TCGTargetOpDef entry? */
+            assert(ct_str != NULL);
             tcg_regset_clear(def->args_ct[i].u.regs);
             def->args_ct[i].ct = 0;
             if (ct_str[0] >= '0' && ct_str[0] <= '9') {
@@ -1009,6 +1041,9 @@ void tcg_add_target_add_op_defs(const TCGTargetOpDef *tdefs)
             }
         }
 
+        /* TCGTargetOpDef entry with too much information? */
+        assert(i == TCG_MAX_OP_ARGS || tdefs->args_ct_str[i] == NULL);
+
         /* sort the constraints (XXX: this is just an heuristic) */
         sort_constraints(def, 0, def->nb_oargs);
         sort_constraints(def, def->nb_oargs, def->nb_iargs);
@@ -1026,6 +1061,29 @@ void tcg_add_target_add_op_defs(const TCGTargetOpDef *tdefs)
         tdefs++;
     }
 
+#if defined(CONFIG_DEBUG_TCG)
+    i = 0;
+    for (op = 0; op < ARRAY_SIZE(tcg_op_defs); op++) {
+        if (op < INDEX_op_call || op == INDEX_op_debug_insn_start) {
+            /* Wrong entry in op definitions? */
+            if (tcg_op_defs[op].used) {
+                fprintf(stderr, "Invalid op definition for %s\n",
+                        tcg_op_defs[op].name);
+                i = 1;
+            }
+        } else {
+            /* Missing entry in op definitions? */
+            if (!tcg_op_defs[op].used) {
+                fprintf(stderr, "Missing op definition for %s\n",
+                        tcg_op_defs[op].name);
+                i = 1;
+            }
+        }
+    }
+    if (i == 1) {
+        tcg_abort();
+    }
+#endif
 }
 
 #ifdef USE_LIVENESS_ANALYSIS
@@ -1076,7 +1134,8 @@ static inline void tcg_la_bb_end(TCGContext *s, uint8_t *dead_temps)
    temporaries are removed. */
 static void tcg_liveness_analysis(TCGContext *s)
 {
-    int i, op_index, op, nb_args, nb_iargs, nb_oargs, arg, nb_ops;
+    int i, op_index, nb_args, nb_iargs, nb_oargs, arg, nb_ops;
+    TCGOpcode op;
     TCGArg *args;
     const TCGOpDef *def;
     uint8_t *dead_temps;
@@ -1224,7 +1283,7 @@ static void tcg_liveness_analysis(TCGContext *s)
 }
 #else
 /* dummy liveness analysis */
-void tcg_liveness_analysis(TCGContext *s)
+static void tcg_liveness_analysis(TCGContext *s)
 {
     int nb_ops;
     nb_ops = gen_opc_ptr - gen_opc_buf;
@@ -1517,7 +1576,7 @@ static void tcg_reg_alloc_mov(TCGContext *s, const TCGOpDef *def,
 }
 
 static void tcg_reg_alloc_op(TCGContext *s, 
-                             const TCGOpDef *def, int opc,
+                             const TCGOpDef *def, TCGOpcode opc,
                              const TCGArg *args,
                              unsigned int dead_iargs)
 {
@@ -1684,7 +1743,7 @@ static void tcg_reg_alloc_op(TCGContext *s,
 #endif
 
 static int tcg_reg_alloc_call(TCGContext *s, const TCGOpDef *def,
-                              int opc, const TCGArg *args,
+                              TCGOpcode opc, const TCGArg *args,
                               unsigned int dead_iargs)
 {
     int nb_iargs, nb_oargs, flags, nb_regs, i, reg, nb_params;
@@ -1881,7 +1940,8 @@ static void dump_op_count(void)
 static inline int tcg_gen_code_common(TCGContext *s, uint8_t *gen_code_buf,
                                       long search_pc)
 {
-    int opc, op_index;
+    TCGOpcode opc;
+    int op_index;
     const TCGOpDef *def;
     unsigned int dead_iargs;
     const TCGArg *args;

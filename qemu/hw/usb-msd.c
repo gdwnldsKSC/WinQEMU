@@ -47,7 +47,7 @@ typedef struct {
     uint32_t residue;
     uint32_t tag;
     SCSIBus bus;
-    DriveInfo *dinfo;
+    BlockConf conf;
     SCSIDevice *scsi_dev;
     int result;
     /* For async completion.  */
@@ -321,18 +321,18 @@ static int usb_msd_handle_control(USBDevice *dev, int request, int value,
         ret = 0;
         break;
     case EndpointOutRequest | USB_REQ_CLEAR_FEATURE:
-        if (value == 0 && index != 0x81) { /* clear ep halt */
-            goto fail;
-        }
+        ret = 0;
+        break;
+    case InterfaceOutRequest | USB_REQ_SET_INTERFACE:
         ret = 0;
         break;
         /* Class specific requests.  */
-    case MassStorageReset:
+    case ClassInterfaceOutRequest | MassStorageReset:
         /* Reset state ready for the next CBW.  */
         s->mode = USB_MSDM_CBW;
         ret = 0;
         break;
-    case GetMaxLun:
+    case ClassInterfaceRequest | GetMaxLun:
         data[0] = 0;
         ret = 1;
         break;
@@ -523,20 +523,20 @@ static int usb_msd_initfn(USBDevice *dev)
 {
     MSDState *s = DO_UPCAST(MSDState, dev, dev);
 
-    if (!s->dinfo || !s->dinfo->bdrv) {
-        qemu_error("usb-msd: drive property not set\n");
+    if (!s->conf.dinfo || !s->conf.dinfo->bdrv) {
+        error_report("usb-msd: drive property not set");
         return -1;
     }
 
     s->dev.speed = USB_SPEED_FULL;
     scsi_bus_new(&s->bus, &s->dev.qdev, 0, 1, usb_msd_command_complete);
-    s->scsi_dev = scsi_bus_legacy_add_drive(&s->bus, s->dinfo, 0);
+    s->scsi_dev = scsi_bus_legacy_add_drive(&s->bus, s->conf.dinfo, 0);
     s->bus.qbus.allow_hotplug = 0;
     usb_msd_handle_reset(dev);
 
-    if (bdrv_key_required(s->dinfo->bdrv)) {
-        if (s->dev.qdev.hotplugged) {
-            monitor_read_bdrv_key_start(cur_mon, s->dinfo->bdrv,
+    if (bdrv_key_required(s->conf.dinfo->bdrv)) {
+        if (cur_mon) {
+            monitor_read_bdrv_key_start(cur_mon, s->conf.dinfo->bdrv,
                                         usb_msd_password_cb, s);
             s->dev.auto_attach = 0;
         } else {
@@ -614,7 +614,7 @@ static struct USBDeviceInfo msd_info = {
     .usbdevice_name = "disk",
     .usbdevice_init = usb_msd_init,
     .qdev.props     = (Property[]) {
-        DEFINE_PROP_DRIVE("drive", MSDState, dinfo),
+        DEFINE_BLOCK_PROPERTIES(MSDState, conf),
         DEFINE_PROP_END_OF_LIST(),
     },
 };

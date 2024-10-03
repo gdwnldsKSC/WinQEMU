@@ -342,14 +342,6 @@ void m68k_switch_sp(CPUM68KState *env)
     env->current_sp = new_sp;
 }
 
-/* MMU */
-
-/* TODO: This will need fixing once the MMU is implemented.  */
-target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
-{
-    return addr;
-}
-
 #if defined(CONFIG_USER_ONLY)
 
 int cpu_m68k_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
@@ -362,14 +354,23 @@ int cpu_m68k_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
 
 #else
 
+/* MMU */
+
+/* TODO: This will need fixing once the MMU is implemented.  */
+target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
+{
+    return addr;
+}
+
 int cpu_m68k_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
                                int mmu_idx, int is_softmmu)
 {
     int prot;
 
     address &= TARGET_PAGE_MASK;
-    prot = PAGE_READ | PAGE_WRITE;
-    return tlb_set_page(env, address, address, prot, mmu_idx, is_softmmu);
+    prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+    tlb_set_page(env, address, address, prot, mmu_idx, TARGET_PAGE_SIZE);
+    return 0;
 }
 
 /* Notify CPU of a pending interrupt.  Prioritization and vectoring should
@@ -767,10 +768,11 @@ void HELPER(mac_set_flags)(CPUState *env, uint32_t acc)
 {
     uint64_t val;
     val = env->macc[acc];
-    if (val == 0)
+    if (val == 0) {
         env->macsr |= MACSR_Z;
-    else if (val & (1ull << 47));
+    } else if (val & (1ull << 47)) {
         env->macsr |= MACSR_N;
+    }
     if (env->macsr & (MACSR_PAV0 << acc)) {
         env->macsr |= MACSR_V;
     }

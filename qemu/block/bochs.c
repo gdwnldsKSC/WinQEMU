@@ -116,11 +116,9 @@ static int bochs_open(BlockDriverState *bs, const char *filename, int flags)
     struct bochs_header bochs;
     struct bochs_header_v1 header_v1;
 
-    fd = open(filename, O_RDWR | O_BINARY);
+    fd = open(filename, O_RDONLY | O_BINARY);
     if (fd < 0) {
-        fd = open(filename, O_RDONLY | O_BINARY);
-        if (fd < 0)
-            return -1;
+        return -1;
     }
 
     bs->read_only = 1; // no write support yet
@@ -146,7 +144,9 @@ static int bochs_open(BlockDriverState *bs, const char *filename, int flags)
       bs->total_sectors = le64_to_cpu(bochs.extra.redolog.disk) / 512;
     }
 
-    lseek(s->fd, le32_to_cpu(bochs.header), SEEK_SET);
+    if (lseek(s->fd, le32_to_cpu(bochs.header), SEEK_SET) == (off_t)-1) {
+        goto fail;
+    }
 
     s->catalog_size = le32_to_cpu(bochs.extra.redolog.catalog);
     s->catalog_bitmap = qemu_malloc(s->catalog_size * 4);
@@ -197,9 +197,13 @@ static inline int seek_to_sector(BlockDriverState *bs, int64_t sector_num)
 //	bitmap_offset, block_offset);
 
     // read in bitmap for current extent
-    lseek(s->fd, bitmap_offset + (extent_offset / 8), SEEK_SET);
+    if (lseek(s->fd, bitmap_offset + (extent_offset / 8), SEEK_SET) ==
+        (off_t)-1) {
+        return -1;
+    }
 
-    read(s->fd, &bitmap_entry, 1);
+    if (read(s->fd, &bitmap_entry, 1) != 1)
+        return -1;
 
     if (!((bitmap_entry >> (extent_offset % 8)) & 1))
     {
@@ -208,7 +212,9 @@ static inline int seek_to_sector(BlockDriverState *bs, int64_t sector_num)
 	return -1; // not allocated
     }
 
-    lseek(s->fd, block_offset, SEEK_SET);
+    if (lseek(s->fd, block_offset, SEEK_SET) == (off_t)-1) {
+        return -1;
+    }
 
     return 0;
 }
@@ -246,7 +252,7 @@ static BlockDriver bdrv_bochs = {
     .format_name	= "bochs",
     .instance_size	= sizeof(BDRVBochsState),
     .bdrv_probe		= bochs_probe,
-    .bdrv_open		= bochs_open,
+    .bdrv_file_open	= bochs_open,
     .bdrv_read		= bochs_read,
     .bdrv_close		= bochs_close,
 };

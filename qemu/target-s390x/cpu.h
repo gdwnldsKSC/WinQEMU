@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef CPU_S390X_H
 #define CPU_S390X_H
@@ -99,6 +98,11 @@ int cpu_s390x_handle_mmu_fault (CPUS390XState *env, target_ulong address, int rw
 #define cpu_handle_mmu_fault cpu_s390x_handle_mmu_fault
 
 #define TARGET_PAGE_BITS 12
+
+/* ??? This is certainly wrong for 64-bit s390x, but given that only KVM
+   emulation actually works, this is good enough for a placeholder.  */
+#define TARGET_PHYS_ADDR_SPACE_BITS 32
+#define TARGET_VIRT_ADDR_SPACE_BITS 32
 
 #ifndef CONFIG_USER_ONLY
 extern int s390_virtio_hypercall(CPUState *env);

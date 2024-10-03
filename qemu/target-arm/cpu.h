@@ -146,7 +146,6 @@ typedef struct CPUARMState {
         int current_sp;
         int exception;
         int pending_exception;
-        void *nvic;
     } v7m;
 
     /* Coprocessor IO used by peripherals */
@@ -205,6 +204,7 @@ typedef struct CPUARMState {
     CPU_COMMON
 
     /* These fields after the common ones so they are preserved on reset.  */
+    void *nvic;
     struct arm_boot_info *boot_info;
 } CPUARMState;
 
@@ -404,6 +404,9 @@ void cpu_arm_set_cp_io(CPUARMState *env, int cpnum,
    architecture revisions.  Maybe a configure option to disable them.  */
 #define TARGET_PAGE_BITS 10
 #endif
+
+#define TARGET_PHYS_ADDR_SPACE_BITS 32
+#define TARGET_VIRT_ADDR_SPACE_BITS 32
 
 #define cpu_init cpu_arm_init
 #define cpu_exec cpu_arm_exec

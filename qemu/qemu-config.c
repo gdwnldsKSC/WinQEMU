@@ -1,4 +1,5 @@
 #include "qemu-common.h"
+#include "qemu-error.h"
 #include "qemu-option.h"
 #include "qemu-config.h"
 #include "sysemu.h"
@@ -85,6 +86,7 @@ QemuOptsList qemu_drive_opts = {
 
 QemuOptsList qemu_chardev_opts = {
     .name = "chardev",
+    .implied_opt_name = "backend",
     .head = QTAILQ_HEAD_INITIALIZER(qemu_chardev_opts.head),
     .desc = {
         {
@@ -149,8 +151,49 @@ QemuOptsList qemu_chardev_opts = {
     },
 };
 
+#ifdef CONFIG_LINUX
+QemuOptsList qemu_fsdev_opts = {
+    .name = "fsdev",
+    .implied_opt_name = "fstype",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_fsdev_opts.head),
+    .desc = {
+        {
+            .name = "fstype",
+            .type = QEMU_OPT_STRING,
+        }, {
+            .name = "path",
+            .type = QEMU_OPT_STRING,
+        },
+        { /*End of list */ }
+    },
+};
+#endif
+
+#ifdef CONFIG_LINUX
+QemuOptsList qemu_virtfs_opts = {
+    .name = "virtfs",
+    .implied_opt_name = "fstype",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_virtfs_opts.head),
+    .desc = {
+        {
+            .name = "fstype",
+            .type = QEMU_OPT_STRING,
+        }, {
+            .name = "path",
+            .type = QEMU_OPT_STRING,
+        }, {
+            .name = "mount_tag",
+            .type = QEMU_OPT_STRING,
+        },
+
+        { /*End of list */ }
+    },
+};
+#endif
+
 QemuOptsList qemu_device_opts = {
     .name = "device",
+    .implied_opt_name = "driver",
     .head = QTAILQ_HEAD_INITIALIZER(qemu_device_opts.head),
     .desc = {
         /*
@@ -164,6 +207,7 @@ QemuOptsList qemu_device_opts = {
 
 QemuOptsList qemu_netdev_opts = {
     .name = "netdev",
+    .implied_opt_name = "type",
     .head = QTAILQ_HEAD_INITIALIZER(qemu_netdev_opts.head),
     .desc = {
         /*
@@ -176,6 +220,7 @@ QemuOptsList qemu_netdev_opts = {
 
 QemuOptsList qemu_net_opts = {
     .name = "net",
+    .implied_opt_name = "type",
     .head = QTAILQ_HEAD_INITIALIZER(qemu_net_opts.head),
     .desc = {
         /*
@@ -226,6 +271,7 @@ QemuOptsList qemu_global_opts = {
 
 QemuOptsList qemu_mon_opts = {
     .name = "mon",
+    .implied_opt_name = "chardev",
     .head = QTAILQ_HEAD_INITIALIZER(qemu_mon_opts.head),
     .desc = {
         {
@@ -242,7 +288,55 @@ QemuOptsList qemu_mon_opts = {
     },
 };
 
-static QemuOptsList *lists[] = {
+QemuOptsList qemu_cpudef_opts = {
+    .name = "cpudef",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_cpudef_opts.head),
+    .desc = {
+        {
+            .name = "name",
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "level",
+            .type = QEMU_OPT_NUMBER,
+        },{
+            .name = "vendor",
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "family",
+            .type = QEMU_OPT_NUMBER,
+        },{
+            .name = "model",
+            .type = QEMU_OPT_NUMBER,
+        },{
+            .name = "stepping",
+            .type = QEMU_OPT_NUMBER,
+        },{
+            .name = "feature_edx",      /* cpuid 0000_0001.edx */
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "feature_ecx",      /* cpuid 0000_0001.ecx */
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "extfeature_edx",   /* cpuid 8000_0001.edx */
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "extfeature_ecx",   /* cpuid 8000_0001.ecx */
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "xlevel",
+            .type = QEMU_OPT_NUMBER,
+        },{
+            .name = "model_id",
+            .type = QEMU_OPT_STRING,
+        },{
+            .name = "vendor_override",
+            .type = QEMU_OPT_NUMBER,
+        },
+        { /* end of list */ }
+    },
+};
+
+static QemuOptsList *vm_config_groups[] = {
     &qemu_drive_opts,
     &qemu_chardev_opts,
     &qemu_device_opts,
@@ -251,10 +345,11 @@ static QemuOptsList *lists[] = {
     &qemu_rtc_opts,
     &qemu_global_opts,
     &qemu_mon_opts,
+    &qemu_cpudef_opts,
     NULL,
 };
 
-static QemuOptsList *find_list(const char *group)
+static QemuOptsList *find_list(QemuOptsList **lists, const char *group)
 {
     int i;
 
@@ -263,9 +358,14 @@ static QemuOptsList *find_list(const char *group)
             break;
     }
     if (lists[i] == NULL) {
-        qemu_error("there is no option group \"%s\"\n", group);
+        error_report("there is no option group \"%s\"", group);
     }
     return lists[i];
+}
+
+QemuOptsList *qemu_find_opts(const char *group)
+{
+    return find_list(vm_config_groups, group);
 }
 
 int qemu_set_option(const char *str)
@@ -277,19 +377,19 @@ int qemu_set_option(const char *str)
 
     rc = sscanf(str, "%63[^.].%63[^.].%63[^=]%n", group, id, arg, &offset);
     if (rc < 3 || str[offset] != '=') {
-        qemu_error("can't parse: \"%s\"\n", str);
+        error_report("can't parse: \"%s\"", str);
         return -1;
     }
 
-    list = find_list(group);
+    list = qemu_find_opts(group);
     if (list == NULL) {
         return -1;
     }
 
     opts = qemu_opts_find(list, id);
     if (!opts) {
-        qemu_error("there is no %s \"%s\" defined\n",
-                   list->name, id);
+        error_report("there is no %s \"%s\" defined",
+                     list->name, id);
         return -1;
     }
 
@@ -307,7 +407,7 @@ int qemu_global_option(const char *str)
 
     rc = sscanf(str, "%63[^.].%63[^=]%n", driver, property, &offset);
     if (rc < 2 || str[offset] != '=') {
-        qemu_error("can't parse: \"%s\"\n", str);
+        error_report("can't parse: \"%s\"", str);
         return -1;
     }
 
@@ -316,23 +416,6 @@ int qemu_global_option(const char *str)
     qemu_opt_set(opts, "property", property);
     qemu_opt_set(opts, "value", str+offset+1);
     return 0;
-}
-
-static int qemu_add_one_global(QemuOpts *opts, void *opaque)
-{
-    GlobalProperty *g;
-
-    g = qemu_mallocz(sizeof(*g));
-    g->driver   = qemu_opt_get(opts, "driver");
-    g->property = qemu_opt_get(opts, "property");
-    g->value    = qemu_opt_get(opts, "value");
-    qdev_prop_register_global(g);
-    return 0;
-}
-
-void qemu_add_globals(void)
-{
-    qemu_opts_foreach(&qemu_global_opts, qemu_add_one_global, NULL, 0);
 }
 
 struct ConfigWriteData {
@@ -366,6 +449,7 @@ static int config_write_opts(QemuOpts *opts, void *opaque)
 void qemu_config_write(FILE *fp)
 {
     struct ConfigWriteData data = { .fp = fp };
+    QemuOptsList **lists = vm_config_groups;
     int i;
 
     fprintf(fp, "# qemu config file\n\n");
@@ -375,13 +459,17 @@ void qemu_config_write(FILE *fp)
     }
 }
 
-int qemu_config_parse(FILE *fp)
+int qemu_config_parse(FILE *fp, QemuOptsList **lists, const char *fname)
 {
     char line[1024], group[64], id[64], arg[64], value[1024];
+    Location loc;
     QemuOptsList *list = NULL;
     QemuOpts *opts = NULL;
+    int res = -1, lno = 0;
 
+    loc_push_none(&loc);
     while (fgets(line, sizeof(line), fp) != NULL) {
+        loc_set_file(fname, ++lno);
         if (line[0] == '\n') {
             /* skip empty lines */
             continue;
@@ -392,35 +480,55 @@ int qemu_config_parse(FILE *fp)
         }
         if (sscanf(line, "[%63s \"%63[^\"]\"]", group, id) == 2) {
             /* group with id */
-            list = find_list(group);
+            list = find_list(lists, group);
             if (list == NULL)
-                return -1;
+                goto out;
             opts = qemu_opts_create(list, id, 1);
             continue;
         }
         if (sscanf(line, "[%63[^]]]", group) == 1) {
             /* group without id */
-            list = find_list(group);
+            list = find_list(lists, group);
             if (list == NULL)
-                return -1;
+                goto out;
             opts = qemu_opts_create(list, NULL, 0);
             continue;
         }
         if (sscanf(line, " %63s = \"%1023[^\"]\"", arg, value) == 2) {
             /* arg = value */
             if (opts == NULL) {
-                fprintf(stderr, "no group defined\n");
-                return -1;
+                error_report("no group defined");
+                goto out;
             }
             if (qemu_opt_set(opts, arg, value) != 0) {
-                fprintf(stderr, "failed to set \"%s\" for %s\n",
-                        arg, group);
-                return -1;
+                goto out;
             }
             continue;
         }
-        fprintf(stderr, "parse error: %s\n", line);
-        return -1;
+        error_report("parse error");
+        goto out;
     }
+    if (ferror(fp)) {
+        error_report("error reading file");
+        goto out;
+    }
+    res = 0;
+out:
+    loc_pop(&loc);
+    return res;
+}
+
+int qemu_read_config_file(const char *filename)
+{
+    FILE *f = fopen(filename, "r");
+    if (f == NULL) {
+        return -errno;
+    }
+
+    if (qemu_config_parse(f, vm_config_groups, filename) != 0) {
+        return -EINVAL;
+    }
+    fclose(f);
+
     return 0;
 }

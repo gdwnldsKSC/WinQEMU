@@ -152,11 +152,10 @@ static void do_attach(USBDevice *dev)
 int usb_device_attach(USBDevice *dev)
 {
     USBBus *bus = usb_bus_from_device(dev);
-    USBDevice *hub;
 
     if (bus->nfree == 1) {
         /* Create a new hub and chain it on.  */
-        hub = usb_create_simple(bus, "usb-hub");
+        usb_create_simple(bus, "usb-hub");
     }
     do_attach(dev);
     return 0;
@@ -293,14 +292,14 @@ USBDevice *usbdevice_create(const char *cmdline)
     if (info == NULL) {
 #if 0
         /* no error because some drivers are not converted (yet) */
-        qemu_error("usbdevice %s not found\n", driver);
+        error_report("usbdevice %s not found", driver);
 #endif
         return NULL;
     }
 
     if (!usb->usbdevice_init) {
         if (*params) {
-            qemu_error("usbdevice %s accepts no params\n", driver);
+            error_report("usbdevice %s accepts no params", driver);
             return NULL;
         }
         return usb_create_simple(bus, usb->qdev.name);

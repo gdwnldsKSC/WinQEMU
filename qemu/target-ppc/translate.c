@@ -3398,7 +3398,7 @@ static void gen_b(DisasContext *ctx)
 static inline void gen_bcond(DisasContext *ctx, int type)
 {
     uint32_t bo = BO(ctx->opcode);
-    int l1 = gen_new_label();
+    int l1;
     TCGv target;
 
     ctx->exception = POWERPC_EXCP_BRANCH;
@@ -3719,16 +3719,14 @@ static void gen_mfmsr(DisasContext *ctx)
 #endif
 }
 
-#if 1
-#define SPR_NOACCESS ((void *)(-1UL))
-#else
-static void spr_noaccess (void *opaque, int sprn)
+static void spr_noaccess(void *opaque, int gprn, int sprn)
 {
+#if 0
     sprn = ((sprn >> 5) & 0x1F) | ((sprn & 0x1F) << 5);
     printf("ERROR: try to access SPR %d !\n", sprn);
+#endif
 }
 #define SPR_NOACCESS (&spr_noaccess)
-#endif
 
 /* mfspr */
 static inline void gen_op_mfspr(DisasContext *ctx)
@@ -6733,7 +6731,7 @@ static inline void gen_op_evsrwu(TCGv_i32 ret, TCGv_i32 arg1, TCGv_i32 arg2)
     tcg_gen_br(l2);
     gen_set_label(l1);
     tcg_gen_movi_i32(ret, 0);
-    tcg_gen_br(l2);
+    gen_set_label(l2);
     tcg_temp_free_i32(t0);
 }
 GEN_SPEOP_ARITH2(evsrwu, gen_op_evsrwu);
@@ -6752,7 +6750,7 @@ static inline void gen_op_evsrws(TCGv_i32 ret, TCGv_i32 arg1, TCGv_i32 arg2)
     tcg_gen_br(l2);
     gen_set_label(l1);
     tcg_gen_movi_i32(ret, 0);
-    tcg_gen_br(l2);
+    gen_set_label(l2);
     tcg_temp_free_i32(t0);
 }
 GEN_SPEOP_ARITH2(evsrws, gen_op_evsrws);
@@ -6771,7 +6769,7 @@ static inline void gen_op_evslw(TCGv_i32 ret, TCGv_i32 arg1, TCGv_i32 arg2)
     tcg_gen_br(l2);
     gen_set_label(l1);
     tcg_gen_movi_i32(ret, 0);
-    tcg_gen_br(l2);
+    gen_set_label(l2);
     tcg_temp_free_i32(t0);
 }
 GEN_SPEOP_ARITH2(evslw, gen_op_evslw);
@@ -7001,7 +6999,7 @@ static inline void gen_evmergelohi(DisasContext *ctx)
 }
 static inline void gen_evsplati(DisasContext *ctx)
 {
-    uint64_t imm = ((int32_t)(rA(ctx->opcode) << 11)) >> 27;
+    uint64_t imm = ((int32_t)(rA(ctx->opcode) << 27)) >> 27;
 
 #if defined(TARGET_PPC64)
     tcg_gen_movi_tl(cpu_gpr[rD(ctx->opcode)], (imm << 32) | imm);
@@ -7012,7 +7010,7 @@ static inline void gen_evsplati(DisasContext *ctx)
 }
 static inline void gen_evsplatfi(DisasContext *ctx)
 {
-    uint64_t imm = rA(ctx->opcode) << 11;
+    uint64_t imm = rA(ctx->opcode) << 27;
 
 #if defined(TARGET_PPC64)
     tcg_gen_movi_tl(cpu_gpr[rD(ctx->opcode)], (imm << 32) | imm);
@@ -9053,11 +9051,6 @@ static inline void gen_intermediate_code_internal(CPUState *env,
                          "%02x - %02x - %02x (%08x) " TARGET_FMT_lx " %d\n",
                          opc1(ctx.opcode), opc2(ctx.opcode),
                          opc3(ctx.opcode), ctx.opcode, ctx.nip - 4, (int)msr_ir);
-            } else {
-                printf("invalid/unsupported opcode: "
-                       "%02x - %02x - %02x (%08x) " TARGET_FMT_lx " %d\n",
-                       opc1(ctx.opcode), opc2(ctx.opcode),
-                       opc3(ctx.opcode), ctx.opcode, ctx.nip - 4, (int)msr_ir);
             }
         } else {
             if (unlikely((ctx.opcode & handler->inval) != 0)) {
@@ -9067,12 +9060,6 @@ static inline void gen_intermediate_code_internal(CPUState *env,
                              ctx.opcode & handler->inval, opc1(ctx.opcode),
                              opc2(ctx.opcode), opc3(ctx.opcode),
                              ctx.opcode, ctx.nip - 4);
-                } else {
-                    printf("invalid bits: %08x for opcode: "
-                           "%02x - %02x - %02x (%08x) " TARGET_FMT_lx "\n",
-                           ctx.opcode & handler->inval, opc1(ctx.opcode),
-                           opc2(ctx.opcode), opc3(ctx.opcode),
-                           ctx.opcode, ctx.nip - 4);
                 }
                 gen_inval_exception(ctxp, POWERPC_EXCP_INVAL_INVAL);
                 break;

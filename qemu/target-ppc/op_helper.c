@@ -68,7 +68,7 @@ void helper_store_dump_spr (uint32_t sprn)
 
 target_ulong helper_load_tbl (void)
 {
-    return cpu_ppc_load_tbl(env);
+    return (target_ulong)cpu_ppc_load_tbl(env);
 }
 
 target_ulong helper_load_tbu (void)
@@ -78,7 +78,7 @@ target_ulong helper_load_tbu (void)
 
 target_ulong helper_load_atbl (void)
 {
-    return cpu_ppc_load_atbl(env);
+    return (target_ulong)cpu_ppc_load_atbl(env);
 }
 
 target_ulong helper_load_atbu (void)
@@ -1646,20 +1646,20 @@ static inline void do_rfi(target_ulong nip, target_ulong msr,
 void helper_rfi (void)
 {
     do_rfi(env->spr[SPR_SRR0], env->spr[SPR_SRR1],
-           ~((target_ulong)0x783F0000), 1);
+           ~((target_ulong)0x0), 1);
 }
 
 #if defined(TARGET_PPC64)
 void helper_rfid (void)
 {
     do_rfi(env->spr[SPR_SRR0], env->spr[SPR_SRR1],
-           ~((target_ulong)0x783F0000), 0);
+           ~((target_ulong)0x0), 0);
 }
 
 void helper_hrfid (void)
 {
     do_rfi(env->spr[SPR_HSRR0], env->spr[SPR_HSRR1],
-           ~((target_ulong)0x783F0000), 0);
+           ~((target_ulong)0x0), 0);
 }
 #endif
 #endif
@@ -1830,14 +1830,14 @@ target_ulong helper_602_mfrom (target_ulong arg)
 /* XXX: to be improved to check access rights when in user-mode */
 target_ulong helper_load_dcr (target_ulong dcrn)
 {
-    target_ulong val = 0;
+    uint32_t val = 0;
 
     if (unlikely(env->dcr_env == NULL)) {
         qemu_log("No DCR environment\n");
         helper_raise_exception_err(POWERPC_EXCP_PROGRAM,
                                    POWERPC_EXCP_INVAL | POWERPC_EXCP_INVAL_INVAL);
-    } else if (unlikely(ppc_dcr_read(env->dcr_env, dcrn, &val) != 0)) {
-        qemu_log("DCR read error %d %03x\n", (int)dcrn, (int)dcrn);
+    } else if (unlikely(ppc_dcr_read(env->dcr_env, (uint32_t)dcrn, &val) != 0)) {
+        qemu_log("DCR read error %d %03x\n", (uint32_t)dcrn, (uint32_t)dcrn);
         helper_raise_exception_err(POWERPC_EXCP_PROGRAM,
                                    POWERPC_EXCP_INVAL | POWERPC_EXCP_PRIV_REG);
     }
@@ -1850,8 +1850,8 @@ void helper_store_dcr (target_ulong dcrn, target_ulong val)
         qemu_log("No DCR environment\n");
         helper_raise_exception_err(POWERPC_EXCP_PROGRAM,
                                    POWERPC_EXCP_INVAL | POWERPC_EXCP_INVAL_INVAL);
-    } else if (unlikely(ppc_dcr_write(env->dcr_env, dcrn, val) != 0)) {
-        qemu_log("DCR write error %d %03x\n", (int)dcrn, (int)dcrn);
+    } else if (unlikely(ppc_dcr_write(env->dcr_env, (uint32_t)dcrn, (uint32_t)val) != 0)) {
+        qemu_log("DCR write error %d %03x\n", (uint32_t)dcrn, (uint32_t)dcrn);
         helper_raise_exception_err(POWERPC_EXCP_PROGRAM,
                                    POWERPC_EXCP_INVAL | POWERPC_EXCP_PRIV_REG);
     }
@@ -3981,16 +3981,17 @@ void helper_4xx_tlbwe_hi (target_ulong entry, target_ulong val)
                   tlb->size, TARGET_PAGE_SIZE, (int)((val >> 7) & 0x7));
     }
     tlb->EPN = val & ~(tlb->size - 1);
-    if (val & 0x40)
+    if (val & 0x40) {
         tlb->prot |= PAGE_VALID;
-    else
+        if (val & 0x20) {
+            /* XXX: TO BE FIXED */
+            cpu_abort(env,
+                      "Little-endian TLB entries are not supported by now\n");
+        }
+    } else {
         tlb->prot &= ~PAGE_VALID;
-    if (val & 0x20) {
-        /* XXX: TO BE FIXED */
-        cpu_abort(env, "Little-endian TLB entries are not supported by now\n");
     }
     tlb->PID = env->spr[SPR_40x_PID]; /* PID */
-    tlb->attr = val & 0xFF;
     LOG_SWTLB("%s: set up TLB %d RPN " TARGET_FMT_plx " EPN " TARGET_FMT_lx
               " size " TARGET_FMT_lx " prot %c%c%c%c PID %d\n", __func__,
               (int)entry, tlb->RPN, tlb->EPN, tlb->size,
@@ -4016,6 +4017,7 @@ void helper_4xx_tlbwe_lo (target_ulong entry, target_ulong val)
               val);
     entry &= 0x3F;
     tlb = &env->tlb[entry].tlbe;
+    tlb->attr = val & 0xFF;
     tlb->RPN = val & 0xFFFFFC00;
     tlb->prot = PAGE_READ;
     if (val & 0x200)

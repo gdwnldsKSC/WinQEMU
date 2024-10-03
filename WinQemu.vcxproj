@@ -306,13 +306,18 @@
     </ClCompile>
     <ClCompile Include="gettimeofday.c" />
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
-    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c" />
+    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
     <ClCompile Include="qemu\acl.c" />
+    <ClCompile Include="qemu\arch_init.c" />
     <ClCompile Include="qemu\async.c" />
     <ClCompile Include="qemu\audio\audio_win_int.c" />
     <ClCompile Include="qemu\audio\winwaveaudio.c" />
+    <ClCompile Include="qemu\balloon.c" />
     <ClCompile Include="qemu\block-migration.c" />
+    <ClCompile Include="qemu\block\blkdebug.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
     <ClCompile Include="qemu\block\cow.c" />
@@ -333,6 +338,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\block\raw-win32.c" />
+    <ClCompile Include="qemu\block\raw.c" />
     <ClCompile Include="qemu\block\vdi.c" />
     <ClCompile Include="qemu\block\vmdk.c" />
     <ClCompile Include="qemu\block\vpc.c" />
@@ -341,13 +347,29 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\check-qfloat.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\check-qint.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\check-qjson.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\check-qlist.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\check-qstring.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\cmd.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\cpus.c" />
+    <ClCompile Include="qemu\fsdev\qemu-fsdev.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\a9mpcore.c">
@@ -358,6 +380,7 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
     <ClCompile Include="qemu\hw\ds1338.c" />
+    <ClCompile Include="qemu\hw\event_notifier.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
     <ClCompile Include="qemu\hw\ide\cmd646.c" />
     <ClCompile Include="qemu\hw\ide\core.c" />
@@ -369,6 +392,7 @@
     <ClCompile Include="qemu\hw\ide\piix.c" />
     <ClCompile Include="qemu\hw\ide\qdev.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
+    <ClCompile Include="qemu\hw\iov.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
@@ -379,6 +403,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\msix.c" />
+    <ClCompile Include="qemu\hw\multiboot.c" />
     <ClCompile Include="qemu\hw\ne2000-isa.c" />
     <ClCompile Include="qemu\hw\pcie_host.c" />
     <ClCompile Include="qemu\hw\pci_host.c" />
@@ -389,15 +414,33 @@
     <ClCompile Include="qemu\hw\scsi-bus.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
+    <ClCompile Include="qemu\hw\sun4m_iommu.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\sysbus.c" />
     <ClCompile Include="qemu\hw\usb-bus.c" />
     <ClCompile Include="qemu\hw\vga-isa-mm.c" />
     <ClCompile Include="qemu\hw\vga-isa.c" />
     <ClCompile Include="qemu\hw\vga-pci.c" />
+    <ClCompile Include="qemu\hw\vhost.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\vhost_net.c" />
+    <ClCompile Include="qemu\hw\virtio-9p-debug.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-9p-local.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-9p.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\virtio-pci.c" />
+    <ClCompile Include="qemu\hw\virtio-serial-bus.c" />
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
+    <ClCompile Include="qemu\input.c" />
     <ClCompile Include="qemu\ioport-user.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -406,6 +449,7 @@
     <ClCompile Include="qemu\json-lexer.c" />
     <ClCompile Include="qemu\json-parser.c" />
     <ClCompile Include="qemu\json-streamer.c" />
+    <ClCompile Include="qemu\kvm-stub.c" />
     <ClCompile Include="qemu\microblaze-dis.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -436,21 +480,25 @@
     <ClCompile Include="qemu\net\vde.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\notify.c" />
     <ClCompile Include="qemu\qbool.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
+    <ClCompile Include="qemu\qemu-error.c" />
     <ClCompile Include="qemu\qemu-io.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qemu-timer.c" />
     <ClCompile Include="qemu\qerror.c" />
     <ClCompile Include="qemu\qfloat.c" />
     <ClCompile Include="qemu\qint.c" />
     <ClCompile Include="qemu\qjson.c" />
     <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
+    <ClCompile Include="qemu\rwhandler.c" />
     <ClCompile Include="qemu\sdl_zoom.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -464,6 +512,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\target-i386\cpuid.c" />
     <ClCompile Include="qemu\target-i386\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
@@ -484,6 +533,14 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\tcg-runtime.c" />
+    <ClCompile Include="qemu\vnc-auth-sasl.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\vnc-auth-vencrypt.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\vnc-encoding-hextile.c" />
+    <ClCompile Include="qemu\vnc-encoding-zlib.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -1734,18 +1791,28 @@
     <ClInclude Include="float80-port.h" />
     <ClInclude Include="outside_qemu_tree_custom\clock_gettime.h" />
     <ClInclude Include="qemu\acl.h" />
+    <ClInclude Include="qemu\arch_init.h" />
     <ClInclude Include="qemu\audio\audio_win_int.h" />
     <ClInclude Include="qemu\block-migration.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
+    <ClInclude Include="qemu\cmd.h" />
     <ClInclude Include="qemu\cpu-common.h" />
+    <ClInclude Include="qemu\cpus.h" />
+    <ClInclude Include="qemu\fsdev\qemu-fsdev.h" />
+    <ClInclude Include="qemu\hw\9p.h" />
     <ClInclude Include="qemu\hw\apb_pci.h" />
+    <ClInclude Include="qemu\hw\apic.h" />
     <ClInclude Include="qemu\hw\bitbang_i2c.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
+    <ClInclude Include="qemu\hw\event_notifier.h" />
+    <ClInclude Include="qemu\hw\file-op-9p.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
+    <ClInclude Include="qemu\hw\iov.h" />
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\msix.h" />
+    <ClInclude Include="qemu\hw\multiboot.h" />
     <ClInclude Include="qemu\hw\ne2000.h" />
     <ClInclude Include="qemu\hw\pcie_host.h" />
     <ClInclude Include="qemu\hw\pcnet.h" />
@@ -1760,6 +1827,11 @@
     <ClInclude Include="qemu\hw\sysbus.h" />
     <ClInclude Include="qemu\hw\usb-ohci.h" />
     <ClInclude Include="qemu\hw\usb-uhci.h" />
+    <ClInclude Include="qemu\hw\vhost.h" />
+    <ClInclude Include="qemu\hw\vhost_net.h" />
+    <ClInclude Include="qemu\hw\virtio-9p-debug.h" />
+    <ClInclude Include="qemu\hw\virtio-9p.h" />
+    <ClInclude Include="qemu\hw\virtio-serial.h" />
     <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
@@ -1777,9 +1849,11 @@
     <ClInclude Include="qemu\net\tap.h" />
     <ClInclude Include="qemu\net\util.h" />
     <ClInclude Include="qemu\net\vde.h" />
+    <ClInclude Include="qemu\notify.h" />
     <ClInclude Include="qemu\qbool.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-config.h" />
+    <ClInclude Include="qemu\qemu-error.h" />
     <ClInclude Include="qemu\qemu-objects.h" />
     <ClInclude Include="qemu\qemu-option.h" />
     <ClInclude Include="qemu\qemu-options.h" />
@@ -1791,6 +1865,7 @@
     <ClInclude Include="qemu\qlist.h" />
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
+    <ClInclude Include="qemu\rwhandler.h" />
     <ClInclude Include="qemu\sdl_zoom.h" />
     <ClInclude Include="qemu\sdl_zoom_template.h" />
     <ClInclude Include="qemu\tap-linux.h" />
@@ -1823,6 +1898,8 @@
     <ClInclude Include="qemu\target-i386\ops_sse_header.h" />
     <ClInclude Include="qemu\target-i386\svm.h" />
     <ClInclude Include="qemu\targphys.h" />
+    <ClInclude Include="qemu\vnc-auth-sasl.h" />
+    <ClInclude Include="qemu\vnc-auth-vencrypt.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="qemu\a.out.h" />

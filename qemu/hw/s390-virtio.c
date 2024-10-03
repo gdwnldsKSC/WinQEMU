@@ -26,7 +26,6 @@
 #include "loader.h"
 #include "elf.h"
 #include "hw/virtio.h"
-#include "hw/virtio-console.h"
 #include "hw/sysbus.h"
 #include "kvm.h"
 
@@ -100,10 +99,11 @@ int s390_virtio_hypercall(CPUState *env)
         break;
     case KVM_S390_VIRTIO_RESET:
     {
-        /* Virtio_reset resets the internal addresses, so we'd have to sync
-           them up again. We don't want to reallocate a vring though, so let's
-           just not reset. */
-        /* virtio_reset(dev->vdev); */
+        VirtIOS390Device *dev;
+
+        dev = s390_virtio_bus_find_mem(s390_bus, mem);
+        virtio_reset(dev->vdev);
+        s390_virtio_device_sync(dev);
         break;
     }
     case KVM_S390_VIRTIO_SET_STATUS:
@@ -186,7 +186,6 @@ static void s390_init(ram_addr_t ram_size,
             exit(1);
         }
 
-        cpu_synchronize_state(env);
         env->psw.addr = KERN_IMAGE_START;
         env->psw.mask = 0x0000000180000000ULL;
     }
@@ -205,13 +204,6 @@ static void s390_init(ram_addr_t ram_size,
     if (kernel_cmdline) {
         cpu_physical_memory_rw(KERN_PARM_AREA, (uint8_t *)kernel_cmdline,
                                strlen(kernel_cmdline), 1);
-    }
-
-    /* Create VirtIO console */
-    for(i = 0; i < MAX_VIRTIO_CONSOLES; i++) {
-        if (virtcon_hds[i]) {
-            qdev_init_nofail(qdev_create((BusState *)s390_bus, "virtio-console-s390"));
-        }
     }
 
     /* Create VirtIO network adapters */

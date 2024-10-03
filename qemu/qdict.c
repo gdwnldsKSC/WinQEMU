@@ -11,6 +11,7 @@
  */
 
 #include "qint.h"
+#include "qfloat.h"
 #include "qdict.h"
 #include "qbool.h"
 #include "qstring.h"
@@ -175,6 +176,29 @@ static QObject *qdict_get_obj(const QDict *qdict, const char *key,
 }
 
 /**
+ * qdict_get_double(): Get an number mapped by 'key'
+ *
+ * This function assumes that 'key' exists and it stores a
+ * QFloat or QInt object.
+ *
+ * Return number mapped by 'key'.
+ */
+double qdict_get_double(const QDict *qdict, const char *key)
+{
+    QObject *obj = qdict_get(qdict, key);
+
+    assert(obj);
+    switch (qobject_type(obj)) {
+    case QTYPE_QFLOAT:
+        return qfloat_get_double(qobject_to_qfloat(obj));
+    case QTYPE_QINT:
+        return qint_get_int(qobject_to_qint(obj));
+    default:
+        abort();
+    }
+}
+
+/**
  * qdict_get_int(): Get an integer mapped by 'key'
  *
  * This function assumes that 'key' exists and it stores a
@@ -213,6 +237,19 @@ int qdict_get_bool(const QDict *qdict, const char *key)
 QList *qdict_get_qlist(const QDict *qdict, const char *key)
 {
     return qobject_to_qlist(qdict_get_obj(qdict, key, QTYPE_QLIST));
+}
+
+/**
+ * qdict_get_qdict(): Get the QDict mapped by 'key'
+ *
+ * This function assumes that 'key' exists and it stores a
+ * QDict object.
+ *
+ * Return QDict mapped by 'key'.
+ */
+QDict *qdict_get_qdict(const QDict *qdict, const char *key)
+{
+    return qobject_to_qdict(qdict_get_obj(qdict, key, QTYPE_QDICT));
 }
 
 /**

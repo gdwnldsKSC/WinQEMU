@@ -35,7 +35,6 @@
 #include "sysemu.h"
 #include "i2c.h"
 #include "smbus.h"
-#include "kvm.h"
 
 //#define DEBUG
 
@@ -63,6 +62,9 @@ typedef struct PIIX4PMState {
     uint8_t smb_data[32];
     uint8_t smb_index;
     qemu_irq irq;
+    qemu_irq cmos_s3;
+    qemu_irq smi_irq;
+    int kvm_enabled;
 } PIIX4PMState;
 
 #define RSM_STS (1 << 15)
@@ -99,8 +101,7 @@ static uint32_t get_pmtmr(PIIX4PMState *s)
 static int get_pmsts(PIIX4PMState *s)
 {
     int64_t d;
-    int pmsts;
-    pmsts = s->pmsts;
+
     d = muldiv64(qemu_get_clock(vm_clock), PM_FREQ, get_ticks_per_sec());
     if (d >= s->tmr_overflow_time)
         s->pmsts |= TMROF_EN;
@@ -171,9 +172,9 @@ static void pm_ioport_writew(void *opaque, uint32_t addr, uint32_t val)
                        was caused by power button */
                     s->pmsts |= (RSM_STS | PWRBTN_STS);
                     qemu_system_reset_request();
-#if defined(TARGET_I386)
-                    cmos_set_s3_resume();
-#endif
+                    if (s->cmos_s3) {
+                        qemu_irq_raise(s->cmos_s3);
+                    }
                 default:
                     break;
                 }
@@ -217,8 +218,8 @@ static uint32_t pm_ioport_readw(void *opaque, uint32_t addr)
 static void pm_ioport_writel(void *opaque, uint32_t addr, uint32_t val)
 {
     //    PIIX4PMState *s = opaque;
-    addr &= 0x3f;
 #ifdef DEBUG
+    addr &= 0x3f;
     printf("PM writel port=0x%04x val=0x%08x\n", addr, val);
 #endif
 }
@@ -261,7 +262,9 @@ static void pm_smi_writeb(void *opaque, uint32_t addr, uint32_t val)
         }
 
         if (s->dev.config[0x5b] & (1 << 1)) {
-            cpu_interrupt(first_cpu, CPU_INTERRUPT_SMI);
+            if (s->smi_irq) {
+                qemu_irq_raise(s->smi_irq);
+            }
         }
     } else {
         s->apms = val;
@@ -450,7 +453,7 @@ static void pm_write_config(PCIDevice *d,
                             uint32_t address, uint32_t val, int len)
 {
     pci_default_write_config(d, address, val, len);
-    if (address == 0x80)
+    if (range_covers_byte(address, len, 0x80))
         pm_io_space_update((PIIX4PMState *)d);
 }
 
@@ -491,7 +494,7 @@ static void piix4_reset(void *opaque)
     pci_conf[0x5a] = 0;
     pci_conf[0x5b] = 0;
 
-    if (kvm_enabled()) {
+    if (s->kvm_enabled) {
         /* Mark SMM as already inited (until KVM supports SMM). */
         pci_conf[0x5B] = 0x02;
     }
@@ -499,7 +502,6 @@ static void piix4_reset(void *opaque)
 
 static void piix4_powerdown(void *opaque, int irq, int power_failing)
 {
-#if defined(TARGET_I386)
     PIIX4PMState *s = opaque;
 
     if (!s) {
@@ -508,11 +510,11 @@ static void piix4_powerdown(void *opaque, int irq, int power_failing)
         s->pmsts |= PWRBTN_EN;
         pm_update_sci(s);
     }
-#endif
 }
 
 i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
-                       qemu_irq sci_irq)
+                       qemu_irq sci_irq, qemu_irq cmos_s3, qemu_irq smi_irq,
+                       int kvm_enabled)
 {
     PIIX4PMState *s;
     uint8_t *pci_conf;
@@ -539,7 +541,8 @@ i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
 
     register_ioport_write(ACPI_DBG_IO_ADDR, 4, 4, acpi_dbg_writel, s);
 
-    if (kvm_enabled()) {
+    s->kvm_enabled = kvm_enabled;
+    if (s->kvm_enabled) {
         /* Mark SMM as already inited to prevent SMM from running.  KVM does not
          * support SMM mode. */
         pci_conf[0x5B] = 0x02;
@@ -566,6 +569,8 @@ i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
 
     s->smbus = i2c_init_bus(NULL, "i2c");
     s->irq = sci_irq;
+    s->cmos_s3 = cmos_s3;
+    s->smi_irq = smi_irq;
     qemu_register_reset(piix4_reset, s);
 
     return s->smbus;

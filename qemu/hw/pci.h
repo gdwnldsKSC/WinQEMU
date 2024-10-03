@@ -2,6 +2,7 @@
 #define QEMU_PCI_H
 
 #include "qemu-common.h"
+#include "qobject.h"
 
 #include "qdev.h"
 
@@ -9,8 +10,6 @@
 #include "isa.h"
 
 /* PCI bus */
-
-extern target_phys_addr_t pci_mem_base;
 
 #define PCI_DEVFN(slot, func)   ((((slot) & 0x1f) << 3) | ((func) & 0x07))
 #define PCI_SLOT(devfn)         (((devfn) >> 3) & 0x1f)
@@ -71,7 +70,6 @@ extern target_phys_addr_t pci_mem_base;
 #define PCI_DEVICE_ID_VIRTIO_BALLOON     0x1002
 #define PCI_DEVICE_ID_VIRTIO_CONSOLE     0x1003
 
-typedef uint64_t pcibus_t;
 #define FMT_PCIBUS                      PRIx64
 
 typedef void PCIConfigWriteFunc(PCIDevice *pci_dev,
@@ -94,77 +92,10 @@ typedef struct PCIIORegion {
 #define PCI_ROM_SLOT 6
 #define PCI_NUM_REGIONS 7
 
-/* Declarations from linux/pci_regs.h */
-#define PCI_VENDOR_ID		0x00	/* 16 bits */
-#define PCI_DEVICE_ID		0x02	/* 16 bits */
-#define PCI_COMMAND		0x04	/* 16 bits */
-#define  PCI_COMMAND_IO		0x1	/* Enable response in I/O space */
-#define  PCI_COMMAND_MEMORY	0x2	/* Enable response in Memory space */
-#define  PCI_COMMAND_MASTER	0x4	/* Enable bus master */
-#define PCI_STATUS              0x06    /* 16 bits */
-#define  PCI_STATUS_INTERRUPT   0x08
-#define PCI_REVISION_ID         0x08    /* 8 bits  */
-#define PCI_CLASS_PROG		0x09	/* Reg. Level Programming Interface */
-#define PCI_CLASS_DEVICE        0x0a    /* Device class */
-#define PCI_CACHE_LINE_SIZE	0x0c	/* 8 bits */
-#define PCI_LATENCY_TIMER	0x0d	/* 8 bits */
-#define PCI_HEADER_TYPE         0x0e    /* 8 bits */
-#define  PCI_HEADER_TYPE_NORMAL		0
-#define  PCI_HEADER_TYPE_BRIDGE		1
-#define  PCI_HEADER_TYPE_CARDBUS	2
+#include "pci_regs.h"
+
+/* PCI HEADER_TYPE */
 #define  PCI_HEADER_TYPE_MULTI_FUNCTION 0x80
-#define PCI_BASE_ADDRESS_0	0x10	/* 32 bits */
-#define  PCI_BASE_ADDRESS_SPACE_IO	0x01
-#define  PCI_BASE_ADDRESS_SPACE_MEMORY	0x00
-#define  PCI_BASE_ADDRESS_MEM_TYPE_64	0x04	/* 64 bit address */
-#define  PCI_BASE_ADDRESS_MEM_PREFETCH	0x08	/* prefetchable? */
-#define PCI_PRIMARY_BUS		0x18	/* Primary bus number */
-#define PCI_SECONDARY_BUS	0x19	/* Secondary bus number */
-#define PCI_SUBORDINATE_BUS	0x1a	/* Highest bus number behind the bridge */
-#define PCI_IO_BASE             0x1c    /* I/O range behind the bridge */
-#define PCI_IO_LIMIT            0x1d
-#define  PCI_IO_RANGE_TYPE_32	0x01
-#define  PCI_IO_RANGE_MASK      (~0x0fUL)
-#define PCI_SEC_STATUS		0x1e	/* Secondary status register, only bit 14 used */
-#define PCI_MEMORY_BASE         0x20    /* Memory range behind */
-#define PCI_MEMORY_LIMIT        0x22
-#define  PCI_MEMORY_RANGE_MASK  (~0x0fUL)
-#define PCI_PREF_MEMORY_BASE    0x24    /* Prefetchable memory range behind */
-#define PCI_PREF_MEMORY_LIMIT   0x26
-#define  PCI_PREF_RANGE_MASK    (~0x0fUL)
-#define  PCI_PREF_RANGE_TYPE_64 0x01
-#define PCI_PREF_BASE_UPPER32   0x28    /* Upper half of prefetchable memory range */
-#define PCI_PREF_LIMIT_UPPER32	0x2c
-#define PCI_SUBSYSTEM_VENDOR_ID 0x2c    /* 16 bits */
-#define PCI_SUBSYSTEM_ID        0x2e    /* 16 bits */
-#define PCI_ROM_ADDRESS		0x30	/* Bits 31..11 are address, 10..1 reserved */
-#define  PCI_ROM_ADDRESS_ENABLE	0x01
-#define PCI_IO_BASE_UPPER16     0x30    /* Upper half of I/O addresses */
-#define PCI_IO_LIMIT_UPPER16    0x32
-#define PCI_CAPABILITY_LIST	0x34	/* Offset of first capability list entry */
-#define PCI_ROM_ADDRESS1	0x38	/* Same as PCI_ROM_ADDRESS, but for htype 1 */
-#define PCI_INTERRUPT_LINE	0x3c	/* 8 bits */
-#define PCI_INTERRUPT_PIN	0x3d	/* 8 bits */
-#define PCI_MIN_GNT		0x3e	/* 8 bits */
-#define PCI_BRIDGE_CONTROL      0x3e
-#define PCI_MAX_LAT		0x3f	/* 8 bits */
-
-/* Capability lists */
-#define PCI_CAP_LIST_ID		0	/* Capability ID */
-#define PCI_CAP_LIST_NEXT	1	/* Next capability in the list */
-
-#define PCI_REVISION            0x08    /* obsolete, use PCI_REVISION_ID */
-#define PCI_SUBVENDOR_ID        0x2c    /* obsolete, use PCI_SUBSYSTEM_VENDOR_ID */
-#define PCI_SUBDEVICE_ID        0x2e    /* obsolete, use PCI_SUBSYSTEM_ID */
-
-/* Bits in the PCI Status Register (PCI 2.3 spec) */
-#define PCI_STATUS_RESERVED1	0x007
-#define PCI_STATUS_INT_STATUS	0x008
-#define PCI_STATUS_CAP_LIST	0x010
-#define PCI_STATUS_66MHZ	0x020
-#define PCI_STATUS_RESERVED2	0x040
-#define PCI_STATUS_FAST_BACK	0x080
-#define PCI_STATUS_DEVSEL	0x600
 
 #define PCI_STATUS_RESERVED_MASK_LO (PCI_STATUS_RESERVED1 | \
                 PCI_STATUS_INT_STATUS | PCI_STATUS_CAPABILITIES | \
@@ -259,6 +190,8 @@ void pci_register_bar(PCIDevice *pci_dev, int region_num,
                             PCIMapIORegionFunc *map_func);
 
 int pci_add_capability(PCIDevice *pci_dev, uint8_t cap_id, uint8_t cap_size);
+int pci_add_capability_at_offset(PCIDevice *pci_dev, uint8_t cap_id,
+                                 uint8_t cap_offset, uint8_t cap_size);
 
 void pci_del_capability(PCIDevice *pci_dev, uint8_t cap_id, uint8_t cap_size);
 
@@ -287,6 +220,8 @@ PCIBus *pci_register_bus(DeviceState *parent, const char *name,
                          pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
                          void *irq_opaque, int devfn_min, int nirq);
 
+void pci_bus_set_mem_base(PCIBus *bus, target_phys_addr_t base);
+
 PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
                         const char *default_devaddr);
 PCIDevice *pci_nic_init_nofail(NICInfo *nd, const char *default_model,
@@ -301,7 +236,8 @@ PCIBus *pci_get_bus_devfn(int *devfnp, const char *devaddr);
 int pci_read_devaddr(Monitor *mon, const char *addr, int *domp, int *busp,
                      unsigned *slotp);
 
-void pci_info(Monitor *mon);
+void do_pci_info_print(Monitor *mon, const QObject *data);
+void do_pci_info(Monitor *mon, QObject **ret_data);
 PCIBus *pci_bridge_init(PCIBus *bus, int devfn, uint16_t vid, uint16_t did,
                         pci_map_irq_fn map_irq, const char *name);
 PCIDevice *pci_bridge_get_device(PCIBus *bus);
@@ -313,7 +249,7 @@ pci_set_byte(uint8_t *config, uint8_t val)
 }
 
 static inline uint8_t
-pci_get_byte(uint8_t *config)
+pci_get_byte(const uint8_t *config)
 {
     return *config;
 }
@@ -325,9 +261,9 @@ pci_set_word(uint8_t *config, uint16_t val)
 }
 
 static inline uint16_t
-pci_get_word(uint8_t *config)
+pci_get_word(const uint8_t *config)
 {
-    return le16_to_cpupu((uint16_t *)config);
+    return le16_to_cpupu((const uint16_t *)config);
 }
 
 static inline void
@@ -337,9 +273,9 @@ pci_set_long(uint8_t *config, uint32_t val)
 }
 
 static inline uint32_t
-pci_get_long(uint8_t *config)
+pci_get_long(const uint8_t *config)
 {
-    return le32_to_cpupu((uint32_t *)config);
+    return le32_to_cpupu((const uint32_t *)config);
 }
 
 static inline void
@@ -349,9 +285,9 @@ pci_set_quad(uint8_t *config, uint64_t val)
 }
 
 static inline uint64_t
-pci_get_quad(uint8_t *config)
+pci_get_quad(const uint8_t *config)
 {
-    return le64_to_cpup((uint64_t *)config);
+    return le64_to_cpup((const uint64_t *)config);
 }
 
 static inline void
@@ -367,9 +303,27 @@ pci_config_set_device_id(uint8_t *pci_config, uint16_t val)
 }
 
 static inline void
+pci_config_set_revision(uint8_t *pci_config, uint8_t val)
+{
+    pci_set_byte(&pci_config[PCI_REVISION_ID], val);
+}
+
+static inline void
 pci_config_set_class(uint8_t *pci_config, uint16_t val)
 {
     pci_set_word(&pci_config[PCI_CLASS_DEVICE], val);
+}
+
+static inline void
+pci_config_set_prog_interface(uint8_t *pci_config, uint8_t val)
+{
+    pci_set_byte(&pci_config[PCI_CLASS_PROG], val);
+}
+
+static inline void
+pci_config_set_interrupt_pin(uint8_t *pci_config, uint8_t val)
+{
+    pci_set_byte(&pci_config[PCI_INTERRUPT_PIN], val);
 }
 
 typedef int (*pci_qdev_initfn)(PCIDevice *dev);

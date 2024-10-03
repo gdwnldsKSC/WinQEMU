@@ -36,6 +36,7 @@ struct r4k_tlb_t {
     target_ulong PFN[2];
 };
 
+#if !defined(CONFIG_USER_ONLY)
 typedef struct CPUMIPSTLBContext CPUMIPSTLBContext;
 struct CPUMIPSTLBContext {
     uint32_t nb_tlb;
@@ -51,6 +52,7 @@ struct CPUMIPSTLBContext {
         } r4k;
     } mmu;
 };
+#endif
 
 typedef union fpr_t fpr_t;
 union fpr_t {
@@ -416,35 +418,44 @@ struct CPUMIPSState {
     int error_code;
     uint32_t hflags;    /* CPU State */
     /* TMASK defines different execution modes */
-#define MIPS_HFLAG_TMASK  0x03FF
-#define MIPS_HFLAG_MODE   0x0007 /* execution modes                    */
+#define MIPS_HFLAG_TMASK  0x007FF
+#define MIPS_HFLAG_MODE   0x00007 /* execution modes                    */
     /* The KSU flags must be the lowest bits in hflags. The flag order
        must be the same as defined for CP0 Status. This allows to use
        the bits as the value of mmu_idx. */
-#define MIPS_HFLAG_KSU    0x0003 /* kernel/supervisor/user mode mask   */
-#define MIPS_HFLAG_UM       0x0002 /* user mode flag */
-#define MIPS_HFLAG_SM       0x0001 /* supervisor mode flag */
-#define MIPS_HFLAG_KM       0x0000 /* kernel mode flag */
-#define MIPS_HFLAG_DM     0x0004 /* Debug mode                         */
-#define MIPS_HFLAG_64     0x0008 /* 64-bit instructions enabled        */
-#define MIPS_HFLAG_CP0    0x0010 /* CP0 enabled                        */
-#define MIPS_HFLAG_FPU    0x0020 /* FPU enabled                        */
-#define MIPS_HFLAG_F64    0x0040 /* 64-bit FPU enabled                 */
+#define MIPS_HFLAG_KSU    0x00003 /* kernel/supervisor/user mode mask   */
+#define MIPS_HFLAG_UM     0x00002 /* user mode flag                     */
+#define MIPS_HFLAG_SM     0x00001 /* supervisor mode flag               */
+#define MIPS_HFLAG_KM     0x00000 /* kernel mode flag                   */
+#define MIPS_HFLAG_DM     0x00004 /* Debug mode                         */
+#define MIPS_HFLAG_64     0x00008 /* 64-bit instructions enabled        */
+#define MIPS_HFLAG_CP0    0x00010 /* CP0 enabled                        */
+#define MIPS_HFLAG_FPU    0x00020 /* FPU enabled                        */
+#define MIPS_HFLAG_F64    0x00040 /* 64-bit FPU enabled                 */
     /* True if the MIPS IV COP1X instructions can be used.  This also
        controls the non-COP1X instructions RECIP.S, RECIP.D, RSQRT.S
        and RSQRT.D.  */
-#define MIPS_HFLAG_COP1X  0x0080 /* COP1X instructions enabled         */
-#define MIPS_HFLAG_RE     0x0100 /* Reversed endianness                */
-#define MIPS_HFLAG_UX     0x0200 /* 64-bit user mode                   */
+#define MIPS_HFLAG_COP1X  0x00080 /* COP1X instructions enabled         */
+#define MIPS_HFLAG_RE     0x00100 /* Reversed endianness                */
+#define MIPS_HFLAG_UX     0x00200 /* 64-bit user mode                   */
+#define MIPS_HFLAG_M16    0x00400 /* MIPS16 mode flag                   */
+#define MIPS_HFLAG_M16_SHIFT 10
     /* If translation is interrupted between the branch instruction and
      * the delay slot, record what type of branch it is so that we can
      * resume translation properly.  It might be possible to reduce
      * this from three bits to two.  */
-#define MIPS_HFLAG_BMASK  0x1C00
-#define MIPS_HFLAG_B      0x0400 /* Unconditional branch               */
-#define MIPS_HFLAG_BC     0x0800 /* Conditional branch                 */
-#define MIPS_HFLAG_BL     0x0C00 /* Likely branch                      */
-#define MIPS_HFLAG_BR     0x1000 /* branch to register (can't link TB) */
+#define MIPS_HFLAG_BMASK_BASE  0x03800
+#define MIPS_HFLAG_B      0x00800 /* Unconditional branch               */
+#define MIPS_HFLAG_BC     0x01000 /* Conditional branch                 */
+#define MIPS_HFLAG_BL     0x01800 /* Likely branch                      */
+#define MIPS_HFLAG_BR     0x02000 /* branch to register (can't link TB) */
+    /* Extra flags about the current pending branch.  */
+#define MIPS_HFLAG_BMASK_EXT 0x3C000
+#define MIPS_HFLAG_B16    0x04000 /* branch instruction was 16 bits     */
+#define MIPS_HFLAG_BDS16  0x08000 /* branch requires 16-bit delay slot  */
+#define MIPS_HFLAG_BDS32  0x10000 /* branch requires 32-bit delay slot  */
+#define MIPS_HFLAG_BX     0x20000 /* branch exchanges execution mode    */
+#define MIPS_HFLAG_BMASK  (MIPS_HFLAG_BMASK_BASE | MIPS_HFLAG_BMASK_EXT)
     target_ulong btarget;        /* Jump / branch target               */
     target_ulong bcond;          /* Branch condition (if needed)       */
 
@@ -459,13 +470,16 @@ struct CPUMIPSState {
     CPU_COMMON
 
     CPUMIPSMVPContext *mvp;
+#if !defined(CONFIG_USER_ONLY)
     CPUMIPSTLBContext *tlb;
+#endif
 
     const mips_def_t *cpu_model;
     void *irq[8];
     struct QEMUTimer *timer; /* Internal timer */
 };
 
+#if !defined(CONFIG_USER_ONLY)
 int no_mmu_map_address (CPUMIPSState *env, target_phys_addr_t *physical, int *prot,
                         target_ulong address, int rw, int access_type);
 int fixed_mmu_map_address (CPUMIPSState *env, target_phys_addr_t *physical, int *prot,
@@ -476,10 +490,12 @@ void r4k_helper_tlbwi (void);
 void r4k_helper_tlbwr (void);
 void r4k_helper_tlbp (void);
 void r4k_helper_tlbr (void);
-void mips_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...));
 
 void do_unassigned_access(target_phys_addr_t addr, int is_write, int is_exec,
                           int unused, int size);
+#endif
+
+void mips_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...));
 
 #define cpu_init cpu_mips_init
 #define cpu_exec cpu_mips_exec
@@ -589,9 +605,11 @@ int cpu_mips_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
                                int mmu_idx, int is_softmmu);
 #define cpu_handle_mmu_fault cpu_mips_handle_mmu_fault
 void do_interrupt (CPUState *env);
+#if !defined(CONFIG_USER_ONLY)
 void r4k_invalidate_tlb (CPUState *env, int idx, int use_extra);
 target_phys_addr_t cpu_mips_translate_address (CPUState *env, target_ulong address,
 		                               int rw);
+#endif
 
 static inline void cpu_pc_from_tb(CPUState *env, TranslationBlock *tb)
 {
