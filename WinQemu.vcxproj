@@ -306,9 +306,6 @@
     </ClCompile>
     <ClCompile Include="gettimeofday.c" />
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
-    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
     <ClCompile Include="qemu\acl.c" />
     <ClCompile Include="qemu\arch_init.c" />

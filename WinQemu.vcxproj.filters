@@ -1155,9 +1155,6 @@
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="outside_qemu_tree_custom\FAKE_KVM_FUNCTIONS.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
