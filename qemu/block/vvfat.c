@@ -1290,7 +1290,7 @@ static void print_direntry(const direntry_t* direntry)
     int j = 0;
     char buffer[1024];
 
-    fprintf(stderr, "direntry 0x%x: ", (int)direntry);
+    fprintf(stderr, "direntry %p: ", direntry);
     if(!direntry)
 	return;
     if(is_long_name(direntry)) {
@@ -1319,7 +1319,11 @@ static void print_direntry(const direntry_t* direntry)
 
 static void print_mapping(const mapping_t* mapping)
 {
-    fprintf(stderr, "mapping (0x%x): begin, end = %d, %d, dir_index = %d, first_mapping_index = %d, name = %s, mode = 0x%x, " , (int)mapping, mapping->begin, mapping->end, mapping->dir_index, mapping->first_mapping_index, mapping->path, mapping->mode);
+    fprintf(stderr, "mapping (%p): begin, end = %d, %d, dir_index = %d, "
+        "first_mapping_index = %d, name = %s, mode = 0x%x, " ,
+        mapping, mapping->begin, mapping->end, mapping->dir_index,
+        mapping->first_mapping_index, mapping->path, mapping->mode);
+
     if (mapping->mode & MODE_DIRECTORY)
 	fprintf(stderr, "parent_mapping_index = %d, first_dir_index = %d\n", mapping->info.dir.parent_mapping_index, mapping->info.dir.first_dir_index);
     else
@@ -2911,7 +2915,7 @@ static void checkpoint(void) {
     return;
     /* avoid compiler warnings: */
     hexdump(NULL, 100);
-    remove_mapping(vvv, NULL);
+    remove_mapping(vvv, 0);
     print_mapping(NULL);
     print_direntry(NULL);
 }

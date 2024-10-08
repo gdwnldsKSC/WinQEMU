@@ -100,8 +100,8 @@ static inline void tcg_out32(TCGContext *s, uint32_t v)
 
 /* label relocation processing */
 
-static void tcg_out_reloc(TCGContext *s, uint8_t *code_ptr, int type, 
-                   int label_index, long addend)
+static void tcg_out_reloc(TCGContext *s, uint8_t *code_ptr, int type,
+                          int label_index, long addend)
 {
     TCGLabel *l;
     TCGRelocation *r;
@@ -240,7 +240,10 @@ void tcg_context_init(TCGContext *s)
     }
     
     tcg_target_init(s);
+}
 
+void tcg_prologue_init(TCGContext *s)
+{
     /* init global prologue and epilogue */
     s->code_buf = code_gen_prologue;
     s->code_ptr = s->code_buf;

@@ -579,6 +579,11 @@ void cpu_exec_init_all(unsigned long tb_size)
 #if !defined(CONFIG_USER_ONLY)
     io_mem_init();
 #endif
+#if !defined(CONFIG_USER_ONLY) || !defined(CONFIG_USE_GUEST_BASE)
+    /* There's no guest base to take into account, so go ahead and
+       initialize the prologue now.  */
+    tcg_prologue_init(&tcg_ctx);
+#endif
 }
 
 #if defined(CPU_SAVE_VERSION) && !defined(CONFIG_USER_ONLY)
@@ -2780,8 +2785,12 @@ ram_addr_t qemu_ram_alloc(ram_addr_t size)
     if (mem_path) {
 #if defined (__linux__) && !defined(TARGET_S390X)
         new_block->host = file_ram_alloc(size, mem_path);
-        if (!new_block->host)
-            exit(1);
+        if (!new_block->host) {
+            new_block->host = qemu_vmalloc(size);
+#ifdef MADV_MERGEABLE
+            madvise(new_block->host, size, MADV_MERGEABLE);
+#endif
+        }
 #else
         fprintf(stderr, "-mem-path option unsupported\n");
         exit(1);

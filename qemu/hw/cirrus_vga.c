@@ -2758,7 +2758,7 @@ static void cirrus_vga_ioport_write(void *opaque, uint32_t addr, uint32_t val)
 		case 0x0e:
 		case 0x0f:
 #endif
-        s->ar[index] = val & 0x3f;
+		s->ar[index] = val & 0x3f;
 		break;
 	    case 0x10:
 		s->ar[index] = val & ~0x10;
@@ -3004,7 +3004,6 @@ static const VMStateDescription vmstate_pci_cirrus_vga = {
     .version_id = 2,
     .minimum_version_id = 2,
     .minimum_version_id_old = 2,
-    .post_load = cirrus_post_load,
     .fields      = (VMStateField []) {
         VMSTATE_PCI_DEVICE(dev, PCICirrusVGAState),
         VMSTATE_STRUCT(cirrus_vga, PCICirrusVGAState, 0,

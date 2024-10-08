@@ -365,6 +365,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\cpus.c" />
+    <ClCompile Include="qemu\cursor.c" />
     <ClCompile Include="qemu\fsdev\qemu-fsdev.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>

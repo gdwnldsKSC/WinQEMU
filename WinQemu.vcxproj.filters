@@ -1485,6 +1485,9 @@
     <ClCompile Include="qemu\hw\pc_piix.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\cursor.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
