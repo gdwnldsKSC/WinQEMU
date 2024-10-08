@@ -139,6 +139,10 @@ typedef signed int ssize_t;
 int gettimeofday(struct timeval* tp, struct timezone* tzp);
 #endif
 
+// setenv implementation to avoid upstream modification
+
+int setenv(const char* name, const char* value, int overwrite);
+
 #endif // end MSVC sections
 
 /* FIXME: Remove NEED_CPU_H.  */

@@ -543,6 +543,7 @@
     </ClCompile>
     <ClCompile Include="qemu\vnc-encoding-hextile.c" />
     <ClCompile Include="qemu\vnc-encoding-zlib.c" />
+    <ClCompile Include="setenv.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
