@@ -1,0 +1,553 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6F610EE8-7F59-4191-AB88-F63843267C02}</ProjectGuid>
+    <RootNamespace>gnutls</RootNamespace>
+  </PropertyGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="smp_deps.props" />
+    <Import Project="libgnutls_files.props" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\yasm.props" />
+  </ImportGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd";NETTLE_LIBRARY_SONAME="libnettled";HOGWEED_LIBRARY_SONAME="libhogweedd";GMP_LIBRARY_SONAME="libgmpd";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;libzlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutlsd";NETTLE_LIBRARY_SONAME="libnettled";HOGWEED_LIBRARY_SONAME="libhogweedd";GMP_LIBRARY_SONAME="libgmpd";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweedd.lib;libgmpd.lib;libnettled.lib;libzlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd";NETTLE_LIBRARY_SONAME="nettled";HOGWEED_LIBRARY_SONAME="hogweedd";GMP_LIBRARY_SONAME="gmpd";ASM_X86_32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;hogweedd.lib;gmpd.lib;nettled.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutlsd";NETTLE_LIBRARY_SONAME="nettled";HOGWEED_LIBRARY_SONAME="hogweedd";GMP_LIBRARY_SONAME="gmpd";ASM_X86_64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;hogweedd.lib;gmpd.lib;nettled.lib;zlibd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libzlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libzlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls";NETTLE_LIBRARY_SONAME="nettle";HOGWEED_LIBRARY_SONAME="hogweed";GMP_LIBRARY_SONAME="gmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;hogweed.lib;gmp.lib;nettle.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libzlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="gnutls";NETTLE_LIBRARY_SONAME="nettle";HOGWEED_LIBRARY_SONAME="hogweed";GMP_LIBRARY_SONAME="gmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;hogweed.lib;gmp.lib;nettle.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLLStaticDeps|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_CONFIG_H;inline=__inline;ASN1_BUILDING;ASN1_STATIC;LOCALEDIR=".";__func__=__FUNCTION__;ASM_X86;USE_WINDOWS_THREADS;GNUTLS_LIBRARY_SONAME="libgnutls";NETTLE_LIBRARY_SONAME="libnettle";HOGWEED_LIBRARY_SONAME="libhogweed";GMP_LIBRARY_SONAME="libgmp";ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\;.\lib;..\lib;..\lib\accelerated;..\lib\auth;..\lib\ext;..\lib\extras;..\lib\minitasn1;..\lib\nettle;..\lib\nettle\int;..\lib\x509;.\lib\x509;..\lib\includes;..\lib\accelerated\x86;..\gnulib\lib;.\gnulib\lib;.\gnulib\lib\uninorm;.\libtasn1;..\devel\libtasn1\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4267;4244;4018;4090;4047;4024;4311;4116;4146;4312;4028;4334;4101;4013;4020;4068;4003;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>libgnutls.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Crypt32.lib;Ws2_32.lib;Kernel32.lib;Ncrypt.lib;libhogweed.lib;libgmp.lib;libnettle.lib;libzlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/IGNORE:4006,4221,4042 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)"\include
+mkdir "$(OutDir)"\include\gnutls
+copy ..\lib\includes\gnutls\*.h "$(OutDir)"\include\gnutls
+copy .\gnutls\gnutls.h "$(OutDir)"\include\gnutls
+mkdir $(OutDir)\licenses
+copy ..\LICENSE $(OutDir)\licenses\gnutls.txt</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>if exist ..\config.h (
+del ..\config.h
+)
+if exist ..\lib\includes\gnutls\gnutls.h (
+del ..\lib\includes\gnutls\gnutls.h
+)
+if exist ..\lib\priority_options.h (
+del ..\lib\priority_options.h
+)
+if exist ..\lib\x509\supported_exts.h (
+del ..\lib\x509\supported_exts.h
+)
+if exist "$(OutDir)"\include\gnutls (
+rd /s /q "$(OutDir)"\include\gnutls
+cd ../
+cd $(ProjectDir)
+)</Command>
+    </PreBuildEvent>
+    <CustomBuildStep>
+      <Message>Custom Clean Step</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>force_clean</Outputs>
+      <Command>if exist "$(OutDir)"\include\gnutls (
+rmdir /s /q "$(OutDir)"\include\gnutls
+)
+if exist $(OutDir)\licenses\gnutls.txt (
+del /f /q $(OutDir)\licenses\gnutls.txt
+)</Command>
+    </CustomBuildStep>
+    <YASM>
+      <PreprocessorDefinitions>__NASM_VERSION_ID__=0x02030000;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </YASM>
+  </ItemDefinitionGroup>
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\yasm.targets" />
+  </ImportGroup>
+</Project>
