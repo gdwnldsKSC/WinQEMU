@@ -924,6 +924,9 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
             bdrv_flags |= BDRV_O_NOCACHE;
         } else if (!strcmp(buf, "writeback")) {
             bdrv_flags |= BDRV_O_CACHE_WB;
+        } else if (!strcmp(buf, "unsafe")) {
+            bdrv_flags |= BDRV_O_CACHE_WB;
+            bdrv_flags |= BDRV_O_NO_FLUSH;
         } else if (!strcmp(buf, "writethrough")) {
             /* this is the default */
         } else {
@@ -961,7 +964,7 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
 
     on_write_error = BLOCK_ERR_STOP_ENOSPC;
     if ((buf = qemu_opt_get(opts, "werror")) != NULL) {
-        if (type != IF_IDE && type != IF_SCSI && type != IF_VIRTIO) {
+        if (type != IF_IDE && type != IF_SCSI && type != IF_VIRTIO && type != IF_NONE) {
             fprintf(stderr, "werror is no supported by this format\n");
             return NULL;
         }
@@ -974,7 +977,7 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
 
     on_read_error = BLOCK_ERR_REPORT;
     if ((buf = qemu_opt_get(opts, "rerror")) != NULL) {
-        if (type != IF_IDE && type != IF_VIRTIO) {
+        if (type != IF_IDE && type != IF_VIRTIO && type != IF_NONE) {
             fprintf(stderr, "rerror is no supported by this format\n");
             return NULL;
         }
@@ -1113,16 +1116,16 @@ DriveInfo *drive_init(QemuOpts *opts, void *opaque,
         return NULL;
     }
     if (snapshot) {
-        /* always use write-back with snapshot */
+        /* always use cache=unsafe with snapshot */
         bdrv_flags &= ~BDRV_O_CACHE_MASK;
-        bdrv_flags |= (BDRV_O_SNAPSHOT|BDRV_O_CACHE_WB);
+        bdrv_flags |= (BDRV_O_SNAPSHOT|BDRV_O_CACHE_WB|BDRV_O_NO_FLUSH);
     }
 
     if (media == MEDIA_CDROM) {
         /* CDROM is fine for any interface, don't check.  */
         ro = 1;
     } else if (ro == 1) {
-        if (type != IF_SCSI && type != IF_VIRTIO && type != IF_FLOPPY) {
+        if (type != IF_SCSI && type != IF_VIRTIO && type != IF_FLOPPY && type != IF_NONE) {
             fprintf(stderr, "qemu: readonly flag not supported for drive with this interface\n");
             return NULL;
         }
@@ -1719,7 +1722,6 @@ static int shutdown_requested;
 static int powerdown_requested;
 int debug_requested;
 int vmstop_requested;
-static int exit_requested;
 
 int qemu_shutdown_requested(void)
 {
@@ -1740,12 +1742,6 @@ int qemu_powerdown_requested(void)
     int r = powerdown_requested;
     powerdown_requested = 0;
     return r;
-}
-
-int qemu_exit_requested(void)
-{
-    /* just return it, we'll exit() anyway */
-    return exit_requested;
 }
 
 static int qemu_debug_requested(void)
@@ -1815,12 +1811,6 @@ void qemu_system_shutdown_request(void)
 void qemu_system_powerdown_request(void)
 {
     powerdown_requested = 1;
-    qemu_notify_event();
-}
-
-void qemu_system_exit_request(void)
-{
-    exit_requested = 1;
     qemu_notify_event();
 }
 
@@ -1960,8 +1950,6 @@ static int vm_can_run(void)
         return 0;
     if (debug_requested)
         return 0;
-    if (exit_requested)
-        return 0;
     return 1;
 }
 
@@ -2013,9 +2001,6 @@ static void main_loop(void)
         }
         if ((r = qemu_vmstop_requested())) {
             vm_stop(r);
-        }
-        if (qemu_exit_requested()) {
-            exit(0);
         }
     }
     pause_all_vcpus();

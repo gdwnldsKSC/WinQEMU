@@ -1,5 +1,6 @@
 
 
+
 {
 .name       = "help|?",
 .args_type  = "name:s?",
@@ -15,16 +16,6 @@
 .params     = "device|all",
 .help       = "commit changes to the disk images (if -snapshot is used) or backing files",
 .mhandler.cmd = do_commit,
-},
-
-
-{
-.name       = "info",
-.args_type  = "item:s?",
-.params     = "[subcommand]",
-.help       = "show various information about the system state",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_info,
 },
 
 
@@ -434,8 +425,7 @@
 .args_type  = "pci_addr:s,type:s,opts:s?",
 .params     = "auto|[[<domain>:]<bus>:]<slot> nic|storage [[vlan=n][,macaddr=addr][,model=type]] [file=file][,if=type][,bus=nr]...",
 .help       = "hot-add PCI device",
-.user_print = pci_device_hot_add_print,
-.mhandler.cmd_new = pci_device_hot_add,
+.mhandler.cmd = pci_device_hot_add,
 },
 #endif
 
@@ -446,8 +436,7 @@
 .args_type  = "pci_addr:s",
 .params     = "[[<domain>:]<bus>:]<slot>",
 .help       = "hot remove PCI device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_pci_device_hot_remove,
+.mhandler.cmd = do_pci_device_hot_remove,
 },
 #endif
 
@@ -515,7 +504,7 @@
 .name       = "balloon",
 .args_type  = "value:M",
 .params     = "target",
-.help       = "request VM to change it's memory allocation (in MB)",
+.help       = "request VM to change its memory allocation (in MB)",
 .user_print = monitor_user_noop,
 .mhandler.cmd_async = do_balloon,
 .async      = 1,
@@ -636,5 +625,42 @@
 .user_print = monitor_user_noop,
 .mhandler.cmd_new = do_qmp_capabilities,
 },
+
+
+
+
+
+{
+.name       = "info",
+.args_type  = "item:s?",
+.params     = "[subcommand]",
+.help       = "show various information about the system state",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_info,
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1491,6 +1491,9 @@
     <ClCompile Include="setenv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\vnc-encoding-tight.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2293,6 +2296,9 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\mc146818rtc.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\vnc-encoding-tight.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

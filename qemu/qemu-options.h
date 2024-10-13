@@ -44,8 +44,9 @@ QEMU_ARCH_ALL)
 DEF("drive", HAS_ARG, QEMU_OPTION_drive,
 "-drive [file=file][,if=type][,bus=n][,unit=m][,media=d][,index=i]\n"
 "       [,cyls=c,heads=h,secs=s[,trans=t]][,snapshot=on|off]\n"
-"       [,cache=writethrough|writeback|none][,format=f][,serial=s]\n"
-"       [,addr=A][,id=name][,aio=threads|native][,readonly=on|off]\n"
+"       [,cache=writethrough|writeback|unsafe|none][,format=f]\n"
+"       [,serial=s][,addr=A][,id=name][,aio=threads|native]\n"
+"       [,readonly=on|off]\n"
 "                use 'file' as a drive image\n", QEMU_ARCH_ALL)
 
 DEF("set", HAS_ARG, QEMU_OPTION_set,
@@ -119,8 +120,7 @@ DEF("device", HAS_ARG, QEMU_OPTION_device,
 "                add device (based on driver)\n"
 "                prop=value,... sets driver properties\n"
 "                use -device ? to print all possible drivers\n"
-"                use -device driver,? to print all possible options\n"
-"                use -device driver,option=? to print a help for value\n",
+"                use -device driver,? to print all possible properties\n",
 QEMU_ARCH_ALL)
 
 #ifdef CONFIG_LINUX
@@ -354,19 +354,16 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 #define NETDEV_VDE ""
 #endif
 
-	DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
-		"-netdev [" \
-		NETDEV_SLIRP \
-		"tap|" \
-		NETDEV_VDE \
-		"socket],id=str[,option][,option][,...]\n", QEMU_ARCH_ALL)
+DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+	"-netdev [" \
+	NETDEV_SLIRP \
+	"tap|" \
+	NETDEV_VDE \
+	"socket],id=str[,option][,option][,...]\n", QEMU_ARCH_ALL)
 
+DEFHEADING()
 
-
-
-	DEFHEADING()
-
-	DEFHEADING(Character device options : )
+DEFHEADING(Character device options : )
 
 #ifdef _WIN32
 #define CHARDEV_WIN32 \
@@ -400,29 +397,29 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 #define CHARDEV_PARPORT ""
 #endif
 
-	DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
-		"-chardev null,id=id[,mux=on|off]\n" \
-		"-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]\n" \
-		"         [,server][,nowait][,telnet][,mux=on|off] (tcp)\n" \
-		"-chardev socket,id=id,path=path[,server][,nowait][,telnet],[mux=on|off] (unix)\n" \
-		"-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]\n" \
-		"         [,localport=localport][,ipv4][,ipv6][,mux=on|off]\n" \
-		"-chardev msmouse,id=id[,mux=on|off]\n" \
-		"-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n" \
-		"         [,mux=on|off]\n" \
-		"-chardev file,id=id,path=path[,mux=on|off]\n" \
-		"-chardev pipe,id=id,path=path[,mux=on|off]\n" \
-		CHARDEV_WIN32 \
-		CHARDEV_BRLAPI \
-		CHARDEV_TTY \
-		CHARDEV_PARPORT, QEMU_ARCH_ALL
-	)
+DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
+	"-chardev null,id=id[,mux=on|off]\n" \
+	"-chardev socket,id=id[,host=host],port=host[,to=to][,ipv4][,ipv6][,nodelay]\n" \
+	"         [,server][,nowait][,telnet][,mux=on|off] (tcp)\n" \
+	"-chardev socket,id=id,path=path[,server][,nowait][,telnet],[mux=on|off] (unix)\n" \
+	"-chardev udp,id=id[,host=host],port=port[,localaddr=localaddr]\n" \
+	"         [,localport=localport][,ipv4][,ipv6][,mux=on|off]\n" \
+	"-chardev msmouse,id=id[,mux=on|off]\n" \
+	"-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n" \
+	"         [,mux=on|off]\n" \
+	"-chardev file,id=id,path=path[,mux=on|off]\n" \
+	"-chardev pipe,id=id,path=path[,mux=on|off]\n" \
+	CHARDEV_WIN32 \
+	CHARDEV_BRLAPI \
+	CHARDEV_TTY \
+	CHARDEV_PARPORT, QEMU_ARCH_ALL
+)
 
-	// END HEAVILY MODIFIED SECTION 
+// END HEAVILY MODIFIED SECTION 
 
-	DEFHEADING()
+DEFHEADING()
 
-	DEFHEADING(Bluetooth(R) options:)
+DEFHEADING(Bluetooth(R) options:)
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
 "-bt hci,null    dumb bluetooth HCI - doesn't respond to commands\n" \

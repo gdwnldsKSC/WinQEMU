@@ -542,6 +542,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\vnc-encoding-hextile.c" />
+    <ClCompile Include="qemu\vnc-encoding-tight.c" />
     <ClCompile Include="qemu\vnc-encoding-zlib.c" />
     <ClCompile Include="setenv.c" />
     <ClCompile Include="stdafx.cpp">
@@ -1907,6 +1908,7 @@
     <ClInclude Include="qemu\targphys.h" />
     <ClInclude Include="qemu\vnc-auth-sasl.h" />
     <ClInclude Include="qemu\vnc-auth-vencrypt.h" />
+    <ClInclude Include="qemu\vnc-encoding-tight.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="qemu\a.out.h" />

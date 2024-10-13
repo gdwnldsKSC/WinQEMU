@@ -640,6 +640,7 @@ static inline void stfq_be_p(void *ptr, float64 v)
 #if defined(CONFIG_USE_GUEST_BASE)
 extern unsigned long guest_base;
 extern int have_guest_base;
+extern unsigned long reserved_va;
 #define GUEST_BASE guest_base
 #else
 #define GUEST_BASE 0ul
@@ -839,6 +840,8 @@ void cpu_watchpoint_remove_all(CPUState *env, int mask);
 
 void cpu_single_step(CPUState *env, int enabled);
 void cpu_reset(CPUState *s);
+int cpu_is_stopped(CPUState *env);
+void run_on_cpu(CPUState *env, void (*func)(void *data), void *data);
 
 #define CPU_LOG_TB_OUT_ASM (1 << 0)
 #define CPU_LOG_TB_IN_ASM  (1 << 1)
