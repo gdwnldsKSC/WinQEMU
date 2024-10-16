@@ -502,6 +502,7 @@ INLINE int floatx80_lt_quiet( floatx80 a, floatx80 b STATUS_PARAM)
 #else
 	return isless(fx80_to_f64 (&a), fx80_to_f64(&b));
 #endif
+
 }
 INLINE int floatx80_unordered( floatx80 a, floatx80 b STATUS_PARAM)
 {
@@ -510,6 +511,7 @@ INLINE int floatx80_unordered( floatx80 a, floatx80 b STATUS_PARAM)
 #else
 	return isunordered(fx80_to_f64 (&a), fx80_to_f64 (&b));
 #endif
+
 }
 int floatx80_compare( floatx80, floatx80 STATUS_PARAM );
 int floatx80_compare_quiet( floatx80, floatx80 STATUS_PARAM );
@@ -519,9 +521,9 @@ int floatx80_is_nan( floatx80 );
 INLINE floatx80 floatx80_abs(floatx80 a)
 {
 #ifndef _MSC_VER
-    return fabsl (a);
+    return fabsl(a);
 #else
-	return fx80_fabsl (&a);
+    return fx80_fabsl(&a);
 #endif
 }
 
@@ -547,7 +549,11 @@ INLINE floatx80 floatx80_is_neg(floatx80 a)
 {
     floatx80u u;
     u.f = a;
-    return fx80_from_int32 (u.i.high >> 15);
+#ifndef _MSC_VER
+    return u.i.high >> 15;
+#else
+    return fx80_from_int32(u.i.high >> 15);
+#endif
 }
 
 INLINE floatx80 floatx80_is_zero(floatx80 a)

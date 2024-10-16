@@ -688,6 +688,9 @@ static int l2cap_channel_config(struct l2cap_instance_s *l2cap,
 
     l2cap_configuration_response(l2cap, ch->remote_cid,
                     flag, result, rsp, len);
+#ifdef _MSC_VER
+    free(rsp);
+#endif
 
     return result == L2CAP_CONF_SUCCESS && !flag;
 }

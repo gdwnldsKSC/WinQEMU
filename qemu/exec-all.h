@@ -70,8 +70,12 @@ typedef struct TranslationBlock TranslationBlock;
 #define OPPARAM_BUF_SIZE (OPC_BUF_SIZE * MAX_OPC_PARAM)
 
 extern target_ulong gen_opc_pc[OPC_BUF_SIZE];
+extern target_ulong gen_opc_npc[OPC_BUF_SIZE];
+extern uint8_t gen_opc_cc_op[OPC_BUF_SIZE];
 extern uint8_t gen_opc_instr_start[OPC_BUF_SIZE];
 extern uint16_t gen_opc_icount[OPC_BUF_SIZE];
+extern target_ulong gen_opc_jump_pc[2];
+extern uint32_t gen_opc_hflags[OPC_BUF_SIZE];
 
 #include "qemu-log.h"
 
@@ -187,7 +191,7 @@ static inline unsigned int tb_phys_hash_func(tb_page_addr_t pc)
 TranslationBlock *tb_alloc(target_ulong pc);
 void tb_free(TranslationBlock *tb);
 void tb_flush(CPUState *env);
-void tb_link_page(TranslationBlock *tb,
+void tb_link_phys(TranslationBlock *tb,
                   tb_page_addr_t phys_pc, tb_page_addr_t phys_page2);
 void tb_phys_invalidate(TranslationBlock *tb, tb_page_addr_t page_addr);
 
@@ -319,7 +323,7 @@ static inline tb_page_addr_t get_page_addr_code(CPUState *env1, target_ulong add
 /* NOTE: this function can trigger an exception */
 /* NOTE2: the returned address is not exactly the physical address: it
    is the offset relative to phys_ram_base */
-static inline tb_page_addr_t get_page_addr_code(CPUState *env1, target_ulong addr)
+static inline tb_page_addr_t get_phys_addr_code(CPUState *env1, target_ulong addr)
 {
     int mmu_idx, page_index, pd;
     void *p;
@@ -352,5 +356,8 @@ CPUDebugExcpHandler *cpu_set_debug_excp_handler(CPUDebugExcpHandler *handler);
 
 /* vl.c */
 extern int singlestep;
+
+/* cpu-exec.c */
+extern volatile sig_atomic_t exit_request;
 
 #endif

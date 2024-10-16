@@ -24,20 +24,14 @@
 #include "cpu.h"
 #include "gdbstub.h"
 #include "host-utils.h"
-#include "hw/pc.h"
-#include "ioport.h"
 
-#ifdef CONFIG_KVM_PARA
-#include <linux/kvm_para.h>
-#endif
-//
 //#define DEBUG_KVM
 
 #ifdef DEBUG_KVM
-#define DPRINTF(fmt, ...) \
+#define dprintf(fmt, ...) \
     do { fprintf(stderr, fmt, ## __VA_ARGS__); } while (0)
 #else
-#define DPRINTF(fmt, ...) \
+#define dprintf(fmt, ...) \
     do { } while (0)
 #endif
 
@@ -101,18 +95,12 @@ uint32_t kvm_arch_get_supported_cpuid(CPUState *env, uint32_t function, int reg)
                 break;
             case R_EDX:
                 ret = cpuid->entries[i].edx;
-                switch (function) {
-                case 1:
-                    /* KVM before 2.6.30 misreports the following features */
-                    ret |= CPUID_MTRR | CPUID_PAT | CPUID_MCE | CPUID_MCA;
-                    break;
-                case 0x80000001:
+                if (function == 0x80000001) {
                     /* On Intel, kvm returns cpuid according to the Intel spec,
                      * so add missing bits according to the AMD spec:
                      */
                     cpuid_1_edx = kvm_arch_get_supported_cpuid(env, 1, R_EDX);
                     ret |= cpuid_1_edx & 0xdfeff7ff;
-                    break;
                 }
                 break;
             }
@@ -133,35 +121,18 @@ uint32_t kvm_arch_get_supported_cpuid(CPUState *env, uint32_t function, int reg)
 
 #endif
 
-#ifdef CONFIG_KVM_PARA
-struct kvm_para_features {
-        int cap;
-        int feature;
-} para_features[] = {
-#ifdef KVM_CAP_CLOCKSOURCE
-        { KVM_CAP_CLOCKSOURCE, KVM_FEATURE_CLOCKSOURCE },
-#endif
-#ifdef KVM_CAP_NOP_IO_DELAY
-        { KVM_CAP_NOP_IO_DELAY, KVM_FEATURE_NOP_IO_DELAY },
-#endif
-#ifdef KVM_CAP_PV_MMU
-        { KVM_CAP_PV_MMU, KVM_FEATURE_MMU_OP },
-#endif
-        { -1, -1 }
-};
-
-static int get_para_features(CPUState *env)
+static void kvm_trim_features(uint32_t *features, uint32_t supported)
 {
-        int i, features = 0;
+    int i;
+    uint32_t mask;
 
-        for (i = 0; i < ARRAY_SIZE(para_features) - 1; i++) {
-                if (kvm_check_extension(env->kvm_state, para_features[i].cap))
-                        features |= (1 << para_features[i].feature);
+    for (i = 0; i < 32; ++i) {
+        mask = 1U << i;
+        if ((*features & mask) && !(supported & mask)) {
+            *features &= ~mask;
         }
-
-        return features;
+    }
 }
-#endif
 
 int kvm_arch_init_vcpu(CPUState *env)
 {
@@ -171,47 +142,28 @@ int kvm_arch_init_vcpu(CPUState *env)
     } __attribute__((packed)) cpuid_data;
     uint32_t limit, i, j, cpuid_i;
     uint32_t unused;
-    struct kvm_cpuid_entry2 *c;
-#ifdef KVM_CPUID_SIGNATURE
-    uint32_t signature[3];
-#endif
 
     env->mp_state = KVM_MP_STATE_RUNNABLE;
 
-    env->cpuid_features &= kvm_arch_get_supported_cpuid(env, 1, R_EDX);
+    kvm_trim_features(&env->cpuid_features,
+        kvm_arch_get_supported_cpuid(env, 1, R_EDX));
 
     i = env->cpuid_ext_features & CPUID_EXT_HYPERVISOR;
-    env->cpuid_ext_features &= kvm_arch_get_supported_cpuid(env, 1, R_ECX);
+    kvm_trim_features(&env->cpuid_ext_features,
+        kvm_arch_get_supported_cpuid(env, 1, R_ECX));
     env->cpuid_ext_features |= i;
 
-    env->cpuid_ext2_features &= kvm_arch_get_supported_cpuid(env, 0x80000001,
-                                                             R_EDX);
-    env->cpuid_ext3_features &= kvm_arch_get_supported_cpuid(env, 0x80000001,
-                                                             R_ECX);
+    kvm_trim_features(&env->cpuid_ext2_features,
+        kvm_arch_get_supported_cpuid(env, 0x80000001, R_EDX));
+    kvm_trim_features(&env->cpuid_ext3_features,
+        kvm_arch_get_supported_cpuid(env, 0x80000001, R_ECX));
 
     cpuid_i = 0;
-
-#ifdef CONFIG_KVM_PARA
-    /* Paravirtualization CPUIDs */
-    memcpy(signature, "KVMKVMKVM\0\0\0", 12);
-    c = &cpuid_data.entries[cpuid_i++];
-    memset(c, 0, sizeof(*c));
-    c->function = KVM_CPUID_SIGNATURE;
-    c->eax = 0;
-    c->ebx = signature[0];
-    c->ecx = signature[1];
-    c->edx = signature[2];
-
-    c = &cpuid_data.entries[cpuid_i++];
-    memset(c, 0, sizeof(*c));
-    c->function = KVM_CPUID_FEATURES;
-    c->eax = env->cpuid_kvm_features & get_para_features(env);
-#endif
 
     cpu_x86_cpuid(env, 0, 0, &limit, &unused, &unused, &unused);
 
     for (i = 0; i <= limit; i++) {
-        c = &cpuid_data.entries[cpuid_i++];
+        struct kvm_cpuid_entry2 *c = &cpuid_data.entries[cpuid_i++];
 
         switch (i) {
         case 2: {
@@ -261,7 +213,7 @@ int kvm_arch_init_vcpu(CPUState *env)
     cpu_x86_cpuid(env, 0x80000000, 0, &limit, &unused, &unused, &unused);
 
     for (i = 0x80000000; i <= limit; i++) {
-        c = &cpuid_data.entries[cpuid_i++];
+        struct kvm_cpuid_entry2 *c = &cpuid_data.entries[cpuid_i++];
 
         c->function = i;
         c->flags = 0;
@@ -326,25 +278,6 @@ static int kvm_has_msr_star(CPUState *env)
     return 0;
 }
 
-static int kvm_init_identity_map_page(KVMState *s)
-{
-#ifdef KVM_CAP_SET_IDENTITY_MAP_ADDR
-    int ret;
-    uint64_t addr = 0xfffbc000;
-
-    if (!kvm_check_extension(s, KVM_CAP_SET_IDENTITY_MAP_ADDR)) {
-        return 0;
-    }
-
-    ret = kvm_vm_ioctl(s, KVM_SET_IDENTITY_MAP_ADDR, &addr);
-    if (ret < 0) {
-        fprintf(stderr, "kvm_set_identity_map_addr: %s\n", strerror(ret));
-        return ret;
-    }
-#endif
-    return 0;
-}
-
 int kvm_arch_init(KVMState *s, int smp_cpus)
 {
     int ret;
@@ -365,19 +298,7 @@ int kvm_arch_init(KVMState *s, int smp_cpus)
      * as unavaible memory.  FIXME, need to ensure the e820 map deals with
      * this?
      */
-    /*
-     * Tell fw_cfg to notify the BIOS to reserve the range.
-     */
-    if (e820_add_entry(0xfffbc000, 0x4000, E820_RESERVED) < 0) {
-        perror("e820_add_entry() table is full");
-        exit(1);
-    }
-    ret = kvm_vm_ioctl(s, KVM_SET_TSS_ADDR, 0xfffbd000);
-    if (ret < 0) {
-        return ret;
-    }
-
-    return kvm_init_identity_map_page(s);
+    return kvm_vm_ioctl(s, KVM_SET_TSS_ADDR, 0xfffbd000);
 }
                     
 static void set_v8086_seg(struct kvm_segment *lhs, const SegmentCache *rhs)
@@ -555,7 +476,7 @@ static void kvm_msr_entry_set(struct kvm_msr_entry *entry,
     entry->data = value;
 }
 
-static int kvm_put_msrs(CPUState *env, int level)
+static int kvm_put_msrs(CPUState *env)
 {
     struct {
         struct kvm_msrs info;
@@ -569,6 +490,7 @@ static int kvm_put_msrs(CPUState *env, int level)
     kvm_msr_entry_set(&msrs[n++], MSR_IA32_SYSENTER_EIP, env->sysenter_eip);
     if (kvm_has_msr_star(env))
 	kvm_msr_entry_set(&msrs[n++], MSR_STAR, env->star);
+    kvm_msr_entry_set(&msrs[n++], MSR_IA32_TSC, env->tsc);
 #ifdef TARGET_X86_64
     /* FIXME if lm capable */
     kvm_msr_entry_set(&msrs[n++], MSR_CSTAR, env->cstar);
@@ -576,12 +498,8 @@ static int kvm_put_msrs(CPUState *env, int level)
     kvm_msr_entry_set(&msrs[n++], MSR_FMASK, env->fmask);
     kvm_msr_entry_set(&msrs[n++], MSR_LSTAR, env->lstar);
 #endif
-    if (level == KVM_PUT_FULL_STATE) {
-        kvm_msr_entry_set(&msrs[n++], MSR_IA32_TSC, env->tsc);
-        kvm_msr_entry_set(&msrs[n++], MSR_KVM_SYSTEM_TIME,
-                          env->system_time_msr);
-        kvm_msr_entry_set(&msrs[n++], MSR_KVM_WALL_CLOCK, env->wall_clock_msr);
-    }
+    kvm_msr_entry_set(&msrs[n++], MSR_KVM_SYSTEM_TIME,  env->system_time_msr);
+    kvm_msr_entry_set(&msrs[n++], MSR_KVM_WALL_CLOCK,  env->wall_clock_msr);
 
     msr_data.info.nmsrs = n;
 
@@ -794,7 +712,7 @@ static int kvm_get_mp_state(CPUState *env)
     return 0;
 }
 
-static int kvm_put_vcpu_events(CPUState *env, int level)
+static int kvm_put_vcpu_events(CPUState *env)
 {
 #ifdef KVM_CAP_VCPU_EVENTS
     struct kvm_vcpu_events events;
@@ -817,12 +735,6 @@ static int kvm_put_vcpu_events(CPUState *env, int level)
     events.nmi.masked = !!(env->hflags2 & HF2_NMI_MASK);
 
     events.sipi_vector = env->sipi_vector;
-
-    events.flags = 0;
-    if (level >= KVM_PUT_RESET_STATE) {
-        events.flags |=
-            KVM_VCPUEVENT_VALID_NMI_PENDING | KVM_VCPUEVENT_VALID_SIPI_VECTOR;
-    }
 
     return kvm_vcpu_ioctl(env, KVM_SET_VCPU_EVENTS, &events);
 #else
@@ -867,85 +779,7 @@ static int kvm_get_vcpu_events(CPUState *env)
     return 0;
 }
 
-static int kvm_guest_debug_workarounds(CPUState *env)
-{
-    int ret = 0;
-#ifdef KVM_CAP_SET_GUEST_DEBUG
-    unsigned long reinject_trap = 0;
-
-    if (!kvm_has_vcpu_events()) {
-        if (env->exception_injected == 1) {
-            reinject_trap = KVM_GUESTDBG_INJECT_DB;
-        } else if (env->exception_injected == 3) {
-            reinject_trap = KVM_GUESTDBG_INJECT_BP;
-        }
-        env->exception_injected = -1;
-    }
-
-    /*
-     * Kernels before KVM_CAP_X86_ROBUST_SINGLESTEP overwrote flags.TF
-     * injected via SET_GUEST_DEBUG while updating GP regs. Work around this
-     * by updating the debug state once again if single-stepping is on.
-     * Another reason to call kvm_update_guest_debug here is a pending debug
-     * trap raise by the guest. On kernels without SET_VCPU_EVENTS we have to
-     * reinject them via SET_GUEST_DEBUG.
-     */
-    if (reinject_trap ||
-        (!kvm_has_robust_singlestep() && env->singlestep_enabled)) {
-        ret = kvm_update_guest_debug(env, reinject_trap);
-    }
-#endif /* KVM_CAP_SET_GUEST_DEBUG */
-    return ret;
-}
-
-static int kvm_put_debugregs(CPUState *env)
-{
-#ifdef KVM_CAP_DEBUGREGS
-    struct kvm_debugregs dbgregs;
-    int i;
-
-    if (!kvm_has_debugregs()) {
-        return 0;
-    }
-
-    for (i = 0; i < 4; i++) {
-        dbgregs.db[i] = env->dr[i];
-    }
-    dbgregs.dr6 = env->dr[6];
-    dbgregs.dr7 = env->dr[7];
-    dbgregs.flags = 0;
-
-    return kvm_vcpu_ioctl(env, KVM_SET_DEBUGREGS, &dbgregs);
-#else
-    return 0;
-#endif
-}
-
-static int kvm_get_debugregs(CPUState *env)
-{
-#ifdef KVM_CAP_DEBUGREGS
-    struct kvm_debugregs dbgregs;
-    int i, ret;
-
-    if (!kvm_has_debugregs()) {
-        return 0;
-    }
-
-    ret = kvm_vcpu_ioctl(env, KVM_GET_DEBUGREGS, &dbgregs);
-    if (ret < 0) {
-       return ret;
-    }
-    for (i = 0; i < 4; i++) {
-        env->dr[i] = dbgregs.db[i];
-    }
-    env->dr[4] = env->dr[6] = dbgregs.dr6;
-    env->dr[5] = env->dr[7] = dbgregs.dr7;
-#endif
-
-    return 0;
-}
-
-int kvm_arch_put_registers(CPUState *env, int level)
+int kvm_arch_put_registers(CPUState *env)
 {
     int ret;
 
@@ -961,26 +795,15 @@ int kvm_arch_put_registers(CPUState *env, int level)
     if (ret < 0)
         return ret;
 
-    ret = kvm_put_msrs(env, level);
+    ret = kvm_put_msrs(env);
     if (ret < 0)
         return ret;
 
-    if (level >= KVM_PUT_RESET_STATE) {
-        ret = kvm_put_mp_state(env);
-        if (ret < 0)
-            return ret;
-    }
-
-    ret = kvm_put_vcpu_events(env, level);
+    ret = kvm_put_mp_state(env);
     if (ret < 0)
         return ret;
 
-    /* must be last */
-    ret = kvm_guest_debug_workarounds(env);
-    if (ret < 0)
-        return ret;
-
-    ret = kvm_put_debugregs(env);
+    ret = kvm_put_vcpu_events(env);
     if (ret < 0)
         return ret;
 
@@ -1015,10 +838,6 @@ int kvm_arch_get_registers(CPUState *env)
     if (ret < 0)
         return ret;
 
-    ret = kvm_get_debugregs(env);
-    if (ret < 0)
-        return ret;
-
     return 0;
 }
 
@@ -1036,7 +855,7 @@ int kvm_arch_pre_run(CPUState *env, struct kvm_run *run)
             struct kvm_interrupt intr;
             intr.irq = irq;
             /* FIXME: errors */
-            DPRINTF("injected interrupt %d\n", irq);
+            dprintf("injected interrupt %d\n", irq);
             kvm_vcpu_ioctl(env, KVM_INTERRUPT, &intr);
         }
     }
@@ -1050,7 +869,7 @@ int kvm_arch_pre_run(CPUState *env, struct kvm_run *run)
     else
         run->request_interrupt_window = 0;
 
-    DPRINTF("setting tpr\n");
+    dprintf("setting tpr\n");
     run->cr8 = cpu_get_apic_tpr(env);
 
     return 0;
@@ -1088,7 +907,7 @@ int kvm_arch_handle_exit(CPUState *env, struct kvm_run *run)
 
     switch (run->exit_reason) {
     case KVM_EXIT_HLT:
-        DPRINTF("handle_hlt\n");
+        dprintf("handle_hlt\n");
         ret = kvm_handle_halt(env);
         break;
     }
@@ -1231,13 +1050,10 @@ int kvm_arch_debug(struct kvm_debug_exit_arch *arch_info)
     } else if (kvm_find_sw_breakpoint(cpu_single_env, arch_info->pc))
         handle = 1;
 
-    if (!handle) {
-        cpu_synchronize_state(cpu_single_env);
-        assert(cpu_single_env->exception_injected == -1);
-
-        cpu_single_env->exception_injected = arch_info->exception;
-        cpu_single_env->has_error_code = 0;
-    }
+    if (!handle)
+        kvm_update_guest_debug(cpu_single_env,
+                        (arch_info->exception == 1) ?
+                        KVM_GUESTDBG_INJECT_DB : KVM_GUESTDBG_INJECT_BP);
 
     return handle;
 }

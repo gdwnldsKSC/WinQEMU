@@ -813,7 +813,7 @@ int cpu_x86_register (CPUX86State *env, const char *cpu_model)
     env->cpuid_ext2_features = def->ext2_features;
     env->cpuid_ext3_features = def->ext3_features;
     env->cpuid_xlevel = def->xlevel;
-    env->cpuid_kvm_features = def->kvm_features;
+//    env->cpuid_kvm_features = def->kvm_features;
     if (!kvm_enabled()) {
         env->cpuid_features &= TCG_FEATURES;
         env->cpuid_ext_features &= TCG_EXT_FEATURES;

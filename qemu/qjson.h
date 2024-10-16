@@ -25,6 +25,7 @@ QObject *qobject_from_jsonf(const char *string, ...)
 #else
 QObject* qobject_from_jsonf(const char* string, ...);
 #endif
+QObject* qobject_from_jsonv(const char* string, va_list* ap);
 
 QString *qobject_to_json(const QObject *obj);
 

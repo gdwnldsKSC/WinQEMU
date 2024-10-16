@@ -58,8 +58,8 @@ struct virtio_blk_config
     uint8_t sectors;
     uint32_t blk_size;
     uint8_t physical_block_exp;
-    uint32_t alignment_offset;
-    uint32_t min_io_size;
+    uint8_t alignment_offset;
+    uint16_t min_io_size;
     uint32_t opt_io_size;
 } 
 #ifndef _MSC_VER

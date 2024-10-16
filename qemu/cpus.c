@@ -120,8 +120,8 @@ static int cpu_has_work(CPUState *env)
 {
     if (env->stop)
         return 1;
-//    if (env->queued_work_first)
-//        return 1;
+    if (env->queued_work_first)
+        return 1;
     if (env->stopped || !vm_running)
         return 0;
     if (!env->halted)
