@@ -579,6 +579,11 @@ void cpu_exec_init_all(unsigned long tb_size)
 #if !defined(CONFIG_USER_ONLY)
     io_mem_init();
 #endif
+#if !defined(CONFIG_USER_ONLY) || !defined(CONFIG_USE_GUEST_BASE)
+    /* There's no guest base to take into account, so go ahead and
+       initialize the prologue now.  */
+    tcg_prologue_init(&tcg_ctx);
+#endif
 }
 
 #if defined(CPU_SAVE_VERSION) && !defined(CONFIG_USER_ONLY)
@@ -2578,8 +2583,7 @@ void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
     ram_addr_t orig_size = size;
     subpage_t *subpage;
 
-    cpu_notify_set_memory(start_addr, 
-size, phys_offset);
+    cpu_notify_set_memory(start_addr, size, phys_offset);
 
     if (phys_offset == IO_MEM_UNASSIGNED) {
         region_offset = start_addr;
