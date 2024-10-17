@@ -1,5 +1,5 @@
 ﻿Currently VS2022! TESTFILES build was created via fully updated
-VS2022 17.11 on Windows 11 26257 with the Windows 10 20348 SDK.
+VS2022 17.11.5 on Windows 11 26257 with the Windows 10 20348 SDK.
 
 All code that currently compiles and executes matches an upstream tree now, with 
 just MSVC compatibiilty fixes so that building from this repo for GCC/Linux should
@@ -21,10 +21,18 @@ per default configuration from upstream codebase.
 
 # Progress Updates
 
-2/13/24 - Build system now fixed to output directories being correct for debug builds. 
-To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
-WinQEMU\Debug folder (fmod.dll and SDL.dll). You must launch WinQemuTest as the debug
-target as WinQemu is built as a DLL.
+10/16/24 - Sound works! Tested with "WinQemuTest.exe -net none -cpu coreduo -m 512 -M pc 
+-vga cirrus -sdl -cdrom D:\Images\en_win_xp_pro_with_sp2_vl.iso -hda D:\Images\testwin.vhd 
+-bios D:\Images\bios.bin -L D:\Images -soundhw ac97" - XP installed to HDD, use -boot once=c
+to boot off CDROM to perform the XP installation. Still only supporting Debug/Win32 
+with qemu target i386 at this time. Codebase is halfway through qemu development of 2010.
+
+7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
+use -m 512 while working on bringing in some finishes to currently incomplete changes.
+Changes to Visual Studio (to remove customizations to this project) 
+will necessitate upgrading to VS 2022 17.11. With 17.11 we can also now use
+/cstd:clatest so we no longer have to use \_\_typeof\_\_() instead of just typeof()
+leaving more code unmodified
 
 3/7/2024 - as a change introduced in qemu around August 10, 2009 using typeof() in macros
 this feature wasn't supported/standardized in C until C23. Therefore, until we switch to
@@ -34,12 +42,10 @@ regardless of current set C language STD. Unfortunately, this means we must use 
 Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and 
 \_\_typeof\_\_ support were added.
 
-7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
-use -m 512 while working on bringing in some finishes to currently incomplete changes.
-Changes to Visual Studio (to remove customizations to this project) 
-will necessitate upgrading to VS 2022 17.11. With 17.11 we can also now use
-/cstd:clatest so we no longer have to use \_\_typeof\_\_() instead of just typeof()
-leaving more code unmodified
+2/13/24 - Build system now fixed to output directories being correct for debug builds. 
+To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
+WinQEMU\Debug folder (fmod.dll and SDL.dll). You must launch WinQemuTest as the debug
+target as WinQemu is built as a DLL.
 
 # pthreads and vcpkg installation notes 
 

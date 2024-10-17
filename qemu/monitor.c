@@ -179,7 +179,7 @@ static inline int mon_print_count_get(const Monitor *mon) { return 0; }
 
 static QLIST_HEAD(mon_list, Monitor) mon_list;
 
-static const mon_cmd_t mon_cmds[64]; // must define these two due to MSVC not supporting variable length arrays 
+static const mon_cmd_t mon_cmds[66]; // must define these two due to MSVC not supporting variable length arrays 
 static const mon_cmd_t info_cmds[36];
 
 Monitor *cur_mon;
