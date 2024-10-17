@@ -32,6 +32,7 @@
 #include "exec.h"
 #include "exec-all.h"
 #include "host-utils.h"
+#include "ioport.h"
 
 //#define DEBUG_PCALL
 
@@ -1255,7 +1256,7 @@ void do_interrupt(int intno, int is_int, int error_code,
 #if 0
             {
                 int i;
-                uint8_t *ptr;
+                target_ulong ptr;
                 qemu_log("       code=");
                 ptr = env->segs[R_CS].base + env->eip;
                 for(i = 0; i < 16; i++) {
@@ -1376,6 +1377,11 @@ void raise_exception(int exception_index)
     raise_interrupt(exception_index, 0, 0, 0);
 }
 
+void raise_exception_env(int exception_index, CPUState *nenv)
+{
+    env = nenv;
+    raise_exception(exception_index);
+}
 /* SMM support */
 
 #if defined(CONFIG_USER_ONLY)
@@ -5886,7 +5892,7 @@ target_ulong helper_lzcnt(target_ulong t0, int wordsize)
 
     if (wordsize > 0 && t0 == 0) {
         return wordsize;
-    }    
+    }
     res = t0;
     count = TARGET_LONG_BITS - 1;
     mask = (target_ulong)1 << (TARGET_LONG_BITS - 1);
@@ -5902,9 +5908,8 @@ target_ulong helper_lzcnt(target_ulong t0, int wordsize)
 
 target_ulong helper_bsr(target_ulong t0)
 {
-    return helper_lzcnt(t0, 0);
+	return helper_lzcnt(t0, 0);
 }
-
 
 static int compute_all_eflags(void)
 {

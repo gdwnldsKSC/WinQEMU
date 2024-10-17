@@ -364,20 +364,6 @@ static x86_def_t builtin_x86_defs[] = {
         .model_id = "QEMU Virtual CPU version " QEMU_VERSION,
     },
     {
-        .name = "kvm32",
-        .level = 5,
-        .family = 15,
-        .model = 6,
-        .stepping = 1,
-        .features = PPRO_FEATURES |
-            CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA | CPUID_PSE36,
-        .ext_features = CPUID_EXT_SSE3,
-        .ext2_features = PPRO_FEATURES & EXT2_FEATURE_MASK,
-        .ext3_features = 0,
-        .xlevel = 0x80000008,
-        .model_id = "Common 32-bit KVM processor"
-    },
-    {
         .name = "coreduo",
         .level = 10,
         .family = 6,
@@ -813,7 +799,7 @@ int cpu_x86_register (CPUX86State *env, const char *cpu_model)
     env->cpuid_ext2_features = def->ext2_features;
     env->cpuid_ext3_features = def->ext3_features;
     env->cpuid_xlevel = def->xlevel;
-//    env->cpuid_kvm_features = def->kvm_features;
+    env->cpuid_kvm_features = def->kvm_features;
     if (!kvm_enabled()) {
         env->cpuid_features &= TCG_FEATURES;
         env->cpuid_ext_features &= TCG_EXT_FEATURES;
