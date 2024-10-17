@@ -160,7 +160,12 @@ static inline int tcg_target_const_match(tcg_target_long val,
 
 #define OPC_ARITH_EvIz	(0x81)
 #define OPC_ARITH_EvIb	(0x83)
+#define OPC_ARITH_GvEv	(0x03)		/* ... plus (ARITH_FOO << 3) */
+#define OPC_ADD_GvEv	(OPC_ARITH_GvEv | (ARITH_ADD << 3))
 #define OPC_BSWAP	(0xc8 | P_EXT)
+#define OPC_CMP_GvEv	(OPC_ARITH_GvEv | (ARITH_CMP << 3))
+#define OPC_DEC_r32	(0x48)
+#define OPC_INC_r32	(0x40)
 #define OPC_JCC_long	(0x80 | P_EXT)	/* ... plus condition code */
 #define OPC_JCC_short	(0x70)		/* ... plus condition code */
 #define OPC_JMP_long	(0xe9)
@@ -168,13 +173,19 @@ static inline int tcg_target_const_match(tcg_target_long val,
 #define OPC_MOVB_EvGv	(0x88)		/* stores, more or less */
 #define OPC_MOVL_EvGv	(0x89)		/* stores, more or less */
 #define OPC_MOVL_GvEv	(0x8b)		/* loads, more or less */
+#define OPC_MOVL_Iv     (0xb8)
 #define OPC_MOVSBL	(0xbe | P_EXT)
 #define OPC_MOVSWL	(0xbf | P_EXT)
 #define OPC_MOVZBL	(0xb6 | P_EXT)
 #define OPC_MOVZWL	(0xb7 | P_EXT)
+#define OPC_POP_r32	(0x58)
+#define OPC_PUSH_r32	(0x50)
+#define OPC_PUSH_Iv	(0x68)
+#define OPC_PUSH_Ib	(0x6a)
 #define OPC_SHIFT_1	(0xd1)
 #define OPC_SHIFT_Ib	(0xc1)
 #define OPC_SHIFT_cl	(0xd3)
+#define OPC_TESTL	(0x85)
 
 /* Group 1 opcode extensions for 0x80-0x83.  */
 #define ARITH_ADD 0
@@ -275,6 +286,12 @@ static inline void tcg_out_modrm_offset(TCGContext *s, int opc, int r, int rm,
     }
 }
 
+/* Generate dest op= src.  Uses the same ARITH_* codes as tgen_arithi.  */
+static inline void tgen_arithr(TCGContext *s, int subop, int dest, int src)
+{
+    tcg_out_modrm(s, OPC_ARITH_GvEv + (subop << 3), dest, src);
+}
+
 static inline void tcg_out_mov(TCGContext *s, int ret, int arg)
 {
     if (arg != ret) {
@@ -286,12 +303,32 @@ static inline void tcg_out_movi(TCGContext *s, TCGType type,
                                 int ret, int32_t arg)
 {
     if (arg == 0) {
-        /* xor r0,r0 */
-        tcg_out_modrm(s, 0x01 | (ARITH_XOR << 3), ret, ret);
+        tgen_arithr(s, ARITH_XOR, ret, ret);
     } else {
-        tcg_out8(s, 0xb8 + ret);
+        tcg_out8(s, OPC_MOVL_Iv + ret);
         tcg_out32(s, arg);
     }
+}
+
+static inline void tcg_out_pushi(TCGContext *s, tcg_target_long val)
+{
+    if (val == (int8_t)val) {
+        tcg_out_opc(s, OPC_PUSH_Ib);
+        tcg_out8(s, val);
+    } else {
+        tcg_out_opc(s, OPC_PUSH_Iv);
+        tcg_out32(s, val);
+    }
+}
+
+static inline void tcg_out_push(TCGContext *s, int reg)
+{
+    tcg_out_opc(s, OPC_PUSH_r32 + reg);
+}
+
+static inline void tcg_out_pop(TCGContext *s, int reg)
+{
+    tcg_out_opc(s, OPC_POP_r32 + reg);
 }
 
 static inline void tcg_out_ld(TCGContext *s, TCGType type, int ret,
@@ -353,14 +390,15 @@ static inline void tcg_out_ext16s(TCGContext *s, int dest, int src)
     tcg_out_modrm(s, OPC_MOVSWL, dest, src);
 }
 
-static inline void tgen_arithi(TCGContext *s, int c, int r0, int32_t val, int cf)
+static inline void tgen_arithi(TCGContext *s, int c, int r0,
+                               int32_t val, int cf)
 {
-    if (!cf && ((c == ARITH_ADD && val == 1) || (c == ARITH_SUB && val == -1))) {
-        /* inc */
-        tcg_out_opc(s, 0x40 + r0);
-    } else if (!cf && ((c == ARITH_ADD && val == -1) || (c == ARITH_SUB && val == 1))) {
-        /* dec */
-        tcg_out_opc(s, 0x48 + r0);
+    /* ??? While INC is 2 bytes shorter than ADDL $1, they also induce
+       partial flags update stalls on Pentium4 and are not recommended
+       by current Intel optimization manuals.  */
+    if (!cf && (c == ARITH_ADD || c == ARITH_SUB) && (val == 1 || val == -1)) {
+        int opc = ((c == ARITH_ADD) ^ (val < 0) ? OPC_INC_r32 : OPC_DEC_r32);
+        tcg_out_opc(s, opc + r0);
     } else if (val == (int8_t)val) {
         tcg_out_modrm(s, OPC_ARITH_EvIb, c, r0);
         tcg_out8(s, val);
@@ -433,12 +471,12 @@ static void tcg_out_cmp(TCGContext *s, TCGArg arg1, TCGArg arg2,
     if (const_arg2) {
         if (arg2 == 0) {
             /* test r, r */
-            tcg_out_modrm(s, 0x85, arg1, arg1);
+            tcg_out_modrm(s, OPC_TESTL, arg1, arg1);
         } else {
             tgen_arithi(s, ARITH_CMP, arg1, arg2, 0);
         }
     } else {
-        tcg_out_modrm(s, 0x01 | (ARITH_CMP << 3), arg2, arg1);
+        tgen_arithr(s, ARITH_CMP, arg1, arg2);
     }
 }
 
@@ -653,7 +691,7 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     tcg_out32(s, offsetof(CPUState, tlb_table[mem_index][0].addr_read));
 
     /* cmp 0(r1), r0 */
-    tcg_out_modrm_offset(s, 0x3b, r0, r1, 0);
+    tcg_out_modrm_offset(s, OPC_CMP_GvEv, r0, r1, 0);
     
     tcg_out_mov(s, r0, addr_reg);
     
@@ -669,7 +707,7 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     s->code_ptr++;
     
     /* cmp 4(r1), addr_reg2 */
-    tcg_out_modrm_offset(s, 0x3b, addr_reg2, r1, 4);
+    tcg_out_modrm_offset(s, OPC_CMP_GvEv, addr_reg2, r1, 4);
 
     /* je label1 */
     tcg_out8(s, OPC_JCC_short + JCC_JE);
@@ -728,7 +766,8 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     *label1_ptr = s->code_ptr - label1_ptr - 1;
 
     /* add x(r1), r0 */
-    tcg_out_modrm_offset(s, 0x03, r0, r1, offsetof(CPUTLBEntry, addend) - 
+    tcg_out_modrm_offset(s, OPC_ADD_GvEv, r0, r1,
+                         offsetof(CPUTLBEntry, addend) -
                          offsetof(CPUTLBEntry, addr_read));
 #else
     r0 = addr_reg;
@@ -845,7 +884,7 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
     tcg_out32(s, offsetof(CPUState, tlb_table[mem_index][0].addr_write));
 
     /* cmp 0(r1), r0 */
-    tcg_out_modrm_offset(s, 0x3b, r0, r1, 0);
+    tcg_out_modrm_offset(s, OPC_CMP_GvEv, r0, r1, 0);
     
     tcg_out_mov(s, r0, addr_reg);
     
@@ -861,7 +900,7 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
     s->code_ptr++;
     
     /* cmp 4(r1), addr_reg2 */
-    tcg_out_modrm_offset(s, 0x3b, addr_reg2, r1, 4);
+    tcg_out_modrm_offset(s, OPC_CMP_GvEv, addr_reg2, r1, 4);
 
     /* je label1 */
     tcg_out8(s, OPC_JCC_short + JCC_JE);
@@ -877,8 +916,7 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
     if (opc == 3) {
         tcg_out_mov(s, TCG_REG_EDX, data_reg);
         tcg_out_mov(s, TCG_REG_ECX, data_reg2);
-        tcg_out8(s, 0x6a); /* push Ib */
-        tcg_out8(s, mem_index);
+        tcg_out_pushi(s, mem_index);
         tcg_out8(s, 0xe8);
         tcg_out32(s, (tcg_target_long)qemu_st_helpers[s_bits] - 
                   (tcg_target_long)s->code_ptr - 4);
@@ -903,10 +941,9 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
 #else
     if (opc == 3) {
         tcg_out_mov(s, TCG_REG_EDX, addr_reg2);
-        tcg_out8(s, 0x6a); /* push Ib */
-        tcg_out8(s, mem_index);
-        tcg_out_opc(s, 0x50 + data_reg2); /* push */
-        tcg_out_opc(s, 0x50 + data_reg); /* push */
+        tcg_out_pushi(s, mem_index);
+        tcg_out_push(s, data_reg2);
+        tcg_out_push(s, data_reg);
         tcg_out8(s, 0xe8);
         tcg_out32(s, (tcg_target_long)qemu_st_helpers[s_bits] - 
                   (tcg_target_long)s->code_ptr - 4);
@@ -924,8 +961,7 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
             tcg_out_mov(s, TCG_REG_ECX, data_reg);
             break;
         }
-        tcg_out8(s, 0x6a); /* push Ib */
-        tcg_out8(s, mem_index);
+        tcg_out_pushi(s, mem_index);
         tcg_out8(s, 0xe8);
         tcg_out32(s, (tcg_target_long)qemu_st_helpers[s_bits] - 
                   (tcg_target_long)s->code_ptr - 4);
@@ -942,7 +978,8 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
     *label1_ptr = s->code_ptr - label1_ptr - 1;
 
     /* add x(r1), r0 */
-    tcg_out_modrm_offset(s, 0x03, r0, r1, offsetof(CPUTLBEntry, addend) - 
+    tcg_out_modrm_offset(s, OPC_ADD_GvEv, r0, r1,
+                         offsetof(CPUTLBEntry, addend) -
                          offsetof(CPUTLBEntry, addr_write));
 #else
     r0 = addr_reg;
@@ -1094,7 +1131,7 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         if (const_args[2]) {
             tgen_arithi(s, c, args[0], args[2], 0);
         } else {
-            tcg_out_modrm(s, 0x01 | (c << 3), args[2], args[0]);
+            tgen_arithr(s, c, args[0], args[2]);
         }
         break;
     case INDEX_op_mul_i32:
@@ -1144,24 +1181,28 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         goto gen_shift32;
 
     case INDEX_op_add2_i32:
-        if (const_args[4]) 
+        if (const_args[4]) {
             tgen_arithi(s, ARITH_ADD, args[0], args[4], 1);
-        else
-            tcg_out_modrm(s, 0x01 | (ARITH_ADD << 3), args[4], args[0]);
-        if (const_args[5]) 
+        } else {
+            tgen_arithr(s, ARITH_ADD, args[0], args[4]);
+        }
+        if (const_args[5]) {
             tgen_arithi(s, ARITH_ADC, args[1], args[5], 1);
-        else
-            tcg_out_modrm(s, 0x01 | (ARITH_ADC << 3), args[5], args[1]);
+        } else {
+            tgen_arithr(s, ARITH_ADC, args[1], args[5]);
+        }
         break;
     case INDEX_op_sub2_i32:
-        if (const_args[4]) 
+        if (const_args[4]) {
             tgen_arithi(s, ARITH_SUB, args[0], args[4], 1);
-        else
-            tcg_out_modrm(s, 0x01 | (ARITH_SUB << 3), args[4], args[0]);
-        if (const_args[5]) 
+        } else {
+            tgen_arithr(s, ARITH_SUB, args[0], args[4]);
+        }
+        if (const_args[5]) {
             tgen_arithi(s, ARITH_SBB, args[1], args[5], 1);
-        else
-            tcg_out_modrm(s, 0x01 | (ARITH_SBB << 3), args[5], args[1]);
+        } else {
+            tgen_arithr(s, ARITH_SBB, args[1], args[5]);
+        }
         break;
     case INDEX_op_brcond_i32:
         tcg_out_brcond(s, args[2], args[0], args[1], const_args[1],
@@ -1332,16 +1373,6 @@ static int tcg_target_callee_save_regs[] = {
     TCG_REG_ESI,
     TCG_REG_EDI,
 };
-
-static inline void tcg_out_push(TCGContext *s, int reg)
-{
-    tcg_out_opc(s, 0x50 + reg);
-}
-
-static inline void tcg_out_pop(TCGContext *s, int reg)
-{
-    tcg_out_opc(s, 0x58 + reg);
-}
 
 /* Generate global QEMU prologue and epilogue code */
 void tcg_target_qemu_prologue(TCGContext *s)
