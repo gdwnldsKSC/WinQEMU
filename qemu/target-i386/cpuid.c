@@ -353,6 +353,20 @@ static x86_def_t builtin_x86_defs[] = {
         .model_id = "Common KVM processor"
     },
     {
+        .name = "kvm32",
+        .level = 5,
+        .family = 15,
+        .model = 6,
+        .stepping = 1,
+        .features = PPRO_FEATURES |
+            CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA | CPUID_PSE36,
+        .ext_features = CPUID_EXT_SSE3,
+        .ext2_features = PPRO_FEATURES & EXT2_FEATURE_MASK,
+        .ext3_features = 0,
+        .xlevel = 0x80000008,
+        .model_id = "Common 32-bit KVM processor"
+    },
+    {
         .name = "qemu32",
         .level = 4,
         .family = 6,
