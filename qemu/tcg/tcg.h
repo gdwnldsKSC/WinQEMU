@@ -494,6 +494,8 @@ extern uint8_t code_gen_prologue[];
 #if defined(_ARCH_PPC) && !defined(_ARCH_PPC64)
 #define tcg_qemu_tb_exec(tb_ptr) \
     ((long REGPARM __attribute__ ((longcall)) (*)(void *))code_gen_prologue)(tb_ptr)
+#elif defined(_MSC_VER)
+#define tcg_qemu_tb_exec(tb_ptr) ((tcg_exec_fn)code_gen_prologue)(tb_ptr)
 #else
 #define tcg_qemu_tb_exec(tb_ptr) ((long REGPARM (*)(void *))code_gen_prologue)(tb_ptr)
 #endif
