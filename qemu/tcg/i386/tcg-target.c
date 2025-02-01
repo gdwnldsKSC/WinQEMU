@@ -768,29 +768,24 @@ static void tcg_out_qemu_ld_direct(TCGContext *s, int datalo, int datahi,
 /* XXX: qemu_ld and qemu_st could be modified to clobber only EDX and
    EAX. It will be useful once fixed registers globals are less
    common. */
-static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
-                            int opc)
+static void tcg_out_qemu_ld(TCGContext* s, const TCGArg* args,
+    int opc)
 {
-    int addr_reg, data_reg, data_reg2, r0, r1, mem_index, s_bits;
+    int addr_reg, addr_reg2 = 0;
+    int data_reg, data_reg2 = 0;
+    int r0, r1, mem_index, s_bits;
 #if defined(CONFIG_SOFTMMU)
-    uint8_t *label1_ptr, *label2_ptr;
-#endif
-#if TARGET_LONG_BITS == 64
-#if defined(CONFIG_SOFTMMU)
-    uint8_t *label3_ptr;
-#endif
-    int addr_reg2;
+    uint8_t* label_ptr[3];
 #endif
 
     data_reg = *args++;
-    if (opc == 3)
+    if (opc == 3) {
         data_reg2 = *args++;
-    else
-        data_reg2 = 0;
+    }
     addr_reg = *args++;
-#if TARGET_LONG_BITS == 64
-    addr_reg2 = *args++;
-#endif
+    if (TARGET_LONG_BITS == 64) {
+        addr_reg2 = *args++;
+    }
     mem_index = *args;
     s_bits = opc & 3;
 
@@ -807,36 +802,50 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     tgen_arithi(s, ARITH_AND, r1, (CPU_TLB_SIZE - 1) << CPU_TLB_ENTRY_BITS, 0);
 
     tcg_out_modrm_sib_offset(s, OPC_LEA, r1, TCG_AREG0, r1, 0,
-                             offsetof(CPUState,
-                                      tlb_table[mem_index][0].addr_read));
+        offsetof(CPUState,
+            tlb_table[mem_index][0].addr_read));
 
     /* cmp 0(r1), r0 */
     tcg_out_modrm_offset(s, OPC_CMP_GvEv, r0, r1, 0);
 
     tcg_out_mov(s, r0, addr_reg);
 
-#if TARGET_LONG_BITS == 32
-    /* je label1 */
-    tcg_out8(s, OPC_JCC_short + JCC_JE);
-    label1_ptr = s->code_ptr;
-    s->code_ptr++;
-#else
-    /* jne label3 */
+    /* jne label1 */
     tcg_out8(s, OPC_JCC_short + JCC_JNE);
-    label3_ptr = s->code_ptr;
+    label_ptr[0] = s->code_ptr;
     s->code_ptr++;
 
-    /* cmp 4(r1), addr_reg2 */
-    tcg_out_modrm_offset(s, OPC_CMP_GvEv, addr_reg2, r1, 4);
+    if (TARGET_LONG_BITS == 64) {
+        /* cmp 4(r1), addr_reg2 */
+        tcg_out_modrm_offset(s, OPC_CMP_GvEv, addr_reg2, r1, 4);
 
-    /* je label1 */
-    tcg_out8(s, OPC_JCC_short + JCC_JE);
-    label1_ptr = s->code_ptr;
+        /* jne label1 */
+        tcg_out8(s, OPC_JCC_short + JCC_JNE);
+        label_ptr[1] = s->code_ptr;
+        s->code_ptr++;
+    }
+
+    /* TLB Hit.  */
+
+    /* add x(r1), r0 */
+    tcg_out_modrm_offset(s, OPC_ADD_GvEv, r0, r1,
+        offsetof(CPUTLBEntry, addend) -
+        offsetof(CPUTLBEntry, addr_read));
+
+    tcg_out_qemu_ld_direct(s, data_reg, data_reg2, r0, 0, opc);
+
+    /* jmp label2 */
+    tcg_out8(s, OPC_JMP_short);
+    label_ptr[2] = s->code_ptr;
     s->code_ptr++;
 
-    /* label3: */
-    *label3_ptr = s->code_ptr - label3_ptr - 1;
-#endif
+    /* TLB Miss.  */
+
+    /* label1: */
+    *label_ptr[0] = s->code_ptr - label_ptr[0] - 1;
+    if (TARGET_LONG_BITS == 64) {
+        *label_ptr[1] = s->code_ptr - label_ptr[1] - 1;
+    }
 
     /* XXX: move that code at the end of the TB */
 #if TARGET_LONG_BITS == 32
@@ -847,7 +856,7 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
 #endif
     tcg_out_calli(s, (tcg_target_long)qemu_ld_helpers[s_bits]);
 
-    switch(opc) {
+    switch (opc) {
     case 0 | 4:
         tcg_out_ext8s(s, data_reg, TCG_REG_EAX);
         break;
@@ -869,30 +878,16 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
             /* xchg %edx, %eax */
             tcg_out_opc(s, OPC_XCHG_ax_r32 + TCG_REG_EDX);
             tcg_out_mov(s, data_reg2, TCG_REG_EAX);
-        } else {
+        }
+        else {
             tcg_out_mov(s, data_reg, TCG_REG_EAX);
             tcg_out_mov(s, data_reg2, TCG_REG_EDX);
         }
         break;
     }
 
-    /* jmp label2 */
-    tcg_out8(s, OPC_JMP_short);
-    label2_ptr = s->code_ptr;
-    s->code_ptr++;
-
-    /* label1: */
-    *label1_ptr = s->code_ptr - label1_ptr - 1;
-
-    /* add x(r1), r0 */
-    tcg_out_modrm_offset(s, OPC_ADD_GvEv, r0, r1,
-                         offsetof(CPUTLBEntry, addend) -
-                         offsetof(CPUTLBEntry, addr_read));
-
-    tcg_out_qemu_ld_direct(s, data_reg, data_reg2, r0, 0, opc);
-
     /* label2: */
-    *label2_ptr = s->code_ptr - label2_ptr - 1;
+    *label_ptr[2] = s->code_ptr - label_ptr[2] - 1;
 #else
     tcg_out_qemu_ld_direct(s, data_reg, data_reg2, addr_reg, GUEST_BASE, opc);
 #endif
