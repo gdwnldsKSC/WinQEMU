@@ -32,6 +32,9 @@ These are commits "tcg-i386: swap order of TLB hit and miss paths.",
 These will be revisited at a future date, so that progress can continue otherwise, as TCG
 is fully functional, and these changes were to improve branch prediction performance. 
 
+These commits are visible at:
+https://github.com/qemu/qemu/commits/v1.1-rc0?after=9bf6b71a719f62af726d5a1fa4d705cfd5623f14+7979
+
 
 10/16/24 - Sound works! Tested with "WinQemuTest.exe -net none -cpu coreduo -m 512 -M pc 
 -vga cirrus -sdl -cdrom D:\Images\en_win_xp_pro_with_sp2_vl.iso -hda D:\Images\testwin.vhd 
