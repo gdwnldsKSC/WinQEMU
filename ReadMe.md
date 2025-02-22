@@ -21,6 +21,18 @@ per default configuration from upstream codebase.
 
 # Progress Updates
 
+2/21/25 - TCG will remain unmodified for now. Part of commit 1a6dc1e and all up throguh 
+4309a79 are currently omitted to make progress in other areas due to code generation bugs.
+These are commits "tcg-i386: swap order of TLB hit and miss paths.", 
+"tcg-i386: split out tlb load function.",
+"tcg-i386: remove some ifdefs in qemu_ld/st",
+"tcg-i386: declare tcg_out_tlb_load inline",
+"tcg-i386: fix a typo".
+
+These will be revisited at a future date, so that progress can continue otherwise, as TCG
+is fully functional, and these changes were to improve branch prediction performance. 
+
+
 10/16/24 - Sound works! Tested with "WinQemuTest.exe -net none -cpu coreduo -m 512 -M pc 
 -vga cirrus -sdl -cdrom D:\Images\en_win_xp_pro_with_sp2_vl.iso -hda D:\Images\testwin.vhd 
 -bios D:\Images\bios.bin -L D:\Images -soundhw ac97" - XP installed to HDD, use -boot once=c
