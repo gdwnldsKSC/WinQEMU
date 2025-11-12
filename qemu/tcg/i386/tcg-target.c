@@ -1364,11 +1364,11 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
 }
 
 static const TCGTargetOpDef x86_op_defs[] = {
-    { INDEX_op_exit_tb, { } },
-    { INDEX_op_goto_tb, { } },
+    { INDEX_op_exit_tb, { NULL } },
+    { INDEX_op_goto_tb, { NULL } },
     { INDEX_op_call, { "ri" } },
     { INDEX_op_jmp, { "ri" } },
-    { INDEX_op_br, { } },
+    { INDEX_op_br, { NULL } },
     { INDEX_op_mov_i32, { "r", "r" } },
     { INDEX_op_movi_i32, { "r" } },
     { INDEX_op_ld8u_i32, { "r", "r" } },
