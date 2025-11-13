@@ -1376,7 +1376,7 @@ int net_init_clients(void)
         return -1;
 
     if (qemu_opts_foreach(&qemu_net_opts, net_init_client_debug, NULL, 1) == -1) {
-        return -1;
+//        return -1;
     }
 
     return 0;

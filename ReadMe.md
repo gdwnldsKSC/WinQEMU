@@ -29,6 +29,10 @@ Until this point, it is likely that builds WILL BE BROKEN intermittently as thes
 are brought in and adapted for MSVC compatibility. As of now, the "VS2026" commit is the 
 last fully working commit before these changes begin.
 
+Also, we're in 0.13 now, qemu-options.h got renamed to qemu-options.def (the one generated
+from the .hx file), so now a new qemu-options.h exists and the instructions for generating
+are ammended for .def
+
 2/21/2025 - TCG will remain unmodified for now. Part of commit 1a6dc1e and all up throguh 
 4309a79 are currently omitted to make progress in other areas due to code generation bugs.
 These are commits "tcg-i386: swap order of TLB hit and miss paths.", 
@@ -120,7 +124,7 @@ Add '-net none -cpu coreduo -m 512 -M pc -vga std -sdl -hda D:\Images\small.ffs 
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 
 
-From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.h
+From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.def
 As well do the same thing for qemu-monitor.hx > qemu-monitor.h
 
 Rebaselined on upstream vl.c which now (as of a few iterations ago) uses that header

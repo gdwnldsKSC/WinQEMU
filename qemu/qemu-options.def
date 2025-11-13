@@ -127,7 +127,7 @@ QEMU_ARCH_ALL)
 DEFHEADING(File system options:)
 
 DEF("fsdev", HAS_ARG, QEMU_OPTION_fsdev,
-"-fsdev local,id=id,path=path\n",
+"-fsdev local,id=id,path=path,security_model=[mapped|passthrough]\n",
 QEMU_ARCH_ALL)
 
 #endif
@@ -136,7 +136,7 @@ QEMU_ARCH_ALL)
 DEFHEADING(Virtual File system pass-through options:)
 
 DEF("virtfs", HAS_ARG, QEMU_OPTION_virtfs,
-"-virtfs local,path=path,mount_tag=tag\n",
+"-virtfs local,path=path,mount_tag=tag,security_model=[mapped|passthrough]\n",
 QEMU_ARCH_ALL)
 
 #endif
@@ -256,7 +256,7 @@ DEF("smbios", HAS_ARG, QEMU_OPTION_smbios,
 
 DEFHEADING()
 
-DEFHEADING(Network options : )
+DEFHEADING(Network options:)
 
 // BEGIN HEAVILY MODIFIED SECTION
 
@@ -338,7 +338,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	"-net dump[,vlan=n][,file=f][,len=n]\n" \
 	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
 	"-net none       use it alone to have zero network devices; if no -net option\n" \
-	"                is provided, the default is '-net nic -net user'\n", QEMU_ARCH_ALL)
+"                is provided, the default is '-net nic -net user'\n", QEMU_ARCH_ALL)
 
 	// netdev section
 #ifdef CONFIG_SLIRP
@@ -359,25 +359,25 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
 	NETDEV_SLIRP \
 	"tap|" \
 	NETDEV_VDE \
-	"socket],id=str[,option][,option][,...]\n", QEMU_ARCH_ALL)
+"socket],id=str[,option][,option][,...]\n", QEMU_ARCH_ALL)
 
 DEFHEADING()
 
-DEFHEADING(Character device options : )
+DEFHEADING(Character device options:)
 
 #ifdef _WIN32
 #define CHARDEV_WIN32 \
-	"-chardev console,id=id\n" \
-	"-chardev serial,id=id,path=path\n"
+"-chardev console,id=id[,mux=on|off]\n" \
+"-chardev serial,id=id,path=path[,mux=on|off]\n" 
 #else
 #define CHARDEV_WIN32 \
-	"-chardev pty,id=id\n" \
-	"-chardev stdio,id=id\n"
+"-chardev pty,id=id[,mux=on|off]\n" \
+"-chardev stdio,id=id[,mux=on|off]\n"
 #endif
 
 #ifdef CONFIG_BRLAPI
 #define CHARDEV_BRLAPI \
-	"-chardev braille,id=id\n"
+"-chardev braille,id=id[,mux=on|off]\n"
 #else
 #define CHARDEV_BRLAPI ""
 #endif
@@ -385,14 +385,14 @@ DEFHEADING(Character device options : )
 #if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) \
 || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 #define CHARDEV_TTY \
-	"-chardev tty,id=id,path=path\n"
+"-chardev tty,id=id,path=path[,mux=on|off]\n"
 #else
 #define CHARDEV_TTY ""
 #endif
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
 #define CHARDEV_PARPORT \
-	"-chardev parport,id=id,path=path\n"
+"-chardev parport,id=id,path=path[,mux=on|off]\n"
 #else
 #define CHARDEV_PARPORT ""
 #endif
@@ -415,7 +415,7 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 	CHARDEV_PARPORT, QEMU_ARCH_ALL
 )
 
-// END HEAVILY MODIFIED SECTION 
+// END HEAVILY MODIFIED SECTION
 
 DEFHEADING()
 
