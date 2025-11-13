@@ -21,7 +21,15 @@ per default configuration from upstream codebase.
 
 # Progress Updates
 
-2/21/25 - TCG will remain unmodified for now. Part of commit 1a6dc1e and all up throguh 
+11/13/2025 - There are necessary changes to simplify our TCG hacks and improve reliability
+going forward that appear in qemu-0.15 - these will allow removal of inline assembly and 
+fix calling convention issues, allowing 64-bit builds to be possible in the future.
+
+Until this point, it is likely that builds WILL BE BROKEN intermittently as these changes
+are brought in and adapted for MSVC compatibility. As of now, the "VS2026" commit is the 
+last fully working commit before these changes begin.
+
+2/21/2025 - TCG will remain unmodified for now. Part of commit 1a6dc1e and all up throguh 
 4309a79 are currently omitted to make progress in other areas due to code generation bugs.
 These are commits "tcg-i386: swap order of TLB hit and miss paths.", 
 "tcg-i386: split out tlb load function.",
@@ -36,13 +44,13 @@ These commits are visible at:
 https://github.com/qemu/qemu/commits/v1.1-rc0?after=9bf6b71a719f62af726d5a1fa4d705cfd5623f14+7979
 
 
-10/16/24 - Sound works! Tested with "WinQemuTest.exe -net none -cpu coreduo -m 512 -M pc 
+10/16/2024 - Sound works! Tested with "WinQemuTest.exe -net none -cpu coreduo -m 512 -M pc 
 -vga cirrus -sdl -cdrom D:\Images\en_win_xp_pro_with_sp2_vl.iso -hda D:\Images\testwin.vhd 
 -bios D:\Images\bios.bin -L D:\Images -soundhw ac97" - XP installed to HDD, use -boot once=c
 to boot off CDROM to perform the XP installation. Still only supporting Debug/Win32 
 with qemu target i386 at this time. Codebase is halfway through qemu development of 2010.
 
-7/18/24 - -m 1024 causes null pointer failures in some functions, for now we'll just
+7/18/2024 - -m 1024 causes null pointer failures in some functions, for now we'll just
 use -m 512 while working on bringing in some finishes to currently incomplete changes.
 Changes to Visual Studio (to remove customizations to this project) 
 will necessitate upgrading to VS 2022 17.11. With 17.11 we can also now use
@@ -57,7 +65,7 @@ regardless of current set C language STD. Unfortunately, this means we must use 
 Visual Studio 2022 17.9 or higher, introduced in February 2024 when typeof() and 
 \_\_typeof\_\_ support were added.
 
-2/13/24 - Build system now fixed to output directories being correct for debug builds. 
+2/13/2024 - Build system now fixed to output directories being correct for debug builds. 
 To run debugger, copy the two library files from WinQEMU\Binary Artifacts\Debug to the 
 WinQEMU\Debug folder (fmod.dll and SDL.dll). You must launch WinQemuTest as the debug
 target as WinQemu is built as a DLL.

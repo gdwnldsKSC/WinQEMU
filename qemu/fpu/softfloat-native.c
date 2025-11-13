@@ -510,7 +510,7 @@ float64 floatx80_to_float64( floatx80 a STATUS_PARAM)
 floatx80 floatx80_round_to_int( floatx80 a STATUS_PARAM)
 {
 #ifndef _MSC_VER
-    rintl(a);
+    return rintl(a);
 #else
 	return fx80_rintl (&a);
 #endif

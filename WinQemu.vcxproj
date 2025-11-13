@@ -379,6 +379,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
+    <ClCompile Include="qemu\hw\cris-boot.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\ds1338.c" />
     <ClCompile Include="qemu\hw\event_notifier.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
@@ -678,7 +681,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\readline.c" />
-    <ClCompile Include="qemu\s390-dis.c" />
+    <ClCompile Include="qemu\s390-dis.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\savevm.c" />
     <ClCompile Include="qemu\sdl.c" />
     <ClCompile Include="qemu\sh4-dis.c" />
@@ -1812,6 +1817,7 @@
     <ClInclude Include="qemu\hw\apic.h" />
     <ClInclude Include="qemu\hw\apm.h" />
     <ClInclude Include="qemu\hw\bitbang_i2c.h" />
+    <ClInclude Include="qemu\hw\cris-boot.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\event_notifier.h" />
     <ClInclude Include="qemu\hw\file-op-9p.h" />

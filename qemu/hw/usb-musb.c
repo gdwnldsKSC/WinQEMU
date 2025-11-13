@@ -1407,6 +1407,8 @@ static void musb_writeb(void *opaque, target_phys_addr_t addr, uint32_t value)
 
     case MUSB_HDRC_FIFO ... (MUSB_HDRC_FIFO + 0x3f):
         ep = ((addr - MUSB_HDRC_FIFO) >> 2) & 0xf;
+        musb_write_fifo(s->ep + ep, value & 0xff);
+        break;
 
     default:
         TRACE("unknown register 0x%02x", (int)addr);
@@ -1426,6 +1428,7 @@ static void musb_writeb(void *opaque, target_phys_addr_t addr, uint32_t value)
         }
         else if (addr >= MUSB_HDRC_FIFO && addr <= (MUSB_HDRC_FIFO & 0x3f)) {
             ep = ((addr - MUSB_HDRC_FIFO) >> 2) & 0xf;
+            musb_write_fifo(s->ep + ep, value & 0xff);
         }
 		else
 		{
@@ -1664,7 +1667,7 @@ static uint32_t musb_readw(void *opaque, target_phys_addr_t addr)
     {
         TRACE("unknown register 0x%02x", (int)addr);
         return 0x00000000;
-    }
+}
 #endif
 }
 

@@ -1106,6 +1106,7 @@ int net_client_init(Monitor *mon, QemuOpts *opts, int is_netdev)
     for (i = 0; net_client_types[i].type != NULL; i++) {
         if (!strcmp(net_client_types[i].type, type)) {
             VLANState *vlan = NULL;
+            int ret;
 
             if (qemu_opts_validate(opts, &net_client_types[i].desc[0]) == -1) {
                 return -1;
@@ -1118,14 +1119,16 @@ int net_client_init(Monitor *mon, QemuOpts *opts, int is_netdev)
                 vlan = qemu_find_vlan(qemu_opt_get_number(opts, "vlan", 0), 1);
             }
 
+            ret = -1;
             if (net_client_types[i].init) {
-                if (net_client_types[i].init(opts, mon, name, vlan) < 0) {
+                ret = net_client_types[i].init(opts, mon, name, vlan);
+                if (ret < 0) {
                     /* TODO push error reporting into init() methods */
                     qerror_report(QERR_DEVICE_INIT_FAILED, type);
                     return -1;
                 }
             }
-            return 0;
+            return ret;
         }
     }
 
@@ -1344,6 +1347,22 @@ static int net_init_netdev(QemuOpts *opts, void *dummy)
     return net_client_init(NULL, opts, 1);
 }
 
+static int net_init_client_debug(QemuOpts* opts, void* opaque)
+{
+    const char* type = qemu_opt_get(opts, "type");
+    const char* id = qemu_opt_get(opts, "id");
+    fprintf(stderr, "net_init_client: type=%s id=%s\n",
+        type ? type : "<null>",
+        id ? id : "<null>");
+
+    // Call the real initializer
+    extern int net_init_client(QemuOpts * opts, void* opaque);
+    int ret = net_init_client(opts, opaque);
+
+    fprintf(stderr, "  -> net_init_client returned %d\n", ret);
+    return ret;
+}
+
 int net_init_clients(void)
 {
     if (default_net) {
@@ -1360,7 +1379,7 @@ int net_init_clients(void)
     if (qemu_opts_foreach(&qemu_netdev_opts, net_init_netdev, NULL, 1) == -1)
         return -1;
 
-    if (qemu_opts_foreach(&qemu_net_opts, net_init_client, NULL, 1) == -1) {
+    if (qemu_opts_foreach(&qemu_net_opts, net_init_client_debug, NULL, 1) == -1) {
         return -1;
     }
 

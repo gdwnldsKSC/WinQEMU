@@ -1494,6 +1494,9 @@
     <ClCompile Include="qemu\vnc-encoding-tight.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\cris-boot.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2299,6 +2302,9 @@
     </ClInclude>
     <ClInclude Include="qemu\vnc-encoding-tight.h">
       <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\cris-boot.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -37,9 +37,7 @@
 #include "config.h"
 #include <setjmp.h>
 #include <inttypes.h>
-#ifndef _MSC_VER
 #include <signal.h>
-#endif
 #include "osdep.h"
 #include "qemu-queue.h"
 #include "targphys.h"
@@ -162,10 +160,6 @@ typedef struct CPUWatchpoint {
     int flags; /* BP_* */
     QTAILQ_ENTRY(CPUWatchpoint) entry;
 } CPUWatchpoint;
-
-#ifdef _MSC_VER
-typedef int sig_atomic_t;
-#endif
 
 #define CPU_TEMP_BUF_NLONGS 128
 #define CPU_COMMON                                                      \

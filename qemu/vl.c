@@ -3439,7 +3439,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
     /* If all else fails use the install patch specified when building.  */
     if (!data_dir) {
-        data_dir = CONFIG_QEMU_SHAREDIR;
+        data_dir = CONFIG_QEMU_DATADIR;
     }
 
     /*
@@ -3810,6 +3810,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         if (dcl->dpy_refresh != NULL) {
             ds->gui_timer = qemu_new_timer(rt_clock, gui_update, ds);
             qemu_mod_timer(ds->gui_timer, qemu_get_clock(rt_clock));
+            break;
         }
         dcl = dcl->next;
     }

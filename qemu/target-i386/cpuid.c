@@ -353,6 +353,17 @@ static x86_def_t builtin_x86_defs[] = {
         .model_id = "Common KVM processor"
     },
     {
+        .name = "qemu32",
+        .level = 4,
+        .family = 6,
+        .model = 3,
+        .stepping = 3,
+        .features = PPRO_FEATURES,
+        .ext_features = CPUID_EXT_SSE3 | CPUID_EXT_POPCNT,
+        .xlevel = 0x80000004,
+        .model_id = "QEMU Virtual CPU version " QEMU_VERSION,
+    },
+    {
         .name = "kvm32",
         .level = 5,
         .family = 15,
@@ -365,17 +376,6 @@ static x86_def_t builtin_x86_defs[] = {
         .ext3_features = 0,
         .xlevel = 0x80000008,
         .model_id = "Common 32-bit KVM processor"
-    },
-    {
-        .name = "qemu32",
-        .level = 4,
-        .family = 6,
-        .model = 3,
-        .stepping = 3,
-        .features = PPRO_FEATURES,
-        .ext_features = CPUID_EXT_SSE3 | CPUID_EXT_POPCNT,
-        .xlevel = 0x80000004,
-        .model_id = "QEMU Virtual CPU version " QEMU_VERSION,
     },
     {
         .name = "coreduo",

@@ -68,7 +68,6 @@ static int bdrv_read_em(BlockDriverState *bs, int64_t sector_num,
                         uint8_t *buf, int nb_sectors);
 static int bdrv_write_em(BlockDriverState *bs, int64_t sector_num,
                          const uint8_t *buf, int nb_sectors);
-static BlockDriver *find_protocol(const char *filename);
 
 static QTAILQ_HEAD(, BlockDriverState) bdrv_states =
     QTAILQ_HEAD_INITIALIZER(bdrv_states);
@@ -535,7 +534,7 @@ int bdrv_open(BlockDriverState *bs, const char *filename, int flags,
             bdrv_delete(bs1);
             return ret;
         }
-        total_size = bdrv_getlength(bs1) & BDRV_SECTOR_MASK;
+        total_size = bdrv_getlength(bs1) >> BDRV_SECTOR_BITS;
 
         if (bs1->drv && bs1->drv->protocol_name)
             is_protocol = 1;
@@ -554,7 +553,7 @@ int bdrv_open(BlockDriverState *bs, const char *filename, int flags,
         bdrv_qcow2 = bdrv_find_format("qcow2");
         options = parse_option_parameters("", bdrv_qcow2->create_options, NULL);
 
-        set_option_parameter_int(options, BLOCK_OPT_SIZE, total_size);
+        set_option_parameter_int(options, BLOCK_OPT_SIZE, total_size * 512);
         set_option_parameter(options, BLOCK_OPT_BACKING_FILE, backing_filename);
         if (drv) {
             set_option_parameter(options, BLOCK_OPT_BACKING_FMT,
