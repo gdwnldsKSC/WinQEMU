@@ -57,6 +57,13 @@ int kvm_check_extension(KVMState *s, unsigned int extension)
     return 0;
 }
 
+#ifdef _MSC_VER
+uint32_t kvm_arch_get_supported_cpuid(CPUState* env, uint32_t function, uint32_t index, int reg)
+{
+    return 0;
+}
+#endif
+
 int kvm_init(int smp_cpus)
 {
     return -ENOSYS;

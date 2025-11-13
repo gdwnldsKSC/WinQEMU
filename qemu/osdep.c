@@ -170,6 +170,23 @@ int qemu_create_pidfile(const char *filename)
 
 #ifdef _WIN32
 
+/* mingw32 needs ffs for compilations without optimization. */
+#ifndef _MSC_VER
+int ffs(int i)
+{
+    /* Use gcc's builtin ffs. */
+    return __builtin_ffs(i);
+}
+#else
+int ffs(int x)
+{
+    unsigned long idx;
+    if (_BitScanForward(&idx, (unsigned long)x))
+        return (int)idx + 1;
+    return 0;
+}
+#endif
+
 /* Offset between 1/1/1601 and 1/1/1970 in 100 nanosec units */
 #define _W32_FT_OFFSET (116444736000000000ULL)
 
@@ -284,7 +301,6 @@ ssize_t qemu_write_full(int fd, const void *buf, size_t count)
         }
 
         count -= ret;
-        
         (char *)buf += ret;
         total += ret;
     }

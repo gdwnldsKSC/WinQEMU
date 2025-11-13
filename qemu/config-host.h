@@ -37,11 +37,4 @@
 #define UINT32_MAX		(4294967295U)
 #define UINT64_MAX		((uint64_t)(18446744073709551615))
 
-// stub out KVM functions
-/*
-int kvm_init(int smp_cpus);
-void kvm_init_vcpu(void *env);
-void kvm_sync_vcpus(void);
-*/
-
 #endif
