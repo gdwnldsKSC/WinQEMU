@@ -39,6 +39,7 @@
    host headers do not allow that. */
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __OpenBSD__
 #include <sys/types.h>

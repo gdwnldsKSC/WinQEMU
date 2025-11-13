@@ -45,6 +45,7 @@ typedef struct QEMUBH QEMUBH;
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
 #include <strings.h>
 #include <inttypes.h>
@@ -314,9 +315,9 @@ int qemu_cpu_self(void *env);
 
 /* work queue */
 struct qemu_work_item {
-    struct qemu_work_item* next;
-    void (*func)(void* data);
-    void* data;
+    struct qemu_work_item *next;
+    void (*func)(void *data);
+    void *data;
     int done;
 };
 
