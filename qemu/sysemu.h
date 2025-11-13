@@ -6,6 +6,7 @@
 #include "qemu-option.h"
 #include "qemu-queue.h"
 #include "qemu-timer.h"
+#include "notify.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -55,6 +56,9 @@ int qemu_reset_requested(void);
 int qemu_powerdown_requested(void);
 extern qemu_irq qemu_system_powerdown;
 void qemu_system_reset(void);
+
+void qemu_add_exit_notifier(Notifier *notify);
+void qemu_remove_exit_notifier(Notifier *notify);
 
 void do_savevm(Monitor *mon, const QDict *qdict);
 int load_vmstate(const char *name);
@@ -141,58 +145,6 @@ extern int nb_option_roms;
 #define MAX_PROM_ENVS 128
 extern const char *prom_envs[MAX_PROM_ENVS];
 extern unsigned int nb_prom_envs;
-
-typedef enum {
-    IF_NONE,
-    IF_IDE, IF_SCSI, IF_FLOPPY, IF_PFLASH, IF_MTD, IF_SD, IF_VIRTIO, IF_XEN,
-    IF_COUNT
-} BlockInterfaceType;
-
-typedef enum {
-    BLOCK_ERR_REPORT, BLOCK_ERR_IGNORE, BLOCK_ERR_STOP_ENOSPC,
-    BLOCK_ERR_STOP_ANY
-} BlockInterfaceErrorAction;
-
-#define BLOCK_SERIAL_STRLEN 20
-
-typedef struct DriveInfo {
-    BlockDriverState *bdrv;
-    char *id;
-    const char *devaddr;
-    BlockInterfaceType type;
-    int bus;
-    int unit;
-    QemuOpts *opts;
-    BlockInterfaceErrorAction on_read_error;
-    BlockInterfaceErrorAction on_write_error;
-    char serial[BLOCK_SERIAL_STRLEN + 1];
-    QTAILQ_ENTRY(DriveInfo) next;
-} DriveInfo;
-
-#define MAX_IDE_DEVS	2
-#define MAX_SCSI_DEVS	7
-#define MAX_DRIVES 32
-
-extern QTAILQ_HEAD(drivelist, DriveInfo) drives;
-extern QTAILQ_HEAD(driveoptlist, DriveOpt) driveopts;
-
-extern DriveInfo *drive_get(BlockInterfaceType type, int bus, int unit);
-extern DriveInfo *drive_get_by_id(const char *id);
-extern int drive_get_max_bus(BlockInterfaceType type);
-extern void drive_uninit(DriveInfo *dinfo);
-extern const char *drive_get_serial(BlockDriverState *bdrv);
-
-extern BlockInterfaceErrorAction drive_get_on_error(
-    BlockDriverState *bdrv, int is_read);
-
-BlockDriverState *qdev_init_bdrv(DeviceState *dev, BlockInterfaceType type);
-
-extern QemuOpts *drive_add(const char *file, const char *fmt, ...);
-extern DriveInfo *drive_init(QemuOpts *arg, void *machine, int *fatal_error);
-
-/* device-hotplug */
-
-DriveInfo *add_init_drive(const char *opts);
 
 /* pci-hotplug */
 void pci_device_hot_add(Monitor *mon, const QDict *qdict);

@@ -1503,6 +1503,9 @@
     <ClCompile Include="qemu\os-posix.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\blockdev.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2316,6 +2319,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-options.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\blockdev.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>

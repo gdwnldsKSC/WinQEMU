@@ -314,6 +314,7 @@
     <ClCompile Include="qemu\audio\winwaveaudio.c" />
     <ClCompile Include="qemu\balloon.c" />
     <ClCompile Include="qemu\block-migration.c" />
+    <ClCompile Include="qemu\blockdev.c" />
     <ClCompile Include="qemu\block\blkdebug.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
@@ -1809,6 +1810,7 @@
     <ClInclude Include="qemu\arch_init.h" />
     <ClInclude Include="qemu\audio\audio_win_int.h" />
     <ClInclude Include="qemu\block-migration.h" />
+    <ClInclude Include="qemu\blockdev.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\cmd.h" />

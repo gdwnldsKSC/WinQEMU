@@ -9,7 +9,6 @@
  *
  */
 #include <check.h>
-#include <stdbool.h>
 
 #include "qstring.h"
 #include "qint.h"
@@ -57,13 +56,13 @@ START_TEST(escaped_string)
         
         str = qobject_to_qstring(obj);
         fail_unless(strcmp(qstring_get_str(str), test_cases[i].decoded) == 0,
-            "%s != %s\n", qstring_get_str(str), test_cases[i].decoded);
+                    "%s != %s\n", qstring_get_str(str), test_cases[i].decoded);
 
         if (test_cases[i].skip == 0) {
             str = qobject_to_json(obj);
-            fail_unless(strcmp(qstring_get_str(str), test_cases[i].encoded) == 0,
-                "%s != %s\n", qstring_get_str(str),
-                test_cases[i].encoded);
+            fail_unless(strcmp(qstring_get_str(str),test_cases[i].encoded) == 0,
+                        "%s != %s\n", qstring_get_str(str),
+                                      test_cases[i].encoded);
 
             qobject_decref(obj);
         }
@@ -640,63 +639,63 @@ END_TEST
 
 START_TEST(empty_input)
 {
-    QObject* obj = qobject_from_json("");
+    QObject *obj = qobject_from_json("");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_string)
 {
-    QObject* obj = qobject_from_json("\"abc");
+    QObject *obj = qobject_from_json("\"abc");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_sq_string)
 {
-    QObject* obj = qobject_from_json("'abc");
+    QObject *obj = qobject_from_json("'abc");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_escape)
 {
-    QObject* obj = qobject_from_json("\"abc\\\"");
+    QObject *obj = qobject_from_json("\"abc\\\"");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_array)
 {
-    QObject* obj = qobject_from_json("[32");
+    QObject *obj = qobject_from_json("[32");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_array_comma)
 {
-    QObject* obj = qobject_from_json("[32,");
+    QObject *obj = qobject_from_json("[32,");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(invalid_array_comma)
 {
-    QObject* obj = qobject_from_json("[32,}");
+    QObject *obj = qobject_from_json("[32,}");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_dict)
 {
-    QObject* obj = qobject_from_json("{'abc':32");
+    QObject *obj = qobject_from_json("{'abc':32");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_dict_comma)
 {
-    QObject* obj = qobject_from_json("{'abc':32,");
+    QObject *obj = qobject_from_json("{'abc':32,");
     fail_unless(obj == NULL);
 }
 END_TEST
@@ -704,14 +703,14 @@ END_TEST
 #if 0
 START_TEST(invalid_dict_comma)
 {
-    QObject* obj = qobject_from_json("{'abc':32,}");
+    QObject *obj = qobject_from_json("{'abc':32,}");
     fail_unless(obj == NULL);
 }
 END_TEST
 
 START_TEST(unterminated_literal)
 {
-    QObject* obj = qobject_from_json("nul");
+    QObject *obj = qobject_from_json("nul");
     fail_unless(obj == NULL);
 }
 END_TEST
@@ -721,7 +720,7 @@ static Suite *qjson_suite(void)
 {
     Suite *suite;
     TCase *string_literals, *number_literals, *keyword_literals;
-    TCase* dicts, * lists, * whitespace, * varargs, * errors;
+    TCase *dicts, *lists, *whitespace, *varargs, *errors;
 
     string_literals = tcase_create("String Literals");
     tcase_add_test(string_literals, simple_string);
