@@ -380,6 +380,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\bitbang_i2c.c" />
+    <ClCompile Include="qemu\hw\bonito.c" />
     <ClCompile Include="qemu\hw\cris-boot.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -395,6 +396,7 @@
     <ClCompile Include="qemu\hw\ide\pci.c" />
     <ClCompile Include="qemu\hw\ide\piix.c" />
     <ClCompile Include="qemu\hw\ide\qdev.c" />
+    <ClCompile Include="qemu\hw\ide\via.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
     <ClCompile Include="qemu\hw\lan9118.c" />
@@ -405,9 +407,42 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\mips_fulong2e.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\msix.c" />
     <ClCompile Include="qemu\hw\multiboot.c" />
     <ClCompile Include="qemu\hw\ne2000-isa.c" />
+    <ClCompile Include="qemu\hw\omap_gpio.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_gpmc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_gptimer.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_intc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_l4.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_sdrc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_spi.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_synctimer.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_tap.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\omap_uart.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\pcie_host.c" />
     <ClCompile Include="qemu\hw\pci_host.c" />
     <ClCompile Include="qemu\hw\pc_piix.c" />
@@ -442,6 +477,7 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\virtio-pci.c" />
     <ClCompile Include="qemu\hw\virtio-serial-bus.c" />
+    <ClCompile Include="qemu\hw\vt82c686.c" />
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
@@ -1854,6 +1890,7 @@
     <ClInclude Include="qemu\hw\virtio-9p.h" />
     <ClInclude Include="qemu\hw\virtio-serial.h" />
     <ClInclude Include="qemu\hw\vmware_vga.h" />
+    <ClInclude Include="qemu\hw\vt82c686.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
     <ClInclude Include="qemu\ioport.h" />
     <ClInclude Include="qemu\iov.h" />
