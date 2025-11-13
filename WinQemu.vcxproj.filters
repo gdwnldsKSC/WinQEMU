@@ -2320,5 +2320,8 @@
     <None Include="qemu\qemu-monitor.hx">
       <Filter>qemu\inc</Filter>
     </None>
+    <None Include="qemu\hxtool">
+      <Filter>resource</Filter>
+    </None>
   </ItemGroup>
 </Project>

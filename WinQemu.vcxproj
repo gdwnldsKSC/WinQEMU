@@ -2090,6 +2090,7 @@
     <Text Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="qemu\hxtool" />
     <None Include="qemu\qemu-monitor.hx" />
     <None Include="qemu\qemu-options.hx" />
     <None Include="qemu\target-alpha\STATUS">
