@@ -1497,6 +1497,12 @@
     <ClCompile Include="qemu\hw\cris-boot.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\os-win32.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\os-posix.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2048,9 +2054,6 @@
     <ClInclude Include="qemu\hw\watchdog.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\qemu-options.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\module.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2306,6 +2309,15 @@
     <ClInclude Include="qemu\hw\cris-boot.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\qemu-os-win32.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-os-posix.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-options.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />
@@ -2322,6 +2334,9 @@
     </None>
     <None Include="qemu\hxtool">
       <Filter>resource</Filter>
+    </None>
+    <None Include="qemu\qemu-options.def">
+      <Filter>qemu\inc</Filter>
     </None>
   </ItemGroup>
 </Project>

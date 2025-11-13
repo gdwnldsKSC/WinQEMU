@@ -1,7 +1,5 @@
 /*
- * qemu-options.h
- *
- * Defines needed for command line argument processing.
+ * posix specific declarations
  *
  * Copyright (c) 2003-2008 Fabrice Bellard
  * Copyright (c) 2010 Jes Sorensen <Jes.Sorensen@redhat.com>
@@ -25,17 +23,17 @@
  * THE SOFTWARE.
  */
 
-#ifndef _QEMU_OPTIONS_H_
-#define _QEMU_OPTIONS_H_
+#ifndef QEMU_OS_POSIX_H
+#define QEMU_OS_POSIX_H
 
-enum {
-#define DEF(option, opt_arg, opt_enum, opt_help, arch_mask)     \
-    opt_enum,
-#define DEFHEADING(text)
-#include "qemu-options.def"
-#undef DEF
-#undef DEFHEADING
-#undef GEN_DOCS
-};
+static inline void os_host_main_loop_wait(int *timeout)
+{
+}
+
+void os_set_line_buffering(void);
+void os_set_proc_name(const char *s);
+void os_setup_signal_handling(void);
+void os_daemonize(void);
+void os_setup_post(void);
 
 #endif

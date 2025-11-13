@@ -1,7 +1,5 @@
 /*
- * qemu-options.h
- *
- * Defines needed for command line argument processing.
+ * win32 specific declarations
  *
  * Copyright (c) 2003-2008 Fabrice Bellard
  * Copyright (c) 2010 Jes Sorensen <Jes.Sorensen@redhat.com>
@@ -25,17 +23,30 @@
  * THE SOFTWARE.
  */
 
-#ifndef _QEMU_OPTIONS_H_
-#define _QEMU_OPTIONS_H_
+#ifndef QEMU_OS_WIN32_H
+#define QEMU_OS_WIN32_H
 
-enum {
-#define DEF(option, opt_arg, opt_enum, opt_help, arch_mask)     \
-    opt_enum,
-#define DEFHEADING(text)
-#include "qemu-options.def"
-#undef DEF
-#undef DEFHEADING
-#undef GEN_DOCS
-};
+/* Polling handling */
+
+/* return TRUE if no sleep should be done afterwards */
+typedef int PollingFunc(void *opaque);
+
+int qemu_add_polling_cb(PollingFunc *func, void *opaque);
+void qemu_del_polling_cb(PollingFunc *func, void *opaque);
+
+/* Wait objects handling */
+typedef void WaitObjectFunc(void *opaque);
+
+int qemu_add_wait_object(HANDLE handle, WaitObjectFunc *func, void *opaque);
+void qemu_del_wait_object(HANDLE handle, WaitObjectFunc *func, void *opaque);
+
+void os_host_main_loop_wait(int *timeout);
+
+static inline void os_setup_signal_handling(void) {}
+static inline void os_daemonize(void) {}
+static inline void os_setup_post(void) {}
+/* Win32 doesn't support line-buffering and requires size >= 2 */
+static inline void os_set_line_buffering(void) {}
+static inline void os_set_proc_name(const char *dummy) {}
 
 #endif
