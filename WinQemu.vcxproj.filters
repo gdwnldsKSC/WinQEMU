@@ -1548,6 +1548,9 @@
     <ClCompile Include="qemu\hw\ide\via.c">
       <Filter>qemu\hw\IDE</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\block\sheepdog.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2102,9 +2105,6 @@
     <ClInclude Include="qemu\module.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\qdev.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\sysbus.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2367,6 +2367,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\vt82c686.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\qdev.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>

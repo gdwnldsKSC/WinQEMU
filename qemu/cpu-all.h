@@ -888,7 +888,6 @@ typedef struct RAMBlock {
 
 typedef struct RAMList {
     uint8_t *phys_dirty;
-    ram_addr_t last_offset;
     QLIST_HEAD(ram, RAMBlock) blocks;
 } RAMList;
 extern RAMList ram_list;
