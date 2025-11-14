@@ -69,6 +69,8 @@ static struct BusInfo pci_bus_info = {
         DEFINE_PROP_PCI_DEVFN("addr", PCIDevice, devfn, -1),
         DEFINE_PROP_STRING("romfile", PCIDevice, romfile),
         DEFINE_PROP_UINT32("rombar",  PCIDevice, rom_bar, 1),
+        DEFINE_PROP_BIT("multifunction", PCIDevice, cap_present,
+                        QEMU_PCI_CAP_MULTIFUNCTION_BITNR, false),
         DEFINE_PROP_END_OF_LIST()
     }
 };
@@ -153,15 +155,24 @@ static void pci_device_reset(PCIDevice *dev)
 
     dev->irq_state = 0;
     pci_update_irq_status(dev);
-    dev->config[PCI_COMMAND] &= ~(PCI_COMMAND_IO | PCI_COMMAND_MEMORY |
-                                  PCI_COMMAND_MASTER);
+    /* Clear all writeable bits */
+    pci_set_word(dev->config + PCI_COMMAND,
+                 pci_get_word(dev->config + PCI_COMMAND) &
+                 ~pci_get_word(dev->wmask + PCI_COMMAND));
     dev->config[PCI_CACHE_LINE_SIZE] = 0x0;
     dev->config[PCI_INTERRUPT_LINE] = 0x0;
     for (r = 0; r < PCI_NUM_REGIONS; ++r) {
-        if (!dev->io_regions[r].size) {
+        PCIIORegion *region = &dev->io_regions[r];
+        if (!region->size) {
             continue;
         }
-        pci_set_long(dev->config + pci_bar(dev, r), dev->io_regions[r].type);
+
+        if (!(region->type & PCI_BASE_ADDRESS_SPACE_IO) &&
+            region->type & PCI_BASE_ADDRESS_MEM_TYPE_64) {
+            pci_set_quad(dev->config + pci_bar(dev, r), region->type);
+        } else {
+            pci_set_long(dev->config + pci_bar(dev, r), region->type);
+        }
     }
     pci_update_mappings(dev);
 }
@@ -227,6 +238,7 @@ void pci_bus_new_inplace(PCIBus *bus, DeviceState *parent,
                          const char *name, int devfn_min)
 {
     qbus_create_inplace(&bus->qbus, &pci_bus_info, parent, name);
+    assert(PCI_FUNC(devfn_min) == 0);
     bus->devfn_min = devfn_min;
 
     /* host bridge */
@@ -581,6 +593,54 @@ static void pci_init_wmask_bridge(PCIDevice *d)
     pci_set_word(d->wmask + PCI_BRIDGE_CONTROL, 0xffff);
 }
 
+static int pci_init_multifunction(PCIBus *bus, PCIDevice *dev)
+{
+    uint8_t slot = PCI_SLOT(dev->devfn);
+    uint8_t func;
+
+    if (dev->cap_present & QEMU_PCI_CAP_MULTIFUNCTION) {
+        dev->config[PCI_HEADER_TYPE] |= PCI_HEADER_TYPE_MULTI_FUNCTION;
+    }
+
+    /*
+     * multifuction bit is interpreted in two ways as follows.
+     *   - all functions must set the bit to 1.
+     *     Example: Intel X53
+     *   - function 0 must set the bit, but the rest function (> 0)
+     *     is allowed to leave the bit to 0.
+     *     Example: PIIX3(also in qemu), PIIX4(also in qemu), ICH10,
+     *
+     * So OS (at least Linux) checks the bit of only function 0,
+     * and doesn't see the bit of function > 0.
+     *
+     * The below check allows both interpretation.
+     */
+    if (PCI_FUNC(dev->devfn)) {
+        PCIDevice *f0 = bus->devices[PCI_DEVFN(slot, 0)];
+        if (f0 && !(f0->cap_present & QEMU_PCI_CAP_MULTIFUNCTION)) {
+            /* function 0 should set multifunction bit */
+            error_report("PCI: single function device can't be populated "
+                         "in function %x.%x", slot, PCI_FUNC(dev->devfn));
+            return -1;
+        }
+        return 0;
+    }
+
+    if (dev->cap_present & QEMU_PCI_CAP_MULTIFUNCTION) {
+        return 0;
+    }
+    /* function 0 indicates single function, so function > 0 must be NULL */
+    for (func = 1; func < PCI_FUNC_MAX; ++func) {
+        if (bus->devices[PCI_DEVFN(slot, func)]) {
+            error_report("PCI: %x.0 indicates single function, "
+                         "but %x.%x is already populated.",
+                         slot, slot, func);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 static void pci_config_alloc(PCIDevice *pci_dev)
 {
     int config_size = pci_config_size(pci_dev);
@@ -604,11 +664,11 @@ static PCIDevice *do_pci_register_device(PCIDevice *pci_dev, PCIBus *bus,
                                          const char *name, int devfn,
                                          PCIConfigReadFunc *config_read,
                                          PCIConfigWriteFunc *config_write,
-                                         uint8_t header_type)
+                                         bool is_bridge)
 {
     if (devfn < 0) {
         for(devfn = bus->devfn_min ; devfn < ARRAY_SIZE(bus->devices);
-            devfn += 8) {
+            devfn += PCI_FUNC_MAX) {
             if (!bus->devices[devfn])
                 goto found;
         }
@@ -626,14 +686,17 @@ static PCIDevice *do_pci_register_device(PCIDevice *pci_dev, PCIBus *bus,
     pci_dev->irq_state = 0;
     pci_config_alloc(pci_dev);
 
-    header_type &= ~PCI_HEADER_TYPE_MULTI_FUNCTION;
-    if (header_type == PCI_HEADER_TYPE_NORMAL) {
+    if (!is_bridge) {
         pci_set_default_subsystem_id(pci_dev);
     }
     pci_init_cmask(pci_dev);
     pci_init_wmask(pci_dev);
-    if (header_type == PCI_HEADER_TYPE_BRIDGE) {
+    if (is_bridge) {
         pci_init_wmask_bridge(pci_dev);
+    }
+    if (pci_init_multifunction(bus, pci_dev)) {
+        pci_config_free(pci_dev);
+        return NULL;
     }
 
     if (!config_read)
@@ -1505,7 +1568,9 @@ static void pci_bridge_write_config(PCIDevice *d,
         /* memory base/limit, prefetchable base/limit and
            io base/limit upper 16 */
         ranges_overlap(address, len, PCI_MEMORY_BASE, 20)) {
-        pci_bridge_update_mappings(d->bus);
+        PCIBridge *s = container_of(d, PCIBridge, dev);
+        PCIBus *secondary_bus = &s->bus;
+        pci_bridge_update_mappings(secondary_bus);
     }
 }
 
@@ -1562,7 +1627,9 @@ static int pci_bridge_initfn(PCIDevice *dev)
     pci_set_word(dev->config + PCI_STATUS,
                  PCI_STATUS_66MHZ | PCI_STATUS_FAST_BACK);
     pci_config_set_class(dev->config, PCI_CLASS_BRIDGE_PCI);
-    dev->config[PCI_HEADER_TYPE] = PCI_HEADER_TYPE_BRIDGE;
+    dev->config[PCI_HEADER_TYPE] =
+        (dev->config[PCI_HEADER_TYPE] & PCI_HEADER_TYPE_MULTI_FUNCTION) |
+        PCI_HEADER_TYPE_BRIDGE;
     pci_set_word(dev->config + PCI_SEC_STATUS,
                  PCI_STATUS_66MHZ | PCI_STATUS_FAST_BACK);
     return 0;
@@ -1576,13 +1643,14 @@ static int pci_bridge_exitfn(PCIDevice *pci_dev)
     return 0;
 }
 
-PCIBus *pci_bridge_init(PCIBus *bus, int devfn, uint16_t vid, uint16_t did,
+PCIBus *pci_bridge_init(PCIBus *bus, int devfn, bool multifunction,
+                        uint16_t vid, uint16_t did,
                         pci_map_irq_fn map_irq, const char *name)
 {
     PCIDevice *dev;
     PCIBridge *s;
 
-    dev = pci_create(bus, devfn, "pci-bridge");
+    dev = pci_create_multifunction(bus, devfn, multifunction, "pci-bridge");
     qdev_prop_set_uint32(&dev->qdev, "vendorid", vid);
     qdev_prop_set_uint32(&dev->qdev, "deviceid", did);
     qdev_init_nofail(&dev->qdev);
@@ -1613,7 +1681,7 @@ static int pci_qdev_init(DeviceState *qdev, DeviceInfo *base)
     devfn = pci_dev->devfn;
     pci_dev = do_pci_register_device(pci_dev, bus, base->name, devfn,
                                      info->config_read, info->config_write,
-                                     info->header_type);
+                                     info->is_bridge);
     if (pci_dev == NULL)
         return -1;
     rc = info->init(pci_dev);
@@ -1627,8 +1695,14 @@ static int pci_qdev_init(DeviceState *qdev, DeviceInfo *base)
         pci_dev->romfile = qemu_strdup(info->romfile);
     pci_add_option_rom(pci_dev);
 
-    if (qdev->hotplugged)
-        bus->hotplug(bus->hotplug_qdev, pci_dev, 1);
+    if (qdev->hotplugged) {
+        rc = bus->hotplug(bus->hotplug_qdev, pci_dev, 1);
+        if (rc != 0) {
+            int r = pci_unregister_device(&pci_dev->qdev);
+            assert(!r);
+            return rc;
+        }
+    }
     return 0;
 }
 
@@ -1636,8 +1710,7 @@ static int pci_unplug_device(DeviceState *qdev)
 {
     PCIDevice *dev = DO_UPCAST(PCIDevice, qdev, qdev);
 
-    dev->bus->hotplug(dev->bus->hotplug_qdev, dev, 0);
-    return 0;
+    return dev->bus->hotplug(dev->bus->hotplug_qdev, dev, 0);
 }
 
 void pci_qdev_register(PCIDeviceInfo *info)
@@ -1657,20 +1730,34 @@ void pci_qdev_register_many(PCIDeviceInfo *info)
     }
 }
 
-PCIDevice *pci_create(PCIBus *bus, int devfn, const char *name)
+PCIDevice *pci_create_multifunction(PCIBus *bus, int devfn, bool multifunction,
+                                    const char *name)
 {
     DeviceState *dev;
 
     dev = qdev_create(&bus->qbus, name);
     qdev_prop_set_uint32(dev, "addr", devfn);
+    qdev_prop_set_bit(dev, "multifunction", multifunction);
     return DO_UPCAST(PCIDevice, qdev, dev);
+}
+
+PCIDevice *pci_create_simple_multifunction(PCIBus *bus, int devfn,
+                                           bool multifunction,
+                                           const char *name)
+{
+    PCIDevice *dev = pci_create_multifunction(bus, devfn, multifunction, name);
+    qdev_init_nofail(&dev->qdev);
+    return dev;
+}
+
+PCIDevice *pci_create(PCIBus *bus, int devfn, const char *name)
+{
+    return pci_create_multifunction(bus, devfn, false, name);
 }
 
 PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name)
 {
-    PCIDevice *dev = pci_create(bus, devfn, name);
-    qdev_init_nofail(&dev->qdev);
-    return dev;
+    return pci_create_simple_multifunction(bus, devfn, false, name);
 }
 
 static int pci_find_space(PCIDevice *pdev, uint8_t size)
@@ -1889,7 +1976,7 @@ static PCIDeviceInfo bridge_info = {
     .init         = pci_bridge_initfn,
     .exit         = pci_bridge_exitfn,
     .config_write = pci_bridge_write_config,
-    .header_type  = PCI_HEADER_TYPE_BRIDGE,
+    .is_bridge    = 1,
     .qdev.props   = (Property[]) {
         DEFINE_PROP_HEX32("vendorid", PCIBridge, vid, 0),
         DEFINE_PROP_HEX32("deviceid", PCIBridge, did, 0),

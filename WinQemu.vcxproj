@@ -379,6 +379,7 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\acpi_piix4.c" />
     <ClCompile Include="qemu\hw\apm.c" />
+    <ClCompile Include="qemu\hw\applesmc.c" />
     <ClCompile Include="qemu\hw\arm11mpcore.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
