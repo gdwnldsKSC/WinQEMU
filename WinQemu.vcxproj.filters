@@ -2405,6 +2405,9 @@
     <ClInclude Include="qemu\hw\syborg.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\qemu-barrier.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />

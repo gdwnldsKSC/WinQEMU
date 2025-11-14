@@ -32,6 +32,7 @@
 #include "disas.h"
 #include "tcg.h"
 #include "kvm.h"
+#include "qemu-barrier.h"
 
 #if !defined(CONFIG_SOFTMMU)
 #undef EAX
@@ -250,12 +251,11 @@ int cpu_exec(CPUState *env1)
        use it.  */
     QEMU_BUILD_BUG_ON (sizeof (saved_env_reg) != sizeof (env));
     saved_env_reg = (host_reg_t) env;
-    asm("");
+    barrier();
     env = env1;
 
-    if (exit_request) {
+    if (unlikely(exit_request)) {
         env->exit_request = 1;
-        exit_request = 0;
     }
 
 #if defined(TARGET_I386)
@@ -616,8 +616,9 @@ int cpu_exec(CPUState *env1)
                    TB, but before it is linked into a potentially
                    infinite loop and becomes env->current_tb. Avoid
                    starting execution if there is a pending interrupt. */
-                if (!unlikely (env->exit_request)) {
-                    env->current_tb = tb;
+                env->current_tb = tb;
+                barrier();
+                if (likely(!env->exit_request)) {
                     tc_ptr = tb->tc_ptr;
                 /* execute the generated code */
 #if defined(__sparc__) && !defined(CONFIG_SOLARIS)
@@ -627,27 +628,23 @@ int cpu_exec(CPUState *env1)
 #endif
 
 #ifdef _MSC_VER
-					pGenCodeBuffer = &(code_gen_prologue[0]);
+                    /* MSVC: manually set up the TCG ABI (AREG0 in EBP, tb_ptr in EAX)
+                       because MSVC cannot reproduce GCC's regparm/global-reg ABI. */
+                    pGenCodeBuffer = &code_gen_prologue[0];
 
-					if ((env->eip == 0x9016ee30) || (env->eip == 0x9117a000))
-					{
-						pGenCodeBuffer = &(code_gen_prologue[0]);
-					}
-					__asm
-					{
-						mov eax, tc_ptr;
+                    __asm {
+                        mov eax, tc_ptr         /* tb_ptr -> EAX (what the prologue expects) */
 
-						mov nEbpBackup, ebp;
-						mov ebp, env;
-						call pGenCodeBuffer;
+                        mov nEbpBackup, ebp     /* save caller's EBP */
+                        mov ebp, env            /* EBP = AREG0 = env */
+                        call pGenCodeBuffer     /* call JIT prologue */
 
-						mov ebp, nEbpBackup;
-						mov next_tb, eax;
-					}
+                        mov ebp, nEbpBackup     /* restore EBP */
+                        mov next_tb, eax        /* grab return value */
+                    }
 #else
                     next_tb = tcg_qemu_tb_exec(tc_ptr);
 #endif
-                    env->current_tb = NULL;
                     if ((next_tb & 3) == 2) {
                         /* Instruction counter expired.  */
                         int insns_left;
@@ -676,6 +673,7 @@ int cpu_exec(CPUState *env1)
                         }
                     }
                 }
+                env->current_tb = NULL;
                 /* reset soft MMU for next block (it can currently
                    only be set by a memory fault) */
             } /* for(;;) */
@@ -707,7 +705,7 @@ int cpu_exec(CPUState *env1)
 #endif
 
     /* restore global registers */
-    asm("");
+    barrier();
     env = (void *) saved_env_reg;
 
     /* fail safe : never use cpu_single_env outside cpu_exec() */

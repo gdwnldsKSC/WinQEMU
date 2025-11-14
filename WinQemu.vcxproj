@@ -1943,6 +1943,7 @@
     <ClInclude Include="qemu\notify.h" />
     <ClInclude Include="qemu\qbool.h" />
     <ClInclude Include="qemu\qdict.h" />
+    <ClInclude Include="qemu\qemu-barrier.h" />
     <ClInclude Include="qemu\qemu-config.h" />
     <ClInclude Include="qemu\qemu-error.h" />
     <ClInclude Include="qemu\qemu-objects.h" />

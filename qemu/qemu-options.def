@@ -310,7 +310,7 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "", QEMU_ARCH_ALL)
 "                use 'vhostfd=h' to connect to an already opened vhost net device\n"
 #endif
 
-#ifdef CONFIG_VDE 
+#ifdef CONFIG_VDE
 #define VDE_OPTIONS \
 "-net vde[,vlan=n][,name=str][,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n" \
 "                connect the vlan 'n' to port 'n' of a vde switch running\n" \
@@ -366,13 +366,13 @@ DEFHEADING()
 DEFHEADING(Character device options:)
 
 #ifdef _WIN32
-#define CHARDEV_WIN32 \
+#define CHARDEV_OPTS \
 "-chardev console,id=id[,mux=on|off]\n" \
-"-chardev serial,id=id,path=path[,mux=on|off]\n" 
+"-chardev serial,id=id,path=path[,mux=on|off]\n"
 #else
-#define CHARDEV_WIN32 \
+#define CHARDEV_OPTS \
 "-chardev pty,id=id[,mux=on|off]\n" \
-"-chardev stdio,id=id[,mux=on|off]\n"
+"-chardev stdio,id=id[,mux=on|off][,signal=on|off]\n"
 #endif
 
 #ifdef CONFIG_BRLAPI
@@ -409,7 +409,7 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 	"         [,mux=on|off]\n" \
 	"-chardev file,id=id,path=path[,mux=on|off]\n" \
 	"-chardev pipe,id=id,path=path[,mux=on|off]\n" \
-	CHARDEV_WIN32 \
+	CHARDEV_OPTS \
 	CHARDEV_BRLAPI \
 	CHARDEV_TTY \
 	CHARDEV_PARPORT, QEMU_ARCH_ALL
