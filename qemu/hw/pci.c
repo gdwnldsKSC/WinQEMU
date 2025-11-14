@@ -58,7 +58,7 @@ struct PCIBus {
 };
 
 static void pcibus_dev_print(Monitor *mon, DeviceState *dev, int indent);
-static char* pcibus_get_dev_path(DeviceState* dev);
+static char *pcibus_get_dev_path(DeviceState *dev);
 
 static struct BusInfo pci_bus_info = {
     .name       = "PCI",
@@ -1713,6 +1713,7 @@ static int pci_add_option_rom(PCIDevice *pdev)
     int size;
     char *path;
     void *ptr;
+    char name[32];
 
     if (!pdev->romfile)
         return 0;
@@ -1748,7 +1749,11 @@ static int pci_add_option_rom(PCIDevice *pdev)
         size = 1 << qemu_fls(size);
     }
 
-    pdev->rom_offset = qemu_ram_alloc(size);
+    if (pdev->qdev.info->vmsd)
+        snprintf(name, sizeof(name), "%s.rom", pdev->qdev.info->vmsd->name);
+    else
+        snprintf(name, sizeof(name), "%s.rom", pdev->qdev.info->name);
+    pdev->rom_offset = qemu_ram_alloc(&pdev->qdev, name, size);
 
     ptr = qemu_get_ram_ptr(pdev->rom_offset);
     load_image(path, ptr);
@@ -1855,14 +1860,14 @@ static void pcibus_dev_print(Monitor *mon, DeviceState *dev, int indent)
     }
 }
 
-static char* pcibus_get_dev_path(DeviceState* dev)
+static char *pcibus_get_dev_path(DeviceState *dev)
 {
-    PCIDevice* d = (PCIDevice*)dev;
+    PCIDevice *d = (PCIDevice *)dev;
     char path[16];
 
     snprintf(path, sizeof(path), "%04x:%02x:%02x.%x",
-        pci_find_domain(d->bus), d->config[PCI_SECONDARY_BUS],
-        PCI_SLOT(d->devfn), PCI_FUNC(d->devfn));
+             pci_find_domain(d->bus), d->config[PCI_SECONDARY_BUS],
+             PCI_SLOT(d->devfn), PCI_FUNC(d->devfn));
 
     return strdup(path);
 }

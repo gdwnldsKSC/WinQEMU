@@ -708,7 +708,7 @@ static int corgi_ssp_init(SSISlave *dev)
     s->bus[1] = ssi_create_bus(&dev->qdev, "ssi1");
     s->bus[2] = ssi_create_bus(&dev->qdev, "ssi2");
 
-    register_savevm(&dev->qdev, "spitz_ssp", -1, 1, 
+    register_savevm(&dev->qdev, "spitz_ssp", -1, 1,
                     spitz_ssp_save, spitz_ssp_load, s);
     return 0;
 }
@@ -962,7 +962,7 @@ static void spitz_common_init(ram_addr_t ram_size,
     sl_flash_register(cpu, (model == spitz) ? FLASH_128M : FLASH_1024M);
 
     cpu_register_physical_memory(0, SPITZ_ROM,
-                    qemu_ram_alloc(SPITZ_ROM) | IO_MEM_ROM);
+                    qemu_ram_alloc(NULL, "spitz.rom", SPITZ_ROM) | IO_MEM_ROM);
 
     /* Setup peripherals */
     spitz_keyboard_register(cpu);
