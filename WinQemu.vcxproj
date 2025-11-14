@@ -576,7 +576,6 @@
     <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\rwhandler.c" />
-    <ClCompile Include="qemu\sdl_zoom.c" />
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -612,15 +611,29 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\tcg-runtime.c" />
-    <ClCompile Include="qemu\vnc-auth-sasl.c">
+    <ClCompile Include="qemu\ui\curses.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\vnc-auth-vencrypt.c">
+    <ClCompile Include="qemu\ui\d3des.c" />
+    <ClCompile Include="qemu\ui\keymaps.c" />
+    <ClCompile Include="qemu\ui\sdl.c" />
+    <ClCompile Include="qemu\ui\sdl_zoom.c" />
+    <ClCompile Include="qemu\ui\vnc-auth-sasl.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\vnc-encoding-hextile.c" />
-    <ClCompile Include="qemu\vnc-encoding-tight.c" />
-    <ClCompile Include="qemu\vnc-encoding-zlib.c" />
+    <ClCompile Include="qemu\ui\vnc-auth-vencrypt.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-hextile.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-tight.c" />
+    <ClCompile Include="qemu\ui\vnc-enc-zlib.c" />
+    <ClCompile Include="qemu\ui\vnc-tls.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc.c" />
+    <ClCompile Include="qemu\ui\x_keymap.c" />
     <ClCompile Include="setenv.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -656,16 +669,7 @@
     <ClCompile Include="qemu\console.c" />
     <ClCompile Include="qemu\cpu-exec.c" />
     <ClCompile Include="qemu\cris-dis.c" />
-    <ClCompile Include="qemu\curses.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="qemu\cutils.c" />
-    <ClCompile Include="qemu\d3des.c" />
     <ClCompile Include="qemu\device_tree.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -685,7 +689,6 @@
     <ClCompile Include="qemu\host-utils.c" />
     <ClCompile Include="qemu\hppa-dis.c" />
     <ClCompile Include="qemu\i386-dis.c" />
-    <ClCompile Include="qemu\keymaps.c" />
     <ClCompile Include="qemu\kqemu.c" />
     <ClCompile Include="qemu\kvm-all.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -757,7 +760,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\savevm.c" />
-    <ClCompile Include="qemu\sdl.c" />
     <ClCompile Include="qemu\sh4-dis.c" />
     <ClCompile Include="qemu\sparc-dis.c" />
     <ClCompile Include="qemu\thunk.c">
@@ -787,8 +789,6 @@
     </ClCompile>
     <ClCompile Include="qemu\usb-stub.c" />
     <ClCompile Include="qemu\vl.c" />
-    <ClCompile Include="qemu\vnc.c" />
-    <ClCompile Include="qemu\x_keymap.c" />
     <ClCompile Include="qemu\audio\alsaaudio.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -1960,8 +1960,6 @@
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
     <ClInclude Include="qemu\rwhandler.h" />
-    <ClInclude Include="qemu\sdl_zoom.h" />
-    <ClInclude Include="qemu\sdl_zoom_template.h" />
     <ClInclude Include="qemu\tap-linux.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1992,9 +1990,20 @@
     <ClInclude Include="qemu\target-i386\ops_sse_header.h" />
     <ClInclude Include="qemu\target-i386\svm.h" />
     <ClInclude Include="qemu\targphys.h" />
-    <ClInclude Include="qemu\vnc-auth-sasl.h" />
-    <ClInclude Include="qemu\vnc-auth-vencrypt.h" />
-    <ClInclude Include="qemu\vnc-encoding-tight.h" />
+    <ClInclude Include="qemu\ui\curses_keys.h" />
+    <ClInclude Include="qemu\ui\d3des.h" />
+    <ClInclude Include="qemu\ui\keymaps.h" />
+    <ClInclude Include="qemu\ui\sdl_keysym.h" />
+    <ClInclude Include="qemu\ui\sdl_zoom.h" />
+    <ClInclude Include="qemu\ui\sdl_zoom_template.h" />
+    <ClInclude Include="qemu\ui\vnc-auth-sasl.h" />
+    <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h" />
+    <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h" />
+    <ClInclude Include="qemu\ui\vnc-enc-tight.h" />
+    <ClInclude Include="qemu\ui\vnc-tls.h" />
+    <ClInclude Include="qemu\ui\vnc.h" />
+    <ClInclude Include="qemu\ui\vnc_keysym.h" />
+    <ClInclude Include="qemu\ui\x_keymap.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="qemu\a.out.h" />
@@ -2010,8 +2019,6 @@
     <ClInclude Include="qemu\console.h" />
     <ClInclude Include="qemu\cpu-all.h" />
     <ClInclude Include="qemu\cpu-defs.h" />
-    <ClInclude Include="qemu\curses_keys.h" />
-    <ClInclude Include="qemu\d3des.h" />
     <ClInclude Include="qemu\def-helper.h" />
     <ClInclude Include="qemu\device_tree.h" />
     <ClInclude Include="qemu\dis-asm.h" />
@@ -2041,7 +2048,6 @@
     <ClInclude Include="qemu\qemu-log.h" />
     <ClInclude Include="qemu\qemu-timer.h" />
     <ClInclude Include="qemu\qemu_socket.h" />
-    <ClInclude Include="qemu\sdl_keysym.h" />
     <ClInclude Include="qemu\softmmu-semi.h" />
     <ClInclude Include="qemu\softmmu_defs.h" />
     <ClInclude Include="qemu\softmmu_exec.h" />
@@ -2052,10 +2058,6 @@
     <ClInclude Include="qemu\thunk.h" />
     <ClInclude Include="qemu\uboot_image.h" />
     <ClInclude Include="qemu\vgafont.h" />
-    <ClInclude Include="qemu\vnc.h" />
-    <ClInclude Include="qemu\vnc_keysym.h" />
-    <ClInclude Include="qemu\vnchextile.h" />
-    <ClInclude Include="qemu\x_keymap.h" />
     <ClInclude Include="qemu\audio\audio.h" />
     <ClInclude Include="qemu\audio\audio_int.h" />
     <ClInclude Include="qemu\audio\audio_pt_int.h" />

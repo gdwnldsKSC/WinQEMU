@@ -76,6 +76,15 @@
     <Filter Include="qemu\fsdev">
       <UniqueIdentifier>{941eb3e9-1622-4b21-8ba4-bf6be022eea9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\ui">
+      <UniqueIdentifier>{1d0d847b-ecbb-44ca-8c84-7667c572bbb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\ui\src">
+      <UniqueIdentifier>{bea4adcd-960a-4e78-b016-4014ac24ecfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\ui\inc">
+      <UniqueIdentifier>{4dfa7d91-642d-4ba0-a108-2ed08286c072}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -126,13 +135,7 @@
     <ClCompile Include="qemu\cris-dis.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\curses.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\cutils.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\d3des.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\device_tree.c">
@@ -154,9 +157,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\i386-dis.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\keymaps.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\kqemu.c">
@@ -231,9 +231,6 @@
     <ClCompile Include="qemu\savevm.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\sdl.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\sh4-dis.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -256,12 +253,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\vl.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\vnc.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\x_keymap.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\audio\alsaaudio.c">
@@ -1173,9 +1164,6 @@
     <ClCompile Include="qemu\hw\msix.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\sdl_zoom.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\ioport.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1443,18 +1431,6 @@
     <ClCompile Include="qemu\qemu-timer.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\vnc-auth-sasl.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\vnc-auth-vencrypt.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\vnc-encoding-hextile.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\vnc-encoding-zlib.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\input.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1490,9 +1466,6 @@
     </ClCompile>
     <ClCompile Include="setenv.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\vnc-encoding-tight.c">
-      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\cris-boot.c">
       <Filter>qemu\hw\src</Filter>
@@ -1581,6 +1554,45 @@
     <ClCompile Include="qemu\hw\applesmc.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\ui\curses.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\d3des.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\keymaps.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\sdl.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\sdl_zoom.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-auth-sasl.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-auth-vencrypt.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-hextile.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-tight.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-zlib.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-tls.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\x_keymap.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -1629,12 +1641,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\cpu-defs.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\curses_keys.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\d3des.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\def-helper.h">
@@ -1724,9 +1730,6 @@
     <ClInclude Include="qemu\qemu_socket.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\sdl_keysym.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\softmmu-semi.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -1755,18 +1758,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\vgafont.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\vnc.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\vnc_keysym.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\vnchextile.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\x_keymap.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\audio\audio.h">
@@ -2162,12 +2153,6 @@
     <ClInclude Include="qemu\hw\msix.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\sdl_zoom.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\sdl_zoom_template.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\ioport.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2345,12 +2330,6 @@
     <ClInclude Include="qemu\hw\vhost_net.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\vnc-auth-sasl.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\vnc-auth-vencrypt.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\notify.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2378,9 +2357,6 @@
     <ClInclude Include="qemu\hw\mc146818rtc.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\vnc-encoding-tight.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\cris-boot.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -2407,6 +2383,48 @@
     </ClInclude>
     <ClInclude Include="qemu\qemu-barrier.h">
       <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\curses_keys.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\d3des.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\keymaps.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\sdl_keysym.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\sdl_zoom.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\sdl_zoom_template.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc_keysym.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-auth-sasl.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-enc-tight.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-tls.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\x_keymap.h">
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
