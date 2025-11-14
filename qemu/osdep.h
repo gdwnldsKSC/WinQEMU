@@ -90,7 +90,7 @@
 #ifdef __i386__
 
 #ifdef _MSC_VER
-#define REGPARM __fastcall
+#define REGPARM
 typedef long (REGPARM* tcg_exec_fn)(void*);
 #else
 #define REGPARM __attribute__((regparm(3)))
