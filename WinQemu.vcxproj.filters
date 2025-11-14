@@ -1551,6 +1551,33 @@
     <ClCompile Include="qemu\block\sheepdog.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\syborg.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_fb.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_interrupt.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_keyboard.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_pointer.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_rtc.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_serial.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_timer.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\syborg_virtio.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2370,6 +2397,9 @@
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\qdev.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\syborg.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
