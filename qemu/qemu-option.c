@@ -728,7 +728,7 @@ void qemu_opts_reset(QemuOptsList *list)
     }
 }
 
-void qemu_opts_loc_restore(QemuOpts* opts)
+void qemu_opts_loc_restore(QemuOpts *opts)
 {
     loc_restore(&opts->loc);
 }

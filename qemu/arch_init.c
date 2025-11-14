@@ -370,7 +370,7 @@ int ram_load(QEMUFile *f, void *opaque, int version_id)
 
                     if (!block) {
                         fprintf(stderr, "Unknown ramblock \"%s\", cannot "
-                            "accept migration\n", id);
+                                "accept migration\n", id);
                         return -EINVAL;
                     }
 

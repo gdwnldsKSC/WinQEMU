@@ -1027,9 +1027,9 @@ static int calculate_new_instance_id(const char *idstr)
     return instance_id;
 }
 
-static int calculate_compat_instance_id(const char* idstr)
+static int calculate_compat_instance_id(const char *idstr)
 {
-    SaveStateEntry* se;
+    SaveStateEntry *se;
     int instance_id = 0;
 
     QTAILQ_FOREACH(se, &savevm_handlers, entry) {
@@ -1071,7 +1071,7 @@ int register_savevm_live(DeviceState *dev,
     se->vmsd = NULL;
 
     if (dev && dev->parent_bus && dev->parent_bus->info->get_dev_path) {
-        char* id = dev->parent_bus->info->get_dev_path(dev);
+        char *id = dev->parent_bus->info->get_dev_path(dev);
         if (id) {
             pstrcpy(se->idstr, sizeof(se->idstr), id);
             pstrcat(se->idstr, sizeof(se->idstr), "/");
@@ -1080,7 +1080,7 @@ int register_savevm_live(DeviceState *dev,
             se->compat = qemu_mallocz(sizeof(CompatEntry));
             pstrcpy(se->compat->idstr, sizeof(se->compat->idstr), idstr);
             se->compat->instance_id = instance_id == -1 ?
-                calculate_compat_instance_id(idstr) : instance_id;
+                         calculate_compat_instance_id(idstr) : instance_id;
             instance_id = -1;
         }
     }
@@ -1115,7 +1115,7 @@ void unregister_savevm(DeviceState *dev, const char *idstr, void *opaque)
     char id[256] = "";
 
     if (dev && dev->parent_bus && dev->parent_bus->info->get_dev_path) {
-        char* path = dev->parent_bus->info->get_dev_path(dev);
+        char *path = dev->parent_bus->info->get_dev_path(dev);
         if (path) {
             pstrcpy(id, sizeof(id), path);
             pstrcat(id, sizeof(id), "/");
@@ -1153,7 +1153,7 @@ int vmstate_register_with_alias_id(DeviceState *dev, int instance_id,
     se->alias_id = alias_id;
 
     if (dev && dev->parent_bus && dev->parent_bus->info->get_dev_path) {
-        char* id = dev->parent_bus->info->get_dev_path(dev);
+        char *id = dev->parent_bus->info->get_dev_path(dev);
         if (id) {
             pstrcpy(se->idstr, sizeof(se->idstr), id);
             pstrcat(se->idstr, sizeof(se->idstr), "/");
@@ -1162,7 +1162,7 @@ int vmstate_register_with_alias_id(DeviceState *dev, int instance_id,
             se->compat = qemu_mallocz(sizeof(CompatEntry));
             pstrcpy(se->compat->idstr, sizeof(se->compat->idstr), vmsd->name);
             se->compat->instance_id = instance_id == -1 ?
-                calculate_compat_instance_id(vmsd->name) : instance_id;
+                         calculate_compat_instance_id(vmsd->name) : instance_id;
             instance_id = -1;
         }
     }
@@ -1179,14 +1179,14 @@ int vmstate_register_with_alias_id(DeviceState *dev, int instance_id,
     return 0;
 }
 
-int vmstate_register(DeviceState *dev, int instance_id, 
+int vmstate_register(DeviceState *dev, int instance_id,
                      const VMStateDescription *vmsd, void *opaque)
 {
-    return vmstate_register_with_alias_id(dev, instance_id, vmsd, 
+    return vmstate_register_with_alias_id(dev, instance_id, vmsd,
                                           opaque, -1, 0);
 }
 
-void vmstate_unregister(DeviceState *dev, const VMStateDescription *vmsd, 
+void vmstate_unregister(DeviceState *dev, const VMStateDescription *vmsd,
                         void *opaque)
 {
     SaveStateEntry *se, *new_se;
@@ -1523,7 +1523,7 @@ static SaveStateEntry *find_se(const char *idstr, int instance_id)
         if (strstr(se->idstr, idstr) && se->compat) {
             if (!strcmp(se->compat->idstr, idstr) &&
                 (instance_id == se->compat->instance_id ||
-                    instance_id == se->alias_id))
+                 instance_id == se->alias_id))
                 return se;
         }
     }

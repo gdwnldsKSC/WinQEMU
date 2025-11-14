@@ -235,6 +235,6 @@ qemu_irq *mst_irq_init(PXA2xxState *cpu, uint32_t base, int irq)
 		mst_fpga_writefn, s);
 	cpu_register_physical_memory(base, 0x00100000, iomemtype);
 	register_savevm(NULL, "mainstone_fpga", 0, 0, mst_fpga_save,
-	                    mst_fpga_load, s);
+                        mst_fpga_load, s);
 	return qi;
 }

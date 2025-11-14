@@ -232,7 +232,7 @@ Slirp *slirp_init(int restricted, struct in_addr vnetwork,
 
     slirp->opaque = opaque;
 
-    register_savevm(NULL, "slirp", 0, 3, 
+    register_savevm(NULL, "slirp", 0, 3,
                     slirp_state_save, slirp_state_load, slirp);
 
     QTAILQ_INSERT_TAIL(&slirp_instances, slirp, entry);

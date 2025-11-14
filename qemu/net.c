@@ -1208,6 +1208,10 @@ int do_netdev_add(Monitor *mon, const QDict *qdict, QObject **ret_data)
     }
 
     res = net_client_init(mon, opts, 1);
+    if (res < 0) {
+        qemu_opts_del(opts);
+    }
+
     return res;
 }
 
@@ -1343,22 +1347,6 @@ static int net_init_netdev(QemuOpts *opts, void *dummy)
     return net_client_init(NULL, opts, 1);
 }
 
-static int net_init_client_debug(QemuOpts* opts, void* opaque)
-{
-    const char* type = qemu_opt_get(opts, "type");
-    const char* id = qemu_opt_get(opts, "id");
-    fprintf(stderr, "net_init_client: type=%s id=%s\n",
-        type ? type : "<null>",
-        id ? id : "<null>");
-
-    // Call the real initializer
-    extern int net_init_client(QemuOpts * opts, void* opaque);
-    int ret = net_init_client(opts, opaque);
-
-    fprintf(stderr, "  -> net_init_client returned %d\n", ret);
-    return ret;
-}
-
 int net_init_clients(void)
 {
     if (default_net) {
@@ -1375,7 +1363,7 @@ int net_init_clients(void)
     if (qemu_opts_foreach(&qemu_netdev_opts, net_init_netdev, NULL, 1) == -1)
         return -1;
 
-    if (qemu_opts_foreach(&qemu_net_opts, net_init_client_debug, NULL, 1) == -1) {
+    if (qemu_opts_foreach(&qemu_net_opts, net_init_client, NULL, 1) == -1) {
         return -1;
     }
 

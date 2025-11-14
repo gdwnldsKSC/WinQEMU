@@ -487,8 +487,7 @@ static int img_check(int argc, char **argv)
 
     if (!(result.corruptions || result.leaks || result.check_errors)) {
         printf("No errors were found on the image.\n");
-    }
-    else {
+    } else {
         if (result.corruptions) {
             printf("\n%d errors were found on the image.\n"
                 "Data may be corrupted, or further writes to the image "
@@ -519,11 +518,9 @@ static int img_check(int argc, char **argv)
 
     if (result.corruptions) {
         return 2;
-    }
-    else if (result.leaks) {
+    } else if (result.leaks) {
         return 3;
-    }
-    else {
+    } else {
         return 0;
     }
 }

@@ -60,7 +60,7 @@ typedef struct VirtIONet
         uint8_t *macs;
     } mac_table;
     uint32_t *vlans;
-    DeviceState* qdev;
+    DeviceState *qdev;
 } VirtIONet;
 
 /* TODO

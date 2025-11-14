@@ -354,7 +354,7 @@ static int stellaris_gptm_init(SysBusDevice *dev)
     s->opaque[0] = s->opaque[1] = s;
     s->timer[0] = qemu_new_timer(vm_clock, gptm_tick, &s->opaque[0]);
     s->timer[1] = qemu_new_timer(vm_clock, gptm_tick, &s->opaque[1]);
-    register_savevm(&dev->qdev, "stellaris_gptm", -1, 1, 
+    register_savevm(&dev->qdev, "stellaris_gptm", -1, 1,
                     gptm_save, gptm_load, s);
     return 0;
 }

@@ -103,7 +103,7 @@ typedef struct BdrvCheckResult {
     int check_errors;
 } BdrvCheckResult;
 
-int bdrv_check(BlockDriverState* bs, BdrvCheckResult* res);
+int bdrv_check(BlockDriverState *bs, BdrvCheckResult *res);
 
 /* async block I/O */
 typedef struct BlockDriverAIOCB BlockDriverAIOCB;

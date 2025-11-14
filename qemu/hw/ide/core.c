@@ -2622,7 +2622,7 @@ void ide_bus_reset(IDEBus *bus)
 }
 
 int ide_init_drive(IDEState *s, BlockDriverState *bs,
-                    const char *version, const char *serial)
+                   const char *version, const char *serial)
 {
     int cylinders, heads, secs;
     uint64_t nb_sectors;
@@ -2715,7 +2715,7 @@ void ide_init2_with_non_qdev_drives(IDEBus *bus, DriveInfo *hd0,
         ide_init1(bus, i);
         if (dinfo) {
             if (ide_init_drive(&bus->ifs[i], dinfo->bdrv, NULL,
-                *dinfo->serial ? dinfo->serial : NULL) < 0) {
+                               *dinfo->serial ? dinfo->serial : NULL) < 0) {
                 error_report("Can't set up IDE drive %s", dinfo->id);
                 exit(1);
             }

@@ -1767,7 +1767,7 @@ static int pci_add_option_rom(PCIDevice *pdev)
     return 0;
 }
 
-static void pci_del_option_rom(PCIDevice* pdev)
+static void pci_del_option_rom(PCIDevice *pdev)
 {
     if (!pdev->rom_offset)
         return;

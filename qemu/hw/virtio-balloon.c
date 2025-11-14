@@ -270,7 +270,7 @@ VirtIODevice *virtio_balloon_init(DeviceState *dev)
     reset_stats(s);
     qemu_add_balloon_handler(virtio_balloon_to_target, s);
 
-    register_savevm(dev, "virtio-balloon", -1, 1, 
+    register_savevm(dev, "virtio-balloon", -1, 1,
                     virtio_balloon_save, virtio_balloon_load, s);
 
     return &s->vdev;

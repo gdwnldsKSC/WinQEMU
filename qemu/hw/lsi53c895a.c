@@ -1611,7 +1611,7 @@ static void lsi_reg_writeb(LSIState *s, int offset, uint8_t val)
         }
         if (val & LSI_SCNTL1_RST) {
             if (!(s->sstat0 & LSI_SSTAT0_RST)) {
-                DeviceState* dev;
+                DeviceState *dev;
                 int id;
 
                 for (id = 0; id < s->bus.ndev; id++) {
