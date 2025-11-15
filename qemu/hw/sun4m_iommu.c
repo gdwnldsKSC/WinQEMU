@@ -389,4 +389,4 @@ static void iommu_register_devices(void)
     sysbus_register_withprop(&iommu_info);
 }
 
-device_init(iommu_register_devices);
+device_init(iommu_register_devices)

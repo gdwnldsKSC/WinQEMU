@@ -126,7 +126,7 @@ QEMU_ARCH_ALL)
 DEFHEADING(File system options:)
 
 DEF("fsdev", HAS_ARG, QEMU_OPTION_fsdev,
-"-fsdev local,id=id,path=path,security_model=[mapped|passthrough]\n",
+"-fsdev local,id=id,path=path,security_model=[mapped|passthrough|none]\n",
 QEMU_ARCH_ALL)
 
 
