@@ -403,6 +403,9 @@
     <ClCompile Include="qemu\hw\ide\via.c" />
     <ClCompile Include="qemu\hw\ioapic.c" />
     <ClCompile Include="qemu\hw\isa-bus.c" />
+    <ClCompile Include="qemu\hw\ivshmem.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
     <ClCompile Include="qemu\hw\loader.c" />
@@ -639,7 +642,6 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc.c" />
     <ClCompile Include="qemu\ui\x_keymap.c" />
-    <ClCompile Include="setenv.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

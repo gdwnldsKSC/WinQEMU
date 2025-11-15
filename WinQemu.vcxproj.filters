@@ -1464,9 +1464,6 @@
     <ClCompile Include="qemu\cursor.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="setenv.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\cris-boot.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1601,6 +1598,9 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-palette.c">
       <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ivshmem.c">
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
