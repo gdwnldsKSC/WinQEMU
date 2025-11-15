@@ -1593,6 +1593,15 @@
     <ClCompile Include="qemu\ui\x_keymap.c">
       <Filter>qemu\ui\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-jobs-async.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-jobs-sync.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-palette.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2424,6 +2433,12 @@
       <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\x_keymap.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-jobs.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-palette.h">
       <Filter>qemu\ui\inc</Filter>
     </ClInclude>
   </ItemGroup>
