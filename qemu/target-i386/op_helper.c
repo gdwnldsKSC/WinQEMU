@@ -5612,7 +5612,7 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
             switch((uint32_t)ECX) {
             case 0 ... 0x1fff:
                 t0 = (ECX * 2) % 8;
-                t1 = ECX / 8;
+                t1 = (ECX * 2) / 8;
                 break;
             case 0xc0000000 ... 0xc0001fff:
                 t0 = (8192 + ECX - 0xc0000000) * 2;
@@ -5634,7 +5634,7 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 			if ((uint32_t)ECX >= 0 && (uint32_t)ECX <= 0x1fff)
 			{
 				t0 = (ECX * 2) % 8;
-				t1 = ECX / 8;
+				t1 = (ECX * 2) / 8;
 			}
 			else if ((uint32_t)ECX >= 0xc0000000 && (uint32_t)ECX <= 0xc0001fff)
 			{
