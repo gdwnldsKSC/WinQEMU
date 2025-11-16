@@ -1617,6 +1617,9 @@
     <ClCompile Include="qemu\block\blkverify.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\net\tap-haiku.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">

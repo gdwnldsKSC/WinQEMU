@@ -21,26 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "qemu-common.h"
 #include "qemu-option.h"
 #include "osdep.h"
 #include "block_int.h"
 #include <stdio.h>
-
-#ifdef _MSC_VER
-#include <getopt.h>
-#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -54,7 +39,7 @@ typedef struct img_cmd_t {
 /* Default to cache=writeback as data integrity is not important for qemu-tcg. */
 #define BDRV_O_FLAGS BDRV_O_CACHE_WB
 
-static void error(const char *fmt, ...)
+static void GCC_FMT_ATTR(1, 2) error(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
