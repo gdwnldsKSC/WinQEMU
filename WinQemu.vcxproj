@@ -569,6 +569,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\os-win32.c" />
+    <ClCompile Include="qemu\pflib.c" />
     <ClCompile Include="qemu\qbool.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
@@ -633,6 +634,15 @@
     <ClCompile Include="qemu\ui\keymaps.c" />
     <ClCompile Include="qemu\ui\sdl.c" />
     <ClCompile Include="qemu\ui\sdl_zoom.c" />
+    <ClCompile Include="qemu\ui\spice-core.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\spice-display.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\spice-input.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\ui\vnc-auth-sasl.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1960,6 +1970,7 @@
     <ClInclude Include="qemu\net\util.h" />
     <ClInclude Include="qemu\net\vde.h" />
     <ClInclude Include="qemu\notify.h" />
+    <ClInclude Include="qemu\pflib.h" />
     <ClInclude Include="qemu\qbool.h" />
     <ClInclude Include="qemu\qdict.h" />
     <ClInclude Include="qemu\qemu-barrier.h" />
@@ -2015,9 +2026,11 @@
     <ClInclude Include="qemu\ui\curses_keys.h" />
     <ClInclude Include="qemu\ui\d3des.h" />
     <ClInclude Include="qemu\ui\keymaps.h" />
+    <ClInclude Include="qemu\ui\qemu-spice.h" />
     <ClInclude Include="qemu\ui\sdl_keysym.h" />
     <ClInclude Include="qemu\ui\sdl_zoom.h" />
     <ClInclude Include="qemu\ui\sdl_zoom_template.h" />
+    <ClInclude Include="qemu\ui\spice-display.h" />
     <ClInclude Include="qemu\ui\vnc-auth-sasl.h" />
     <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h" />
     <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h" />
@@ -2194,10 +2207,12 @@
     <Text Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="qemu\hmp-commands.hx" />
     <None Include="qemu\hxtool" />
     <None Include="qemu\qemu-monitor.hx" />
     <None Include="qemu\qemu-options.def" />
     <None Include="qemu\qemu-options.hx" />
+    <None Include="qemu\qmp-commands.hx" />
     <None Include="qemu\target-alpha\STATUS">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

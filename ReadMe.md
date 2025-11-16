@@ -126,7 +126,9 @@ or the paths of your choosing now that we can specify arbitrary paths.
 
 From a bash shell (or WSL) run  
 ./hxtool -h < qemu-options.hx > qemu-options.def  
-./hxtool -h < qemu-monitor.hx > qemu-monitor.h  
+./hxtool -h < qemu-monitor.hx > qemu-monitor.h
+./hxtool -h < hmp-commands.hx > hmp-commands.hx
+./hxtool -h < hmp-commands.hx > hmp-commands.h
 ./tracetool --nop -c < trace-events > trace.c  
 ./tracetool --nop -h < trace-events > trace.h  
 

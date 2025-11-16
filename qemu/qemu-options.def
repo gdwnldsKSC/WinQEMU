@@ -133,7 +133,7 @@ QEMU_ARCH_ALL)
 DEFHEADING(Virtual File system pass-through options:)
 
 DEF("virtfs", HAS_ARG, QEMU_OPTION_virtfs,
-"-virtfs local,path=path,mount_tag=tag,security_model=[mapped|passthrough]\n",
+"-virtfs local,path=path,mount_tag=tag,security_model=[mapped|passthrough|none]\n",
 QEMU_ARCH_ALL)
 
 
@@ -192,6 +192,9 @@ DEF("no-quit", 0, QEMU_OPTION_no_quit,
 DEF("sdl", 0, QEMU_OPTION_sdl,
 "-sdl            enable SDL\n", QEMU_ARCH_ALL)
 #endif
+
+DEF("spice", HAS_ARG, QEMU_OPTION_spice,
+"-spice <args>   enable spice\n", QEMU_ARCH_ALL)
 
 DEF("portrait", 0, QEMU_OPTION_portrait,
 "-portrait       rotate graphical output 90 deg left (only PXA LCD)\n",
@@ -618,4 +621,10 @@ DEF("nodefconfig", 0, QEMU_OPTION_nodefconfig,
 "-nodefconfig\n"
 "                do not load default config files at startup\n",
 QEMU_ARCH_ALL)
+#ifdef CONFIG_SIMPLE_TRACE
+DEF("trace", HAS_ARG, QEMU_OPTION_trace,
+"-trace\n"
+"                Specify a trace file to log traces to\n",
+QEMU_ARCH_ALL)
+#endif
 

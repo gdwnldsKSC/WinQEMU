@@ -1620,6 +1620,18 @@
     <ClCompile Include="qemu\net\tap-haiku.c">
       <Filter>qemu\net\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\pflib.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\spice-core.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\spice-display.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\spice-input.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2468,6 +2480,15 @@
     <ClInclude Include="qemu\range.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\pflib.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\spice-display.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\qemu-spice.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />
@@ -2476,17 +2497,23 @@
     <None Include="qemu\target-alpha\STATUS">
       <Filter>qemu\target-alpha</Filter>
     </None>
-    <None Include="qemu\qemu-options.hx">
-      <Filter>qemu\inc</Filter>
-    </None>
-    <None Include="qemu\qemu-monitor.hx">
-      <Filter>qemu\inc</Filter>
-    </None>
     <None Include="qemu\hxtool">
       <Filter>resource</Filter>
     </None>
+    <None Include="qemu\qemu-options.hx">
+      <Filter>resource</Filter>
+    </None>
+    <None Include="qemu\qemu-monitor.hx">
+      <Filter>resource</Filter>
+    </None>
+    <None Include="qemu\hmp-commands.hx">
+      <Filter>resource</Filter>
+    </None>
+    <None Include="qemu\qmp-commands.hx">
+      <Filter>resource</Filter>
+    </None>
     <None Include="qemu\qemu-options.def">
-      <Filter>qemu\inc</Filter>
+      <Filter>resource</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
