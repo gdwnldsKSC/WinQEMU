@@ -1632,6 +1632,18 @@
     <ClCompile Include="qemu\ui\spice-input.c">
       <Filter>qemu\ui\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\compatfd.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-9p-posix-acl.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-9p-xattr.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-9p-xattr-user.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2488,6 +2500,18 @@
     </ClInclude>
     <ClInclude Include="qemu\ui\qemu-spice.h">
       <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\compatfd.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\kvm_x86.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\virtio-9p-xattr.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="sigcompat.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -28,11 +28,7 @@
  * TODO: we likely need some rmb()/mb() as well.
  */
 
-#ifdef _MSC_VER
-#define wmb() _WriteBarrier()
-#else
 #define wmb() __asm__ __volatile__("": : :"memory")
-#endif
 
 typedef struct VRingDesc
 {
@@ -493,7 +489,7 @@ uint32_t virtio_config_readb(VirtIODevice *vdev, uint32_t addr)
     if (addr > (vdev->config_len - sizeof(val)))
         return (uint32_t)-1;
 
-    memcpy(&val, (char *)vdev->config + addr, sizeof(val));
+    memcpy(&val, vdev->config + addr, sizeof(val));
     return val;
 }
 
@@ -506,7 +502,7 @@ uint32_t virtio_config_readw(VirtIODevice *vdev, uint32_t addr)
     if (addr > (vdev->config_len - sizeof(val)))
         return (uint32_t)-1;
 
-    memcpy(&val, (char *)vdev->config + addr, sizeof(val));
+    memcpy(&val, vdev->config + addr, sizeof(val));
     return val;
 }
 
@@ -519,7 +515,7 @@ uint32_t virtio_config_readl(VirtIODevice *vdev, uint32_t addr)
     if (addr > (vdev->config_len - sizeof(val)))
         return (uint32_t)-1;
 
-    memcpy(&val, (char *)vdev->config + addr, sizeof(val));
+    memcpy(&val, vdev->config + addr, sizeof(val));
     return val;
 }
 
@@ -530,7 +526,7 @@ void virtio_config_writeb(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char *)vdev->config + addr, &val, sizeof(val));
+    memcpy(vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);
@@ -543,7 +539,7 @@ void virtio_config_writew(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char *)vdev->config + addr, &val, sizeof(val));
+    memcpy(vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);
@@ -556,7 +552,7 @@ void virtio_config_writel(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     if (addr > (vdev->config_len - sizeof(val)))
         return;
 
-    memcpy((char *)vdev->config + addr, &val, sizeof(val));
+    memcpy(vdev->config + addr, &val, sizeof(val));
 
     if (vdev->set_config)
         vdev->set_config(vdev, vdev->config);

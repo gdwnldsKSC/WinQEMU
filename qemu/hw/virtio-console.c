@@ -107,7 +107,7 @@ static void virtconsole_register(void)
 {
     virtio_serial_port_qdev_register(&virtconsole_info);
 }
-device_init(virtconsole_register);
+device_init(virtconsole_register)
 
 /* Generic Virtio Serial Ports */
 static int virtserialport_initfn(VirtIOSerialDevice *dev)
@@ -142,4 +142,4 @@ static void virtserialport_register(void)
 {
     virtio_serial_port_qdev_register(&virtserialport_info);
 }
-device_init(virtserialport_register);
+device_init(virtserialport_register)

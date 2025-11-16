@@ -28,9 +28,6 @@
 
 #define VIRTIO_CONSOLE_BAD_ID           (~(uint32_t)0)
 
-#ifdef _MSC_VER
-#pragma pack (push, 1)
-#endif
 struct virtio_console_config {
     /*
      * These two fields are used by VIRTIO_CONSOLE_F_SIZE which
@@ -40,16 +37,7 @@ struct virtio_console_config {
     uint16_t rows;
 
     uint32_t max_nr_ports;
-} 
-#ifndef _MSC_VER
-__attribute__((packed));
-#else
-;
-#endif
-
-#ifdef _MSC_VER
-#pragma pack (pop)
-#endif
+} __attribute__((packed));
 
 struct virtio_console_control {
     uint32_t id;		/* Port number */

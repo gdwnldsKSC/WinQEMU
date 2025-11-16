@@ -17,18 +17,6 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
-#define CPU_NO_GLOBAL_REGS
 #include "exec.h"
 #include "exec-all.h"
 #include "host-utils.h"
@@ -106,7 +94,6 @@ static const uint8_t rclb_table[32] = {
     6, 7, 8, 0, 1, 2, 3, 4,
 };
 
-#ifndef _MSC_VER
 static const CPU86_LDouble f15rk[7] =
 {
     0.00000000000000000000L,
@@ -117,18 +104,6 @@ static const CPU86_LDouble f15rk[7] =
     1.44269504088896340739L,  /*l2e*/
     3.32192809488736234781L,  /*l2t*/
 };
-#else
-static const long double f15rk[7] =
-{
-	0.00000000000000000000L,
-	1.00000000000000000000L,
-	3.14159265358979323851L,  /*pi*/
-	0.30102999566398119523L,  /*lg2*/
-	0.69314718055994530943L,  /*ln2*/
-	1.44269504088896340739L,  /*l2e*/
-	3.32192809488736234781L,  /*l2t*/
-};
-#endif
 
 /* broken thread support */
 
@@ -374,6 +349,10 @@ static void switch_tss(int tss_selector,
         new_segs[R_GS] = 0;
         new_trap = 0;
     }
+    /* XXX: avoid a compiler warning, see
+     http://support.amd.com/us/Processor_TechDocs/24593.pdf
+     chapters 12.2.5 and 13.2.4 on how to implement TSS Trap bit */
+    (void)new_trap;
 
     /* NOTE: we must avoid memory exceptions during the task switch,
        so we make dummy accesses before */
@@ -3461,15 +3440,9 @@ static void fpu_set_exception(int mask)
 
 static inline CPU86_LDouble helper_fdiv(CPU86_LDouble a, CPU86_LDouble b)
 {
-#ifndef _MSC_VER
     if (b == 0.0)
         fpu_set_exception(FPUS_ZE);
     return a / b;
-#else
-	if (fx80_isequal_double (&b, 0.0))
-		fpu_set_exception(FPUS_ZE);
-	return fx80_div_fx80 (&a, &b);
-#endif
 }
 
 static void fpu_raise_exception(void)
@@ -3738,40 +3711,22 @@ void helper_fucomi_ST0_FT0(void)
 
 void helper_fadd_ST0_FT0(void)
 {
-#ifndef _MSC_VER
     ST0 += FT0;
-#else
-	fx80_adde_fx80 (&ST0, &FT0);
-#endif
 }
 
 void helper_fmul_ST0_FT0(void)
 {
-#ifndef _MSC_VER
     ST0 *= FT0;
-#else
-	fx80_mule_fx80(&ST0, &FT0);
-#endif
 }
 
 void helper_fsub_ST0_FT0(void)
 {
-#ifndef _MSC_VER
     ST0 -= FT0;
-#else
-	fx80_sube_fx80(&ST0, &FT0);
-#endif
 }
 
 void helper_fsubr_ST0_FT0(void)
 {
-#ifndef _MSC_VER
     ST0 = FT0 - ST0;
-#else
-	CPU86_LDouble temp;
-	temp = fx80_sub_fx80 (&FT0, &ST0);
-	ST0 = temp;
-#endif
 }
 
 void helper_fdiv_ST0_FT0(void)
@@ -3788,41 +3743,24 @@ void helper_fdivr_ST0_FT0(void)
 
 void helper_fadd_STN_ST0(int st_index)
 {
-#ifndef _MSC_VER
     ST(st_index) += ST0;
-#else
-	fx80_adde_fx80(&ST(st_index), &ST0);
-#endif
 }
 
 void helper_fmul_STN_ST0(int st_index)
 {
-#ifndef _MSC_VER
     ST(st_index) *= ST0;
-#else
-	fx80_mule_fx80(&ST(st_index), &ST0);
-#endif
 }
 
 void helper_fsub_STN_ST0(int st_index)
 {
-#ifndef _MSC_VER
     ST(st_index) -= ST0;
-#else
-	fx80_sube_fx80(&ST(st_index), &ST0);
-#endif
 }
 
 void helper_fsubr_STN_ST0(int st_index)
 {
     CPU86_LDouble *p;
     p = &ST(st_index);
-
-#ifndef _MSC_VER
     *p = ST0 - *p;
-#else
-	*p = fx80_sub_fx80(&ST0, p); // BUGBUG
-#endif
 }
 
 void helper_fdiv_STN_ST0(int st_index)
@@ -3852,74 +3790,42 @@ void helper_fabs_ST0(void)
 
 void helper_fld1_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[1];
-#else
-	ST0 = fx80_from_longdouble(f15rk[1]);
-#endif
 }
 
 void helper_fldl2t_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[6];
-#else
-	ST0 = fx80_from_longdouble(f15rk[6]);
-#endif
 }
 
 void helper_fldl2e_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[5];
-#else
-	ST0 = fx80_from_longdouble(f15rk[5]);
-#endif
 }
 
 void helper_fldpi_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[2];
-#else
-	ST0 = fx80_from_longdouble(f15rk[2]);
-#endif
 }
 
 void helper_fldlg2_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[3];
-#else
-	ST0 = fx80_from_longdouble(f15rk[3]);
-#endif
 }
 
 void helper_fldln2_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[4];
-#else
-	ST0 = fx80_from_longdouble(f15rk[4]);
-#endif
 }
 
 void helper_fldz_ST0(void)
 {
-#ifndef _MSC_VER
     ST0 = f15rk[0];
-#else
-	ST0 = fx80_from_longdouble(f15rk[0]);
-#endif
 }
 
 void helper_fldz_FT0(void)
 {
-#ifndef _MSC_VER
     FT0 = f15rk[0];
-#else
-	FT0 = fx80_from_longdouble(f15rk[0]);
-#endif
 }
 
 uint32_t helper_fnstsw(void)
@@ -4016,19 +3922,11 @@ void helper_fbld_ST0(target_ulong ptr)
         v = ldub(ptr + i);
         val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
     }
-#ifndef _MSC_VER
     tmp = val;
     if (ldub(ptr + 9) & 0x80)
         tmp = -tmp;
     fpush();
     ST0 = tmp;
-#else
-	tmp = fx80_from_int64(val);
-	if (ldub(ptr + 9) & 0x80)
-		tmp = fx80_chs(&tmp); // BUGBUG
-    fpush(); // adding in
-    ST0 = tmp;
-#endif
 }
 
 void helper_fbst_ST0(target_ulong ptr)
@@ -4061,31 +3959,17 @@ void helper_fbst_ST0(target_ulong ptr)
 
 void helper_f2xm1(void)
 {
-#ifndef _MSC_VER
-	ST0 = pow(2.0, ST0) - 1.0;
-#else
-	ST0 = fx80_from_longdouble(pow(2.0, fx80_to_longdouble(&ST0)) - 1.0);
-#endif
+    ST0 = pow(2.0,ST0) - 1.0;
 }
 
 void helper_fyl2x(void)
 {
     CPU86_LDouble fptemp;
-#ifdef _MSC_VER
-	long double temp;
-#endif
 
     fptemp = ST0;
-#ifndef _MSC_VER
     if (fptemp>0.0){
         fptemp = log(fptemp)/log(2.0);	 /* log2(ST) */
         ST1 *= fptemp;
-#else
-	if (fx80_isg_double(&fptemp, 0.0)){
-		temp = fx80_to_longdouble(&fptemp);
-		fptemp = fx80_from_longdouble(log(temp) / log(2.0));
-		fx80_mule_fx80(&ST1, &fptemp);
-#endif
         fpop();
     } else {
         env->fpus &= (~0x4700);
@@ -4098,23 +3982,12 @@ void helper_fptan(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-#ifndef _MSC_VER
-	if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
-#else
-	if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
-#endif
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
     } else {
-#ifndef _MSC_VER
         ST0 = tan(fptemp);
         fpush();
         ST0 = 1.0;
-#else
-		ST0 = fx80_tanl (&fptemp);
-		fpush();
-		ST0 = fx80_from_longdouble (1.0);
-#endif
-
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**52 only */
     }
@@ -4126,11 +3999,7 @@ void helper_fpatan(void)
 
     fpsrcop = ST1;
     fptemp = ST0;
-#ifndef _MSC_VER
     ST1 = atan2(fpsrcop,fptemp);
-#else
-	ST1 = fx80_atan2l (&fpsrcop,&fptemp);
-#endif
     fpop();
 }
 
@@ -4142,21 +4011,11 @@ void helper_fxtract(void)
     temp.d = ST0;
     expdif = EXPD(temp) - EXPBIAS;
     /*DP exponent bias*/
-#ifndef _MSC_VER
     ST0 = expdif;
-#else
-	ST0 = fx80_from_int32(expdif);
-#endif
-
     fpush();
     BIASEXPONENT(temp);
     ST0 = temp.d;
 }
-
-#ifdef _MSC_VER
-static unsigned int __qnan[] = {0x7fc00001};
-#define NAN (*((float *)__qnan))
-#endif
 
 void helper_fprem1(void)
 {
@@ -4165,18 +4024,8 @@ void helper_fprem1(void)
     int expdif;
     signed long long int q;
 
-#ifndef _MSC_VER
     if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
         ST0 = 0.0 / 0.0; /* NaN */
-#else
-	CPU86_LDouble temp, temp1;
-	temp1 = ST(1);
-	long double ldST1 = fx80_to_longdouble(&temp1);
-	temp = ST0;
-	long double ldST0 = fx80_to_longdouble(&temp);
-	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
-		ST0 = fx80_from_longdouble(NAN);
-#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
         return;
     }
@@ -4195,7 +4044,6 @@ void helper_fprem1(void)
     }
 
     if (expdif < 53) {
-#ifndef _MSC_VER
         dblq = fpsrcop / fptemp;
         /* round dblq towards nearest integer */
         dblq = rint(dblq);
@@ -4206,25 +4054,7 @@ void helper_fprem1(void)
            q = (signed long long int)(-dblq);
         else
            q = (signed long long int)dblq;
-#else
-		dblq = fx80_div_fx80(&fpsrcop, &fptemp);
-		/* round dblq towards nearest integer */
-		dblq = fx80_from_longdouble(rint(fx80_to_longdouble(&dblq)));
-		temp = fx80_mul_x80(&fptemp, &dblq);
-		ST0 = fx80_sub_fx80(&fpsrcop, &temp);
 
-#ifndef _MSC_VER
-		if (dblq < 0.0)
-#else
-		if (fx80_to_longdouble(&dblq) < 0.0)
-#endif
-		{
-			temp = fx80_chs(&dblq);
-			q = fx80_to_int64(&temp);
-		}
-		else
-			q = fx80_to_int64(&dblq);
-#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
                                 /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
@@ -4232,26 +4062,12 @@ void helper_fprem1(void)
         env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
     } else {
         env->fpus |= 0x400;  /* C2 <-- 1 */
-#ifndef _MSC_VER
         fptemp = pow(2.0, expdif - 50);
         fpsrcop = (ST0 / ST1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
                   -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         ST0 -= (ST1 * fpsrcop * fptemp);
-
-
-#else
-		fptemp = fx80_from_longdouble(pow(2.0, expdif - 50));
-		temp = fx80_div_fx80(&ST0, &ST1);
-		fpsrcop = fx80_div_fx80(&temp, &fptemp);
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
-			-(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
-		temp = fx80_mul_x80(&ST1, &fpsrcop);
-		temp1 = fx80_mul_x80(&temp, &fptemp);
-		fx80_sube_fx80(&ST0, &temp1);
-#endif
     }
 }
 
@@ -4262,29 +4078,14 @@ void helper_fprem(void)
     int expdif;
     signed long long int q;
 
-#ifndef _MSC_VER
     if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
        ST0 = 0.0 / 0.0; /* NaN */
-#else
-	CPU86_LDouble temp, temp1;
-	temp1 = ST(1);
-	long double ldST1 = fx80_to_longdouble(&temp1);
-	temp = ST0;
-	long double ldST0 = fx80_to_longdouble(&temp);
-	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
-		ST0 = fx80_from_longdouble(NAN);
-#endif
        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
        return;
     }
 
-#ifndef _MSC_VER
     fpsrcop = (CPU86_LDouble)ST0;
     fptemp = (CPU86_LDouble)ST1;
-#else
-	fpsrcop = ST0;
-	fptemp = ST1;
-#endif
     fpsrcop1.d = fpsrcop;
     fptemp1.d = fptemp;
     expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
@@ -4297,7 +4098,6 @@ void helper_fprem(void)
     }
 
     if ( expdif < 53 ) {
-#ifndef _MSC_VER
         dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
         /* round dblq towards zero */
         dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
@@ -4308,27 +4108,7 @@ void helper_fprem(void)
            q = (signed long long int)(-dblq);
         else
            q = (signed long long int)dblq;
-#else
-		dblq = fx80_div_fx80(&fpsrcop/*ST0*/, &fptemp/*ST1*/);
-		/* round dblq towards zero */
-		dblq = fx80_from_longdouble((fx80_isl_double(&dblq, 0.0)) ? ceil(fx80_to_longdouble(&dblq)) : floor(fx80_to_longdouble(&dblq)));
-		temp = fx80_mul_x80(&fptemp, &dblq);
-		ST0 = fx80_sub_fx80(&fpsrcop/*ST0*/, &temp);
 
-		/* convert dblq to q by truncating towards zero */
-
-#ifndef _MSC_VER
-		if (dblq < 0.0)
-#else
-		if (fx80_to_longdouble(&dblq) < 0.0)
-#endif
-		{
-			temp = fx80_chs(&dblq);
-			q = fx80_to_int64(&temp);
-		}
-		else
-			q = fx80_to_int64(&dblq);
-#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
                                 /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
@@ -4337,45 +4117,23 @@ void helper_fprem(void)
     } else {
         int N = 32 + (expdif % 32); /* as per AMD docs */
         env->fpus |= 0x400;  /* C2 <-- 1 */
-#ifndef _MSC_VER
         fptemp = pow(2.0, (double)(expdif - N));
         fpsrcop = (ST0 / ST1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
                   -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         ST0 -= (ST1 * fpsrcop * fptemp);
-#else
-		fptemp = fx80_from_longdouble(pow(2.0, (double)(expdif - N)));
-		temp = fx80_div_fx80(&ST0, &ST1);
-		fpsrcop = fx80_div_fx80(&temp, &fptemp);
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
-			-(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
-		temp = fx80_mul_x80(&ST1, &fpsrcop);
-		temp1 = fx80_mul_x80(&temp, &fptemp);
-		fx80_sube_fx80(&ST0, &temp1);
-#endif
     }
 }
 
 void helper_fyl2xp1(void)
 {
     CPU86_LDouble fptemp;
-#ifdef _MSC_VER
-	CPU86_LDouble temp;
-#endif
 
     fptemp = ST0;
-#ifndef _MSC_VER
     if ((fptemp+1.0)>0.0) {
         fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
         ST1 *= fptemp;
-#else
-	if ((fx80_to_longdouble(&fptemp) + 1.0)>0.0) {
-		temp = fx80_add_double(&fptemp, 1.0);
-		fptemp = fx80_logl(&temp);
-		fx80_mule_fx80(&ST1, &fptemp);
-#endif
         fpop();
     } else {
         env->fpus &= (~0x4700);
@@ -4388,19 +4146,11 @@ void helper_fsqrt(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-#ifndef _MSC_VER
     if (fptemp<0.0) {
-#else
-	if (fx80_to_longdouble (&fptemp) <0.0) {
-#endif
         env->fpus &= (~0x4700);  /* (C3,C2,C1,C0) <-- 0000 */
         env->fpus |= 0x400;
     }
-#ifndef _MSC_VER
     ST0 = sqrt(fptemp);
-#else
-	ST0 = fx80_sqrtl (&fptemp);
-#endif
 }
 
 void helper_fsincos(void)
@@ -4408,23 +4158,12 @@ void helper_fsincos(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-#ifndef _MSC_VER
     if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
-
-#endif
         env->fpus |= 0x400;
     } else {
-#ifndef _MSC_VER
         ST0 = sin(fptemp);
         fpush();
         ST0 = cos(fptemp);
-#else
-		ST0 = fx80_sinl (&fptemp);
-		fpush();
-		ST0 = fx80_cosl(&fptemp);
-#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**63 only */
     }
@@ -4437,11 +4176,7 @@ void helper_frndint(void)
 
 void helper_fscale(void)
 {
-#ifndef _MSC_VER
     ST0 = ldexp (ST0, (int)(ST1));
-#else
-	ST0 = fx80_ldexp (&(ST0), fx80_to_int32 (&(ST1)));
-#endif
 }
 
 void helper_fsin(void)
@@ -4449,18 +4184,10 @@ void helper_fsin(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-#ifndef _MSC_VER
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
-#endif
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
     } else {
-#ifndef _MSC_VER
         ST0 = sin(fptemp);
-#else
-		ST0 = fx80_sinl (&fptemp);
-#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**53 only */
     }
@@ -4471,18 +4198,10 @@ void helper_fcos(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-#ifndef _MSC_VER
     if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-	if((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
-#endif
         env->fpus |= 0x400;
     } else {
-#ifndef _MSC_VER
         ST0 = cos(fptemp);
-#else
-		ST0 = fx80_cosl (&fptemp);
-#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg5 < 2**63 only */
     }
@@ -5078,10 +4797,6 @@ static float approx_rcp(float a)
 
 #define MMUSUFFIX _mmu
 
-#ifdef _MSC_VER
-#define __USE_FAKED_GETPC
-#endif
-
 #define SHIFT 0
 #include "softmmu_template.h"
 
@@ -5094,12 +4809,8 @@ static float approx_rcp(float a)
 #define SHIFT 3
 #include "softmmu_template.h"
 
-
-#ifdef _MSC_VER
-#undef __USE_FAKED_GETPC
 #endif
 
-#endif
 #if !defined(CONFIG_USER_ONLY)
 /* try to fill the TLB and return an exception if error. If retaddr is
    NULL, it means that the function was called in C code (i.e. not
@@ -5497,108 +5208,27 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
     if (likely(!(env->hflags & HF_SVMI_MASK)))
         return;
     switch(type) {
-#ifndef _MSC_VER
     case SVM_EXIT_READ_CR0 ... SVM_EXIT_READ_CR0 + 8:
-#else
-	case SVM_EXIT_READ_CR0:
-	case SVM_EXIT_READ_CR0 + 1:
-	case SVM_EXIT_READ_CR0 + 2:
-	case SVM_EXIT_READ_CR0 + 3:
-	case SVM_EXIT_READ_CR0 + 4:
-	case SVM_EXIT_READ_CR0 + 5:
-	case SVM_EXIT_READ_CR0 + 6:
-	case SVM_EXIT_READ_CR0 + 7:
-	case SVM_EXIT_READ_CR0 + 8:
-#endif
         if (env->intercept_cr_read & (1 << (type - SVM_EXIT_READ_CR0))) {
             helper_vmexit(type, param);
         }
         break;
-#ifndef _MSC_VER
     case SVM_EXIT_WRITE_CR0 ... SVM_EXIT_WRITE_CR0 + 8:
-#else
-	case SVM_EXIT_WRITE_CR0:
-	case SVM_EXIT_WRITE_CR0 + 1:
-	case SVM_EXIT_WRITE_CR0 + 2:
-	case SVM_EXIT_WRITE_CR0 + 3:
-	case SVM_EXIT_WRITE_CR0 + 4:
-	case SVM_EXIT_WRITE_CR0 + 5:
-	case SVM_EXIT_WRITE_CR0 + 6:
-	case SVM_EXIT_WRITE_CR0 + 7:
-	case SVM_EXIT_WRITE_CR0 + 8:
-#endif
         if (env->intercept_cr_write & (1 << (type - SVM_EXIT_WRITE_CR0))) {
             helper_vmexit(type, param);
         }
         break;
-#ifndef _MSC_VER
     case SVM_EXIT_READ_DR0 ... SVM_EXIT_READ_DR0 + 7:
-#else
-	case SVM_EXIT_READ_DR0:
-	case SVM_EXIT_READ_DR0 + 1:
-	case SVM_EXIT_READ_DR0 + 2:
-	case SVM_EXIT_READ_DR0 + 3:
-	case SVM_EXIT_READ_DR0 + 4:
-	case SVM_EXIT_READ_DR0 + 5:
-	case SVM_EXIT_READ_DR0 + 6:
-	case SVM_EXIT_READ_DR0 + 7:
-#endif
         if (env->intercept_dr_read & (1 << (type - SVM_EXIT_READ_DR0))) {
             helper_vmexit(type, param);
         }
         break;
-#ifndef _MSC_VER
     case SVM_EXIT_WRITE_DR0 ... SVM_EXIT_WRITE_DR0 + 7:
-#else
-	case SVM_EXIT_WRITE_DR0:
-	case SVM_EXIT_WRITE_DR0 + 1:
-	case SVM_EXIT_WRITE_DR0 + 2:
-	case SVM_EXIT_WRITE_DR0 + 3:
-	case SVM_EXIT_WRITE_DR0 + 4:
-	case SVM_EXIT_WRITE_DR0 + 5:
-	case SVM_EXIT_WRITE_DR0 + 6:
-	case SVM_EXIT_WRITE_DR0 + 7:
-#endif
         if (env->intercept_dr_write & (1 << (type - SVM_EXIT_WRITE_DR0))) {
             helper_vmexit(type, param);
         }
         break;
-#ifndef _MSC_VER
     case SVM_EXIT_EXCP_BASE ... SVM_EXIT_EXCP_BASE + 31:
-#else
-	case SVM_EXIT_EXCP_BASE:
-	case SVM_EXIT_EXCP_BASE + 1:
-	case SVM_EXIT_EXCP_BASE + 2:
-	case SVM_EXIT_EXCP_BASE + 3:
-	case SVM_EXIT_EXCP_BASE + 4:
-	case SVM_EXIT_EXCP_BASE + 5:
-	case SVM_EXIT_EXCP_BASE + 6:
-	case SVM_EXIT_EXCP_BASE + 7:
-	case SVM_EXIT_EXCP_BASE + 8:
-	case SVM_EXIT_EXCP_BASE + 9:
-	case SVM_EXIT_EXCP_BASE + 10:
-	case SVM_EXIT_EXCP_BASE + 11:
-	case SVM_EXIT_EXCP_BASE + 12:
-	case SVM_EXIT_EXCP_BASE + 13:
-	case SVM_EXIT_EXCP_BASE + 14:
-	case SVM_EXIT_EXCP_BASE + 15:
-	case SVM_EXIT_EXCP_BASE + 16:
-	case SVM_EXIT_EXCP_BASE + 17:
-	case SVM_EXIT_EXCP_BASE + 18:
-	case SVM_EXIT_EXCP_BASE + 19:
-	case SVM_EXIT_EXCP_BASE + 20:
-	case SVM_EXIT_EXCP_BASE + 21:
-	case SVM_EXIT_EXCP_BASE + 22:
-	case SVM_EXIT_EXCP_BASE + 23:
-	case SVM_EXIT_EXCP_BASE + 24:
-	case SVM_EXIT_EXCP_BASE + 25:
-	case SVM_EXIT_EXCP_BASE + 26:
-	case SVM_EXIT_EXCP_BASE + 27:
-	case SVM_EXIT_EXCP_BASE + 28:
-	case SVM_EXIT_EXCP_BASE + 29:
-	case SVM_EXIT_EXCP_BASE + 30:
-	case SVM_EXIT_EXCP_BASE + 31:
-#endif
         if (env->intercept_exceptions & (1 << (type - SVM_EXIT_EXCP_BASE))) {
             helper_vmexit(type, param);
         }
@@ -5608,7 +5238,6 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
             /* FIXME: this should be read in at vmrun (faster this way?) */
             uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
             uint32_t t0, t1;
-#ifndef _MSC_VER
             switch((uint32_t)ECX) {
             case 0 ... 0x1fff:
                 t0 = (ECX * 2) % 8;
@@ -5630,31 +5259,6 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
                 t1 = 0;
                 break;
             }
-#else
-			if ((uint32_t)ECX >= 0 && (uint32_t)ECX <= 0x1fff)
-			{
-				t0 = (ECX * 2) % 8;
-				t1 = (ECX * 2) / 8;
-			}
-			else if ((uint32_t)ECX >= 0xc0000000 && (uint32_t)ECX <= 0xc0001fff)
-			{
-				t0 = (8192 + ECX - 0xc0000000) * 2;
-				t1 = (t0 / 8);
-				t0 %= 8;
-			}
-			else if ((uint32_t)ECX >= 0xc0010000 && (uint32_t)ECX <= 0xc0011fff)
-			{
-				t0 = (16384 + ECX - 0xc0010000) * 2;
-				t1 = (t0 / 8);
-				t0 %= 8;
-			}
-			else
-			{
-				helper_vmexit(type, param);
-				t0 = 0;
-				t1 = 0;
-			}
-#endif
             if (ldub_phys(addr + t1) & ((1 << param) << t0))
                 helper_vmexit(type, param);
         }
