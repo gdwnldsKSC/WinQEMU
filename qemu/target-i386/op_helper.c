@@ -375,6 +375,11 @@ static void switch_tss(int tss_selector,
         new_trap = 0;
     }
 
+    /* XXX: avoid a compiler warning, see
+       http://support.amd.com/us/Processor_TechDocs/24593.pdf
+       chapters 12.2.5 and 13.2.4 on how to implement TSS Trap bit */
+    (void)new_trap;
+
     /* NOTE: we must avoid memory exceptions during the task switch,
        so we make dummy accesses before */
     /* XXX: it can still fail in some cases, so a bigger hack is

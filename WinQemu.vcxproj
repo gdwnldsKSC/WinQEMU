@@ -590,6 +590,7 @@
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
     <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qemu-timer-common.c" />
     <ClCompile Include="qemu\qemu-timer.c" />
     <ClCompile Include="qemu\qerror.c" />
     <ClCompile Include="qemu\qfloat.c" />

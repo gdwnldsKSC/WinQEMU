@@ -785,13 +785,8 @@ void cpu_dump_statistics (CPUState *env, FILE *f,
                           int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
                           int flags);
 
-#ifndef _MSC_VER
 void QEMU_NORETURN cpu_abort(CPUState *env, const char *fmt, ...)
-    __attribute__ ((__format__ (__printf__, 2, 3)));
-#else
-void QEMU_NORETURN cpu_abort(CPUState *env, const char *fmt, ...);
-#endif
-
+    GCC_FMT_ATTR(2, 3);
 extern CPUState *first_cpu;
 extern CPUState *cpu_single_env;
 

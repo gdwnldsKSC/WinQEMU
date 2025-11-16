@@ -27,6 +27,7 @@
 #include "isa.h"
 #include "gusemu.h"
 #include "gustate.h"
+#include "qemu-timer.h"
 
 #define dolog(...) AUD_log ("audio", __VA_ARGS__)
 #ifdef DEBUG

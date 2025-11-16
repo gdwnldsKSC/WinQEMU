@@ -37,11 +37,6 @@ typedef struct QEMUFile QEMUFile;
 typedef struct QEMUBH QEMUBH;
 typedef struct DeviceState DeviceState;
 
-/* Hack around the mess dyngen-exec.h causes: We need QEMU_NORETURN in files that
-   cannot include the following headers without conflicts. This condition has
-   to be removed once dyngen is gone. */
-#ifndef __DYNGEN_EXEC_H__
-
 /* we put basic includes here to avoid repeating them in device drivers */
 #include <stdlib.h>
 #include <stdio.h>
@@ -155,9 +150,31 @@ typedef signed int ssize_t;
 // more posixyness
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH
+#endif
 
 int gettimeofday(struct timeval* tp, struct timezone* tzp);
+
+// forgive me father for i have sinned
+#if defined(_MSC_VER)
+/* Register C "constructors" with the MSVC CRT. */
+#pragma section(".CRT$XCU", read)
+
+typedef void(__cdecl* qemu_ctor_fn)(void);
+
+/* QEMU_CONSTRUCTOR(fn)
+ *   Declares/defines a function and arranges for it to be called during
+ *   CRT initialization (before main/DllMain).
+ */
+#define QEMU_CONSTRUCTOR(fn)                           \
+    static void __cdecl fn(void);                      \
+    __declspec(allocate(".CRT$XCU"))                   \
+    qemu_ctor_fn fn##_qemu_ctor = fn;                  \
+    static void __cdecl fn(void)
+#else
+#define QEMU_CONSTRUCTOR(fn) \
+    static void __attribute__((constructor)) fn(void)
 #endif
+
 
 #endif // end MSVC sections
 
@@ -194,8 +211,6 @@ void qemu_bh_cancel(QEMUBH *bh);
 void qemu_bh_delete(QEMUBH *bh);
 int qemu_bh_poll(void);
 void qemu_bh_update_timeout(int *timeout);
-
-uint64_t muldiv64(uint64_t a, uint32_t b, uint32_t c);
 
 void qemu_get_timedate(struct tm *tm, int offset);
 int qemu_timedate_diff(struct tm *tm);
@@ -374,7 +389,5 @@ static inline uint8_t from_bcd(uint8_t val)
 }
 
 #include "module.h"
-
-#endif /* dyngen-exec.h hack */
 
 #endif

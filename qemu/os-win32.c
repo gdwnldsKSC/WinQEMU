@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include <WinSock2.h> // for MSVC compatibility
 #include <windows.h>
 #include <unistd.h>
 #include <fcntl.h>

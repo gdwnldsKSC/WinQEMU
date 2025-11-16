@@ -18,6 +18,7 @@
  */
 #include "config.h"
 #ifdef _WIN32
+#include <WinSock2.h> // for MSVC compatibility
 #include <windows.h>
 #else
 #include <sys/types.h>
