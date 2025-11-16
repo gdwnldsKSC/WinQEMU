@@ -68,6 +68,26 @@
 },
 
 
+#ifdef CONFIG_SIMPLE_TRACE
+{
+.name       = "trace-event",
+.args_type  = "name:s,option:b",
+.params     = "name on|off",
+.help       = "changes status of a specific trace event",
+.mhandler.cmd = do_change_trace_event_state,
+},
+
+
+{
+.name       = "trace-file",
+.args_type  = "op:s?,arg:F?",
+.params     = "on|off|flush|set [arg]",
+.help       = "open, close, or flush trace file, or set a new file name",
+.mhandler.cmd = do_trace_file,
+},
+
+#endif
+
 {
 .name       = "log",
 .args_type  = "items:s",
@@ -661,5 +681,8 @@
 
 
 
+
+#ifdef CONFIG_SIMPLE_TRACE
+#endif
 
 

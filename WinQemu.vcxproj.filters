@@ -1602,6 +1602,15 @@
     <ClCompile Include="qemu\hw\ivshmem.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\simpletrace.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\trace.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="fakesimpletrace.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2440,6 +2449,12 @@
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-palette.h">
       <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\simpletrace.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\trace.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -304,6 +304,7 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="fakesimpletrace.c" />
     <ClCompile Include="gettimeofday.c" />
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
@@ -579,6 +580,9 @@
     <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\rwhandler.c" />
+    <ClCompile Include="qemu\simpletrace.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\target-alpha\helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -614,6 +618,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\tcg-runtime.c" />
+    <ClCompile Include="qemu\trace.c" />
     <ClCompile Include="qemu\ui\curses.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1967,6 +1972,7 @@
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
     <ClInclude Include="qemu\rwhandler.h" />
+    <ClInclude Include="qemu\simpletrace.h" />
     <ClInclude Include="qemu\tap-linux.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1997,6 +2003,7 @@
     <ClInclude Include="qemu\target-i386\ops_sse_header.h" />
     <ClInclude Include="qemu\target-i386\svm.h" />
     <ClInclude Include="qemu\targphys.h" />
+    <ClInclude Include="qemu\trace.h" />
     <ClInclude Include="qemu\ui\curses_keys.h" />
     <ClInclude Include="qemu\ui\d3des.h" />
     <ClInclude Include="qemu\ui\keymaps.h" />

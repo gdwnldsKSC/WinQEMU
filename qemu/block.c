@@ -35,6 +35,7 @@
 
 #include "config-host.h"
 #include "qemu-common.h"
+#include "trace.h"
 #include "monitor.h"
 #include "block_int.h"
 #include "module.h"
@@ -2088,6 +2089,8 @@ static void multiwrite_cb(void *opaque, int ret)
 {
     MultiwriteCB *mcb = opaque;
 
+    trace_multiwrite_cb(mcb, ret);
+
     if (ret < 0 && !mcb->error) {
         mcb->error = ret;
     }
@@ -2228,6 +2231,8 @@ int bdrv_aio_multiwrite(BlockDriverState *bs, BlockRequest *reqs, int num_reqs)
     // Check for mergable requests
     num_reqs = multiwrite_merge(bs, reqs, num_reqs, mcb);
 
+    trace_bdrv_aio_multiwrite(mcb, mcb->num_callbacks, num_reqs);
+
     /*
      * Run the aio requests. As soon as one request can't be submitted
      * successfully, fail all requests that are not yet submitted (we must
@@ -2249,6 +2254,7 @@ int bdrv_aio_multiwrite(BlockDriverState *bs, BlockRequest *reqs, int num_reqs)
      */
     mcb->num_requests = 1;
 
+    // Run the aio requests
     for (i = 0; i < num_reqs; i++) {
         mcb->num_requests++;
         acb = bdrv_aio_writev(bs, reqs[i].sector, reqs[i].qiov,
@@ -2259,8 +2265,10 @@ int bdrv_aio_multiwrite(BlockDriverState *bs, BlockRequest *reqs, int num_reqs)
             // submitted yet. Otherwise we'll wait for the submitted AIOs to
             // complete and report the error in the callback.
             if (i == 0) {
+                trace_bdrv_aio_multiwrite_earlyfail(mcb);
                 goto fail;
             } else {
+                trace_bdrv_aio_multiwrite_latefail(mcb, i);
                 multiwrite_cb(mcb, -EIO);
                 break;
             }

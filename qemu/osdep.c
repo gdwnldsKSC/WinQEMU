@@ -53,6 +53,7 @@
 #endif
 
 #include "qemu-common.h"
+#include "trace.h"
 #include "sysemu.h"
 #include "qemu_socket.h"
 
@@ -74,25 +75,34 @@ static void *oom_check(void *ptr)
 #if defined(_WIN32)
 void *qemu_memalign(size_t alignment, size_t size)
 {
+    void *ptr;
+
     if (!size) {
         abort();
     }
-    return oom_check(VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE));
+    ptr = oom_check(VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE));
+    trace_qemu_memalign(alignment, size, ptr);
+    return ptr;
 }
 
 void *qemu_vmalloc(size_t size)
 {
+    void *ptr;
+
     /* FIXME: this is not exactly optimal solution since VirtualAlloc
        has 64Kb granularity, but at least it guarantees us that the
        memory is page aligned. */
     if (!size) {
         abort();
     }
-    return oom_check(VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE));
+    ptr = oom_check(VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE));
+    trace_qemu_vmalloc(size, ptr);
+    return ptr;
 }
 
 void qemu_vfree(void *ptr)
 {
+    trace_qemu_vfree(ptr);
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
@@ -100,21 +110,22 @@ void qemu_vfree(void *ptr)
 
 void *qemu_memalign(size_t alignment, size_t size)
 {
+    void *ptr;
 #if defined(_POSIX_C_SOURCE) && !defined(__sun__)
     int ret;
-    void *ptr;
     ret = posix_memalign(&ptr, alignment, size);
     if (ret != 0) {
         fprintf(stderr, "Failed to allocate %zu B: %s\n",
                 size, strerror(ret));
         abort();
     }
-    return ptr;
 #elif defined(CONFIG_BSD)
-    return oom_check(valloc(size));
+    ptr = oom_check(valloc(size));
 #else
-    return oom_check(memalign(alignment, size));
+    ptr = oom_check(memalign(alignment, size));
 #endif
+    trace_qemu_memalign(alignment, size, ptr);
+    return ptr;
 }
 
 /* alloc shared memory pages */
@@ -125,6 +136,7 @@ void *qemu_vmalloc(size_t size)
 
 void qemu_vfree(void *ptr)
 {
+    trace_qemu_vfree(ptr);
     free(ptr);
 }
 
