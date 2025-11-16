@@ -124,8 +124,11 @@ Add '-net none -cpu coreduo -m 512 -M pc -vga std -sdl -hda D:\Images\small.ffs 
 to the command arguments part of the WinQemuTest project to reproduce the 'test' environment
 or the paths of your choosing now that we can specify arbitrary paths. 
 
-From a bash shell (or WSL) run ./hxtool -h < qemu-options.hx > qemu-options.def
-As well do the same thing for qemu-monitor.hx > qemu-monitor.h
+From a bash shell (or WSL) run  
+./hxtool -h < qemu-options.hx > qemu-options.def  
+./hxtool -h < qemu-monitor.hx > qemu-monitor.h  
+./tracetool --nop -c < trace-events > trace.c  
+./tracetool --nop -h < trace-events > trace.h  
 
 Rebaselined on upstream vl.c which now (as of a few iterations ago) uses that header
 instead of declaring all the enum and help files in source to allow them to remain in 
@@ -134,6 +137,7 @@ sync and export of current version documentation easier.
 This will need to be re-done every time there is a change/feature added to these functions,
 but for ease of use I will be supplying a working version of qemu-options.h in my repository.
 
+## Note on qemu-options and MSVC C Preprocessor
 qemu-options generated QEMU_OPTIONS_net must be modified to avoid macro expansion issues
 in MSVC C Preprocessor currently. 
 
