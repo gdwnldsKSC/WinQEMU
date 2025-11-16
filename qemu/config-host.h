@@ -9,9 +9,11 @@
 #define CONFIG_STATIC 1
 #define CONFIG_SLIRP 1
 #define CONFIG_ADLIB 1
-#define QEMU_VERSION "0.12.5"
+#define QEMU_VERSION "0.13.x"
 #define QEMU_PKGVERSION "MS-VisualStudio-2022"
 #define CONFIG_UNAME_RELEASE ""
+#define CONFIG_FILEVERSION 0,13,0,0
+#define CONFIG_PRODUCTVERSION 0,13,0,0
 #define CONFIG_AUDIO_DRIVERS &winwave_audio_driver, \
 
 // we must keep an empty space below config_audio_drivers

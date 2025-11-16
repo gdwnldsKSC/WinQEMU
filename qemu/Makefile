@@ -43,9 +43,11 @@ config-all-devices.mak: $(SUBDIR_DEVICES_MAK)
 %/config-devices.mak: default-configs/%.mak
 	$(call quiet-command,cat $< > $@.tmp, "  GEN   $@")
 	@if test -f $@; then \
-	  if cmp -s $@.old $@ || cmp -s $@ $@.tmp; then \
-	    mv $@.tmp $@; \
-	    cp -p $@ $@.old; \
+	  if cmp -s $@.old $@; then \
+	    if ! cmp -s $@ $@.tmp; then \
+	      mv $@.tmp $@; \
+	      cp -p $@ $@.old; \
+	    fi; \
 	  else \
 	    if test -f $@.old; then \
 	      echo "WARNING: $@ (user modified) out of date.";\
@@ -80,9 +82,9 @@ include $(SRC_PATH)/Makefile.objs
 endif
 
 $(common-obj-y): $(GENERATED_HEADERS)
-$(filter %-softmmu,$(SUBDIR_RULES)): $(common-obj-y) subdir-libdis
+$(filter %-softmmu,$(SUBDIR_RULES)): $(trace-obj-y) $(common-obj-y) subdir-libdis
 
-$(filter %-user,$(SUBDIR_RULES)): $(GENERATED_HEADERS) subdir-libdis-user subdir-libuser
+$(filter %-user,$(SUBDIR_RULES)): $(GENERATED_HEADERS) $(trace-obj-y) subdir-libdis-user subdir-libuser
 
 ROMSUBDIR_RULES=$(patsubst %,romsubdir-%, $(ROMS))
 romsubdir-%:
@@ -104,26 +106,34 @@ ui/vnc.o: QEMU_CFLAGS += $(VNC_TLS_CFLAGS)
 
 bt-host.o: QEMU_CFLAGS += $(BLUEZ_CFLAGS)
 
-trace.h: $(SRC_PATH)/trace-events config-host.mak
-	$(call quiet-command,sh $(SRC_PATH)/tracetool --$(TRACE_BACKEND) -h < $< > $@,"  GEN   $@")
+trace.h: trace.h-timestamp
+trace.h-timestamp: $(SRC_PATH)/trace-events config-host.mak
+	$(call quiet-command,sh $(SRC_PATH)/tracetool --$(TRACE_BACKEND) -h < $< > $@,"  GEN   trace.h")
+	@cmp -s $@ trace.h || cp $@ trace.h
 
-trace.c: $(SRC_PATH)/trace-events config-host.mak
-	$(call quiet-command,sh $(SRC_PATH)/tracetool --$(TRACE_BACKEND) -c < $< > $@,"  GEN   $@")
+trace.c: trace.c-timestamp
+trace.c-timestamp: $(SRC_PATH)/trace-events config-host.mak
+	$(call quiet-command,sh $(SRC_PATH)/tracetool --$(TRACE_BACKEND) -c < $< > $@,"  GEN   trace.c")
+	@cmp -s $@ trace.c || cp $@ trace.c
 
 trace.o: trace.c $(GENERATED_HEADERS)
 
 simpletrace.o: simpletrace.c $(GENERATED_HEADERS)
 
+version.o: $(SRC_PATH)/version.rc config-host.mak
+	$(call quiet-command,$(WINDRES) -I. -o $@ $<,"  RC    $(TARGET_DIR)$@")
+
+version-obj-$(CONFIG_WIN32) += version.o
 ######################################################################
 
 qemu-img.o: qemu-img-cmds.h
 qemu-img.o qemu-tool.o qemu-nbd.o qemu-io.o: $(GENERATED_HEADERS)
 
-qemu-img$(EXESUF): qemu-img.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y)
+qemu-img$(EXESUF): qemu-img.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y) $(version-obj-y)
 
-qemu-nbd$(EXESUF): qemu-nbd.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y)
+qemu-nbd$(EXESUF): qemu-nbd.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y) $(version-obj-y)
 
-qemu-io$(EXESUF): qemu-io.o cmd.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y)
+qemu-io$(EXESUF): qemu-io.o cmd.o qemu-tool.o qemu-error.o $(trace-obj-y) $(block-obj-y) $(qobject-obj-y) $(version-obj-y)
 
 qemu-img-cmds.h: $(SRC_PATH)/qemu-img-cmds.hx
 	$(call quiet-command,sh $(SRC_PATH)/hxtool -h < $< > $@,"  GEN   $@")

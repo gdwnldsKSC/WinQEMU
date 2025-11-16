@@ -15,7 +15,9 @@ TMPC="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.c"
 TMPO="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPE="${TMPDIR1}/qemu-conf-${RANDOM}-$$-${RANDOM}.exe"
 
-trap "rm -f $TMPC $TMPO $TMPE ; exit" EXIT INT QUIT TERM
+# NB: do not call "exit" in the trap handler; this is buggy with some shells;
+# see <1285349658-3122-1-git-send-email-loic.minier@linaro.org>
+trap "rm -f $TMPC $TMPO $TMPE" EXIT INT QUIT TERM
 
 compile_object() {
   $cc $QEMU_CFLAGS -c -o $TMPO $TMPC > /dev/null 2> /dev/null
@@ -81,6 +83,7 @@ install="install"
 objcopy="objcopy"
 ld="ld"
 strip="strip"
+windres="windres"
 helper_cflags=""
 libs_softmmu=""
 libs_tools=""
@@ -127,6 +130,7 @@ ar="${cross_prefix}${ar}"
 objcopy="${cross_prefix}${objcopy}"
 ld="${cross_prefix}${ld}"
 strip="${cross_prefix}${strip}"
+windres="${cross_prefix}${windres}"
 
 # default flags for all hosts
 QEMU_CFLAGS="-fno-strict-aliasing $QEMU_CFLAGS"
@@ -138,7 +142,10 @@ QEMU_CFLAGS="-D_FORTIFY_SOURCE=2 $QEMU_CFLAGS"
 QEMU_CFLAGS="-I. -I\$(SRC_PATH) $QEMU_CFLAGS"
 LDFLAGS="-g $LDFLAGS"
 
-gcc_flags="-Wold-style-declaration -Wold-style-definition -fstack-protector-all"
+gcc_flags="-Wold-style-declaration -Wold-style-definition -Wtype-limits"
+gcc_flags="-Wformat-security -Wformat-y2k -Winit-self -Wignored-qualifiers $gcc_flags"
+gcc_flags="-Wmissing-include-dirs -Wempty-body -Wnested-externs $gcc_flags"
+gcc_flags="-fstack-protector-all $gcc_flags"
 cat > $TMPC << EOF
 int main(void) { return 0; }
 EOF
@@ -312,6 +319,7 @@ io_thread="no"
 mixemu="no"
 kerneldir=""
 aix="no"
+haiku="no"
 blobs="yes"
 pkgversion=""
 check_utests="no"
@@ -329,6 +337,8 @@ elif check_define __OpenBSD__ ; then
   targetos='OpenBSD'
 elif check_define __sun__ ; then
   targetos='SunOS'
+elif check_define __HAIKU__ ; then
+  targetos='Haiku'
 else
   targetos=`uname -s`
 fi
@@ -443,6 +453,11 @@ SunOS)
 AIX)
   aix="yes"
   make="gmake"
+;;
+Haiku)
+  haiku="yes"
+  QEMU_CFLAGS="-DB_USE_POSITIVE_POSIX_ERRORS $QEMU_CFLAGS"
+  LIBS="-lposix_error_mapper -lnetwork $LIBS"
 ;;
 *)
   audio_drv_list="oss"
@@ -2023,7 +2038,7 @@ elif compile_prog "" "-lrt" ; then
 fi
 
 if test "$darwin" != "yes" -a "$mingw32" != "yes" -a "$solaris" != yes -a \
-        "$aix" != "yes" ; then
+        "$aix" != "yes" -a "$haiku" != "yes" ; then
     libs_softmmu="-lutil $libs_softmmu"
 fi
 
@@ -2066,6 +2081,31 @@ int main(void) { return fdatasync(0); }
 EOF
 if compile_prog "" "" ; then
     fdatasync=yes
+fi
+
+##########################################
+# check if we have madvise
+
+madvise=no
+cat > $TMPC << EOF
+#include <sys/types.h>
+#include <sys/mman.h>
+int main(void) { return madvise(NULL, 0, MADV_DONTNEED); }
+EOF
+if compile_prog "" "" ; then
+    madvise=yes
+fi
+
+##########################################
+# check if we have posix_madvise
+
+posix_madvise=no
+cat > $TMPC << EOF
+#include <sys/mman.h>
+int main(void) { return posix_madvise(NULL, 0, POSIX_MADV_DONTNEED); }
+EOF
+if compile_prog "" "" ; then
+    posix_madvise=yes
 fi
 
 ##########################################
@@ -2136,6 +2176,15 @@ if test "$solaris" = "no" ; then
     if $ld --version 2>/dev/null | grep "GNU ld" >/dev/null 2>/dev/null ; then
         LDFLAGS="-Wl,--warn-common $LDFLAGS"
     fi
+fi
+
+# Use ASLR, no-SEH and DEP if available
+if test "$mingw32" = "yes" ; then
+    for flag in --dynamicbase --no-seh --nxcompat; do
+        if $ld --help 2>/dev/null | grep ".$flag" >/dev/null 2>/dev/null ; then
+            LDFLAGS="-Wl,$flag $LDFLAGS"
+        fi
+    done
 fi
 
 confdir=$sysconfdir$confsuffix
@@ -2226,6 +2275,8 @@ echo "KVM support       $kvm"
 echo "fdt support       $fdt"
 echo "preadv support    $preadv"
 echo "fdatasync         $fdatasync"
+echo "madvise           $madvise"
+echo "posix_madvise     $posix_madvise"
 echo "uuid support      $uuid"
 echo "vhost-net support $vhost_net"
 echo "Trace backend     $trace_backend"
@@ -2278,6 +2329,15 @@ fi
 echo "HOST_LONG_BITS=$hostlongbits" >> $config_host_mak
 if test "$mingw32" = "yes" ; then
   echo "CONFIG_WIN32=y" >> $config_host_mak
+  rc_version=`cat $source_path/VERSION`
+  version_major=${rc_version%%.*}
+  rc_version=${rc_version#*.}
+  version_minor=${rc_version%%.*}
+  rc_version=${rc_version#*.}
+  version_subminor=${rc_version%%.*}
+  version_micro=0
+  echo "CONFIG_FILEVERSION=$version_major,$version_minor,$version_subminor,$version_micro" >> $config_host_mak
+  echo "CONFIG_PRODUCTVERSION=$version_major,$version_minor,$version_subminor,$version_micro" >> $config_host_mak
 else
   echo "CONFIG_POSIX=y" >> $config_host_mak
 fi
@@ -2300,6 +2360,9 @@ if test "$solaris" = "yes" ; then
   if test "$needs_libsunmath" = "yes" ; then
     echo "CONFIG_NEEDS_LIBSUNMATH=y" >> $config_host_mak
   fi
+fi
+if test "$haiku" = "yes" ; then
+  echo "CONFIG_HAIKU=y" >> $config_host_mak
 fi
 if test "$static" = "yes" ; then
   echo "CONFIG_STATIC=y" >> $config_host_mak
@@ -2466,6 +2529,12 @@ fi
 if test "$fdatasync" = "yes" ; then
   echo "CONFIG_FDATASYNC=y" >> $config_host_mak
 fi
+if test "$madvise" = "yes" ; then
+  echo "CONFIG_MADVISE=y" >> $config_host_mak
+fi
+if test "$posix_madvise" = "yes" ; then
+  echo "CONFIG_POSIX_MADVISE=y" >> $config_host_mak
+fi
 
 # XXX: suppress that
 if [ "$bsd" = "yes" ] ; then
@@ -2518,6 +2587,7 @@ fi
 echo "AR=$ar" >> $config_host_mak
 echo "OBJCOPY=$objcopy" >> $config_host_mak
 echo "LD=$ld" >> $config_host_mak
+echo "WINDRES=$windres" >> $config_host_mak
 echo "CFLAGS=$CFLAGS" >> $config_host_mak
 echo "QEMU_CFLAGS=$QEMU_CFLAGS" >> $config_host_mak
 echo "HELPER_CFLAGS=$helper_cflags" >> $config_host_mak

@@ -2711,6 +2711,11 @@ static int vvfat_write(BlockDriverState *bs, int64_t sector_num,
 
 DLOG(checkpoint());
 
+    /* Check if we're operating in read-only mode */
+    if (s->qcow == NULL) {
+        return -EACCES;
+    }
+
     vvfat_close_current_file(s);
 
     /*
@@ -2809,12 +2814,12 @@ static int vvfat_is_allocated(BlockDriverState *bs,
 
 static int write_target_commit(BlockDriverState *bs, int64_t sector_num,
 	const uint8_t* buffer, int nb_sectors) {
-    BDRVVVFATState* s = bs->opaque;
+    BDRVVVFATState* s = *((BDRVVVFATState**) bs->opaque);
     return try_commit(s);
 }
 
 static void write_target_close(BlockDriverState *bs) {
-    BDRVVVFATState* s = bs->opaque;
+    BDRVVVFATState* s = *((BDRVVVFATState**) bs->opaque);
     bdrv_delete(s->qcow);
     free(s->qcow_filename);
 }
@@ -2829,6 +2834,7 @@ static int enable_write_target(BDRVVVFATState *s)
 {
     BlockDriver *bdrv_qcow;
     QEMUOptionParameter *options;
+    int ret;
     int size = sector2cluster(s, s->sector_count);
     s->used_clusters = calloc(size, 1);
 
@@ -2844,11 +2850,16 @@ static int enable_write_target(BDRVVVFATState *s)
 
     if (bdrv_create(bdrv_qcow, s->qcow_filename, options) < 0)
 	return -1;
+
     s->qcow = bdrv_new("");
-    if (s->qcow == NULL ||
-        bdrv_open(s->qcow, s->qcow_filename, BDRV_O_RDWR, bdrv_qcow) < 0)
-    {
-	return -1;
+    if (s->qcow == NULL) {
+        return -1;
+    }
+
+    ret = bdrv_open(s->qcow, s->qcow_filename,
+            BDRV_O_RDWR | BDRV_O_CACHE_WB | BDRV_O_NO_FLUSH, bdrv_qcow);
+    if (ret < 0) {
+	return ret;
     }
 
 #ifndef _WIN32
@@ -2857,7 +2868,8 @@ static int enable_write_target(BDRVVVFATState *s)
 
     s->bs->backing_hd = calloc(sizeof(BlockDriverState), 1);
     s->bs->backing_hd->drv = &vvfat_write_target;
-    s->bs->backing_hd->opaque = s;
+    s->bs->backing_hd->opaque = qemu_malloc(sizeof(void*));
+    *(void**)s->bs->backing_hd->opaque = s;
 
     return 0;
 }

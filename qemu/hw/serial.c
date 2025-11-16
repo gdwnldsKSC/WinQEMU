@@ -101,10 +101,10 @@
 
 #ifdef DEBUG_SERIAL
 #define DPRINTF(fmt, ...) \
-do { fprintf(stderr, "serial: " fmt , ## __VA_ARGS__); } while (0);
+do { fprintf(stderr, "serial: " fmt , ## __VA_ARGS__); } while (0)
 #else
 #define DPRINTF(fmt, ...) \
-do {} while(0);
+do {} while (0)
 #endif
 
 typedef struct SerialFIFO {
@@ -674,6 +674,7 @@ static int serial_post_load(void *opaque, int version_id)
     }
     /* Initialize fcr via setter to perform essential side-effects */
     serial_ioport_write(s, 0x02, s->fcr_vmstate);
+    serial_update_parameters(s);
     return 0;
 }
 

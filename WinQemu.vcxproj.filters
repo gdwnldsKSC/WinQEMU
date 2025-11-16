@@ -1611,6 +1611,12 @@
     <ClCompile Include="fakesimpletrace.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\virtex_ml507.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\blkverify.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2456,6 +2462,9 @@
     <ClInclude Include="qemu\trace.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
+    <ClInclude Include="qemu\range.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.md" />
@@ -2476,5 +2485,10 @@
     <None Include="qemu\qemu-options.def">
       <Filter>qemu\inc</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="qemu\version.rc">
+      <Filter>resource</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

@@ -317,6 +317,7 @@
     <ClCompile Include="qemu\block-migration.c" />
     <ClCompile Include="qemu\blockdev.c" />
     <ClCompile Include="qemu\block\blkdebug.c" />
+    <ClCompile Include="qemu\block\blkverify.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
     <ClCompile Include="qemu\block\cow.c" />
@@ -501,6 +502,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\vhost_net.c" />
+    <ClCompile Include="qemu\hw\virtex_ml507.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\virtio-9p-debug.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1971,6 +1975,7 @@
     <ClInclude Include="qemu\qlist.h" />
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
+    <ClInclude Include="qemu\range.h" />
     <ClInclude Include="qemu\rwhandler.h" />
     <ClInclude Include="qemu\simpletrace.h" />
     <ClInclude Include="qemu\tap-linux.h" />
@@ -2194,6 +2199,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="qemu\version.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
