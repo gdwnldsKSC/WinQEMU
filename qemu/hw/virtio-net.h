@@ -11,6 +11,16 @@
  *
  */
 
+ /*
+  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
+  * other than GPL is available it will apply instead, WinQEMU elects to use only the
+  * General Public License version 3 (GPLv3) at this time for any software where a choice of
+  * GPL license versions is made available with the language indicating that GPLv3 or any later
+  * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
+  *
+  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
+  */
+
 #ifndef _QEMU_VIRTIO_NET_H
 #define _QEMU_VIRTIO_NET_H
 
@@ -66,13 +76,26 @@ typedef struct virtio_net_conf
 /* Maximum packet size we can receive from tap device: header + 64k */
 #define VIRTIO_NET_MAX_BUFSIZE (sizeof(struct virtio_net_hdr) + (64 << 10))
 
+#ifdef _MSC_VER
+#pragma pack (push, 1)
+#endif
+
 struct virtio_net_config
 {
     /* The config defining mac address ($ETH_ALEN bytes) */
     uint8_t mac[ETH_ALEN];
     /* See VIRTIO_NET_F_STATUS and VIRTIO_NET_S_* above */
     uint16_t status;
-} __attribute__((packed));
+}
+#ifndef _MSC_VER
+__attribute__((packed));
+#else
+;
+#endif
+
+#ifdef _MSC_VER
+#pragma pack (pop)
+#endif
 
 /* This is the first element of the scatter-gather list.  If you don't
  * specify GSO or CSUM features, you can simply ignore the header. */

@@ -63,6 +63,12 @@ uint32_t kvm_arch_get_supported_cpuid(CPUState* env, uint32_t function, uint32_t
 {
     return 0;
 }
+
+void kvm_inject_x86_mce(CPUState* cenv, int bank, uint64_t status,
+    uint64_t mcg_status, uint64_t addr, uint64_t misc,
+    int abort_on_error)
+{
+}
 #endif
 
 int kvm_init(int smp_cpus)

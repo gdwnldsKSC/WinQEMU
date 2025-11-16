@@ -318,7 +318,7 @@ static int virtio_net_handle_mac(VirtIONet *n, uint8_t cmd,
         return VIRTIO_NET_ERR;
 
     if (mac_data.entries <= MAC_TABLE_ENTRIES) {
-        memcpy(n->mac_table.macs, elem->out_sg[1].iov_base + sizeof(mac_data),
+        memcpy(n->mac_table.macs, (char *)elem->out_sg[1].iov_base + sizeof(mac_data),
                mac_data.entries * ETH_ALEN);
         n->mac_table.in_use += mac_data.entries;
     } else {
@@ -336,7 +336,7 @@ static int virtio_net_handle_mac(VirtIONet *n, uint8_t cmd,
     if (mac_data.entries) {
         if (n->mac_table.in_use + mac_data.entries <= MAC_TABLE_ENTRIES) {
             memcpy(n->mac_table.macs + (n->mac_table.in_use * ETH_ALEN),
-                   elem->out_sg[2].iov_base + sizeof(mac_data),
+                   (char *)elem->out_sg[2].iov_base + sizeof(mac_data),
                    mac_data.entries * ETH_ALEN);
             n->mac_table.in_use += mac_data.entries;
         } else {
@@ -392,7 +392,7 @@ static void virtio_net_handle_ctrl(VirtIODevice *vdev, VirtQueue *vq)
         }
 
         ctrl.class = ldub_p(elem.out_sg[0].iov_base);
-        ctrl.cmd = ldub_p(elem.out_sg[0].iov_base + sizeof(ctrl.class));
+        ctrl.cmd = ldub_p((char *)elem.out_sg[0].iov_base + sizeof(ctrl.class));
 
         if (ctrl.class == VIRTIO_NET_CTRL_RX_MODE)
             status = virtio_net_handle_rx_mode(n, ctrl.cmd, &elem);
@@ -493,14 +493,14 @@ static int receive_header(VirtIONet *n, struct iovec *iov, int iovcnt,
     if (n->has_vnet_hdr) {
         memcpy(hdr, buf, sizeof(*hdr));
         offset = sizeof(*hdr);
-        work_around_broken_dhclient(hdr, buf + offset, size - offset);
+        work_around_broken_dhclient(hdr, (char *)buf + offset, size - offset);
     }
 
     /* We only ever receive a struct virtio_net_hdr from the tapfd,
      * but we may be passing along a larger header to the guest.
      */
-    iov[0].iov_base += hdr_len;
-    iov[0].iov_len  -= hdr_len;
+    (char *)iov[0].iov_base += hdr_len;
+    (char *)iov[0].iov_len  -= hdr_len;
 
     return offset;
 }

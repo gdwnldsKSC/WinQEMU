@@ -82,10 +82,19 @@ static int qemu_signalfd_compat(const sigset_t *mask)
         return -1;
     }
 
+#ifndef _WIN32
+    /* POSIX: normal pipe() */
     if (pipe(fds) == -1) {
         free(info);
         return -1;
     }
+#else
+    /* Windows: CRT _pipe needs size and mode */
+    if (_pipe(fds, 4096, _O_BINARY | _O_NOINHERIT) == -1) {
+        free(info);
+        return -1;
+    }
+#endif
 
     qemu_set_cloexec(fds[0]);
     qemu_set_cloexec(fds[1]);

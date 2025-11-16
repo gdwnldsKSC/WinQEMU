@@ -17,12 +17,24 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+
+ /*
+  * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
+  * other than GPL is available it will apply instead, WinQEMU elects to use only the
+  * General Public License version 3 (GPLv3) at this time for any software where a choice of
+  * GPL license versions is made available with the language indicating that GPLv3 or any later
+  * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
+  *
+  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
+  */
+
+#define CPU_NO_GLOBAL_REGS
 #include "exec.h"
 #include "exec-all.h"
 #include "host-utils.h"
 #include "ioport.h"
 
-//#define DEBUG_PCALL
+  //#define DEBUG_PCALL
 
 
 #ifdef DEBUG_PCALL
@@ -94,6 +106,7 @@ static const uint8_t rclb_table[32] = {
     6, 7, 8, 0, 1, 2, 3, 4,
 };
 
+#ifndef _MSC_VER
 static const CPU86_LDouble f15rk[7] =
 {
     0.00000000000000000000L,
@@ -104,6 +117,18 @@ static const CPU86_LDouble f15rk[7] =
     1.44269504088896340739L,  /*l2e*/
     3.32192809488736234781L,  /*l2t*/
 };
+#else
+static const long double f15rk[7] =
+{
+    0.00000000000000000000L,
+    1.00000000000000000000L,
+    3.14159265358979323851L,  /*pi*/
+    0.30102999566398119523L,  /*lg2*/
+    0.69314718055994530943L,  /*ln2*/
+    1.44269504088896340739L,  /*l2e*/
+    3.32192809488736234781L,  /*l2t*/
+};
+#endif
 
 /* broken thread support */
 
@@ -134,10 +159,10 @@ target_ulong helper_read_eflags(void)
 }
 
 /* return non zero if error */
-static inline int load_segment(uint32_t *e1_ptr, uint32_t *e2_ptr,
-                               int selector)
+static inline int load_segment(uint32_t* e1_ptr, uint32_t* e2_ptr,
+    int selector)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     int index;
     target_ulong ptr;
 
@@ -168,7 +193,7 @@ static inline uint32_t get_seg_base(uint32_t e1, uint32_t e2)
     return ((e1 >> 16) | ((e2 & 0xff) << 16) | (e2 & 0xff000000));
 }
 
-static inline void load_seg_cache_raw_dt(SegmentCache *sc, uint32_t e1, uint32_t e2)
+static inline void load_seg_cache_raw_dt(SegmentCache* sc, uint32_t e1, uint32_t e2)
 {
     sc->base = get_seg_base(e1, e2);
     sc->limit = get_seg_limit(e1, e2);
@@ -180,11 +205,11 @@ static inline void load_seg_vm(int seg, int selector)
 {
     selector &= 0xffff;
     cpu_x86_load_seg_cache(env, seg, selector,
-                           (selector << 4), 0xffff, 0);
+        (selector << 4), 0xffff, 0);
 }
 
-static inline void get_ss_esp_from_tss(uint32_t *ss_ptr,
-                                       uint32_t *esp_ptr, int dpl)
+static inline void get_ss_esp_from_tss(uint32_t* ss_ptr,
+    uint32_t* esp_ptr, int dpl)
 {
     int type, index, shift;
 
@@ -192,7 +217,7 @@ static inline void get_ss_esp_from_tss(uint32_t *ss_ptr,
     {
         int i;
         printf("TR: base=%p limit=%x\n", env->tr.base, env->tr.limit);
-        for(i=0;i<env->tr.limit;i++) {
+        for (i = 0; i < env->tr.limit; i++) {
             printf("%02x ", env->tr.base[i]);
             if ((i & 7) == 7) printf("\n");
         }
@@ -212,7 +237,8 @@ static inline void get_ss_esp_from_tss(uint32_t *ss_ptr,
     if (shift == 0) {
         *esp_ptr = lduw_kernel(env->tr.base + index);
         *ss_ptr = lduw_kernel(env->tr.base + index + 2);
-    } else {
+    }
+    else {
         *esp_ptr = ldl_kernel(env->tr.base + index);
         *ss_ptr = lduw_kernel(env->tr.base + index + 4);
     }
@@ -240,13 +266,15 @@ static void tss_load_seg(int seg_reg, int selector)
                 raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
             if ((e2 & DESC_C_MASK) && dpl > rpl)
                 raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
-        } else if (seg_reg == R_SS) {
+        }
+        else if (seg_reg == R_SS) {
             /* SS must be writable data */
             if ((e2 & DESC_CS_MASK) || !(e2 & DESC_W_MASK))
                 raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
             if (dpl != cpl || dpl != rpl)
                 raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
-        } else {
+        }
+        else {
             /* not readable code */
             if ((e2 & DESC_CS_MASK) && !(e2 & DESC_R_MASK))
                 raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
@@ -259,10 +287,11 @@ static void tss_load_seg(int seg_reg, int selector)
         if (!(e2 & DESC_P_MASK))
             raise_exception_err(EXCP0B_NOSEG, selector & 0xfffc);
         cpu_x86_load_seg_cache(env, seg_reg, selector,
-                       get_seg_base(e1, e2),
-                       get_seg_limit(e1, e2),
-                       e2);
-    } else {
+            get_seg_base(e1, e2),
+            get_seg_limit(e1, e2),
+            e2);
+    }
+    else {
         if (seg_reg == R_SS || seg_reg == R_CS)
             raise_exception_err(EXCP0A_TSS, selector & 0xfffc);
     }
@@ -274,15 +303,15 @@ static void tss_load_seg(int seg_reg, int selector)
 
 /* XXX: restore CPU state in registers (PowerPC case) */
 static void switch_tss(int tss_selector,
-                       uint32_t e1, uint32_t e2, int source,
-                       uint32_t next_eip)
+    uint32_t e1, uint32_t e2, int source,
+    uint32_t next_eip)
 {
     int tss_limit, tss_limit_max, type, old_tss_limit_max, old_type, v1, v2, i;
     target_ulong tss_base;
     uint32_t new_regs[8], new_segs[6];
     uint32_t new_eflags, new_eip, new_cr3, new_ldt, new_trap;
     uint32_t old_eflags, eflags_mask;
-    SegmentCache *dt;
+    SegmentCache* dt;
     int index;
     target_ulong ptr;
 
@@ -329,20 +358,21 @@ static void switch_tss(int tss_selector,
         new_cr3 = ldl_kernel(tss_base + 0x1c);
         new_eip = ldl_kernel(tss_base + 0x20);
         new_eflags = ldl_kernel(tss_base + 0x24);
-        for(i = 0; i < 8; i++)
+        for (i = 0; i < 8; i++)
             new_regs[i] = ldl_kernel(tss_base + (0x28 + i * 4));
-        for(i = 0; i < 6; i++)
+        for (i = 0; i < 6; i++)
             new_segs[i] = lduw_kernel(tss_base + (0x48 + i * 4));
         new_ldt = lduw_kernel(tss_base + 0x60);
         new_trap = ldl_kernel(tss_base + 0x64);
-    } else {
+    }
+    else {
         /* 16 bit */
         new_cr3 = 0;
         new_eip = lduw_kernel(tss_base + 0x0e);
         new_eflags = lduw_kernel(tss_base + 0x10);
-        for(i = 0; i < 8; i++)
+        for (i = 0; i < 8; i++)
             new_regs[i] = lduw_kernel(tss_base + (0x12 + i * 2)) | 0xffff0000;
-        for(i = 0; i < 4; i++)
+        for (i = 0; i < 4; i++)
             new_segs[i] = lduw_kernel(tss_base + (0x22 + i * 4));
         new_ldt = lduw_kernel(tss_base + 0x2a);
         new_segs[R_FS] = 0;
@@ -356,8 +386,8 @@ static void switch_tss(int tss_selector,
 
     /* NOTE: we must avoid memory exceptions during the task switch,
        so we make dummy accesses before */
-    /* XXX: it can still fail in some cases, so a bigger hack is
-       necessary to valid the TLB after having done the accesses */
+       /* XXX: it can still fail in some cases, so a bigger hack is
+          necessary to valid the TLB after having done the accesses */
 
     v1 = ldub_kernel(env->tr.base);
     v2 = ldub_kernel(env->tr.base + old_tss_limit_max);
@@ -390,9 +420,10 @@ static void switch_tss(int tss_selector,
         stl_kernel(env->tr.base + (0x28 + 5 * 4), EBP);
         stl_kernel(env->tr.base + (0x28 + 6 * 4), ESI);
         stl_kernel(env->tr.base + (0x28 + 7 * 4), EDI);
-        for(i = 0; i < 6; i++)
+        for (i = 0; i < 6; i++)
             stw_kernel(env->tr.base + (0x48 + i * 4), env->segs[i].selector);
-    } else {
+    }
+    else {
         /* 16 bit */
         stw_kernel(env->tr.base + 0x0e, next_eip);
         stw_kernel(env->tr.base + 0x10, old_eflags);
@@ -404,7 +435,7 @@ static void switch_tss(int tss_selector,
         stw_kernel(env->tr.base + (0x12 + 5 * 2), EBP);
         stw_kernel(env->tr.base + (0x12 + 6 * 2), ESI);
         stw_kernel(env->tr.base + (0x12 + 7 * 2), EDI);
-        for(i = 0; i < 4; i++)
+        for (i = 0; i < 4; i++)
             stw_kernel(env->tr.base + (0x22 + i * 4), env->segs[i].selector);
     }
 
@@ -457,15 +488,16 @@ static void switch_tss(int tss_selector,
     ESI = new_regs[6];
     EDI = new_regs[7];
     if (new_eflags & VM_MASK) {
-        for(i = 0; i < 6; i++)
+        for (i = 0; i < 6; i++)
             load_seg_vm(i, new_segs[i]);
         /* in vm86, CPL is always 3 */
         cpu_x86_set_cpl(env, 3);
-    } else {
+    }
+    else {
         /* CPL is set the RPL of CS */
         cpu_x86_set_cpl(env, new_segs[R_CS] & 3);
         /* first just selectors as the rest may trigger exceptions */
-        for(i = 0; i < 6; i++)
+        for (i = 0; i < 6; i++)
             cpu_x86_load_seg_cache(env, i, new_segs[i], 0, 0, 0);
     }
 
@@ -601,17 +633,17 @@ static inline unsigned int get_sp_mask(unsigned int e2)
 
 static int exeption_has_error_code(int intno)
 {
-        switch(intno) {
-        case 8:
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 17:
-            return 1;
-        }
-	return 0;
+    switch (intno) {
+    case 8:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 17:
+        return 1;
+    }
+    return 0;
 }
 
 #ifdef TARGET_X86_64
@@ -632,7 +664,7 @@ do {\
  * can be used to trim the value to 32-bit whenever needed */
 #define SEG_ADDL(ssp, sp, sp_mask) ((uint32_t)((ssp) + (sp & (sp_mask))))
 
-/* XXX: add a is_user flag to have proper security support */
+ /* XXX: add a is_user flag to have proper security support */
 #define PUSHW(ssp, sp, sp_mask, val)\
 {\
     sp -= 2;\
@@ -659,9 +691,9 @@ do {\
 
 /* protected mode interrupt */
 static void do_interrupt_protected(int intno, int is_int, int error_code,
-                                   unsigned int next_eip, int is_hw)
+    unsigned int next_eip, int is_hw)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     target_ulong ptr, ssp;
     int type, dpl, selector, ss_dpl, cpl;
     int has_error_code, new_stack, shift;
@@ -684,7 +716,7 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
     e2 = ldl_kernel(ptr + 4);
     /* check gate type */
     type = (e2 >> DESC_TYPE_SHIFT) & 0x1f;
-    switch(type) {
+    switch (type) {
     case 5: /* task gate */
         /* must do that check here to return the correct error code */
         if (!(e2 & DESC_P_MASK))
@@ -761,7 +793,8 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
         new_stack = 1;
         sp_mask = get_sp_mask(ss_e2);
         ssp = get_seg_base(ss_e1, ss_e2);
-    } else if ((e2 & DESC_C_MASK) || dpl == cpl) {
+    }
+    else if ((e2 & DESC_C_MASK) || dpl == cpl) {
         /* to same privilege */
         if (env->eflags & VM_MASK)
             raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
@@ -770,7 +803,8 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
         ssp = env->segs[R_SS].base;
         esp = ESP;
         dpl = cpl;
-    } else {
+    }
+    else {
         raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
         new_stack = 0; /* avoid warning */
         sp_mask = 0; /* avoid warning */
@@ -804,7 +838,8 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
         if (has_error_code) {
             PUSHL(ssp, esp, sp_mask, error_code);
         }
-    } else {
+    }
+    else {
         if (new_stack) {
             if (env->eflags & VM_MASK) {
                 PUSHW(ssp, esp, sp_mask, env->segs[R_GS].selector);
@@ -832,15 +867,15 @@ static void do_interrupt_protected(int intno, int is_int, int error_code,
         }
         ss = (ss & ~3) | dpl;
         cpu_x86_load_seg_cache(env, R_SS, ss,
-                               ssp, get_seg_limit(ss_e1, ss_e2), ss_e2);
+            ssp, get_seg_limit(ss_e1, ss_e2), ss_e2);
     }
     SET_ESP(esp, sp_mask);
 
     selector = (selector & ~3) | dpl;
     cpu_x86_load_seg_cache(env, R_CS, selector,
-                   get_seg_base(e1, e2),
-                   get_seg_limit(e1, e2),
-                   e2);
+        get_seg_base(e1, e2),
+        get_seg_limit(e1, e2),
+        e2);
     cpu_x86_set_cpl(env, dpl);
     env->eip = offset;
 
@@ -871,7 +906,7 @@ static inline target_ulong get_rsp_from_tss(int level)
 
 #if 0
     printf("TR: base=" TARGET_FMT_lx " limit=%x\n",
-           env->tr.base, env->tr.limit);
+        env->tr.base, env->tr.limit);
 #endif
 
     if (!(env->tr.flags & DESC_P_MASK))
@@ -884,9 +919,9 @@ static inline target_ulong get_rsp_from_tss(int level)
 
 /* 64 bit interrupt */
 static void do_interrupt64(int intno, int is_int, int error_code,
-                           target_ulong next_eip, int is_hw)
+    target_ulong next_eip, int is_hw)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     target_ulong ptr;
     int type, dpl, selector, cpl, ist;
     int has_error_code, new_stack;
@@ -910,7 +945,7 @@ static void do_interrupt64(int intno, int is_int, int error_code,
     e3 = ldl_kernel(ptr + 8);
     /* check gate type */
     type = (e2 >> DESC_TYPE_SHIFT) & 0x1f;
-    switch(type) {
+    switch (type) {
     case 14: /* 386 interrupt gate */
     case 15: /* 386 trap gate */
         break;
@@ -952,7 +987,8 @@ static void do_interrupt64(int intno, int is_int, int error_code,
         esp &= ~0xfLL; /* align stack */
         ss = 0;
         new_stack = 1;
-    } else if ((e2 & DESC_C_MASK) || dpl == cpl) {
+    }
+    else if ((e2 & DESC_C_MASK) || dpl == cpl) {
         /* to same privilege */
         if (env->eflags & VM_MASK)
             raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
@@ -963,7 +999,8 @@ static void do_interrupt64(int intno, int is_int, int error_code,
             esp = ESP;
         esp &= ~0xfLL; /* align stack */
         dpl = cpl;
-    } else {
+    }
+    else {
         raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
         new_stack = 0; /* avoid warning */
         esp = 0; /* avoid warning */
@@ -986,9 +1023,9 @@ static void do_interrupt64(int intno, int is_int, int error_code,
 
     selector = (selector & ~3) | dpl;
     cpu_x86_load_seg_cache(env, R_CS, selector,
-                   get_seg_base(e1, e2),
-                   get_seg_limit(e1, e2),
-                   e2);
+        get_seg_base(e1, e2),
+        get_seg_limit(e1, e2),
+        e2);
     cpu_x86_set_cpl(env, dpl);
     env->eip = offset;
 
@@ -1027,35 +1064,36 @@ void helper_syscall(int next_eip_addend)
 
         cpu_x86_set_cpl(env, 0);
         cpu_x86_load_seg_cache(env, R_CS, selector & 0xfffc,
-                           0, 0xffffffff,
-                               DESC_G_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
         cpu_x86_load_seg_cache(env, R_SS, (selector + 8) & 0xfffc,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_W_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_W_MASK | DESC_A_MASK);
         env->eflags &= ~env->fmask;
         load_eflags(env->eflags, 0);
         if (code64)
             env->eip = env->lstar;
         else
             env->eip = env->cstar;
-    } else {
+    }
+    else {
         ECX = (uint32_t)(env->eip + next_eip_addend);
 
         cpu_x86_set_cpl(env, 0);
         cpu_x86_load_seg_cache(env, R_CS, selector & 0xfffc,
-                           0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
         cpu_x86_load_seg_cache(env, R_SS, (selector + 8) & 0xfffc,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_W_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_W_MASK | DESC_A_MASK);
         env->eflags &= ~(IF_MASK | RF_MASK | VM_MASK);
         env->eip = (uint32_t)env->star;
     }
@@ -1079,40 +1117,42 @@ void helper_sysret(int dflag)
     if (env->hflags & HF_LMA_MASK) {
         if (dflag == 2) {
             cpu_x86_load_seg_cache(env, R_CS, (selector + 16) | 3,
-                                   0, 0xffffffff,
-                                   DESC_G_MASK | DESC_P_MASK |
-                                   DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                                   DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK |
-                                   DESC_L_MASK);
+                0, 0xffffffff,
+                DESC_G_MASK | DESC_P_MASK |
+                DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+                DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK |
+                DESC_L_MASK);
             env->eip = ECX;
-        } else {
+        }
+        else {
             cpu_x86_load_seg_cache(env, R_CS, selector | 3,
-                                   0, 0xffffffff,
-                                   DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                                   DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                                   DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
+                0, 0xffffffff,
+                DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+                DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+                DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
             env->eip = (uint32_t)ECX;
         }
         cpu_x86_load_seg_cache(env, R_SS, selector + 8,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_W_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_W_MASK | DESC_A_MASK);
         load_eflags((uint32_t)(env->regs[11]), TF_MASK | AC_MASK | ID_MASK |
-                    IF_MASK | IOPL_MASK | VM_MASK | RF_MASK | NT_MASK);
+            IF_MASK | IOPL_MASK | VM_MASK | RF_MASK | NT_MASK);
         cpu_x86_set_cpl(env, 3);
-    } else {
+    }
+    else {
         cpu_x86_load_seg_cache(env, R_CS, selector | 3,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
         env->eip = (uint32_t)ECX;
         cpu_x86_load_seg_cache(env, R_SS, selector + 8,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_W_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_W_MASK | DESC_A_MASK);
         env->eflags |= IF_MASK;
         cpu_x86_set_cpl(env, 3);
     }
@@ -1121,9 +1161,9 @@ void helper_sysret(int dflag)
 
 /* real mode interrupt */
 static void do_interrupt_real(int intno, int is_int, int error_code,
-                              unsigned int next_eip)
+    unsigned int next_eip)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     target_ulong ptr, ssp;
     int selector;
     uint32_t offset, esp;
@@ -1158,9 +1198,9 @@ static void do_interrupt_real(int intno, int is_int, int error_code,
 
 /* fake user mode interrupt */
 void do_interrupt_user(int intno, int is_int, int error_code,
-                       target_ulong next_eip)
+    target_ulong next_eip)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     target_ulong ptr;
     int dpl, cpl, shift;
     uint32_t e2;
@@ -1168,7 +1208,8 @@ void do_interrupt_user(int intno, int is_int, int error_code,
     dt = &env->idt;
     if (env->hflags & HF_LMA_MASK) {
         shift = 4;
-    } else {
+    }
+    else {
         shift = 3;
     }
     ptr = dt->base + (intno << shift);
@@ -1189,21 +1230,21 @@ void do_interrupt_user(int intno, int is_int, int error_code,
 
 #if !defined(CONFIG_USER_ONLY)
 static void handle_even_inj(int intno, int is_int, int error_code,
-		int is_hw, int rm)
+    int is_hw, int rm)
 {
     uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
     if (!(event_inj & SVM_EVTINJ_VALID)) {
-	    int type;
-	    if (is_int)
-		    type = SVM_EVTINJ_TYPE_SOFT;
-	    else
-		    type = SVM_EVTINJ_TYPE_EXEPT;
-	    event_inj = intno | type | SVM_EVTINJ_VALID;
-	    if (!rm && exeption_has_error_code(intno)) {
-		    event_inj |= SVM_EVTINJ_VALID_ERR;
-		    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err), error_code);
-	    }
-	    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj);
+        int type;
+        if (is_int)
+            type = SVM_EVTINJ_TYPE_SOFT;
+        else
+            type = SVM_EVTINJ_TYPE_EXEPT;
+        event_inj = intno | type | SVM_EVTINJ_VALID;
+        if (!rm && exeption_has_error_code(intno)) {
+            event_inj |= SVM_EVTINJ_VALID_ERR;
+            stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err), error_code);
+        }
+        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj);
     }
 }
 #endif
@@ -1214,20 +1255,21 @@ static void handle_even_inj(int intno, int is_int, int error_code,
  * instruction. It is only relevant if is_int is TRUE.
  */
 void do_interrupt(int intno, int is_int, int error_code,
-                  target_ulong next_eip, int is_hw)
+    target_ulong next_eip, int is_hw)
 {
     if (qemu_loglevel_mask(CPU_LOG_INT)) {
         if ((env->cr[0] & CR0_PE_MASK)) {
             static int count;
             qemu_log("%6d: v=%02x e=%04x i=%d cpl=%d IP=%04x:" TARGET_FMT_lx " pc=" TARGET_FMT_lx " SP=%04x:" TARGET_FMT_lx,
-                    count, intno, error_code, is_int,
-                    env->hflags & HF_CPL_MASK,
-                    env->segs[R_CS].selector, EIP,
-                    (int)env->segs[R_CS].base + EIP,
-                    env->segs[R_SS].selector, ESP);
+                count, intno, error_code, is_int,
+                env->hflags & HF_CPL_MASK,
+                env->segs[R_CS].selector, EIP,
+                (int)env->segs[R_CS].base + EIP,
+                env->segs[R_SS].selector, ESP);
             if (intno == 0x0e) {
                 qemu_log(" CR2=" TARGET_FMT_lx, env->cr[2]);
-            } else {
+            }
+            else {
                 qemu_log(" EAX=" TARGET_FMT_lx, EAX);
             }
             qemu_log("\n");
@@ -1238,7 +1280,7 @@ void do_interrupt(int intno, int is_int, int error_code,
                 target_ulong ptr;
                 qemu_log("       code=");
                 ptr = env->segs[R_CS].base + env->eip;
-                for(i = 0; i < 16; i++) {
+                for (i = 0; i < 16; i++) {
                     qemu_log(" %02x", ldub(ptr + i));
                 }
                 qemu_log("\n");
@@ -1255,12 +1297,14 @@ void do_interrupt(int intno, int is_int, int error_code,
 #ifdef TARGET_X86_64
         if (env->hflags & HF_LMA_MASK) {
             do_interrupt64(intno, is_int, error_code, next_eip, is_hw);
-        } else
+        }
+        else
 #endif
         {
             do_interrupt_protected(intno, is_int, error_code, next_eip, is_hw);
         }
-    } else {
+    }
+    else {
 #if !defined(CONFIG_USER_ONLY)
         if (env->hflags & HF_SVMI_MASK)
             handle_even_inj(intno, is_int, error_code, is_hw, 1);
@@ -1270,8 +1314,8 @@ void do_interrupt(int intno, int is_int, int error_code,
 
 #if !defined(CONFIG_USER_ONLY)
     if (env->hflags & HF_SVMI_MASK) {
-	    uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
-	    stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
+        uint32_t event_inj = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj));
+        stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), event_inj & ~SVM_EVTINJ_VALID);
     }
 #endif
 }
@@ -1284,16 +1328,16 @@ void qemu_system_reset_request(void);
  * needed. It should only be called, if this is not an interrupt.
  * Returns the new exception number.
  */
-static int check_exception(int intno, int *error_code)
+static int check_exception(int intno, int* error_code)
 {
     int first_contributory = env->old_exception == 0 ||
-                              (env->old_exception >= 10 &&
-                               env->old_exception <= 13);
+        (env->old_exception >= 10 &&
+            env->old_exception <= 13);
     int second_contributory = intno == 0 ||
-                               (intno >= 10 && intno <= 13);
+        (intno >= 10 && intno <= 13);
 
     qemu_log_mask(CPU_LOG_INT, "check_exception old: 0x%x new 0x%x\n",
-                env->old_exception, intno);
+        env->old_exception, intno);
 
 #if !defined(CONFIG_USER_ONLY)
     if (env->old_exception == EXCP08_DBLE) {
@@ -1328,12 +1372,13 @@ static int check_exception(int intno, int *error_code)
  * is_int is TRUE.
  */
 static void QEMU_NORETURN raise_interrupt(int intno, int is_int, int error_code,
-                                          int next_eip_addend)
+    int next_eip_addend)
 {
     if (!is_int) {
         helper_svm_check_intercept_param(SVM_EXIT_EXCP_BASE + intno, error_code);
         intno = check_exception(intno, &error_code);
-    } else {
+    }
+    else {
         helper_svm_check_intercept_param(SVM_EXIT_SWINT, 0);
     }
 
@@ -1356,7 +1401,7 @@ void raise_exception(int exception_index)
     raise_interrupt(exception_index, 0, 0, 0);
 }
 
-void raise_exception_env(int exception_index, CPUState *nenv)
+void raise_exception_env(int exception_index, CPUState* nenv)
 {
     env = nenv;
     raise_exception(exception_index);
@@ -1384,7 +1429,7 @@ void helper_rsm(void)
 void do_smm_enter(void)
 {
     target_ulong sm_state;
-    SegmentCache *dt;
+    SegmentCache* dt;
     int i, offset;
 
     qemu_log_mask(CPU_LOG_INT, "SMM: enter\n");
@@ -1396,7 +1441,7 @@ void do_smm_enter(void)
     sm_state = env->smbase + 0x8000;
 
 #ifdef TARGET_X86_64
-    for(i = 0; i < 6; i++) {
+    for (i = 0; i < 6; i++) {
         dt = &env->segs[i];
         offset = 0x7e00 + i * 16;
         stw_phys(sm_state + offset, dt->selector);
@@ -1431,7 +1476,7 @@ void do_smm_enter(void)
     stq_phys(sm_state + 0x7fd0, EBP);
     stq_phys(sm_state + 0x7fc8, ESI);
     stq_phys(sm_state + 0x7fc0, EDI);
-    for(i = 8; i < 16; i++)
+    for (i = 8; i < 16; i++)
         stq_phys(sm_state + 0x7ff8 - i * 8, env->regs[i]);
     stq_phys(sm_state + 0x7f78, env->eip);
     stl_phys(sm_state + 0x7f70, compute_eflags());
@@ -1476,7 +1521,7 @@ void do_smm_enter(void)
     stl_phys(sm_state + 0x7f58, env->idt.base);
     stl_phys(sm_state + 0x7f54, env->idt.limit);
 
-    for(i = 0; i < 6; i++) {
+    for (i = 0; i < 6; i++) {
         dt = &env->segs[i];
         if (i < 3)
             offset = 0x7f84 + i * 12;
@@ -1500,7 +1545,7 @@ void do_smm_enter(void)
     load_eflags(0, ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
     env->eip = 0x00008000;
     cpu_x86_load_seg_cache(env, R_CS, (env->smbase >> 4) & 0xffff, env->smbase,
-                           0xffffffff, 0);
+        0xffffffff, 0);
     cpu_x86_load_seg_cache(env, R_DS, 0, 0, 0xffffffff, 0);
     cpu_x86_load_seg_cache(env, R_ES, 0, 0, 0xffffffff, 0);
     cpu_x86_load_seg_cache(env, R_SS, 0, 0, 0xffffffff, 0);
@@ -1508,7 +1553,7 @@ void do_smm_enter(void)
     cpu_x86_load_seg_cache(env, R_GS, 0, 0, 0xffffffff, 0);
 
     cpu_x86_update_cr0(env,
-                       env->cr[0] & ~(CR0_PE_MASK | CR0_EM_MASK | CR0_TS_MASK | CR0_PG_MASK));
+        env->cr[0] & ~(CR0_PE_MASK | CR0_EM_MASK | CR0_TS_MASK | CR0_PG_MASK));
     cpu_x86_update_cr4(env, 0);
     env->dr[7] = 0x00000400;
     CC_OP = CC_OP_EFLAGS;
@@ -1524,13 +1569,13 @@ void helper_rsm(void)
 #ifdef TARGET_X86_64
     cpu_load_efer(env, ldq_phys(sm_state + 0x7ed0));
 
-    for(i = 0; i < 6; i++) {
+    for (i = 0; i < 6; i++) {
         offset = 0x7e00 + i * 16;
         cpu_x86_load_seg_cache(env, i,
-                               lduw_phys(sm_state + offset),
-                               ldq_phys(sm_state + offset + 8),
-                               ldl_phys(sm_state + offset + 4),
-                               (lduw_phys(sm_state + offset + 2) & 0xf0ff) << 8);
+            lduw_phys(sm_state + offset),
+            ldq_phys(sm_state + offset + 8),
+            ldl_phys(sm_state + offset + 4),
+            (lduw_phys(sm_state + offset + 2) & 0xf0ff) << 8);
     }
 
     env->gdt.base = ldq_phys(sm_state + 0x7e68);
@@ -1557,11 +1602,11 @@ void helper_rsm(void)
     EBP = ldq_phys(sm_state + 0x7fd0);
     ESI = ldq_phys(sm_state + 0x7fc8);
     EDI = ldq_phys(sm_state + 0x7fc0);
-    for(i = 8; i < 16; i++)
+    for (i = 8; i < 16; i++)
         env->regs[i] = ldq_phys(sm_state + 0x7ff8 - i * 8);
     env->eip = ldq_phys(sm_state + 0x7f78);
     load_eflags(ldl_phys(sm_state + 0x7f70),
-                ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
+        ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
     env->dr[6] = ldl_phys(sm_state + 0x7f68);
     env->dr[7] = ldl_phys(sm_state + 0x7f60);
 
@@ -1577,7 +1622,7 @@ void helper_rsm(void)
     cpu_x86_update_cr0(env, ldl_phys(sm_state + 0x7ffc));
     cpu_x86_update_cr3(env, ldl_phys(sm_state + 0x7ff8));
     load_eflags(ldl_phys(sm_state + 0x7ff4),
-                ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
+        ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
     env->eip = ldl_phys(sm_state + 0x7ff0);
     EDI = ldl_phys(sm_state + 0x7fec);
     ESI = ldl_phys(sm_state + 0x7fe8);
@@ -1606,16 +1651,16 @@ void helper_rsm(void)
     env->idt.base = ldl_phys(sm_state + 0x7f58);
     env->idt.limit = ldl_phys(sm_state + 0x7f54);
 
-    for(i = 0; i < 6; i++) {
+    for (i = 0; i < 6; i++) {
         if (i < 3)
             offset = 0x7f84 + i * 12;
         else
             offset = 0x7f2c + (i - 3) * 12;
         cpu_x86_load_seg_cache(env, i,
-                               ldl_phys(sm_state + 0x7fa8 + i * 4) & 0xffff,
-                               ldl_phys(sm_state + offset + 8),
-                               ldl_phys(sm_state + offset + 4),
-                               (ldl_phys(sm_state + offset) & 0xf0ff) << 8);
+            ldl_phys(sm_state + 0x7fa8 + i * 4) & 0xffff,
+            ldl_phys(sm_state + offset + 8),
+            ldl_phys(sm_state + offset + 4),
+            (ldl_phys(sm_state + offset) & 0xf0ff) << 8);
     }
     cpu_x86_update_cr4(env, ldl_phys(sm_state + 0x7f14));
 
@@ -1778,11 +1823,12 @@ void helper_aaa(void)
     ah = (EAX >> 8) & 0xff;
 
     icarry = (al > 0xf9);
-    if (((al & 0x0f) > 9 ) || af) {
+    if (((al & 0x0f) > 9) || af) {
         al = (al + 6) & 0x0f;
         ah = (ah + 1 + icarry) & 0xff;
         eflags |= CC_C | CC_A;
-    } else {
+    }
+    else {
         eflags &= ~(CC_C | CC_A);
         al &= 0x0f;
     }
@@ -1802,11 +1848,12 @@ void helper_aas(void)
     ah = (EAX >> 8) & 0xff;
 
     icarry = (al < 6);
-    if (((al & 0x0f) > 9 ) || af) {
+    if (((al & 0x0f) > 9) || af) {
         al = (al - 6) & 0x0f;
         ah = (ah - 1 - icarry) & 0xff;
         eflags |= CC_C | CC_A;
-    } else {
+    }
+    else {
         eflags &= ~(CC_C | CC_A);
         al &= 0x0f;
     }
@@ -1825,7 +1872,7 @@ void helper_daa(void)
     al = EAX & 0xff;
 
     eflags = 0;
-    if (((al & 0x0f) > 9 ) || af) {
+    if (((al & 0x0f) > 9) || af) {
         al = (al + 6) & 0xff;
         eflags |= CC_A;
     }
@@ -1853,7 +1900,7 @@ void helper_das(void)
 
     eflags = 0;
     al1 = al;
-    if (((al & 0x0f) > 9 ) || af) {
+    if (((al & 0x0f) > 9) || af) {
         eflags |= CC_A;
         if (al < 6 || cf)
             eflags |= CC_C;
@@ -1890,9 +1937,10 @@ void helper_cmpxchg8b(target_ulong a0)
     if (d == (((uint64_t)EDX << 32) | (uint32_t)EAX)) {
         stq(a0, ((uint64_t)ECX << 32) | (uint32_t)EBX);
         eflags |= CC_Z;
-    } else {
+    }
+    else {
         /* always do the store */
-        stq(a0, d); 
+        stq(a0, d);
         EDX = (uint32_t)(d >> 32);
         EAX = (uint32_t)d;
         eflags &= ~CC_Z;
@@ -1915,10 +1963,11 @@ void helper_cmpxchg16b(target_ulong a0)
         stq(a0, EBX);
         stq(a0 + 8, ECX);
         eflags |= CC_Z;
-    } else {
+    }
+    else {
         /* always do the store */
-        stq(a0, d0); 
-        stq(a0 + 8, d1); 
+        stq(a0, d0);
+        stq(a0 + 8, d1);
         EDX = d1;
         EAX = d0;
         eflags &= ~CC_Z;
@@ -1968,7 +2017,8 @@ void helper_enter_level(int level, int data32, target_ulong t1)
         }
         esp -= 4;
         stl(ssp + (esp & esp_mask), t1);
-    } else {
+    }
+    else {
         /* 16 bit */
         esp -= 2;
         while (--level) {
@@ -1998,7 +2048,8 @@ void helper_enter64_level(int level, int data64, target_ulong t1)
         }
         esp -= 8;
         stq(esp, t1);
-    } else {
+    }
+    else {
         /* 16 bit */
         esp -= 2;
         while (--level) {
@@ -2014,7 +2065,7 @@ void helper_enter64_level(int level, int data64, target_ulong t1)
 
 void helper_lldt(int selector)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     uint32_t e1, e2;
     int index, entry_limit;
     target_ulong ptr;
@@ -2024,7 +2075,8 @@ void helper_lldt(int selector)
         /* XXX: NULL selector case: invalid LDT */
         env->ldt.base = 0;
         env->ldt.limit = 0;
-    } else {
+    }
+    else {
         if (selector & 0x4)
             raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
         dt = &env->gdt;
@@ -2050,7 +2102,8 @@ void helper_lldt(int selector)
             e3 = ldl_kernel(ptr + 8);
             load_seg_cache_raw_dt(&env->ldt, e1, e2);
             env->ldt.base |= (target_ulong)e3 << 32;
-        } else
+        }
+        else
 #endif
         {
             load_seg_cache_raw_dt(&env->ldt, e1, e2);
@@ -2061,7 +2114,7 @@ void helper_lldt(int selector)
 
 void helper_ltr(int selector)
 {
-    SegmentCache *dt;
+    SegmentCache* dt;
     uint32_t e1, e2;
     int index, type, entry_limit;
     target_ulong ptr;
@@ -2072,7 +2125,8 @@ void helper_ltr(int selector)
         env->tr.base = 0;
         env->tr.limit = 0;
         env->tr.flags = 0;
-    } else {
+    }
+    else {
         if (selector & 0x4)
             raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
         dt = &env->gdt;
@@ -2103,7 +2157,8 @@ void helper_ltr(int selector)
                 raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
             load_seg_cache_raw_dt(&env->tr, e1, e2);
             env->tr.base |= (target_ulong)e3 << 32;
-        } else
+        }
+        else
 #endif
         {
             load_seg_cache_raw_dt(&env->tr, e1, e2);
@@ -2119,7 +2174,7 @@ void helper_load_seg(int seg_reg, int selector)
 {
     uint32_t e1, e2;
     int cpl, dpl, rpl;
-    SegmentCache *dt;
+    SegmentCache* dt;
     int index;
     target_ulong ptr;
 
@@ -2134,7 +2189,8 @@ void helper_load_seg(int seg_reg, int selector)
             )
             raise_exception_err(EXCP0D_GPF, 0);
         cpu_x86_load_seg_cache(env, seg_reg, selector, 0, 0, 0);
-    } else {
+    }
+    else {
 
         if (selector & 0x4)
             dt = &env->ldt;
@@ -2157,7 +2213,8 @@ void helper_load_seg(int seg_reg, int selector)
                 raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
             if (rpl != cpl || dpl != cpl)
                 raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
-        } else {
+        }
+        else {
             /* must be readable segment */
             if ((e2 & (DESC_CS_MASK | DESC_R_MASK)) == DESC_CS_MASK)
                 raise_exception_err(EXCP0D_GPF, selector & 0xfffc);
@@ -2183,19 +2240,19 @@ void helper_load_seg(int seg_reg, int selector)
         }
 
         cpu_x86_load_seg_cache(env, seg_reg, selector,
-                       get_seg_base(e1, e2),
-                       get_seg_limit(e1, e2),
-                       e2);
+            get_seg_base(e1, e2),
+            get_seg_limit(e1, e2),
+            e2);
 #if 0
         qemu_log("load_seg: sel=0x%04x base=0x%08lx limit=0x%08lx flags=%08x\n",
-                selector, (unsigned long)sc->base, sc->limit, sc->flags);
+            selector, (unsigned long)sc->base, sc->limit, sc->flags);
 #endif
     }
 }
 
 /* protected mode jump */
 void helper_ljmp_protected(int new_cs, target_ulong new_eip,
-                           int next_eip_addend)
+    int next_eip_addend)
 {
     int gate_cs, type;
     uint32_t e1, e2, cpl, dpl, rpl, limit;
@@ -2214,7 +2271,8 @@ void helper_ljmp_protected(int new_cs, target_ulong new_eip,
             /* conforming code segment */
             if (dpl > cpl)
                 raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
-        } else {
+        }
+        else {
             /* non conforming code segment */
             rpl = new_cs & 3;
             if (rpl > cpl)
@@ -2229,15 +2287,16 @@ void helper_ljmp_protected(int new_cs, target_ulong new_eip,
             !(env->hflags & HF_LMA_MASK) && !(e2 & DESC_L_MASK))
             raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
         cpu_x86_load_seg_cache(env, R_CS, (new_cs & 0xfffc) | cpl,
-                       get_seg_base(e1, e2), limit, e2);
+            get_seg_base(e1, e2), limit, e2);
         EIP = new_eip;
-    } else {
+    }
+    else {
         /* jump to call or task gate */
         dpl = (e2 >> DESC_DPL_SHIFT) & 3;
         rpl = new_cs & 3;
         cpl = env->hflags & HF_CPL_MASK;
         type = (e2 >> DESC_TYPE_SHIFT) & 0xf;
-        switch(type) {
+        switch (type) {
         case 1: /* 286 TSS */
         case 9: /* 386 TSS */
         case 5: /* task gate */
@@ -2262,7 +2321,7 @@ void helper_ljmp_protected(int new_cs, target_ulong new_eip,
             dpl = (e2 >> DESC_DPL_SHIFT) & 3;
             /* must be code segment */
             if (((e2 & (DESC_S_MASK | DESC_CS_MASK)) !=
-                 (DESC_S_MASK | DESC_CS_MASK)))
+                (DESC_S_MASK | DESC_CS_MASK)))
                 raise_exception_err(EXCP0D_GPF, gate_cs & 0xfffc);
             if (((e2 & DESC_C_MASK) && (dpl > cpl)) ||
                 (!(e2 & DESC_C_MASK) && (dpl != cpl)))
@@ -2273,7 +2332,7 @@ void helper_ljmp_protected(int new_cs, target_ulong new_eip,
             if (new_eip > limit)
                 raise_exception_err(EXCP0D_GPF, 0);
             cpu_x86_load_seg_cache(env, R_CS, (gate_cs & 0xfffc) | cpl,
-                                   get_seg_base(e1, e2), limit, e2);
+                get_seg_base(e1, e2), limit, e2);
             EIP = new_eip;
             break;
         default:
@@ -2285,7 +2344,7 @@ void helper_ljmp_protected(int new_cs, target_ulong new_eip,
 
 /* real mode call */
 void helper_lcall_real(int new_cs, target_ulong new_eip1,
-                       int shift, int next_eip)
+    int shift, int next_eip)
 {
     int new_eip;
     uint32_t esp, esp_mask;
@@ -2298,7 +2357,8 @@ void helper_lcall_real(int new_cs, target_ulong new_eip1,
     if (shift) {
         PUSHL(ssp, esp, esp_mask, env->segs[R_CS].selector);
         PUSHL(ssp, esp, esp_mask, next_eip);
-    } else {
+    }
+    else {
         PUSHW(ssp, esp, esp_mask, env->segs[R_CS].selector);
         PUSHW(ssp, esp, esp_mask, next_eip);
     }
@@ -2310,8 +2370,8 @@ void helper_lcall_real(int new_cs, target_ulong new_eip1,
 }
 
 /* protected mode call */
-void helper_lcall_protected(int new_cs, target_ulong new_eip, 
-                            int shift, int next_eip_addend)
+void helper_lcall_protected(int new_cs, target_ulong new_eip,
+    int shift, int next_eip_addend)
 {
     int new_stack, i;
     uint32_t e1, e2, cpl, dpl, rpl, selector, offset, param_count;
@@ -2336,7 +2396,8 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             /* conforming code segment */
             if (dpl > cpl)
                 raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
-        } else {
+        }
+        else {
             /* non conforming code segment */
             rpl = new_cs & 3;
             if (rpl > cpl)
@@ -2358,10 +2419,11 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             /* from this point, not restartable */
             ESP = rsp;
             cpu_x86_load_seg_cache(env, R_CS, (new_cs & 0xfffc) | cpl,
-                                   get_seg_base(e1, e2),
-                                   get_seg_limit(e1, e2), e2);
+                get_seg_base(e1, e2),
+                get_seg_limit(e1, e2), e2);
             EIP = new_eip;
-        } else
+        }
+        else
 #endif
         {
             sp = ESP;
@@ -2370,7 +2432,8 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             if (shift) {
                 PUSHL(ssp, sp, sp_mask, env->segs[R_CS].selector);
                 PUSHL(ssp, sp, sp_mask, next_eip);
-            } else {
+            }
+            else {
                 PUSHW(ssp, sp, sp_mask, env->segs[R_CS].selector);
                 PUSHW(ssp, sp, sp_mask, next_eip);
             }
@@ -2381,15 +2444,16 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             /* from this point, not restartable */
             SET_ESP(sp, sp_mask);
             cpu_x86_load_seg_cache(env, R_CS, (new_cs & 0xfffc) | cpl,
-                                   get_seg_base(e1, e2), limit, e2);
+                get_seg_base(e1, e2), limit, e2);
             EIP = new_eip;
         }
-    } else {
+    }
+    else {
         /* check gate type */
         type = (e2 >> DESC_TYPE_SHIFT) & 0x1f;
         dpl = (e2 >> DESC_DPL_SHIFT) & 3;
         rpl = new_cs & 3;
-        switch(type) {
+        switch (type) {
         case 1: /* available 286 TSS */
         case 9: /* available 386 TSS */
         case 5: /* task gate */
@@ -2411,7 +2475,7 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
         /* check valid bit */
         if (!(e2 & DESC_P_MASK))
-            raise_exception_err(EXCP0B_NOSEG,  new_cs & 0xfffc);
+            raise_exception_err(EXCP0B_NOSEG, new_cs & 0xfffc);
         selector = e1 >> 16;
         offset = (e2 & 0xffff0000) | (e1 & 0x0000ffff);
         param_count = e2 & 0x1f;
@@ -2432,7 +2496,7 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             /* to inner privilege */
             get_ss_esp_from_tss(&ss, &sp, dpl);
             LOG_PCALL("new ss:esp=%04x:%08x param_count=%d ESP=" TARGET_FMT_lx "\n",
-                        ss, sp, param_count, ESP);
+                ss, sp, param_count, ESP);
             if ((ss & 0xfffc) == 0)
                 raise_exception_err(EXCP0A_TSS, ss & 0xfffc);
             if ((ss & 3) != dpl)
@@ -2459,20 +2523,22 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
             if (shift) {
                 PUSHL(ssp, sp, sp_mask, env->segs[R_SS].selector);
                 PUSHL(ssp, sp, sp_mask, ESP);
-                for(i = param_count - 1; i >= 0; i--) {
+                for (i = param_count - 1; i >= 0; i--) {
                     val = ldl_kernel(old_ssp + ((ESP + i * 4) & old_sp_mask));
                     PUSHL(ssp, sp, sp_mask, val);
                 }
-            } else {
+            }
+            else {
                 PUSHW(ssp, sp, sp_mask, env->segs[R_SS].selector);
                 PUSHW(ssp, sp, sp_mask, ESP);
-                for(i = param_count - 1; i >= 0; i--) {
+                for (i = param_count - 1; i >= 0; i--) {
                     val = lduw_kernel(old_ssp + ((ESP + i * 2) & old_sp_mask));
                     PUSHW(ssp, sp, sp_mask, val);
                 }
             }
             new_stack = 1;
-        } else {
+        }
+        else {
             /* to same privilege */
             sp = ESP;
             sp_mask = get_sp_mask(env->segs[R_SS].flags);
@@ -2484,7 +2550,8 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
         if (shift) {
             PUSHL(ssp, sp, sp_mask, env->segs[R_CS].selector);
             PUSHL(ssp, sp, sp_mask, next_eip);
-        } else {
+        }
+        else {
             PUSHW(ssp, sp, sp_mask, env->segs[R_CS].selector);
             PUSHW(ssp, sp, sp_mask, next_eip);
         }
@@ -2494,16 +2561,16 @@ void helper_lcall_protected(int new_cs, target_ulong new_eip,
         if (new_stack) {
             ss = (ss & ~3) | dpl;
             cpu_x86_load_seg_cache(env, R_SS, ss,
-                                   ssp,
-                                   get_seg_limit(ss_e1, ss_e2),
-                                   ss_e2);
+                ssp,
+                get_seg_limit(ss_e1, ss_e2),
+                ss_e2);
         }
 
         selector = (selector & ~3) | dpl;
         cpu_x86_load_seg_cache(env, R_CS, selector,
-                       get_seg_base(e1, e2),
-                       get_seg_limit(e1, e2),
-                       e2);
+            get_seg_base(e1, e2),
+            get_seg_limit(e1, e2),
+            e2);
         cpu_x86_set_cpl(env, dpl);
         SET_ESP(sp, sp_mask);
         EIP = offset;
@@ -2526,7 +2593,8 @@ void helper_iret_real(int shift)
         POPL(ssp, sp, sp_mask, new_cs);
         new_cs &= 0xffff;
         POPL(ssp, sp, sp_mask, new_eflags);
-    } else {
+    }
+    else {
         /* 16 bits */
         POPW(ssp, sp, sp_mask, new_eip);
         POPW(ssp, sp, sp_mask, new_cs);
@@ -2594,27 +2662,29 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
         if (is_iret) {
             POPQ(sp, new_eflags);
         }
-    } else
-#endif
-    if (shift == 1) {
-        /* 32 bits */
-        POPL(ssp, sp, sp_mask, new_eip);
-        POPL(ssp, sp, sp_mask, new_cs);
-        new_cs &= 0xffff;
-        if (is_iret) {
-            POPL(ssp, sp, sp_mask, new_eflags);
-            if (new_eflags & VM_MASK)
-                goto return_to_vm86;
-        }
-    } else {
-        /* 16 bits */
-        POPW(ssp, sp, sp_mask, new_eip);
-        POPW(ssp, sp, sp_mask, new_cs);
-        if (is_iret)
-            POPW(ssp, sp, sp_mask, new_eflags);
     }
+    else
+#endif
+        if (shift == 1) {
+            /* 32 bits */
+            POPL(ssp, sp, sp_mask, new_eip);
+            POPL(ssp, sp, sp_mask, new_cs);
+            new_cs &= 0xffff;
+            if (is_iret) {
+                POPL(ssp, sp, sp_mask, new_eflags);
+                if (new_eflags & VM_MASK)
+                    goto return_to_vm86;
+            }
+        }
+        else {
+            /* 16 bits */
+            POPW(ssp, sp, sp_mask, new_eip);
+            POPW(ssp, sp, sp_mask, new_cs);
+            if (is_iret)
+                POPW(ssp, sp, sp_mask, new_eflags);
+        }
     LOG_PCALL("lret new %04x:" TARGET_FMT_lx " s=%d addend=0x%x\n",
-              new_cs, new_eip, shift, addend);
+        new_cs, new_eip, shift, addend);
     LOG_PCALL_STATE(env);
     if ((new_cs & 0xfffc) == 0)
         raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
@@ -2631,7 +2701,8 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
     if (e2 & DESC_C_MASK) {
         if (dpl > rpl)
             raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
-    } else {
+    }
+    else {
         if (dpl != rpl)
             raise_exception_err(EXCP0D_GPF, new_cs & 0xfffc);
     }
@@ -2640,50 +2711,55 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
 
     sp += addend;
     if (rpl == cpl && (!(env->hflags & HF_CS64_MASK) ||
-                       ((env->hflags & HF_CS64_MASK) && !is_iret))) {
+        ((env->hflags & HF_CS64_MASK) && !is_iret))) {
         /* return to same privilege level */
         cpu_x86_load_seg_cache(env, R_CS, new_cs,
-                       get_seg_base(e1, e2),
-                       get_seg_limit(e1, e2),
-                       e2);
-    } else {
+            get_seg_base(e1, e2),
+            get_seg_limit(e1, e2),
+            e2);
+    }
+    else {
         /* return to different privilege level */
 #ifdef TARGET_X86_64
         if (shift == 2) {
             POPQ(sp, new_esp);
             POPQ(sp, new_ss);
             new_ss &= 0xffff;
-        } else
-#endif
-        if (shift == 1) {
-            /* 32 bits */
-            POPL(ssp, sp, sp_mask, new_esp);
-            POPL(ssp, sp, sp_mask, new_ss);
-            new_ss &= 0xffff;
-        } else {
-            /* 16 bits */
-            POPW(ssp, sp, sp_mask, new_esp);
-            POPW(ssp, sp, sp_mask, new_ss);
         }
+        else
+#endif
+            if (shift == 1) {
+                /* 32 bits */
+                POPL(ssp, sp, sp_mask, new_esp);
+                POPL(ssp, sp, sp_mask, new_ss);
+                new_ss &= 0xffff;
+            }
+            else {
+                /* 16 bits */
+                POPW(ssp, sp, sp_mask, new_esp);
+                POPW(ssp, sp, sp_mask, new_ss);
+            }
         LOG_PCALL("new ss:esp=%04x:" TARGET_FMT_lx "\n",
-                    new_ss, new_esp);
+            new_ss, new_esp);
         if ((new_ss & 0xfffc) == 0) {
 #ifdef TARGET_X86_64
             /* NULL ss is allowed in long mode if cpl != 3*/
             /* XXX: test CS64 ? */
             if ((env->hflags & HF_LMA_MASK) && rpl != 3) {
                 cpu_x86_load_seg_cache(env, R_SS, new_ss,
-                                       0, 0xffffffff,
-                                       DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                                       DESC_S_MASK | (rpl << DESC_DPL_SHIFT) |
-                                       DESC_W_MASK | DESC_A_MASK);
+                    0, 0xffffffff,
+                    DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+                    DESC_S_MASK | (rpl << DESC_DPL_SHIFT) |
+                    DESC_W_MASK | DESC_A_MASK);
                 ss_e2 = DESC_B_MASK; /* XXX: should not be needed ? */
-            } else
+            }
+            else
 #endif
             {
                 raise_exception_err(EXCP0D_GPF, 0);
             }
-        } else {
+        }
+        else {
             if ((new_ss & 3) != rpl)
                 raise_exception_err(EXCP0D_GPF, new_ss & 0xfffc);
             if (load_segment(&ss_e1, &ss_e2, new_ss) != 0)
@@ -2698,15 +2774,15 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
             if (!(ss_e2 & DESC_P_MASK))
                 raise_exception_err(EXCP0B_NOSEG, new_ss & 0xfffc);
             cpu_x86_load_seg_cache(env, R_SS, new_ss,
-                                   get_seg_base(ss_e1, ss_e2),
-                                   get_seg_limit(ss_e1, ss_e2),
-                                   ss_e2);
+                get_seg_base(ss_e1, ss_e2),
+                get_seg_limit(ss_e1, ss_e2),
+                ss_e2);
         }
 
         cpu_x86_load_seg_cache(env, R_CS, new_cs,
-                       get_seg_base(e1, e2),
-                       get_seg_limit(e1, e2),
-                       e2);
+            get_seg_base(e1, e2),
+            get_seg_limit(e1, e2),
+            e2);
         cpu_x86_set_cpl(env, rpl);
         sp = new_esp;
 #ifdef TARGET_X86_64
@@ -2740,7 +2816,7 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
     }
     return;
 
- return_to_vm86:
+return_to_vm86:
     POPL(ssp, sp, sp_mask, new_esp);
     POPL(ssp, sp, sp_mask, new_ss);
     POPL(ssp, sp, sp_mask, new_es);
@@ -2750,7 +2826,7 @@ static inline void helper_ret_protected(int shift, int is_iret, int addend)
 
     /* modify processor state */
     load_eflags(new_eflags, TF_MASK | AC_MASK | ID_MASK |
-                IF_MASK | IOPL_MASK | VM_MASK | NT_MASK | VIF_MASK | VIP_MASK);
+        IF_MASK | IOPL_MASK | VM_MASK | NT_MASK | VIF_MASK | VIP_MASK);
     load_seg_vm(R_CS, new_cs & 0xffff);
     cpu_x86_set_cpl(env, 3);
     load_seg_vm(R_SS, new_ss & 0xffff);
@@ -2784,7 +2860,8 @@ void helper_iret_protected(int shift, int next_eip)
         if (type != 3)
             raise_exception_err(EXCP0A_TSS, tss_selector & 0xfffc);
         switch_tss(tss_selector, e1, e2, SWITCH_TSS_IRET, next_eip);
-    } else {
+    }
+    else {
         helper_ret_protected(shift, 1, 0);
     }
     env->hflags2 &= ~HF2_NMI_MASK;
@@ -2806,24 +2883,25 @@ void helper_sysenter(void)
 #ifdef TARGET_X86_64
     if (env->hflags & HF_LMA_MASK) {
         cpu_x86_load_seg_cache(env, R_CS, env->sysenter_cs & 0xfffc,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
-    } else
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
+    }
+    else
 #endif
     {
         cpu_x86_load_seg_cache(env, R_CS, env->sysenter_cs & 0xfffc,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
     }
     cpu_x86_load_seg_cache(env, R_SS, (env->sysenter_cs + 8) & 0xfffc,
-                           0, 0xffffffff,
-                           DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                           DESC_S_MASK |
-                           DESC_W_MASK | DESC_A_MASK);
+        0, 0xffffffff,
+        DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+        DESC_S_MASK |
+        DESC_W_MASK | DESC_A_MASK);
     ESP = env->sysenter_esp;
     EIP = env->sysenter_eip;
 }
@@ -2840,28 +2918,29 @@ void helper_sysexit(int dflag)
 #ifdef TARGET_X86_64
     if (dflag == 2) {
         cpu_x86_load_seg_cache(env, R_CS, ((env->sysenter_cs + 32) & 0xfffc) | 3,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK | DESC_L_MASK);
         cpu_x86_load_seg_cache(env, R_SS, ((env->sysenter_cs + 40) & 0xfffc) | 3,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_W_MASK | DESC_A_MASK);
-    } else
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_W_MASK | DESC_A_MASK);
+    }
+    else
 #endif
     {
         cpu_x86_load_seg_cache(env, R_CS, ((env->sysenter_cs + 16) & 0xfffc) | 3,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_CS_MASK | DESC_R_MASK | DESC_A_MASK);
         cpu_x86_load_seg_cache(env, R_SS, ((env->sysenter_cs + 24) & 0xfffc) | 3,
-                               0, 0xffffffff,
-                               DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
-                               DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
-                               DESC_W_MASK | DESC_A_MASK);
+            0, 0xffffffff,
+            DESC_G_MASK | DESC_B_MASK | DESC_P_MASK |
+            DESC_S_MASK | (3 << DESC_DPL_SHIFT) |
+            DESC_W_MASK | DESC_A_MASK);
     }
     ESP = ECX;
     EIP = EDX;
@@ -2886,14 +2965,15 @@ target_ulong helper_read_crN(int reg)
     target_ulong val;
 
     helper_svm_check_intercept_param(SVM_EXIT_READ_CR0 + reg, 0);
-    switch(reg) {
+    switch (reg) {
     default:
         val = env->cr[reg];
         break;
     case 8:
         if (!(env->hflags2 & HF2_VINTR_MASK)) {
             val = cpu_get_apic_tpr(env->apic_state);
-        } else {
+        }
+        else {
             val = env->v_tpr;
         }
         break;
@@ -2904,7 +2984,7 @@ target_ulong helper_read_crN(int reg)
 void helper_write_crN(int reg, target_ulong t0)
 {
     helper_svm_check_intercept_param(SVM_EXIT_WRITE_CR0 + reg, 0);
-    switch(reg) {
+    switch (reg) {
     case 0:
         cpu_x86_update_cr0(env, t0);
         break;
@@ -2934,13 +3014,15 @@ void helper_movl_drN_T0(int reg, target_ulong t0)
         hw_breakpoint_remove(env, reg);
         env->dr[reg] = t0;
         hw_breakpoint_insert(env, reg);
-    } else if (reg == 7) {
+    }
+    else if (reg == 7) {
         for (i = 0; i < 4; i++)
             hw_breakpoint_remove(env, i);
         env->dr[7] = t0;
         for (i = 0; i < 4; i++)
             hw_breakpoint_insert(env, i);
-    } else
+    }
+    else
         env->dr[reg] = t0;
 }
 #endif
@@ -2991,7 +3073,7 @@ void helper_rdpmc(void)
         raise_exception(EXCP0D_GPF);
     }
     helper_svm_check_intercept_param(SVM_EXIT_RDPMC, 0);
-    
+
     /* currently unimplemented */
     raise_exception_err(EXCP06_ILLOP, 0);
 }
@@ -3013,7 +3095,7 @@ void helper_wrmsr(void)
 
     val = ((uint32_t)EAX) | ((uint64_t)((uint32_t)EDX) << 32);
 
-    switch((uint32_t)ECX) {
+    switch ((uint32_t)ECX) {
     case MSR_IA32_SYSENTER_CS:
         env->sysenter_cs = val & 0xffff;
         break;
@@ -3027,25 +3109,25 @@ void helper_wrmsr(void)
         cpu_set_apic_base(env->apic_state, val);
         break;
     case MSR_EFER:
-        {
-            uint64_t update_mask;
-            update_mask = 0;
-            if (env->cpuid_ext2_features & CPUID_EXT2_SYSCALL)
-                update_mask |= MSR_EFER_SCE;
-            if (env->cpuid_ext2_features & CPUID_EXT2_LM)
-                update_mask |= MSR_EFER_LME;
-            if (env->cpuid_ext2_features & CPUID_EXT2_FFXSR)
-                update_mask |= MSR_EFER_FFXSR;
-            if (env->cpuid_ext2_features & CPUID_EXT2_NX)
-                update_mask |= MSR_EFER_NXE;
-            if (env->cpuid_ext3_features & CPUID_EXT3_SVM)
-                update_mask |= MSR_EFER_SVME;
-            if (env->cpuid_ext2_features & CPUID_EXT2_FFXSR)
-                update_mask |= MSR_EFER_FFXSR;
-            cpu_load_efer(env, (env->efer & ~update_mask) |
-                          (val & update_mask));
-        }
-        break;
+    {
+        uint64_t update_mask;
+        update_mask = 0;
+        if (env->cpuid_ext2_features & CPUID_EXT2_SYSCALL)
+            update_mask |= MSR_EFER_SCE;
+        if (env->cpuid_ext2_features & CPUID_EXT2_LM)
+            update_mask |= MSR_EFER_LME;
+        if (env->cpuid_ext2_features & CPUID_EXT2_FFXSR)
+            update_mask |= MSR_EFER_FFXSR;
+        if (env->cpuid_ext2_features & CPUID_EXT2_NX)
+            update_mask |= MSR_EFER_NXE;
+        if (env->cpuid_ext3_features & CPUID_EXT3_SVM)
+            update_mask |= MSR_EFER_SVME;
+        if (env->cpuid_ext2_features & CPUID_EXT2_FFXSR)
+            update_mask |= MSR_EFER_FFXSR;
+        cpu_load_efer(env, (env->efer & ~update_mask) |
+            (val & update_mask));
+    }
+    break;
     case MSR_STAR:
         env->star = val;
         break;
@@ -3146,7 +3228,7 @@ void helper_rdmsr(void)
 
     helper_svm_check_intercept_param(SVM_EXIT_MSR, 0);
 
-    switch((uint32_t)ECX) {
+    switch ((uint32_t)ECX) {
     case MSR_IA32_SYSENTER_CS:
         val = env->sysenter_cs;
         break;
@@ -3293,13 +3375,15 @@ target_ulong helper_lsl(target_ulong selector1)
     if (e2 & DESC_S_MASK) {
         if ((e2 & DESC_CS_MASK) && (e2 & DESC_C_MASK)) {
             /* conforming */
-        } else {
+        }
+        else {
             if (dpl < cpl || dpl < rpl)
                 goto fail;
         }
-    } else {
+    }
+    else {
         type = (e2 >> DESC_TYPE_SHIFT) & 0xf;
-        switch(type) {
+        switch (type) {
         case 1:
         case 2:
         case 3:
@@ -3337,13 +3421,15 @@ target_ulong helper_lar(target_ulong selector1)
     if (e2 & DESC_S_MASK) {
         if ((e2 & DESC_CS_MASK) && (e2 & DESC_C_MASK)) {
             /* conforming */
-        } else {
+        }
+        else {
             if (dpl < cpl || dpl < rpl)
                 goto fail;
         }
-    } else {
+    }
+    else {
         type = (e2 >> DESC_TYPE_SHIFT) & 0xf;
-        switch(type) {
+        switch (type) {
         case 1:
         case 2:
         case 3:
@@ -3389,7 +3475,8 @@ void helper_verr(target_ulong selector1)
             if (dpl < cpl || dpl < rpl)
                 goto fail;
         }
-    } else {
+    }
+    else {
         if (dpl < cpl || dpl < rpl) {
         fail:
             CC_SRC = eflags & ~CC_Z;
@@ -3417,7 +3504,8 @@ void helper_verw(target_ulong selector1)
     cpl = env->hflags & HF_CPL_MASK;
     if (e2 & DESC_CS_MASK) {
         goto fail;
-    } else {
+    }
+    else {
         if (dpl < cpl || dpl < rpl)
             goto fail;
         if (!(e2 & DESC_W_MASK)) {
@@ -3440,9 +3528,15 @@ static void fpu_set_exception(int mask)
 
 static inline CPU86_LDouble helper_fdiv(CPU86_LDouble a, CPU86_LDouble b)
 {
+#ifndef _MSC_VER
     if (b == 0.0)
         fpu_set_exception(FPUS_ZE);
     return a / b;
+#else
+    if (fx80_isequal_double(&b, 0.0))
+        fpu_set_exception(FPUS_ZE);
+    return fx80_div_fx80(&a, &b);
+#endif
 }
 
 static void fpu_raise_exception(void)
@@ -3667,7 +3761,7 @@ void helper_fxchg_ST0_STN(int st_index)
 
 /* FPU operations */
 
-static const int fcom_ccval[4] = {0x0100, 0x4000, 0x0000, 0x4500};
+static const int fcom_ccval[4] = { 0x0100, 0x4000, 0x0000, 0x4500 };
 
 void helper_fcom_ST0_FT0(void)
 {
@@ -3682,10 +3776,10 @@ void helper_fucom_ST0_FT0(void)
     int ret;
 
     ret = floatx_compare_quiet(ST0, FT0, &env->fp_status);
-    env->fpus = (env->fpus & ~0x4500) | fcom_ccval[ret+ 1];
+    env->fpus = (env->fpus & ~0x4500) | fcom_ccval[ret + 1];
 }
 
-static const int fcomi_ccval[4] = {CC_C, CC_Z, 0, CC_Z | CC_P | CC_C};
+static const int fcomi_ccval[4] = { CC_C, CC_Z, 0, CC_Z | CC_P | CC_C };
 
 void helper_fcomi_ST0_FT0(void)
 {
@@ -3711,22 +3805,40 @@ void helper_fucomi_ST0_FT0(void)
 
 void helper_fadd_ST0_FT0(void)
 {
+#ifndef _MSC_VER
     ST0 += FT0;
+#else
+    fx80_adde_fx80(&ST0, &FT0);
+#endif
 }
 
 void helper_fmul_ST0_FT0(void)
 {
+#ifndef _MSC_VER
     ST0 *= FT0;
+#else
+    fx80_mule_fx80(&ST0, &FT0);
+#endif
 }
 
 void helper_fsub_ST0_FT0(void)
 {
+#ifndef _MSC_VER
     ST0 -= FT0;
+#else
+    fx80_sube_fx80(&ST0, &FT0);
+#endif
 }
 
 void helper_fsubr_ST0_FT0(void)
 {
+#ifndef _MSC_VER
     ST0 = FT0 - ST0;
+#else
+    CPU86_LDouble temp;
+    temp = fx80_sub_fx80(&FT0, &ST0);
+    ST0 = temp;
+#endif
 }
 
 void helper_fdiv_ST0_FT0(void)
@@ -3743,36 +3855,53 @@ void helper_fdivr_ST0_FT0(void)
 
 void helper_fadd_STN_ST0(int st_index)
 {
+#ifndef _MSC_VER
     ST(st_index) += ST0;
+#else
+    fx80_adde_fx80(&ST(st_index), &ST0);
+#endif
 }
 
 void helper_fmul_STN_ST0(int st_index)
 {
+#ifndef _MSC_VER
     ST(st_index) *= ST0;
+#else
+    fx80_mule_fx80(&ST(st_index), &ST0);
+#endif
 }
 
 void helper_fsub_STN_ST0(int st_index)
 {
+#ifndef _MSC_VER
     ST(st_index) -= ST0;
+#else
+    fx80_sube_fx80(&ST(st_index), &ST0);
+#endif
 }
 
 void helper_fsubr_STN_ST0(int st_index)
 {
-    CPU86_LDouble *p;
+    CPU86_LDouble* p;
     p = &ST(st_index);
-    *p = ST0 - *p;
+
+#ifndef _MSC_VER
+    * p = ST0 - *p;
+#else
+    * p = fx80_sub_fx80(&ST0, p); // BUGBUG
+#endif
 }
 
 void helper_fdiv_STN_ST0(int st_index)
 {
-    CPU86_LDouble *p;
+    CPU86_LDouble* p;
     p = &ST(st_index);
     *p = helper_fdiv(*p, ST0);
 }
 
 void helper_fdivr_STN_ST0(int st_index)
 {
-    CPU86_LDouble *p;
+    CPU86_LDouble* p;
     p = &ST(st_index);
     *p = helper_fdiv(ST0, *p);
 }
@@ -3790,42 +3919,74 @@ void helper_fabs_ST0(void)
 
 void helper_fld1_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[1];
+#else
+    ST0 = fx80_from_longdouble(f15rk[1]);
+#endif
 }
 
 void helper_fldl2t_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[6];
+#else
+    ST0 = fx80_from_longdouble(f15rk[6]);
+#endif
 }
 
 void helper_fldl2e_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[5];
+#else
+    ST0 = fx80_from_longdouble(f15rk[5]);
+#endif
 }
 
 void helper_fldpi_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[2];
+#else
+    ST0 = fx80_from_longdouble(f15rk[2]);
+#endif
 }
 
 void helper_fldlg2_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[3];
+#else
+    ST0 = fx80_from_longdouble(f15rk[3]);
+#endif
 }
 
 void helper_fldln2_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[4];
+#else
+    ST0 = fx80_from_longdouble(f15rk[4]);
+#endif
 }
 
 void helper_fldz_ST0(void)
 {
+#ifndef _MSC_VER
     ST0 = f15rk[0];
+#else
+    ST0 = fx80_from_longdouble(f15rk[0]);
+#endif
 }
 
 void helper_fldz_FT0(void)
 {
+#ifndef _MSC_VER
     FT0 = f15rk[0];
+#else
+    FT0 = fx80_from_longdouble(f15rk[0]);
+#endif
 }
 
 uint32_t helper_fnstsw(void)
@@ -3843,7 +4004,7 @@ static void update_fp_status(void)
     int rnd_type;
 
     /* set rounding mode */
-    switch(env->fpuc & RC_MASK) {
+    switch (env->fpuc & RC_MASK) {
     default:
     case RC_NEAR:
         rnd_type = float_round_nearest_even;
@@ -3860,7 +4021,7 @@ static void update_fp_status(void)
     }
     set_float_rounding_mode(rnd_type, &env->fp_status);
 #ifdef FLOATX80
-    switch((env->fpuc >> 8) & 3) {
+    switch ((env->fpuc >> 8) & 3) {
     case 0:
         rnd_type = 32;
         break;
@@ -3918,15 +4079,23 @@ void helper_fbld_ST0(target_ulong ptr)
     int i;
 
     val = 0;
-    for(i = 8; i >= 0; i--) {
+    for (i = 8; i >= 0; i--) {
         v = ldub(ptr + i);
         val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
     }
+#ifndef _MSC_VER
     tmp = val;
     if (ldub(ptr + 9) & 0x80)
         tmp = -tmp;
     fpush();
     ST0 = tmp;
+#else
+    tmp = fx80_from_int64(val);
+    if (ldub(ptr + 9) & 0x80)
+        tmp = fx80_chs(&tmp); // BUGBUG
+    fpush(); // adding in
+    ST0 = tmp;
+#endif
 }
 
 void helper_fbst_ST0(target_ulong ptr)
@@ -3941,7 +4110,8 @@ void helper_fbst_ST0(target_ulong ptr)
     if (val < 0) {
         stb(mem_end, 0x80);
         val = -val;
-    } else {
+    }
+    else {
         stb(mem_end, 0x00);
     }
     while (mem_ref < mem_end) {
@@ -3959,39 +4129,66 @@ void helper_fbst_ST0(target_ulong ptr)
 
 void helper_f2xm1(void)
 {
-    ST0 = pow(2.0,ST0) - 1.0;
+#ifndef _MSC_VER
+    ST0 = pow(2.0, ST0) - 1.0;
+#else
+    ST0 = fx80_from_longdouble(pow(2.0, fx80_to_longdouble(&ST0)) - 1.0);
+#endif
 }
 
 void helper_fyl2x(void)
 {
     CPU86_LDouble fptemp;
+#ifdef _MSC_VER
+    long double temp;
+#endif
 
     fptemp = ST0;
-    if (fptemp>0.0){
-        fptemp = log(fptemp)/log(2.0);	 /* log2(ST) */
+#ifndef _MSC_VER
+    if (fptemp > 0.0) {
+        fptemp = log(fptemp) / log(2.0);	 /* log2(ST) */
         ST1 *= fptemp;
+#else
+    if (fx80_isg_double(&fptemp, 0.0)) {
+        temp = fx80_to_longdouble(&fptemp);
+        fptemp = fx80_from_longdouble(log(temp) / log(2.0));
+        fx80_mule_fx80(&ST1, &fptemp);
+#endif
         fpop();
-    } else {
+    }
+    else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
-}
+    }
 
 void helper_fptan(void)
 {
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+#ifndef _MSC_VER
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+#else
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
+#endif
         env->fpus |= 0x400;
-    } else {
+    }
+    else {
+#ifndef _MSC_VER
         ST0 = tan(fptemp);
         fpush();
         ST0 = 1.0;
+#else
+        ST0 = fx80_tanl(&fptemp);
+        fpush();
+        ST0 = fx80_from_longdouble(1.0);
+#endif
+
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**52 only */
     }
-}
+    }
 
 void helper_fpatan(void)
 {
@@ -3999,7 +4196,11 @@ void helper_fpatan(void)
 
     fpsrcop = ST1;
     fptemp = ST0;
-    ST1 = atan2(fpsrcop,fptemp);
+#ifndef _MSC_VER
+    ST1 = atan2(fpsrcop, fptemp);
+#else
+    ST1 = fx80_atan2l(&fpsrcop, &fptemp);
+#endif
     fpop();
 }
 
@@ -4011,11 +4212,21 @@ void helper_fxtract(void)
     temp.d = ST0;
     expdif = EXPD(temp) - EXPBIAS;
     /*DP exponent bias*/
+#ifndef _MSC_VER
     ST0 = expdif;
+#else
+    ST0 = fx80_from_int32(expdif);
+#endif
+
     fpush();
     BIASEXPONENT(temp);
     ST0 = temp.d;
 }
+
+#ifdef _MSC_VER
+static unsigned int __qnan[] = { 0x7fc00001 };
+#define NAN (*((float *)__qnan))
+#endif
 
 void helper_fprem1(void)
 {
@@ -4024,8 +4235,18 @@ void helper_fprem1(void)
     int expdif;
     signed long long int q;
 
+#ifndef _MSC_VER
     if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
         ST0 = 0.0 / 0.0; /* NaN */
+#else
+    CPU86_LDouble temp, temp1;
+    temp1 = ST(1);
+    long double ldST1 = fx80_to_longdouble(&temp1);
+    temp = ST0;
+    long double ldST0 = fx80_to_longdouble(&temp);
+    if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
+        ST0 = fx80_from_longdouble(NAN);
+#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
         return;
     }
@@ -4044,6 +4265,7 @@ void helper_fprem1(void)
     }
 
     if (expdif < 53) {
+#ifndef _MSC_VER
         dblq = fpsrcop / fptemp;
         /* round dblq towards nearest integer */
         dblq = rint(dblq);
@@ -4051,25 +4273,58 @@ void helper_fprem1(void)
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-           q = (signed long long int)(-dblq);
+            q = (signed long long int)(-dblq);
         else
-           q = (signed long long int)dblq;
+            q = (signed long long int)dblq;
+#else
+        dblq = fx80_div_fx80(&fpsrcop, &fptemp);
+        /* round dblq towards nearest integer */
+        dblq = fx80_from_longdouble(rint(fx80_to_longdouble(&dblq)));
+        temp = fx80_mul_x80(&fptemp, &dblq);
+        ST0 = fx80_sub_fx80(&fpsrcop, &temp);
 
+#ifndef _MSC_VER
+        if (dblq < 0.0)
+#else
+        if (fx80_to_longdouble(&dblq) < 0.0)
+#endif
+        {
+            temp = fx80_chs(&dblq);
+            q = fx80_to_int64(&temp);
+        }
+        else
+            q = fx80_to_int64(&dblq);
+#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
         env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
         env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-    } else {
+    }
+    else {
         env->fpus |= 0x400;  /* C2 <-- 1 */
+#ifndef _MSC_VER
         fptemp = pow(2.0, expdif - 50);
         fpsrcop = (ST0 / ST1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         ST0 -= (ST1 * fpsrcop * fptemp);
+
+
+#else
+        fptemp = fx80_from_longdouble(pow(2.0, expdif - 50));
+        temp = fx80_div_fx80(&ST0, &ST1);
+        fpsrcop = fx80_div_fx80(&temp, &fptemp);
+        /* fpsrcop = integer obtained by chopping */
+        fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
+            -(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
+        temp = fx80_mul_x80(&ST1, &fpsrcop);
+        temp1 = fx80_mul_x80(&temp, &fptemp);
+        fx80_sube_fx80(&ST0, &temp1);
+#endif
     }
-}
+    }
 
 void helper_fprem(void)
 {
@@ -4078,14 +4333,29 @@ void helper_fprem(void)
     int expdif;
     signed long long int q;
 
+#ifndef _MSC_VER
     if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
-       ST0 = 0.0 / 0.0; /* NaN */
-       env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-       return;
+        ST0 = 0.0 / 0.0; /* NaN */
+#else
+    CPU86_LDouble temp, temp1;
+    temp1 = ST(1);
+    long double ldST1 = fx80_to_longdouble(&temp1);
+    temp = ST0;
+    long double ldST0 = fx80_to_longdouble(&temp);
+    if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
+        ST0 = fx80_from_longdouble(NAN);
+#endif
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+        return;
     }
 
+#ifndef _MSC_VER
     fpsrcop = (CPU86_LDouble)ST0;
     fptemp = (CPU86_LDouble)ST1;
+#else
+    fpsrcop = ST0;
+    fptemp = ST1;
+#endif
     fpsrcop1.d = fpsrcop;
     fptemp1.d = fptemp;
     expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
@@ -4097,7 +4367,8 @@ void helper_fprem(void)
         return;
     }
 
-    if ( expdif < 53 ) {
+    if (expdif < 53) {
+#ifndef _MSC_VER
         dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
         /* round dblq towards zero */
         dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
@@ -4105,69 +4376,133 @@ void helper_fprem(void)
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-           q = (signed long long int)(-dblq);
+            q = (signed long long int)(-dblq);
         else
-           q = (signed long long int)dblq;
+            q = (signed long long int)dblq;
+#else
+        dblq = fx80_div_fx80(&fpsrcop/*ST0*/, &fptemp/*ST1*/);
+        /* round dblq towards zero */
+        dblq = fx80_from_longdouble((fx80_isl_double(&dblq, 0.0)) ? ceil(fx80_to_longdouble(&dblq)) : floor(fx80_to_longdouble(&dblq)));
+        temp = fx80_mul_x80(&fptemp, &dblq);
+        ST0 = fx80_sub_fx80(&fpsrcop/*ST0*/, &temp);
 
+        /* convert dblq to q by truncating towards zero */
+
+#ifndef _MSC_VER
+        if (dblq < 0.0)
+#else
+        if (fx80_to_longdouble(&dblq) < 0.0)
+#endif
+        {
+            temp = fx80_chs(&dblq);
+            q = fx80_to_int64(&temp);
+        }
+        else
+            q = fx80_to_int64(&dblq);
+#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
         env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
         env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-    } else {
+    }
+    else {
         int N = 32 + (expdif % 32); /* as per AMD docs */
         env->fpus |= 0x400;  /* C2 <-- 1 */
+#ifndef _MSC_VER
         fptemp = pow(2.0, (double)(expdif - N));
         fpsrcop = (ST0 / ST1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         ST0 -= (ST1 * fpsrcop * fptemp);
+#else
+        fptemp = fx80_from_longdouble(pow(2.0, (double)(expdif - N)));
+        temp = fx80_div_fx80(&ST0, &ST1);
+        fpsrcop = fx80_div_fx80(&temp, &fptemp);
+        /* fpsrcop = integer obtained by chopping */
+        fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
+            -(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
+        temp = fx80_mul_x80(&ST1, &fpsrcop);
+        temp1 = fx80_mul_x80(&temp, &fptemp);
+        fx80_sube_fx80(&ST0, &temp1);
+#endif
     }
-}
+    }
 
 void helper_fyl2xp1(void)
 {
     CPU86_LDouble fptemp;
+#ifdef _MSC_VER
+    CPU86_LDouble temp;
+#endif
 
     fptemp = ST0;
-    if ((fptemp+1.0)>0.0) {
-        fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
+#ifndef _MSC_VER
+    if ((fptemp + 1.0) > 0.0) {
+        fptemp = log(fptemp + 1.0) / log(2.0); /* log2(ST+1.0) */
         ST1 *= fptemp;
+#else
+    if ((fx80_to_longdouble(&fptemp) + 1.0) > 0.0) {
+        temp = fx80_add_double(&fptemp, 1.0);
+        fptemp = fx80_logl(&temp);
+        fx80_mule_fx80(&ST1, &fptemp);
+#endif
         fpop();
-    } else {
+    }
+    else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
-}
+    }
 
 void helper_fsqrt(void)
 {
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-    if (fptemp<0.0) {
+#ifndef _MSC_VER
+    if (fptemp < 0.0) {
+#else
+    if (fx80_to_longdouble(&fptemp) < 0.0) {
+#endif
         env->fpus &= (~0x4700);  /* (C3,C2,C1,C0) <-- 0000 */
         env->fpus |= 0x400;
     }
+#ifndef _MSC_VER
     ST0 = sqrt(fptemp);
-}
+#else
+    ST0 = fx80_sqrtl(&fptemp);
+#endif
+    }
 
 void helper_fsincos(void)
 {
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+#ifndef _MSC_VER
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+#else
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
+
+#endif
         env->fpus |= 0x400;
-    } else {
+    }
+    else {
+#ifndef _MSC_VER
         ST0 = sin(fptemp);
         fpush();
         ST0 = cos(fptemp);
+#else
+        ST0 = fx80_sinl(&fptemp);
+        fpush();
+        ST0 = fx80_cosl(&fptemp);
+#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**63 only */
     }
-}
+    }
 
 void helper_frndint(void)
 {
@@ -4176,7 +4511,11 @@ void helper_frndint(void)
 
 void helper_fscale(void)
 {
-    ST0 = ldexp (ST0, (int)(ST1));
+#ifndef _MSC_VER
+    ST0 = ldexp(ST0, (int)(ST1));
+#else
+    ST0 = fx80_ldexp(&(ST0), fx80_to_int32(&(ST1)));
+#endif
 }
 
 void helper_fsin(void)
@@ -4184,28 +4523,46 @@ void helper_fsin(void)
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+#ifndef _MSC_VER
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+#else
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
+#endif
         env->fpus |= 0x400;
-    } else {
+    }
+    else {
+#ifndef _MSC_VER
         ST0 = sin(fptemp);
+#else
+        ST0 = fx80_sinl(&fptemp);
+#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**53 only */
     }
-}
+    }
 
 void helper_fcos(void)
 {
     CPU86_LDouble fptemp;
 
     fptemp = ST0;
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+#ifndef _MSC_VER
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+#else
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
+#endif
         env->fpus |= 0x400;
-    } else {
+    }
+    else {
+#ifndef _MSC_VER
         ST0 = cos(fptemp);
+#else
+        ST0 = fx80_cosl(&fptemp);
+#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg5 < 2**63 only */
     }
-}
+    }
 
 void helper_fxam_ST0(void)
 {
@@ -4226,15 +4583,17 @@ void helper_fxam_ST0(void)
 #else
         if (MANTD(temp) == 0)
 #endif
-            env->fpus |=  0x500 /*Infinity*/;
+            env->fpus |= 0x500 /*Infinity*/;
         else
-            env->fpus |=  0x100 /*NaN*/;
-    } else if (expdif == 0) {
+            env->fpus |= 0x100 /*NaN*/;
+    }
+    else if (expdif == 0) {
         if (MANTD(temp) == 0)
-            env->fpus |=  0x4000 /*Zero*/;
+            env->fpus |= 0x4000 /*Zero*/;
         else
             env->fpus |= 0x4400 /*Denormal*/;
-    } else {
+    }
+    else {
         env->fpus |= 0x400;
     }
 }
@@ -4247,22 +4606,24 @@ void helper_fstenv(target_ulong ptr, int data32)
 
     fpus = (env->fpus & ~0x3800) | (env->fpstt & 0x7) << 11;
     fptag = 0;
-    for (i=7; i>=0; i--) {
-	fptag <<= 2;
-	if (env->fptags[i]) {
+    for (i = 7; i >= 0; i--) {
+        fptag <<= 2;
+        if (env->fptags[i]) {
             fptag |= 3;
-	} else {
+        }
+        else {
             tmp.d = env->fpregs[i].d;
             exp = EXPD(tmp);
             mant = MANTD(tmp);
             if (exp == 0 && mant == 0) {
                 /* zero */
-	        fptag |= 1;
-	    } else if (exp == 0 || exp == MAXEXPD
+                fptag |= 1;
+            }
+            else if (exp == 0 || exp == MAXEXPD
 #ifdef USE_X86LDOUBLE
-                       || (mant & (1LL << 63)) == 0
+                || (mant & (1LL << 63)) == 0
 #endif
-                       ) {
+                ) {
                 /* NaNs, infinity, denormal */
                 fptag |= 2;
             }
@@ -4277,7 +4638,8 @@ void helper_fstenv(target_ulong ptr, int data32)
         stl(ptr + 16, 0); /* fpcs */
         stl(ptr + 20, 0); /* fpoo */
         stl(ptr + 24, 0); /* fpos */
-    } else {
+    }
+    else {
         /* 16 bit */
         stw(ptr, env->fpuc);
         stw(ptr + 2, fpus);
@@ -4294,18 +4656,18 @@ void helper_fldenv(target_ulong ptr, int data32)
     int i, fpus, fptag;
 
     if (data32) {
-	env->fpuc = lduw(ptr);
+        env->fpuc = lduw(ptr);
         fpus = lduw(ptr + 4);
         fptag = lduw(ptr + 8);
     }
     else {
-	env->fpuc = lduw(ptr);
+        env->fpuc = lduw(ptr);
         fpus = lduw(ptr + 2);
         fptag = lduw(ptr + 4);
     }
     env->fpstt = (fpus >> 11) & 7;
     env->fpus = fpus & ~0x3800;
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         env->fptags[i] = ((fptag & 3) == 3);
         fptag >>= 2;
     }
@@ -4319,7 +4681,7 @@ void helper_fsave(target_ulong ptr, int data32)
     helper_fstenv(ptr, data32);
 
     ptr += (14 << data32);
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         tmp = ST(i);
         helper_fstt(tmp, ptr);
         ptr += 10;
@@ -4347,7 +4709,7 @@ void helper_frstor(target_ulong ptr, int data32)
     helper_fldenv(ptr, data32);
     ptr += (14 << data32);
 
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         tmp = helper_fldt(ptr);
         ST(i) = tmp;
         ptr += 10;
@@ -4367,7 +4729,7 @@ void helper_fxsave(target_ulong ptr, int data64)
 
     fpus = (env->fpus & ~0x3800) | (env->fpstt & 0x7) << 11;
     fptag = 0;
-    for(i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         fptag |= (env->fptags[i] << i);
     }
     stw(ptr, env->fpuc);
@@ -4377,7 +4739,8 @@ void helper_fxsave(target_ulong ptr, int data64)
     if (data64) {
         stq(ptr + 0x08, 0); /* rip */
         stq(ptr + 0x10, 0); /* rdp */
-    } else 
+    }
+    else
 #endif
     {
         stl(ptr + 0x08, 0); /* eip */
@@ -4387,7 +4750,7 @@ void helper_fxsave(target_ulong ptr, int data64)
     }
 
     addr = ptr + 0x20;
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         tmp = ST(i);
         helper_fstt(tmp, addr);
         addr += 16;
@@ -4404,9 +4767,9 @@ void helper_fxsave(target_ulong ptr, int data64)
         addr = ptr + 0xa0;
         /* Fast FXSAVE leaves out the XMM registers */
         if (!(env->efer & MSR_EFER_FFXSR)
-          || (env->hflags & HF_CPL_MASK)
-          || !(env->hflags & HF_LMA_MASK)) {
-            for(i = 0; i < nb_xmm_regs; i++) {
+            || (env->hflags & HF_CPL_MASK)
+            || !(env->hflags & HF_LMA_MASK)) {
+            for (i = 0; i < nb_xmm_regs; i++) {
                 stq(addr, env->xmm_regs[i].XMM_Q(0));
                 stq(addr + 8, env->xmm_regs[i].XMM_Q(1));
                 addr += 16;
@@ -4432,12 +4795,12 @@ void helper_fxrstor(target_ulong ptr, int data64)
     env->fpstt = (fpus >> 11) & 7;
     env->fpus = fpus & ~0x3800;
     fptag ^= 0xff;
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         env->fptags[i] = ((fptag >> i) & 1);
     }
 
     addr = ptr + 0x20;
-    for(i = 0;i < 8; i++) {
+    for (i = 0; i < 8; i++) {
         tmp = helper_fldt(addr);
         ST(i) = tmp;
         addr += 16;
@@ -4454,9 +4817,9 @@ void helper_fxrstor(target_ulong ptr, int data64)
         addr = ptr + 0xa0;
         /* Fast FXRESTORE leaves out the XMM registers */
         if (!(env->efer & MSR_EFER_FFXSR)
-          || (env->hflags & HF_CPL_MASK)
-          || !(env->hflags & HF_LMA_MASK)) {
-            for(i = 0; i < nb_xmm_regs; i++) {
+            || (env->hflags & HF_CPL_MASK)
+            || !(env->hflags & HF_LMA_MASK)) {
+            for (i = 0; i < nb_xmm_regs; i++) {
                 env->xmm_regs[i].XMM_Q(0) = ldq(addr);
                 env->xmm_regs[i].XMM_Q(1) = ldq(addr + 8);
                 addr += 16;
@@ -4467,7 +4830,7 @@ void helper_fxrstor(target_ulong ptr, int data64)
 
 #ifndef USE_X86LDOUBLE
 
-void cpu_get_fp80(uint64_t *pmant, uint16_t *pexp, CPU86_LDouble f)
+void cpu_get_fp80(uint64_t * pmant, uint16_t * pexp, CPU86_LDouble f)
 {
     CPU86_LDoubleU temp;
     int e;
@@ -4502,7 +4865,7 @@ CPU86_LDouble cpu_set_fp80(uint64_t mant, uint16_t upper)
 
 #else
 
-void cpu_get_fp80(uint64_t *pmant, uint16_t *pexp, CPU86_LDouble f)
+void cpu_get_fp80(uint64_t * pmant, uint16_t * pexp, CPU86_LDouble f)
 {
     CPU86_LDoubleU temp;
 
@@ -4525,7 +4888,7 @@ CPU86_LDouble cpu_set_fp80(uint64_t mant, uint16_t upper)
 
 //#define DEBUG_MULDIV
 
-static void add128(uint64_t *plow, uint64_t *phigh, uint64_t a, uint64_t b)
+static void add128(uint64_t * plow, uint64_t * phigh, uint64_t a, uint64_t b)
 {
     *plow += a;
     /* carry test */
@@ -4534,15 +4897,15 @@ static void add128(uint64_t *plow, uint64_t *phigh, uint64_t a, uint64_t b)
     *phigh += b;
 }
 
-static void neg128(uint64_t *plow, uint64_t *phigh)
+static void neg128(uint64_t * plow, uint64_t * phigh)
 {
-    *plow = ~ *plow;
-    *phigh = ~ *phigh;
+    *plow = ~*plow;
+    *phigh = ~*phigh;
     add128(plow, phigh, 1, 0);
 }
 
 /* return TRUE if overflow */
-static int div64(uint64_t *plow, uint64_t *phigh, uint64_t b)
+static int div64(uint64_t * plow, uint64_t * phigh, uint64_t b)
 {
     uint64_t q, r, a1, a0;
     int i, qb, ab;
@@ -4554,33 +4917,35 @@ static int div64(uint64_t *plow, uint64_t *phigh, uint64_t b)
         r = a0 % b;
         *plow = q;
         *phigh = r;
-    } else {
+    }
+    else {
         if (a1 >= b)
             return 1;
         /* XXX: use a better algorithm */
-        for(i = 0; i < 64; i++) {
+        for (i = 0; i < 64; i++) {
             ab = a1 >> 63;
             a1 = (a1 << 1) | (a0 >> 63);
             if (ab || a1 >= b) {
                 a1 -= b;
                 qb = 1;
-            } else {
+            }
+            else {
                 qb = 0;
             }
             a0 = (a0 << 1) | qb;
         }
 #if defined(DEBUG_MULDIV)
         printf("div: 0x%016" PRIx64 "%016" PRIx64 " / 0x%016" PRIx64 ": q=0x%016" PRIx64 " r=0x%016" PRIx64 "\n",
-               *phigh, *plow, b, a0, a1);
+            *phigh, *plow, b, a0, a1);
 #endif
-        *plow = a0;
+        * plow = a0;
         *phigh = a1;
     }
     return 0;
 }
 
 /* return TRUE if overflow */
-static int idiv64(uint64_t *plow, uint64_t *phigh, int64_t b)
+static int idiv64(uint64_t * plow, uint64_t * phigh, int64_t b)
 {
     int sa, sb;
     sa = ((int64_t)*phigh < 0);
@@ -4594,13 +4959,14 @@ static int idiv64(uint64_t *plow, uint64_t *phigh, int64_t b)
     if (sa ^ sb) {
         if (*plow > (1ULL << 63))
             return 1;
-        *plow = - *plow;
-    } else {
+        *plow = -*plow;
+    }
+    else {
         if (*plow >= (1ULL << 63))
             return 1;
     }
     if (sa)
-        *phigh = - *phigh;
+        *phigh = -*phigh;
     return 0;
 }
 
@@ -4677,7 +5043,7 @@ void helper_hlt(int next_eip_addend)
 {
     helper_svm_check_intercept_param(SVM_EXIT_HLT, 0);
     EIP += next_eip_addend;
-    
+
     do_hlt();
 }
 
@@ -4700,7 +5066,8 @@ void helper_mwait(int next_eip_addend)
     if (env->cpu_index != 0 || env->next_cpu != NULL) {
         /* more than one CPU: do not sleep because another CPU may
            wake this one */
-    } else {
+    }
+    else {
         do_hlt();
     }
 }
@@ -4797,6 +5164,10 @@ static float approx_rcp(float a)
 
 #define MMUSUFFIX _mmu
 
+#ifdef _MSC_VER
+#define __USE_FAKED_GETPC
+#endif
+
 #define SHIFT 0
 #include "softmmu_template.h"
 
@@ -4809,19 +5180,23 @@ static float approx_rcp(float a)
 #define SHIFT 3
 #include "softmmu_template.h"
 
+
+#ifdef _MSC_VER
+#undef __USE_FAKED_GETPC
 #endif
 
+#endif
 #if !defined(CONFIG_USER_ONLY)
 /* try to fill the TLB and return an exception if error. If retaddr is
    NULL, it means that the function was called in C code (i.e. not
    from generated code or from helper.c) */
-/* XXX: fix it to restore all registers */
-void tlb_fill(target_ulong addr, int is_write, int mmu_idx, void *retaddr)
+   /* XXX: fix it to restore all registers */
+void tlb_fill(target_ulong addr, int is_write, int mmu_idx, void* retaddr)
 {
-    TranslationBlock *tb;
+    TranslationBlock* tb;
     int ret;
     unsigned long pc;
-    CPUX86State *saved_env;
+    CPUX86State* saved_env;
 
     /* XXX: hack to restore env in all cases, even if not called from
        generated code */
@@ -4851,16 +5226,16 @@ void tlb_fill(target_ulong addr, int is_write, int mmu_idx, void *retaddr)
 #if defined(CONFIG_USER_ONLY)
 
 void helper_vmrun(int aflag, int next_eip_addend)
-{ 
+{
 }
-void helper_vmmcall(void) 
-{ 
+void helper_vmmcall(void)
+{
 }
 void helper_vmload(int aflag)
-{ 
+{
 }
 void helper_vmsave(int aflag)
-{ 
+{
 }
 void helper_stgi(void)
 {
@@ -4868,39 +5243,39 @@ void helper_stgi(void)
 void helper_clgi(void)
 {
 }
-void helper_skinit(void) 
-{ 
+void helper_skinit(void)
+{
 }
 void helper_invlpga(int aflag)
-{ 
+{
 }
-void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1) 
-{ 
+void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
+{
 }
 void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 {
 }
 
-void helper_svm_check_io(uint32_t port, uint32_t param, 
-                         uint32_t next_eip_addend)
+void helper_svm_check_io(uint32_t port, uint32_t param,
+    uint32_t next_eip_addend)
 {
 }
 #else
 
 static inline void svm_save_seg(target_phys_addr_t addr,
-                                const SegmentCache *sc)
+    const SegmentCache * sc)
 {
-    stw_phys(addr + offsetof(struct vmcb_seg, selector), 
-             sc->selector);
-    stq_phys(addr + offsetof(struct vmcb_seg, base), 
-             sc->base);
-    stl_phys(addr + offsetof(struct vmcb_seg, limit), 
-             sc->limit);
-    stw_phys(addr + offsetof(struct vmcb_seg, attrib), 
-             ((sc->flags >> 8) & 0xff) | ((sc->flags >> 12) & 0x0f00));
+    stw_phys(addr + offsetof(struct vmcb_seg, selector),
+        sc->selector);
+    stq_phys(addr + offsetof(struct vmcb_seg, base),
+        sc->base);
+    stl_phys(addr + offsetof(struct vmcb_seg, limit),
+        sc->limit);
+    stw_phys(addr + offsetof(struct vmcb_seg, attrib),
+        ((sc->flags >> 8) & 0xff) | ((sc->flags >> 12) & 0x0f00));
 }
-                                
-static inline void svm_load_seg(target_phys_addr_t addr, SegmentCache *sc)
+
+static inline void svm_load_seg(target_phys_addr_t addr, SegmentCache * sc)
 {
     unsigned int flags;
 
@@ -4911,13 +5286,13 @@ static inline void svm_load_seg(target_phys_addr_t addr, SegmentCache *sc)
     sc->flags = ((flags & 0xff) << 8) | ((flags & 0x0f00) << 12);
 }
 
-static inline void svm_load_seg_cache(target_phys_addr_t addr, 
-                                      CPUState *env, int seg_reg)
+static inline void svm_load_seg_cache(target_phys_addr_t addr,
+    CPUState * env, int seg_reg)
 {
-    SegmentCache sc1, *sc = &sc1;
+    SegmentCache sc1, * sc = &sc1;
     svm_load_seg(addr, sc);
     cpu_x86_load_seg_cache(env, seg_reg, sc->selector,
-                           sc->base, sc->limit, sc->flags);
+        sc->base, sc->limit, sc->flags);
 }
 
 void helper_vmrun(int aflag, int next_eip_addend)
@@ -4954,27 +5329,27 @@ void helper_vmrun(int aflag, int next_eip_addend)
     stq_phys(env->vm_hsave + offsetof(struct vmcb, save.efer), env->efer);
     stq_phys(env->vm_hsave + offsetof(struct vmcb, save.rflags), compute_eflags());
 
-    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.es), 
-                  &env->segs[R_ES]);
-    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.cs), 
-                 &env->segs[R_CS]);
-    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.ss), 
-                 &env->segs[R_SS]);
-    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.ds), 
-                 &env->segs[R_DS]);
+    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.es),
+        &env->segs[R_ES]);
+    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.cs),
+        &env->segs[R_CS]);
+    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.ss),
+        &env->segs[R_SS]);
+    svm_save_seg(env->vm_hsave + offsetof(struct vmcb, save.ds),
+        &env->segs[R_DS]);
 
     stq_phys(env->vm_hsave + offsetof(struct vmcb, save.rip),
-             EIP + next_eip_addend);
+        EIP + next_eip_addend);
     stq_phys(env->vm_hsave + offsetof(struct vmcb, save.rsp), ESP);
     stq_phys(env->vm_hsave + offsetof(struct vmcb, save.rax), EAX);
 
     /* load the interception bitmaps so we do not need to access the
        vmcb in svm mode */
-    env->intercept            = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept));
-    env->intercept_cr_read    = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_cr_read));
-    env->intercept_cr_write   = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_cr_write));
-    env->intercept_dr_read    = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_dr_read));
-    env->intercept_dr_write   = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_dr_write));
+    env->intercept = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept));
+    env->intercept_cr_read = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_cr_read));
+    env->intercept_cr_write = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_cr_write));
+    env->intercept_dr_read = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_dr_read));
+    env->intercept_dr_write = lduw_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_dr_write));
     env->intercept_exceptions = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.intercept_exceptions));
 
     /* enable intercepts */
@@ -4982,10 +5357,10 @@ void helper_vmrun(int aflag, int next_eip_addend)
 
     env->tsc_offset = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.tsc_offset));
 
-    env->gdt.base  = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.gdtr.base));
+    env->gdt.base = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.gdtr.base));
     env->gdt.limit = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, save.gdtr.limit));
 
-    env->idt.base  = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.idtr.base));
+    env->idt.base = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.idtr.base));
     env->idt.limit = ldl_phys(env->vm_vmcb + offsetof(struct vmcb, save.idtr.limit));
 
     /* clear exit_info_2 so we behave like the real hardware */
@@ -5004,21 +5379,21 @@ void helper_vmrun(int aflag, int next_eip_addend)
             env->hflags2 |= HF2_HIF_MASK;
     }
 
-    cpu_load_efer(env, 
-                  ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.efer)));
+    cpu_load_efer(env,
+        ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.efer)));
     env->eflags = 0;
     load_eflags(ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.rflags)),
-                ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
+        ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
     CC_OP = CC_OP_EFLAGS;
 
     svm_load_seg_cache(env->vm_vmcb + offsetof(struct vmcb, save.es),
-                       env, R_ES);
+        env, R_ES);
     svm_load_seg_cache(env->vm_vmcb + offsetof(struct vmcb, save.cs),
-                       env, R_CS);
+        env, R_CS);
     svm_load_seg_cache(env->vm_vmcb + offsetof(struct vmcb, save.ss),
-                       env, R_SS);
+        env, R_SS);
     svm_load_seg_cache(env->vm_vmcb + offsetof(struct vmcb, save.ds),
-                       env, R_DS);
+        env, R_DS);
 
     EIP = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, save.rip));
     env->eip = EIP;
@@ -5030,12 +5405,12 @@ void helper_vmrun(int aflag, int next_eip_addend)
 
     /* FIXME: guest state consistency checks */
 
-    switch(ldub_phys(env->vm_vmcb + offsetof(struct vmcb, control.tlb_ctl))) {
-        case TLB_CONTROL_DO_NOTHING:
-            break;
-        case TLB_CONTROL_FLUSH_ALL_ASID:
-            /* FIXME: this is not 100% correct but should work for now */
-            tlb_flush(env, 1);
+    switch (ldub_phys(env->vm_vmcb + offsetof(struct vmcb, control.tlb_ctl))) {
+    case TLB_CONTROL_DO_NOTHING:
+        break;
+    case TLB_CONTROL_FLUSH_ALL_ASID:
+        /* FIXME: this is not 100% correct but should work for now */
+        tlb_flush(env, 1);
         break;
     }
 
@@ -5056,38 +5431,38 @@ void helper_vmrun(int aflag, int next_eip_addend)
         /* FIXME: need to implement valid_err */
         switch (event_inj & SVM_EVTINJ_TYPE_MASK) {
         case SVM_EVTINJ_TYPE_INTR:
-                env->exception_index = vector;
-                env->error_code = event_inj_err;
-                env->exception_is_int = 0;
-                env->exception_next_eip = -1;
-                qemu_log_mask(CPU_LOG_TB_IN_ASM, "INTR");
-                /* XXX: is it always correct ? */
-                do_interrupt(vector, 0, 0, 0, 1);
-                break;
+            env->exception_index = vector;
+            env->error_code = event_inj_err;
+            env->exception_is_int = 0;
+            env->exception_next_eip = -1;
+            qemu_log_mask(CPU_LOG_TB_IN_ASM, "INTR");
+            /* XXX: is it always correct ? */
+            do_interrupt(vector, 0, 0, 0, 1);
+            break;
         case SVM_EVTINJ_TYPE_NMI:
-                env->exception_index = EXCP02_NMI;
-                env->error_code = event_inj_err;
-                env->exception_is_int = 0;
-                env->exception_next_eip = EIP;
-                qemu_log_mask(CPU_LOG_TB_IN_ASM, "NMI");
-                cpu_loop_exit();
-                break;
+            env->exception_index = EXCP02_NMI;
+            env->error_code = event_inj_err;
+            env->exception_is_int = 0;
+            env->exception_next_eip = EIP;
+            qemu_log_mask(CPU_LOG_TB_IN_ASM, "NMI");
+            cpu_loop_exit();
+            break;
         case SVM_EVTINJ_TYPE_EXEPT:
-                env->exception_index = vector;
-                env->error_code = event_inj_err;
-                env->exception_is_int = 0;
-                env->exception_next_eip = -1;
-                qemu_log_mask(CPU_LOG_TB_IN_ASM, "EXEPT");
-                cpu_loop_exit();
-                break;
+            env->exception_index = vector;
+            env->error_code = event_inj_err;
+            env->exception_is_int = 0;
+            env->exception_next_eip = -1;
+            qemu_log_mask(CPU_LOG_TB_IN_ASM, "EXEPT");
+            cpu_loop_exit();
+            break;
         case SVM_EVTINJ_TYPE_SOFT:
-                env->exception_index = vector;
-                env->error_code = event_inj_err;
-                env->exception_is_int = 1;
-                env->exception_next_eip = EIP;
-                qemu_log_mask(CPU_LOG_TB_IN_ASM, "SOFT");
-                cpu_loop_exit();
-                break;
+            env->exception_index = vector;
+            env->error_code = event_inj_err;
+            env->exception_is_int = 1;
+            env->exception_next_eip = EIP;
+            qemu_log_mask(CPU_LOG_TB_IN_ASM, "SOFT");
+            cpu_loop_exit();
+            break;
         }
         qemu_log_mask(CPU_LOG_TB_IN_ASM, " %#x %#x\n", env->exception_index, env->error_code);
     }
@@ -5110,17 +5485,17 @@ void helper_vmload(int aflag)
         addr = (uint32_t)EAX;
 
     qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmload! " TARGET_FMT_lx "\nFS: %016" PRIx64 " | " TARGET_FMT_lx "\n",
-                addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
-                env->segs[R_FS].base);
+        addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
+        env->segs[R_FS].base);
 
     svm_load_seg_cache(addr + offsetof(struct vmcb, save.fs),
-                       env, R_FS);
+        env, R_FS);
     svm_load_seg_cache(addr + offsetof(struct vmcb, save.gs),
-                       env, R_GS);
+        env, R_GS);
     svm_load_seg(addr + offsetof(struct vmcb, save.tr),
-                 &env->tr);
+        &env->tr);
     svm_load_seg(addr + offsetof(struct vmcb, save.ldtr),
-                 &env->ldt);
+        &env->ldt);
 
 #ifdef TARGET_X86_64
     env->kernelgsbase = ldq_phys(addr + offsetof(struct vmcb, save.kernel_gs_base));
@@ -5145,17 +5520,17 @@ void helper_vmsave(int aflag)
         addr = (uint32_t)EAX;
 
     qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmsave! " TARGET_FMT_lx "\nFS: %016" PRIx64 " | " TARGET_FMT_lx "\n",
-                addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
-                env->segs[R_FS].base);
+        addr, ldq_phys(addr + offsetof(struct vmcb, save.fs.base)),
+        env->segs[R_FS].base);
 
-    svm_save_seg(addr + offsetof(struct vmcb, save.fs), 
-                 &env->segs[R_FS]);
-    svm_save_seg(addr + offsetof(struct vmcb, save.gs), 
-                 &env->segs[R_GS]);
-    svm_save_seg(addr + offsetof(struct vmcb, save.tr), 
-                 &env->tr);
-    svm_save_seg(addr + offsetof(struct vmcb, save.ldtr), 
-                 &env->ldt);
+    svm_save_seg(addr + offsetof(struct vmcb, save.fs),
+        &env->segs[R_FS]);
+    svm_save_seg(addr + offsetof(struct vmcb, save.gs),
+        &env->segs[R_GS]);
+    svm_save_seg(addr + offsetof(struct vmcb, save.tr),
+        &env->tr);
+    svm_save_seg(addr + offsetof(struct vmcb, save.ldtr),
+        &env->ldt);
 
 #ifdef TARGET_X86_64
     stq_phys(addr + offsetof(struct vmcb, save.kernel_gs_base), env->kernelgsbase);
@@ -5192,7 +5567,7 @@ void helper_invlpga(int aflag)
 {
     target_ulong addr;
     helper_svm_check_intercept_param(SVM_EXIT_INVLPGA, 0);
-    
+
     if (aflag == 2)
         addr = EAX;
     else
@@ -5207,28 +5582,109 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
 {
     if (likely(!(env->hflags & HF_SVMI_MASK)))
         return;
-    switch(type) {
+    switch (type) {
+#ifndef _MSC_VER
     case SVM_EXIT_READ_CR0 ... SVM_EXIT_READ_CR0 + 8:
+#else
+    case SVM_EXIT_READ_CR0:
+    case SVM_EXIT_READ_CR0 + 1:
+    case SVM_EXIT_READ_CR0 + 2:
+    case SVM_EXIT_READ_CR0 + 3:
+    case SVM_EXIT_READ_CR0 + 4:
+    case SVM_EXIT_READ_CR0 + 5:
+    case SVM_EXIT_READ_CR0 + 6:
+    case SVM_EXIT_READ_CR0 + 7:
+    case SVM_EXIT_READ_CR0 + 8:
+#endif
         if (env->intercept_cr_read & (1 << (type - SVM_EXIT_READ_CR0))) {
             helper_vmexit(type, param);
         }
         break;
+#ifndef _MSC_VER
     case SVM_EXIT_WRITE_CR0 ... SVM_EXIT_WRITE_CR0 + 8:
+#else
+    case SVM_EXIT_WRITE_CR0:
+    case SVM_EXIT_WRITE_CR0 + 1:
+    case SVM_EXIT_WRITE_CR0 + 2:
+    case SVM_EXIT_WRITE_CR0 + 3:
+    case SVM_EXIT_WRITE_CR0 + 4:
+    case SVM_EXIT_WRITE_CR0 + 5:
+    case SVM_EXIT_WRITE_CR0 + 6:
+    case SVM_EXIT_WRITE_CR0 + 7:
+    case SVM_EXIT_WRITE_CR0 + 8:
+#endif
         if (env->intercept_cr_write & (1 << (type - SVM_EXIT_WRITE_CR0))) {
             helper_vmexit(type, param);
         }
         break;
+#ifndef _MSC_VER
     case SVM_EXIT_READ_DR0 ... SVM_EXIT_READ_DR0 + 7:
+#else
+    case SVM_EXIT_READ_DR0:
+    case SVM_EXIT_READ_DR0 + 1:
+    case SVM_EXIT_READ_DR0 + 2:
+    case SVM_EXIT_READ_DR0 + 3:
+    case SVM_EXIT_READ_DR0 + 4:
+    case SVM_EXIT_READ_DR0 + 5:
+    case SVM_EXIT_READ_DR0 + 6:
+    case SVM_EXIT_READ_DR0 + 7:
+#endif
         if (env->intercept_dr_read & (1 << (type - SVM_EXIT_READ_DR0))) {
             helper_vmexit(type, param);
         }
         break;
+#ifndef _MSC_VER
     case SVM_EXIT_WRITE_DR0 ... SVM_EXIT_WRITE_DR0 + 7:
+#else
+    case SVM_EXIT_WRITE_DR0:
+    case SVM_EXIT_WRITE_DR0 + 1:
+    case SVM_EXIT_WRITE_DR0 + 2:
+    case SVM_EXIT_WRITE_DR0 + 3:
+    case SVM_EXIT_WRITE_DR0 + 4:
+    case SVM_EXIT_WRITE_DR0 + 5:
+    case SVM_EXIT_WRITE_DR0 + 6:
+    case SVM_EXIT_WRITE_DR0 + 7:
+#endif
         if (env->intercept_dr_write & (1 << (type - SVM_EXIT_WRITE_DR0))) {
             helper_vmexit(type, param);
         }
         break;
+#ifndef _MSC_VER
     case SVM_EXIT_EXCP_BASE ... SVM_EXIT_EXCP_BASE + 31:
+#else
+    case SVM_EXIT_EXCP_BASE:
+    case SVM_EXIT_EXCP_BASE + 1:
+    case SVM_EXIT_EXCP_BASE + 2:
+    case SVM_EXIT_EXCP_BASE + 3:
+    case SVM_EXIT_EXCP_BASE + 4:
+    case SVM_EXIT_EXCP_BASE + 5:
+    case SVM_EXIT_EXCP_BASE + 6:
+    case SVM_EXIT_EXCP_BASE + 7:
+    case SVM_EXIT_EXCP_BASE + 8:
+    case SVM_EXIT_EXCP_BASE + 9:
+    case SVM_EXIT_EXCP_BASE + 10:
+    case SVM_EXIT_EXCP_BASE + 11:
+    case SVM_EXIT_EXCP_BASE + 12:
+    case SVM_EXIT_EXCP_BASE + 13:
+    case SVM_EXIT_EXCP_BASE + 14:
+    case SVM_EXIT_EXCP_BASE + 15:
+    case SVM_EXIT_EXCP_BASE + 16:
+    case SVM_EXIT_EXCP_BASE + 17:
+    case SVM_EXIT_EXCP_BASE + 18:
+    case SVM_EXIT_EXCP_BASE + 19:
+    case SVM_EXIT_EXCP_BASE + 20:
+    case SVM_EXIT_EXCP_BASE + 21:
+    case SVM_EXIT_EXCP_BASE + 22:
+    case SVM_EXIT_EXCP_BASE + 23:
+    case SVM_EXIT_EXCP_BASE + 24:
+    case SVM_EXIT_EXCP_BASE + 25:
+    case SVM_EXIT_EXCP_BASE + 26:
+    case SVM_EXIT_EXCP_BASE + 27:
+    case SVM_EXIT_EXCP_BASE + 28:
+    case SVM_EXIT_EXCP_BASE + 29:
+    case SVM_EXIT_EXCP_BASE + 30:
+    case SVM_EXIT_EXCP_BASE + 31:
+#endif
         if (env->intercept_exceptions & (1 << (type - SVM_EXIT_EXCP_BASE))) {
             helper_vmexit(type, param);
         }
@@ -5238,7 +5694,8 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
             /* FIXME: this should be read in at vmrun (faster this way?) */
             uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.msrpm_base_pa));
             uint32_t t0, t1;
-            switch((uint32_t)ECX) {
+#ifndef _MSC_VER
+            switch ((uint32_t)ECX) {
             case 0 ... 0x1fff:
                 t0 = (ECX * 2) % 8;
                 t1 = (ECX * 2) / 8;
@@ -5259,6 +5716,31 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
                 t1 = 0;
                 break;
             }
+#else
+            if ((uint32_t)ECX >= 0 && (uint32_t)ECX <= 0x1fff)
+            {
+                t0 = (ECX * 2) % 8;
+                t1 = (ECX * 2) / 8;
+            }
+            else if ((uint32_t)ECX >= 0xc0000000 && (uint32_t)ECX <= 0xc0001fff)
+            {
+                t0 = (8192 + ECX - 0xc0000000) * 2;
+                t1 = (t0 / 8);
+                t0 %= 8;
+            }
+            else if ((uint32_t)ECX >= 0xc0010000 && (uint32_t)ECX <= 0xc0011fff)
+            {
+                t0 = (16384 + ECX - 0xc0010000) * 2;
+                t1 = (t0 / 8);
+                t0 %= 8;
+            }
+            else
+            {
+                helper_vmexit(type, param);
+                t0 = 0;
+                t1 = 0;
+            }
+#endif
             if (ldub_phys(addr + t1) & ((1 << param) << t0))
                 helper_vmexit(type, param);
         }
@@ -5271,17 +5753,17 @@ void helper_svm_check_intercept_param(uint32_t type, uint64_t param)
     }
 }
 
-void helper_svm_check_io(uint32_t port, uint32_t param, 
-                         uint32_t next_eip_addend)
+void helper_svm_check_io(uint32_t port, uint32_t param,
+    uint32_t next_eip_addend)
 {
     if (env->intercept & (1ULL << (SVM_EXIT_IOIO - SVM_EXIT_INTR))) {
         /* FIXME: this should be read in at vmrun (faster this way?) */
         uint64_t addr = ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.iopm_base_pa));
         uint16_t mask = (1 << ((param >> 4) & 7)) - 1;
-        if(lduw_phys(addr + port / 8) & (mask << (port & 7))) {
+        if (lduw_phys(addr + port / 8) & (mask << (port & 7))) {
             /* next EIP */
-            stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2), 
-                     env->eip + next_eip_addend);
+            stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2),
+                env->eip + next_eip_addend);
             helper_vmexit(SVM_EXIT_IOIO, param | (port << 16));
         }
     }
@@ -5293,26 +5775,27 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     uint32_t int_ctl;
 
     qemu_log_mask(CPU_LOG_TB_IN_ASM, "vmexit(%08x, %016" PRIx64 ", %016" PRIx64 ", " TARGET_FMT_lx ")!\n",
-                exit_code, exit_info_1,
-                ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2)),
-                EIP);
+        exit_code, exit_info_1,
+        ldq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_2)),
+        EIP);
 
-    if(env->hflags & HF_INHIBIT_IRQ_MASK) {
+    if (env->hflags & HF_INHIBIT_IRQ_MASK) {
         stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.int_state), SVM_INTERRUPT_SHADOW_MASK);
         env->hflags &= ~HF_INHIBIT_IRQ_MASK;
-    } else {
+    }
+    else {
         stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.int_state), 0);
     }
 
     /* Save the VM state in the vmcb */
-    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.es), 
-                 &env->segs[R_ES]);
-    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.cs), 
-                 &env->segs[R_CS]);
-    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.ss), 
-                 &env->segs[R_SS]);
-    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.ds), 
-                 &env->segs[R_DS]);
+    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.es),
+        &env->segs[R_ES]);
+    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.cs),
+        &env->segs[R_CS]);
+    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.ss),
+        &env->segs[R_SS]);
+    svm_save_seg(env->vm_vmcb + offsetof(struct vmcb, save.ds),
+        &env->segs[R_DS]);
 
     stq_phys(env->vm_vmcb + offsetof(struct vmcb, save.gdtr.base), env->gdt.base);
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, save.gdtr.limit), env->gdt.limit);
@@ -5349,10 +5832,10 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     env->interrupt_request &= ~CPU_INTERRUPT_VIRQ;
     env->tsc_offset = 0;
 
-    env->gdt.base  = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.gdtr.base));
+    env->gdt.base = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.gdtr.base));
     env->gdt.limit = ldl_phys(env->vm_hsave + offsetof(struct vmcb, save.gdtr.limit));
 
-    env->idt.base  = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.idtr.base));
+    env->idt.base = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.idtr.base));
     env->idt.limit = ldl_phys(env->vm_hsave + offsetof(struct vmcb, save.idtr.limit));
 
     cpu_x86_update_cr0(env, ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.cr0)) | CR0_PE_MASK);
@@ -5360,21 +5843,21 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     cpu_x86_update_cr3(env, ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.cr3)));
     /* we need to set the efer after the crs so the hidden flags get
        set properly */
-    cpu_load_efer(env, 
-                  ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.efer)));
+    cpu_load_efer(env,
+        ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.efer)));
     env->eflags = 0;
     load_eflags(ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.rflags)),
-                ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
+        ~(CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C | DF_MASK));
     CC_OP = CC_OP_EFLAGS;
 
     svm_load_seg_cache(env->vm_hsave + offsetof(struct vmcb, save.es),
-                       env, R_ES);
+        env, R_ES);
     svm_load_seg_cache(env->vm_hsave + offsetof(struct vmcb, save.cs),
-                       env, R_CS);
+        env, R_CS);
     svm_load_seg_cache(env->vm_hsave + offsetof(struct vmcb, save.ss),
-                       env, R_SS);
+        env, R_SS);
     svm_load_seg_cache(env->vm_hsave + offsetof(struct vmcb, save.ds),
-                       env, R_DS);
+        env, R_DS);
 
     EIP = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.rip));
     ESP = ldq_phys(env->vm_hsave + offsetof(struct vmcb, save.rsp));
@@ -5389,9 +5872,9 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
     stq_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_info_1), exit_info_1);
 
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info),
-             ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj)));
+        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj)));
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.exit_int_info_err),
-             ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err)));
+        ldl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj_err)));
     stl_phys(env->vm_vmcb + offsetof(struct vmcb, control.event_inj), 0);
 
     env->hflags2 &= ~HF2_GIF_MASK;
@@ -5405,7 +5888,7 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
        from the page table indicated the host's CR3. If the PDPEs contain
        illegal state, the processor causes a shutdown. */
 
-    /* Forces CR0.PE = 1, RFLAGS.VM = 0. */
+       /* Forces CR0.PE = 1, RFLAGS.VM = 0. */
     env->cr[0] |= CR0_PE_MASK;
     env->eflags &= ~VM_MASK;
 
@@ -5417,7 +5900,7 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
        host's code segment or non-canonical (in the case of long mode), a
        #GP fault is delivered inside the host.) */
 
-    /* remove any pending exception */
+       /* remove any pending exception */
     env->exception_index = -1;
     env->error_code = 0;
     env->old_exception = -1;
@@ -5432,21 +5915,21 @@ void helper_vmexit(uint32_t exit_code, uint64_t exit_info_1)
 void helper_enter_mmx(void)
 {
     env->fpstt = 0;
-    *(uint32_t *)(env->fptags) = 0;
-    *(uint32_t *)(env->fptags + 4) = 0;
+    *(uint32_t*)(env->fptags) = 0;
+    *(uint32_t*)(env->fptags + 4) = 0;
 }
 
 void helper_emms(void)
 {
     /* set to empty state */
-    *(uint32_t *)(env->fptags) = 0x01010101;
-    *(uint32_t *)(env->fptags + 4) = 0x01010101;
+    *(uint32_t*)(env->fptags) = 0x01010101;
+    *(uint32_t*)(env->fptags + 4) = 0x01010101;
 }
 
 /* XXX: suppress */
-void helper_movq(void *d, void *s)
+void helper_movq(void* d, void* s)
 {
-    *(uint64_t *)d = *(uint64_t *)s;
+    *(uint64_t*)d = *(uint64_t*)s;
 }
 
 #define SHIFT 0
@@ -5513,7 +5996,7 @@ target_ulong helper_lzcnt(target_ulong t0, int wordsize)
 
 target_ulong helper_bsr(target_ulong t0)
 {
-	return helper_lzcnt(t0, 0);
+    return helper_lzcnt(t0, 0);
 }
 
 static int compute_all_eflags(void)
