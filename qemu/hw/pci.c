@@ -25,8 +25,6 @@
 #include "pci.h"
 #include "pci_bridge.h"
 #include "pci_internals.h"
-#include "msix.h"
-#include "msi.h"
 #include "monitor.h"
 #include "net.h"
 #include "sysemu.h"
@@ -43,6 +41,7 @@
 
 static void pcibus_dev_print(Monitor *mon, DeviceState *dev, int indent);
 static char *pcibus_get_dev_path(DeviceState *dev);
+static char *pcibus_get_fw_dev_path(DeviceState *dev);
 static int pcibus_reset(BusState *qbus);
 
 struct BusInfo pci_bus_info = {
@@ -50,6 +49,7 @@ struct BusInfo pci_bus_info = {
     .size       = sizeof(PCIBus),
     .print_dev  = pcibus_dev_print,
     .get_dev_path = pcibus_get_dev_path,
+    .get_fw_dev_path = pcibus_get_fw_dev_path,
     .reset      = pcibus_reset,
     .props      = (Property[]) {
         DEFINE_PROP_PCI_DEVFN("addr", PCIDevice, devfn, -1),
@@ -57,6 +57,8 @@ struct BusInfo pci_bus_info = {
         DEFINE_PROP_UINT32("rombar",  PCIDevice, rom_bar, 1),
         DEFINE_PROP_BIT("multifunction", PCIDevice, cap_present,
                         QEMU_PCI_CAP_MULTIFUNCTION_BITNR, false),
+        DEFINE_PROP_BIT("command_serr_enable", PCIDevice, cap_present,
+                        QEMU_PCI_CAP_SERR_BITNR, true),
         DEFINE_PROP_END_OF_LIST()
     }
 };
@@ -568,6 +570,9 @@ static void pci_init_wmask(PCIDevice *dev)
     pci_set_word(dev->wmask + PCI_COMMAND,
                  PCI_COMMAND_IO | PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER |
                  PCI_COMMAND_INTX_DISABLE);
+    if (dev->cap_present & QEMU_PCI_CAP_SERR) {
+        pci_word_test_and_set_mask(dev->wmask + PCI_COMMAND, PCI_COMMAND_SERR);
+    }
 
     memset(dev->wmask + PCI_CONFIG_HEADER_SIZE, 0xff,
            config_size - PCI_CONFIG_HEADER_SIZE);
@@ -1094,68 +1099,69 @@ static void pci_set_irq(void *opaque, int irq_num, int level)
     pci_change_irq_level(pci_dev, irq_num, change);
 }
 
-bool pci_msi_enabled(PCIDevice *dev)
-{
-    return msix_enabled(dev) || msi_enabled(dev);
-}
-
-void pci_msi_notify(PCIDevice *dev, unsigned int vector)
-{
-    if (msix_enabled(dev)) {
-        msix_notify(dev, vector);
-    } else if (msi_enabled(dev)) {
-        msi_notify(dev, vector);
-    } else {
-        /* MSI/MSI-X must be enabled */
-        abort();
-    }
-}
-
 /***********************************************************/
 /* monitor info on PCI */
 
 typedef struct {
     uint16_t class;
     const char *desc;
+    const char *fw_name;
+    uint16_t fw_ign_bits;
 } pci_class_desc;
 
 static const pci_class_desc pci_class_descriptions[] =
 {
-    { 0x0100, "SCSI controller"},
-    { 0x0101, "IDE controller"},
-    { 0x0102, "Floppy controller"},
-    { 0x0103, "IPI controller"},
-    { 0x0104, "RAID controller"},
+    { 0x0001, "VGA controller", "display"},
+    { 0x0100, "SCSI controller", "scsi"},
+    { 0x0101, "IDE controller", "ide"},
+    { 0x0102, "Floppy controller", "fdc"},
+    { 0x0103, "IPI controller", "ipi"},
+    { 0x0104, "RAID controller", "raid"},
     { 0x0106, "SATA controller"},
     { 0x0107, "SAS controller"},
     { 0x0180, "Storage controller"},
-    { 0x0200, "Ethernet controller"},
-    { 0x0201, "Token Ring controller"},
-    { 0x0202, "FDDI controller"},
-    { 0x0203, "ATM controller"},
+    { 0x0200, "Ethernet controller", "ethernet"},
+    { 0x0201, "Token Ring controller", "token-ring"},
+    { 0x0202, "FDDI controller", "fddi"},
+    { 0x0203, "ATM controller", "atm"},
     { 0x0280, "Network controller"},
-    { 0x0300, "VGA controller"},
+    { 0x0300, "VGA controller", "display", 0x00ff},
     { 0x0301, "XGA controller"},
     { 0x0302, "3D controller"},
     { 0x0380, "Display controller"},
-    { 0x0400, "Video controller"},
-    { 0x0401, "Audio controller"},
+    { 0x0400, "Video controller", "video"},
+    { 0x0401, "Audio controller", "sound"},
     { 0x0402, "Phone"},
     { 0x0480, "Multimedia controller"},
-    { 0x0500, "RAM controller"},
-    { 0x0501, "Flash controller"},
+    { 0x0500, "RAM controller", "memory"},
+    { 0x0501, "Flash controller", "flash"},
     { 0x0580, "Memory controller"},
-    { 0x0600, "Host bridge"},
-    { 0x0601, "ISA bridge"},
-    { 0x0602, "EISA bridge"},
-    { 0x0603, "MC bridge"},
-    { 0x0604, "PCI bridge"},
-    { 0x0605, "PCMCIA bridge"},
-    { 0x0606, "NUBUS bridge"},
-    { 0x0607, "CARDBUS bridge"},
+    { 0x0600, "Host bridge", "host"},
+    { 0x0601, "ISA bridge", "isa"},
+    { 0x0602, "EISA bridge", "eisa"},
+    { 0x0603, "MC bridge", "mca"},
+    { 0x0604, "PCI bridge", "pci"},
+    { 0x0605, "PCMCIA bridge", "pcmcia"},
+    { 0x0606, "NUBUS bridge", "nubus"},
+    { 0x0607, "CARDBUS bridge", "cardbus"},
     { 0x0608, "RACEWAY bridge"},
     { 0x0680, "Bridge"},
-    { 0x0c03, "USB controller"},
+    { 0x0700, "Serial port", "serial"},
+    { 0x0701, "Parallel port", "parallel"},
+    { 0x0800, "Interrupt controller", "interrupt-controller"},
+    { 0x0801, "DMA controller", "dma-controller"},
+    { 0x0802, "Timer", "timer"},
+    { 0x0803, "RTC", "rtc"},
+    { 0x0900, "Keyboard", "keyboard"},
+    { 0x0901, "Pen", "pen"},
+    { 0x0902, "Mouse", "mouse"},
+    { 0x0A00, "Dock station", "dock", 0x00ff},
+    { 0x0B00, "i386 cpu", "cpu", 0x00ff},
+    { 0x0c00, "Fireware contorller", "fireware"},
+    { 0x0c01, "Access bus controller", "access-bus"},
+    { 0x0c02, "SSA controller", "ssa"},
+    { 0x0c03, "USB controller", "usb"},
+    { 0x0c04, "Fibre channel controller", "fibre-channel"},
     { 0, NULL}
 };
 
@@ -1812,7 +1818,7 @@ static int pci_add_option_rom(PCIDevice *pdev, bool is_default_rom)
         if (class == 0x0300) {
             rom_add_vga(pdev->romfile);
         } else {
-            rom_add_option(pdev->romfile);
+            rom_add_option(pdev->romfile, -1);
         }
         return 0;
     }
@@ -1960,13 +1966,58 @@ static void pcibus_dev_print(Monitor *mon, DeviceState *dev, int indent)
     }
 }
 
+static char *pci_dev_fw_name(DeviceState *dev, char *buf, int len)
+{
+    PCIDevice *d = (PCIDevice *)dev;
+    const char *name = NULL;
+    const pci_class_desc *desc =  pci_class_descriptions;
+    int class = pci_get_word(d->config + PCI_CLASS_DEVICE);
+
+    while (desc->desc &&
+          (class & ~desc->fw_ign_bits) !=
+          (desc->class & ~desc->fw_ign_bits)) {
+        desc++;
+    }
+
+    if (desc->desc) {
+        name = desc->fw_name;
+    }
+
+    if (name) {
+        pstrcpy(buf, len, name);
+    } else {
+        snprintf(buf, len, "pci%04x,%04x",
+                 pci_get_word(d->config + PCI_VENDOR_ID),
+                 pci_get_word(d->config + PCI_DEVICE_ID));
+    }
+
+    return buf;
+}
+
+static char *pcibus_get_fw_dev_path(DeviceState *dev)
+{
+    PCIDevice *d = (PCIDevice *)dev;
+    char path[50], name[33];
+    int off;
+
+    off = snprintf(path, sizeof(path), "%s@%x",
+                   pci_dev_fw_name(dev, name, sizeof name),
+                   PCI_SLOT(d->devfn));
+    if (PCI_FUNC(d->devfn))
+        snprintf(path + off, sizeof(path) + off, ",%x", PCI_FUNC(d->devfn));
+    return strdup(path);
+}
+
 static char *pcibus_get_dev_path(DeviceState *dev)
 {
     PCIDevice *d = (PCIDevice *)dev;
     char path[16];
 
     snprintf(path, sizeof(path), "%04x:%02x:%02x.%x",
-             pci_find_domain(d->bus), d->config[PCI_SECONDARY_BUS],
+             pci_find_domain(d->bus),
+             0 /* TODO: need a persistent path for nested buses.
+                * Note: pci_bus_num(d->bus) is not right as it's guest
+                * assigned. */,
              PCI_SLOT(d->devfn), PCI_FUNC(d->devfn));
 
     return strdup(path);

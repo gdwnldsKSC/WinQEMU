@@ -1,6 +1,5 @@
 #include "config-host.h"
 #include "config-target.h"
-
 #define CONFIG_QEMU_PREFIX "D:/Images"
 #define CONFIG_QEMU_CONFDIR "D:/Images"
 #define TARGET_ARCH "i386"

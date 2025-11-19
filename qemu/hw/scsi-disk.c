@@ -424,7 +424,8 @@ static int scsi_disk_emulate_inquiry(SCSIRequest *req, uint8_t *outbuf)
             outbuf[buflen++] = 0x80; // unit serial number
             outbuf[buflen++] = 0x83; // device identification
             if (bdrv_get_type_hint(s->bs) != BDRV_TYPE_CDROM) {
-                outbuf[buflen++] = 0xb0; // block device characteristics
+                outbuf[buflen++] = 0xb0; // block limits
+                outbuf[buflen++] = 0xb2; // thin provisioning
             }
             outbuf[pages] = buflen - pages - 1; // number of pages
             break;
@@ -466,8 +467,10 @@ static int scsi_disk_emulate_inquiry(SCSIRequest *req, uint8_t *outbuf)
             buflen += id_len;
             break;
         }
-        case 0xb0: /* block device characteristics */
+        case 0xb0: /* block limits */
         {
+            unsigned int unmap_sectors =
+                    s->qdev.conf.discard_granularity / s->qdev.blocksize;
             unsigned int min_io_size =
                     s->qdev.conf.min_io_size / s->qdev.blocksize;
             unsigned int opt_io_size =
@@ -492,6 +495,21 @@ static int scsi_disk_emulate_inquiry(SCSIRequest *req, uint8_t *outbuf)
             outbuf[13] = (opt_io_size >> 16) & 0xff;
             outbuf[14] = (opt_io_size >> 8) & 0xff;
             outbuf[15] = opt_io_size & 0xff;
+
+            /* optimal unmap granularity */
+            outbuf[28] = (unmap_sectors >> 24) & 0xff;
+            outbuf[29] = (unmap_sectors >> 16) & 0xff;
+            outbuf[30] = (unmap_sectors >> 8) & 0xff;
+            outbuf[31] = unmap_sectors & 0xff;
+            break;
+        }
+        case 0xb2: /* thin provisioning */
+        {
+            outbuf[3] = buflen = 8;
+            outbuf[4] = 0;
+            outbuf[5] = 0x40; /* write same with unmap supported */
+            outbuf[6] = 0;
+            outbuf[7] = 0;
             break;
         }
         default:
@@ -959,6 +977,12 @@ static int scsi_disk_emulate_command(SCSIDiskReq *r, uint8_t *outbuf)
             outbuf[11] = 0;
             outbuf[12] = 0;
             outbuf[13] = get_physical_block_exp(&s->qdev.conf);
+
+            /* set TPE bit if the format supports discard */
+            if (s->qdev.conf.discard_granularity) {
+                outbuf[14] = 0x80;
+            }
+
             /* Protection, exponent and lowest lba field left blank. */
             buflen = req->cmd.xfer;
             break;
@@ -1123,6 +1147,31 @@ static int32_t scsi_send_command(SCSIDevice *d, uint32_t tag,
             goto illegal_lba;
         }
         break;
+    case WRITE_SAME_16:
+        len = r->req.cmd.xfer / d->blocksize;
+
+        DPRINTF("WRITE SAME(16) (sector %" PRId64 ", count %d)\n",
+                r->req.cmd.lba, len);
+
+        if (r->req.cmd.lba > s->max_lba) {
+            goto illegal_lba;
+        }
+
+        /*
+         * We only support WRITE SAME with the unmap bit set for now.
+         */
+        if (!(buf[1] & 0x8)) {
+            goto fail;
+        }
+
+        rc = bdrv_discard(s->bs, r->req.cmd.lba * s->cluster_size,
+                          len * s->cluster_size);
+        if (rc < 0) {
+            /* XXX: better error code ?*/
+            goto fail;
+        }
+
+        break;
     default:
         DPRINTF("Unknown SCSI command (%2.2x)\n", buf[0]);
     fail:
@@ -1225,11 +1274,13 @@ static int scsi_disk_initfn(SCSIDevice *dev)
     s->qdev.type = TYPE_DISK;
     qemu_add_vm_change_state_handler(scsi_dma_restart_cb, s);
     bdrv_set_removable(s->bs, is_cd);
+    add_boot_device_path(s->qdev.conf.bootindex, &dev->qdev, ",0");
     return 0;
 }
 
 static SCSIDeviceInfo scsi_disk_info = {
     .qdev.name    = "scsi-disk",
+    .qdev.fw_name = "disk",
     .qdev.desc    = "virtual scsi disk or cdrom",
     .qdev.size    = sizeof(SCSIDiskState),
     .qdev.reset   = scsi_disk_reset,

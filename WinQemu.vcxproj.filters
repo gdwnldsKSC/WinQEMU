@@ -40,9 +40,6 @@
     <Filter Include="qemu\target-i386">
       <UniqueIdentifier>{a711231a-59ed-40e5-b3d5-c1a13ae92b97}</UniqueIdentifier>
     </Filter>
-    <Filter Include="qemu\slirp">
-      <UniqueIdentifier>{afdae92a-ba13-4761-b9ce-184813dc9134}</UniqueIdentifier>
-    </Filter>
     <Filter Include="qemu\target-alpha">
       <UniqueIdentifier>{e72866bb-be52-4bbd-9998-3f723e3f759b}</UniqueIdentifier>
     </Filter>
@@ -84,6 +81,9 @@
     </Filter>
     <Filter Include="qemu\tcg\i386">
       <UniqueIdentifier>{c6a05c39-725b-430e-a929-ffe6eeb3ff98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\slirp">
+      <UniqueIdentifier>{afdae92a-ba13-4761-b9ce-184813dc9134}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -496,9 +496,6 @@
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\integratorcp.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\iommu.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\irq.c">
@@ -1689,6 +1686,30 @@
     <ClCompile Include="qemu\hw\xio3130_upstream.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\block\qed.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qed-check.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qed-cluster.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qed-gencb.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qed-l2-cache.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qed-table.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\rbd.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\ahci.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2602,6 +2623,12 @@
     </ClInclude>
     <ClInclude Include="qemu\qmp-commands.h">
       <Filter>resource</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\block\qed.h">
+      <Filter>qemu\block\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\block\rbd_types.h">
+      <Filter>qemu\block\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

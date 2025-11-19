@@ -243,11 +243,6 @@ static inline void spin_unlock(spinlock_t *lock)
 {
     resetlock(lock);
 }
-
-static inline int spin_trylock(spinlock_t *lock)
-{
-    return !testandset(lock);
-}
 #else
 static inline void spin_lock(spinlock_t *lock)
 {
@@ -255,11 +250,6 @@ static inline void spin_lock(spinlock_t *lock)
 
 static inline void spin_unlock(spinlock_t *lock)
 {
-}
-
-static inline int spin_trylock(spinlock_t *lock)
-{
-    return 1;
 }
 #endif
 

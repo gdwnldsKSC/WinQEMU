@@ -354,7 +354,7 @@ struct MUSBState {
     }
 
     usb_bus_new(&s->bus, NULL /* FIXME */);
-    usb_register_port(&s->bus, &s->port, s, 0, musb_attach);
+    usb_register_port(&s->bus, &s->port, s, 0, NULL, musb_attach);
 
     return s;
 }
