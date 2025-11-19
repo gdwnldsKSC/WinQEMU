@@ -178,33 +178,6 @@ typedef void(__cdecl* qemu_ctor_fn)(void);
     static void __attribute__((constructor)) fn(void)
 #endif
 
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#include <limits.h>
-
-static inline int ffsl(long x)
-{
-    unsigned long idx;
-
-    if (x == 0) {
-        return 0;
-    }
-
-#if ULONG_MAX == 0xffffffffUL
-    /* 32-bit unsigned long */
-    _BitScanForward(&idx, (unsigned long)x);
-    return (int)idx + 1;
-#elif ULONG_MAX == 0xffffffffffffffffUL
-    /* 64-bit unsigned long (not true on Windows/MSVC, but keeps this generic) */
-    _BitScanForward64(&idx, (unsigned long long)x);
-    return (int)idx + 1;
-#else
-#error Unsupported sizeof(unsigned long)
-#endif
-}
-#endif
-
 #endif // end MSVC sections
 
 /* FIXME: Remove NEED_CPU_H.  */

@@ -22,23 +22,8 @@
 /* Start of qemu specific additions.  Mostly this is stub definitions
    for things we don't care about.  */
 
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "dis-asm.h"
-
-#ifndef _MSC_VER
 #define ATTRIBUTE_UNUSED __attribute__((unused))
-#else
-#define ATTRIBUTE_UNUSED
-#endif
 #define ISSPACE(x) ((x) == ' ' || (x) == '\t' || (x) == '\n')
 
 #define ARM_EXT_V1	 0
@@ -1602,7 +1587,7 @@ arm_decode_bitfield (const char *ptr, unsigned long insn,
 }
 
 static void
-arm_decode_shift (long given, fprintf_ftype func, void *stream,
+arm_decode_shift (long given, fprintf_function func, void *stream,
 		  int print_shift)
 {
   func (stream, "%s", arm_regnames[given & 0xf]);
@@ -1648,7 +1633,7 @@ print_insn_coprocessor (bfd_vma pc, struct disassemble_info *info, long given,
 {
   const struct opcode32 *insn;
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
   unsigned long mask;
   unsigned long value;
   int cond;
@@ -2142,7 +2127,7 @@ static void
 print_arm_address (bfd_vma pc, struct disassemble_info *info, long given)
 {
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
 
   if (((given & 0x000f0000) == 0x000f0000)
       && ((given & 0x02000000) == 0))
@@ -2237,7 +2222,7 @@ print_insn_neon (struct disassemble_info *info, long given, bfd_boolean thumb)
 {
   const struct opcode32 *insn;
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
 
   if (thumb)
     {
@@ -2691,7 +2676,7 @@ print_insn_arm_internal (bfd_vma pc, struct disassemble_info *info, long given)
 {
   const struct opcode32 *insn;
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
 
   if (print_insn_coprocessor (pc, info, given, false))
     return;
@@ -3051,7 +3036,7 @@ print_insn_thumb16 (bfd_vma pc, struct disassemble_info *info, long given)
 {
   const struct opcode16 *insn;
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
 
   for (insn = thumb_opcodes; insn->assembler; insn++)
     if ((given & insn->mask) == insn->value)
@@ -3327,7 +3312,7 @@ print_insn_thumb32 (bfd_vma pc, struct disassemble_info *info, long given)
 {
   const struct opcode32 *insn;
   void *stream = info->stream;
-  fprintf_ftype func = info->fprintf_func;
+  fprintf_function func = info->fprintf_func;
 
   if (print_insn_coprocessor (pc, info, given, true))
     return;
