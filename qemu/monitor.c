@@ -78,10 +78,11 @@
  * 'l'          target long (32 or 64 bit)
  * 'M'          just like 'l', except in user mode the value is
  *              multiplied by 2^20 (think Mebibyte)
- * 'f'          double
- *              user mode accepts an optional G, g, M, m, K, k suffix,
- *              which multiplies the value by 2^30 for suffixes G and
- *              g, 2^20 for M and m, 2^10 for K and k
+ * 'o'          octets (aka bytes)
+ *              user mode accepts an optional T, t, G, g, M, m, K, k
+ *              suffix, which multiplies the value by 2^40 for
+ *              suffixes T and t, 2^30 for suffixes G and g, 2^20 for
+ *              M and m, 2^10 for K and k
  * 'T'          double
  *              user mode accepts an optional ms, us, ns suffix,
  *              which divides the value by 1e3, 1e6, 1e9, respectively
@@ -488,6 +489,44 @@ static int do_qmp_capabilities(Monitor *mon, const QDict *params,
     }
 
     return 0;
+}
+
+static int mon_set_cpu(int cpu_index);
+static void handle_user_command(Monitor *mon, const char *cmdline);
+
+static int do_hmp_passthrough(Monitor *mon, const QDict *params,
+                              QObject **ret_data)
+{
+    int ret = 0;
+    Monitor *old_mon, hmp;
+    CharDriverState mchar;
+
+    memset(&hmp, 0, sizeof(hmp));
+    qemu_chr_init_mem(&mchar);
+    hmp.chr = &mchar;
+
+    old_mon = cur_mon;
+    cur_mon = &hmp;
+
+    if (qdict_haskey(params, "cpu-index")) {
+        ret = mon_set_cpu(qdict_get_int(params, "cpu-index"));
+        if (ret < 0) {
+            cur_mon = old_mon;
+            qerror_report(QERR_INVALID_PARAMETER_VALUE, "cpu-index", "a CPU number");
+            goto out;
+        }
+    }
+
+    handle_user_command(&hmp, qdict_get_str(params, "command-line"));
+    cur_mon = old_mon;
+
+    if (qemu_chr_mem_osize(hmp.chr) > 0) {
+        *ret_data = QOBJECT(qemu_chr_mem_to_qs(hmp.chr));
+    }
+
+out:
+    qemu_chr_close_mem(hmp.chr);
+    return ret;
 }
 
 static int compare_cmd(const char *name, const char *list)
@@ -3703,7 +3742,29 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 qdict_put(qdict, key, qint_from_int(val));
             }
             break;
-        case 'f':
+        case 'o':
+            {
+                ssize_t val;
+                char *end;
+
+                while (qemu_isspace(*p)) {
+                    p++;
+                }
+                if (*typestr == '?') {
+                    typestr++;
+                    if (*p == '\0') {
+                        break;
+                    }
+                }
+                val = strtosz(p, &end);
+                if (val < 0) {
+                    monitor_printf(mon, "invalid size\n");
+                    goto fail;
+                }
+                qdict_put(qdict, key, qint_from_int(val));
+                p = end;
+            }
+            break;
         case 'T':
             {
                 double val;
@@ -3719,17 +3780,7 @@ static const mon_cmd_t *monitor_parse_command(Monitor *mon,
                 if (get_double(mon, &val, &p) < 0) {
                     goto fail;
                 }
-                if (c == 'f' && *p) {
-                    switch (*p) {
-                    case 'K': case 'k':
-                        val *= 1 << 10; p++; break;
-                    case 'M': case 'm':
-                        val *= 1 << 20; p++; break;
-                    case 'G': case 'g':
-                        val *= 1 << 30; p++; break;
-                    }
-                }
-                if (c == 'T' && p[0] && p[1] == 's') {
+                if (p[0] && p[1] == 's') {
                     switch (*p) {
                     case 'm':
                         val /= 1e3; p += 2; break;
@@ -3976,6 +4027,11 @@ static void file_completion(const char *input)
         d = readdir(ffs);
         if (!d)
             break;
+
+        if (strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0) {
+            continue;
+        }
+
         if (strstart(d->d_name, file_prefix, NULL)) {
             memcpy(file, input, input_path_len);
             if (input_path_len < sizeof(file))
@@ -4200,13 +4256,13 @@ static int check_client_args_type(const QDict *client_args,
         case 'i':
         case 'l':
         case 'M':
+        case 'o':
             if (qobject_type(client_arg) != QTYPE_QINT) {
                 qerror_report(QERR_INVALID_PARAMETER_TYPE, client_arg_name,
                               "int");
                 return -1; 
             }
             break;
-        case 'f':
         case 'T':
             if (qobject_type(client_arg) != QTYPE_QINT &&
                 qobject_type(client_arg) != QTYPE_QFLOAT) {

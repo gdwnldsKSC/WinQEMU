@@ -169,6 +169,7 @@ int main(int argc, char **argv)
 
 #include "slirp/libslirp.h"
 
+#include "trace.h"
 #include "qemu-queue.h"
 #include "cpus.h"
 #include "arch_init.h"
@@ -721,16 +722,13 @@ static void numa_add(const char *optarg)
         if (get_param_value(option, 128, "mem", optarg) == 0) {
             node_mem[nodenr] = 0;
         } else {
-            value = strtoull(option, &endptr, 0);
-            switch (*endptr) {
-            case 0: case 'M': case 'm':
-                value <<= 20;
-                break;
-            case 'G': case 'g':
-                value <<= 30;
-                break;
+            ssize_t sval;
+            sval = strtosz(option, NULL);
+            if (sval < 0) {
+                fprintf(stderr, "qemu: invalid numa mem size: %s\n", optarg);
+                exit(1);
             }
-            node_mem[nodenr] = value;
+            node_mem[nodenr] = sval;
         }
         if (get_param_value(option, 128, "cpus", optarg) == 0) {
             node_cpumask[nodenr] = 0;
@@ -1088,6 +1086,8 @@ void vm_state_notify(int running, int reason)
 {
     VMChangeStateEntry *e;
 
+    trace_vm_state_notify(running, reason);
+
     for (e = vm_change_state_head.lh_first; e; e = e->entries.le_next) {
         e->cb(e->opaque, running, reason);
     }
@@ -1263,16 +1263,17 @@ void main_loop_wait(int nonblocking)
         IOHandlerRecord *pioh;
 
         QLIST_FOREACH_SAFE(ioh, &io_handlers, next, pioh) {
+            if (!ioh->deleted && ioh->fd_read && FD_ISSET(ioh->fd, &rfds)) {
+                ioh->fd_read(ioh->opaque);
+            }
+            if (!ioh->deleted && ioh->fd_write && FD_ISSET(ioh->fd, &wfds)) {
+                ioh->fd_write(ioh->opaque);
+            }
+
+            /* Do this last in case read/write handlers marked it for deletion */
             if (ioh->deleted) {
                 QLIST_REMOVE(ioh, next);
                 qemu_free(ioh);
-                continue;
-            }
-            if (ioh->fd_read && FD_ISSET(ioh->fd, &rfds)) {
-                ioh->fd_read(ioh->opaque);
-            }
-            if (ioh->fd_write && FD_ISSET(ioh->fd, &wfds)) {
-                ioh->fd_write(ioh->opaque);
             }
         }
     }
@@ -2155,18 +2156,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 exit(0);
                 break;
             case QEMU_OPTION_m: {
-                uint64_t value;
-                char *ptr;
+                ssize_t value;
 
-                value = strtoul(optarg, &ptr, 10);
-                switch (*ptr) {
-                case 0: case 'M': case 'm':
-                    value <<= 20;
-                    break;
-                case 'G': case 'g':
-                    value <<= 30;
-                    break;
-                default:
+                value = strtosz(optarg, NULL);
+                if (value < 0) {
                     fprintf(stderr, "qemu: invalid ram size: %s\n", optarg);
                     exit(1);
                 }
@@ -3003,6 +2996,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
     }
 
+    qemu_register_reset((void *)qbus_reset_all, sysbus_get_default());
     qemu_system_reset();
     if (loadvm) {
         if (load_vmstate(loadvm) < 0) {

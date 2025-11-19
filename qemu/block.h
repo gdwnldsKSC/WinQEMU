@@ -142,7 +142,7 @@ BlockDriverAIOCB *bdrv_aio_ioctl(BlockDriverState *bs,
         BlockDriverCompletionFunc *cb, void *opaque);
 
 /* Ensure contents are flushed to disk.  */
-void bdrv_flush(BlockDriverState *bs);
+int bdrv_flush(BlockDriverState *bs);
 void bdrv_flush_all(void);
 void bdrv_close_all(void);
 
@@ -211,6 +211,8 @@ int bdrv_snapshot_goto(BlockDriverState *bs,
 int bdrv_snapshot_delete(BlockDriverState *bs, const char *snapshot_id);
 int bdrv_snapshot_list(BlockDriverState *bs,
                        QEMUSnapshotInfo **psn_info);
+int bdrv_snapshot_load_tmp(BlockDriverState *bs,
+                           const char *snapshot_name);
 char *bdrv_snapshot_dump(char *buf, int buf_size, QEMUSnapshotInfo *sn);
 
 char *get_human_readable_size(char *buf, int buf_size, int64_t size);

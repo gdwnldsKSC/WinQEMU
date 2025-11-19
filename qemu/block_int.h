@@ -59,7 +59,7 @@ struct BlockDriver {
                       const uint8_t *buf, int nb_sectors);
     void (*bdrv_close)(BlockDriverState *bs);
     int (*bdrv_create)(const char *filename, QEMUOptionParameter *options);
-    void (*bdrv_flush)(BlockDriverState *bs);
+    int (*bdrv_flush)(BlockDriverState *bs);
     int (*bdrv_is_allocated)(BlockDriverState *bs, int64_t sector_num,
                              int nb_sectors, int *pnum);
     int (*bdrv_set_key)(BlockDriverState *bs, const char *key);
@@ -93,6 +93,8 @@ struct BlockDriver {
     int (*bdrv_snapshot_delete)(BlockDriverState *bs, const char *snapshot_id);
     int (*bdrv_snapshot_list)(BlockDriverState *bs,
                               QEMUSnapshotInfo **psn_info);
+    int (*bdrv_snapshot_load_tmp)(BlockDriverState *bs,
+                                  const char *snapshot_name);
     int (*bdrv_get_info)(BlockDriverState *bs, BlockDriverInfo *bdi);
 
     int (*bdrv_save_vmstate)(BlockDriverState *bs, const uint8_t *buf,

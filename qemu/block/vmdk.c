@@ -84,7 +84,6 @@ VMDK4Header;
 #define L2_CACHE_SIZE 16
 
 typedef struct BDRVVmdkState {
-    BlockDriverState *hd;
     int64_t l1_table_offset;
     int64_t l1_backup_table_offset;
     uint32_t *l1_table;
@@ -863,9 +862,9 @@ static void vmdk_close(BlockDriverState *bs)
     qemu_free(s->l2_cache);
 }
 
-static void vmdk_flush(BlockDriverState *bs)
+static int vmdk_flush(BlockDriverState *bs)
 {
-    bdrv_flush(bs->file);
+    return bdrv_flush(bs->file);
 }
 
 

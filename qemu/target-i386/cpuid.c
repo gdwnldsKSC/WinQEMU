@@ -73,7 +73,7 @@ static const char *ext3_feature_name[] = {
 };
 
 static const char *kvm_feature_name[] = {
-    "kvmclock", "kvm_nopiodelay", "kvm_mmu", NULL, NULL, NULL, NULL, NULL,
+    "kvmclock", "kvm_nopiodelay", "kvm_mmu", NULL, "kvm_asyncpf", NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -762,8 +762,7 @@ static void listflags(char *buf, int bufsize, uint32_t fbits,
  * -?dump    output all model (x86_def_t) data
  * -?cpuid   list all recognized cpuid flag names
  */
-void x86_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
-                  const char *optarg)
+void x86_cpu_list(FILE *f, fprintf_function cpu_fprintf, const char *optarg)
 {
     unsigned char model = !strcmp("?model", optarg);
     unsigned char dump = !strcmp("?dump", optarg);

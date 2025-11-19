@@ -29,6 +29,7 @@
 #define CPU_I386_H
 
 #include "config.h"
+#include "qemu-common.h"
 
 #ifdef TARGET_X86_64
 #define TARGET_LONG_BITS 64
@@ -693,6 +694,7 @@ typedef struct CPUX86State {
 #endif
     uint64_t system_time_msr;
     uint64_t wall_clock_msr;
+    uint64_t async_pf_en_msr;
 
     uint64_t tsc;
 
@@ -769,8 +771,7 @@ typedef struct CPUX86State {
 CPUX86State *cpu_x86_init(const char *cpu_model);
 int cpu_x86_exec(CPUX86State *s);
 void cpu_x86_close(CPUX86State *s);
-void x86_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt, ...),
-                   const char *optarg);
+void x86_cpu_list (FILE *f, fprintf_function cpu_fprintf, const char *optarg);
 void x86_cpudef_setup(void);
 
 int cpu_get_pic_interrupt(CPUX86State *s);

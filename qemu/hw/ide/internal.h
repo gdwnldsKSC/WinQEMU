@@ -8,6 +8,7 @@
  */
 #include <hw/ide.h>
 #include "block_int.h"
+#include "iorange.h"
 
 /* debug IDE devices */
 //#define DEBUG_IDE
@@ -472,7 +473,8 @@ struct IDEDeviceInfo {
 #define BM_STATUS_INT    0x04
 #define BM_STATUS_DMA_RETRY  0x08
 #define BM_STATUS_PIO_RETRY  0x10
-#define BM_STATUS_RETRY_READ 0x20
+#define BM_STATUS_RETRY_READ  0x20
+#define BM_STATUS_RETRY_FLUSH 0x40
 
 #define BM_CMD_START     0x01
 #define BM_CMD_READ      0x08
@@ -495,6 +497,7 @@ struct BMDMAState {
     QEMUIOVector qiov;
     int64_t sector_num;
     uint32_t nsector;
+    IORange addr_ioport;
     QEMUBH *bh;
 };
 

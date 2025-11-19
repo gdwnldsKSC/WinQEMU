@@ -65,6 +65,7 @@ static void ide_dma_start(IDEState *s, BlockDriverCompletionFunc *dma_cb);
 static void ide_dma_restart(IDEState *s, int is_read);
 static void ide_atapi_cmd_read_dma_cb(void *opaque, int ret);
 static int ide_handle_rw_error(IDEState *s, int error, int op);
+static void ide_flush_cache(IDEState *s);
 
 static void padstr(char *str, const char *src, int len)
 {
@@ -146,8 +147,8 @@ static void ide_identify(IDEState *s)
     put_le16(p + 68, 120);
     put_le16(p + 80, 0xf0); /* ata3 -> ata6 supported */
     put_le16(p + 81, 0x16); /* conforms to ata5 */
-    /* 14=NOP supported, 0=SMART supported */
-    put_le16(p + 82, (1 << 14) | 1);
+    /* 14=NOP supported, 5=WCACHE supported, 0=SMART supported */
+    put_le16(p + 82, (1 << 14) | (1 << 5) | 1);
     /* 13=flush_cache_ext,12=flush_cache,10=lba48 */
     put_le16(p + 83, (1 << 14) | (1 << 13) | (1 <<12) | (1 << 10));
     /* 14=set to 1, 1=SMART self test, 0=SMART error logging */
@@ -472,11 +473,21 @@ static void dma_buf_commit(IDEState *s, int is_write)
     qemu_sglist_destroy(&s->sg);
 }
 
+static void ide_dma_set_inactive(BMDMAState *bm)
+{
+    bm->status &= ~BM_STATUS_DMAING;
+    bm->dma_cb = NULL;
+    bm->unit = -1;
+    bm->aiocb = NULL;
+}
+
 void ide_dma_error(IDEState *s)
 {
     ide_transfer_stop(s);
     s->error = ABRT_ERR;
     s->status = READY_STAT | ERR_STAT;
+    ide_dma_set_inactive(s->bus->bmdma);
+    s->bus->bmdma->status |= BM_STATUS_INT;
     ide_set_irq(s->bus);
 }
 
@@ -586,11 +597,8 @@ static void ide_read_dma_cb(void *opaque, int ret)
         s->status = READY_STAT | SEEK_STAT;
         ide_set_irq(s->bus);
     eot:
-        bm->status &= ~BM_STATUS_DMAING;
         bm->status |= BM_STATUS_INT;
-        bm->dma_cb = NULL;
-        bm->unit = -1;
-        bm->aiocb = NULL;
+        ide_dma_set_inactive(bm);
         return;
     }
 
@@ -688,6 +696,8 @@ static void ide_dma_restart_bh(void *opaque)
         } else {
             ide_sector_write(bmdma_active_if(bm));
         }
+    } else if (bm->status & BM_STATUS_RETRY_FLUSH) {
+        ide_flush_cache(bmdma_active_if(bm));
     }
 }
 
@@ -730,11 +740,8 @@ static void ide_write_dma_cb(void *opaque, int ret)
         s->status = READY_STAT | SEEK_STAT;
         ide_set_irq(s->bus);
     eot:
-        bm->status &= ~BM_STATUS_DMAING;
         bm->status |= BM_STATUS_INT;
-        bm->dma_cb = NULL;
-        bm->unit = -1;
-        bm->aiocb = NULL;
+        ide_dma_set_inactive(bm);
         return;
     }
 
@@ -795,10 +802,30 @@ static void ide_flush_cb(void *opaque, int ret)
 {
     IDEState *s = opaque;
 
-    /* XXX: how do we signal I/O errors here? */
+    if (ret < 0) {
+        /* XXX: What sector number to set here? */
+        if (ide_handle_rw_error(s, -ret, BM_STATUS_RETRY_FLUSH)) {
+            return;
+        }
+    }
 
     s->status = READY_STAT | SEEK_STAT;
     ide_set_irq(s->bus);
+}
+
+static void ide_flush_cache(IDEState *s)
+{
+    BlockDriverAIOCB *acb;
+
+    if (s->bs == NULL) {
+        ide_flush_cb(s, 0);
+        return;
+    }
+
+    acb = bdrv_aio_flush(s->bs, ide_flush_cb, s);
+    if (acb == NULL) {
+        ide_flush_cb(s, -EIO);
+    }
 }
 
 static inline void cpu_to_ube16(uint8_t *buf, int val)
@@ -1038,11 +1065,8 @@ static void ide_atapi_cmd_read_dma_cb(void *opaque, int ret)
         s->nsector = (s->nsector & ~7) | ATAPI_INT_REASON_IO | ATAPI_INT_REASON_CD;
         ide_set_irq(s->bus);
     eot:
-        bm->status &= ~BM_STATUS_DMAING;
         bm->status |= BM_STATUS_INT;
-        bm->dma_cb = NULL;
-        bm->unit = -1;
-        bm->aiocb = NULL;
+        ide_dma_set_inactive(bm);
         return;
     }
 
@@ -2057,10 +2081,7 @@ void ide_ioport_write(void *opaque, uint32_t addr, uint32_t val)
             break;
         case WIN_FLUSH_CACHE:
         case WIN_FLUSH_CACHE_EXT:
-            if (s->bs)
-                bdrv_aio_flush(s->bs, ide_flush_cb, s);
-            else
-                ide_flush_cb(s, 0);
+            ide_flush_cache(s);
             break;
         case WIN_STANDBY:
         case WIN_STANDBY2:
@@ -2960,12 +2981,10 @@ void ide_dma_cancel(BMDMAState *bm)
             printf("aio_cancel\n");
 #endif
             bdrv_aio_cancel(bm->aiocb);
-            bm->aiocb = NULL;
         }
-        bm->status &= ~BM_STATUS_DMAING;
+
         /* cancel DMA request */
-        bm->unit = -1;
-        bm->dma_cb = NULL;
+        ide_dma_set_inactive(bm);
     }
 }
 

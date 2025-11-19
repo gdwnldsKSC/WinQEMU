@@ -100,6 +100,9 @@ struct iovec {
 #define GCC_FMT_ATTR(n, m)
 #endif
 
+typedef int (*fprintf_function)(FILE *f, const char *fmt, ...)
+    GCC_FMT_ATTR(2, 3);
+
 #ifdef _WIN32
 #define fsync _commit
 #define lseek _lseeki64
@@ -176,6 +179,32 @@ typedef void(__cdecl* qemu_ctor_fn)(void);
 #endif
 
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#include <limits.h>
+
+static inline int ffsl(long x)
+{
+    unsigned long idx;
+
+    if (x == 0) {
+        return 0;
+    }
+
+#if ULONG_MAX == 0xffffffffUL
+    /* 32-bit unsigned long */
+    _BitScanForward(&idx, (unsigned long)x);
+    return (int)idx + 1;
+#elif ULONG_MAX == 0xffffffffffffffffUL
+    /* 64-bit unsigned long (not true on Windows/MSVC, but keeps this generic) */
+    _BitScanForward64(&idx, (unsigned long long)x);
+    return (int)idx + 1;
+#else
+#error Unsupported sizeof(unsigned long)
+#endif
+}
+#endif
+
 #endif // end MSVC sections
 
 /* FIXME: Remove NEED_CPU_H.  */
@@ -225,6 +254,7 @@ time_t mktimegm(struct tm *tm);
 int qemu_fls(int i);
 int qemu_fdatasync(int fd);
 int fcntl_setfl(int fd, int flag);
+ssize_t strtosz(const char *nptr, char **end);
 
 /* path.c */
 void init_paths(const char *prefix);
@@ -246,6 +276,12 @@ const char *path(const char *pathname);
 #define qemu_isascii(c)		isascii((unsigned char)(c))
 #define qemu_toascii(c)		toascii((unsigned char)(c))
 
+#ifdef _WIN32
+/* ffs() in oslib-win32.c for WIN32, strings.h for the rest of the world */
+int ffs(int i);
+#endif
+
+void *qemu_oom_check(void *ptr);
 void *qemu_malloc(size_t size);
 void *qemu_realloc(void *ptr, size_t size);
 void *qemu_mallocz(size_t size);
@@ -307,6 +343,13 @@ typedef struct PCIHostState PCIHostState;
 typedef struct PCIExpressHost PCIExpressHost;
 typedef struct PCIBus PCIBus;
 typedef struct PCIDevice PCIDevice;
+typedef struct PCIExpressDevice PCIExpressDevice;
+typedef struct PCIBridge PCIBridge;
+typedef struct PCIEAERMsg PCIEAERMsg;
+typedef struct PCIEAERLog PCIEAERLog;
+typedef struct PCIEAERErr PCIEAERErr;
+typedef struct PCIEPort PCIEPort;
+typedef struct PCIESlot PCIESlot;
 typedef struct SerialState SerialState;
 typedef struct IRQState *qemu_irq;
 typedef struct PCMCIACardState PCMCIACardState;
@@ -386,6 +429,30 @@ static inline uint8_t to_bcd(uint8_t val)
 static inline uint8_t from_bcd(uint8_t val)
 {
     return ((val >> 4) * 10) + (val & 0x0f);
+}
+
+/* compute with 96 bit intermediate result: (a*b)/c */
+static inline uint64_t muldiv64(uint64_t a, uint32_t b, uint32_t c)
+{
+    union {
+        uint64_t ll;
+        struct {
+#ifdef HOST_WORDS_BIGENDIAN
+            uint32_t high, low;
+#else
+            uint32_t low, high;
+#endif
+        } l;
+    } u, res;
+    uint64_t rl, rh;
+
+    u.ll = a;
+    rl = (uint64_t)u.l.low * (uint64_t)b;
+    rh = (uint64_t)u.l.high * (uint64_t)b;
+    rh += (rl >> 32);
+    res.l.high = rh / c;
+    res.l.low = (((rh % c) << 32) + (rl & 0xffffffff)) / c;
+    return res.ll;
 }
 
 #include "module.h"

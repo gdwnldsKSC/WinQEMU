@@ -5,10 +5,16 @@ qobject-obj-y += qjson.o json-lexer.o json-streamer.o json-parser.o
 qobject-obj-y += qerror.o
 
 #######################################################################
+# oslib-obj-y is code depending on the OS (win32 vs posix)
+oslib-obj-y = osdep.o
+oslib-obj-$(CONFIG_WIN32) += oslib-win32.o
+oslib-obj-$(CONFIG_POSIX) += oslib-posix.o
+
+#######################################################################
 # block-obj-y is code used by both qemu system emulation and qemu-img
 
 block-obj-y = cutils.o cache-utils.o qemu-malloc.o qemu-option.o module.o
-block-obj-y += nbd.o block.o aio.o aes.o osdep.o qemu-config.o
+block-obj-y += nbd.o block.o aio.o aes.o qemu-config.o
 block-obj-$(CONFIG_POSIX) += posix-aio-compat.o
 block-obj-$(CONFIG_LINUX_AIO) += linux-aio.o
 
@@ -36,6 +42,11 @@ net-nested-$(CONFIG_SLIRP) += slirp.o
 net-nested-$(CONFIG_VDE) += vde.o
 net-obj-y += $(addprefix net/, $(net-nested-y))
 
+ifeq ($(CONFIG_VIRTIO)$(CONFIG_VIRTFS),yy)
+# Lots of the fsdev/9pcode is pulled in by vl.c via qemu_fsdev_add.
+# only pull in the actual virtio-9p device if we also enabled virtio.
+CONFIG_REALLY_VIRTFS=y
+endif
 fsdev-nested-$(CONFIG_VIRTFS) = qemu-fsdev.o
 fsdev-obj-$(CONFIG_VIRTFS) += $(addprefix fsdev/, $(fsdev-nested-y))
 
@@ -50,6 +61,7 @@ common-obj-y += $(net-obj-y)
 common-obj-y += $(qobject-obj-y)
 common-obj-$(CONFIG_LINUX) += $(fsdev-obj-$(CONFIG_LINUX))
 common-obj-y += readline.o console.o cursor.o async.o qemu-error.o
+common-obj-y += $(oslib-obj-y)
 common-obj-$(CONFIG_WIN32) += os-win32.o
 common-obj-$(CONFIG_POSIX) += os-posix.o
 
@@ -95,6 +107,7 @@ common-obj-$(CONFIG_SPICE) += ui/spice-core.o ui/spice-input.o ui/spice-display.
 audio-obj-y = audio.o noaudio.o wavaudio.o mixeng.o
 audio-obj-$(CONFIG_SDL) += sdlaudio.o
 audio-obj-$(CONFIG_OSS) += ossaudio.o
+audio-obj-$(CONFIG_SPICE) += spiceaudio.o
 audio-obj-$(CONFIG_COREAUDIO) += coreaudio.o
 audio-obj-$(CONFIG_ALSA) += alsaaudio.o
 audio-obj-$(CONFIG_DSOUND) += dsoundaudio.o
@@ -151,8 +164,13 @@ user-obj-y += cutils.o cache-utils.o
 
 hw-obj-y =
 hw-obj-y += vl.o loader.o
-hw-obj-y += virtio.o virtio-console.o
-hw-obj-y += fw_cfg.o pci.o pci_host.o pcie_host.o
+hw-obj-$(CONFIG_VIRTIO) += virtio.o virtio-console.o
+hw-obj-y += fw_cfg.o
+# FIXME: Core PCI code and its direct dependencies are required by the
+# QMP query-pci command.
+hw-obj-y += pci.o pci_bridge.o msix.o msi.o
+hw-obj-$(CONFIG_PCI) += pci_host.o pcie_host.o
+hw-obj-$(CONFIG_PCI) += ioh3420.o xio3130_upstream.o xio3130_downstream.o
 hw-obj-y += watchdog.o
 hw-obj-$(CONFIG_ISA_MMIO) += isa_mmio.o
 hw-obj-$(CONFIG_ECC) += ecc.o
@@ -197,14 +215,16 @@ hw-obj-$(CONFIG_PPCE500_PCI) += ppce500_pci.o
 hw-obj-$(CONFIG_PIIX4) += piix4.o
 
 # PCI watchdog devices
-hw-obj-y += wdt_i6300esb.o
+hw-obj-$(CONFIG_PCI) += wdt_i6300esb.o
 
-hw-obj-y += msix.o
+hw-obj-$(CONFIG_PCI) += pcie.o pcie_aer.o pcie_port.o
+hw-obj-$(CONFIG_PCI) += msix.o msi.o
 
 # PCI network cards
-hw-obj-y += ne2000.o
-hw-obj-y += eepro100.o
-hw-obj-y += pcnet.o
+hw-obj-$(CONFIG_NE2000_PCI) += ne2000.o
+hw-obj-$(CONFIG_EEPRO100_PCI) += eepro100.o
+hw-obj-$(CONFIG_PCNET_PCI) += pcnet-pci.o
+hw-obj-$(CONFIG_PCNET_COMMON) += pcnet.o
 
 hw-obj-$(CONFIG_SMC91C111) += smc91c111.o
 hw-obj-$(CONFIG_LAN9118) += lan9118.o
@@ -221,7 +241,7 @@ hw-obj-$(CONFIG_IDE_MACIO) += ide/macio.o
 hw-obj-$(CONFIG_IDE_VIA) += ide/via.o
 
 # SCSI layer
-hw-obj-y += lsi53c895a.o
+hw-obj-$(CONFIG_LSI_SCSI_PCI) += lsi53c895a.o
 hw-obj-$(CONFIG_ESP) += esp.o
 
 hw-obj-y += dma-helpers.o sysbus.o isa-bus.o
@@ -246,11 +266,13 @@ sound-obj-$(CONFIG_AC97) += ac97.o
 sound-obj-$(CONFIG_ADLIB) += fmopl.o adlib.o
 sound-obj-$(CONFIG_GUS) += gus.o gusemu_hal.o gusemu_mixer.o
 sound-obj-$(CONFIG_CS4231A) += cs4231a.o
+sound-obj-$(CONFIG_HDA) += intel-hda.o hda-audio.o
 
 adlib.o fmopl.o: QEMU_CFLAGS += -DBUILD_Y8950=0
 hw-obj-$(CONFIG_SOUND) += $(sound-obj-y)
 
-hw-obj-$(CONFIG_VIRTFS) += virtio-9p-debug.o virtio-9p-local.o virtio-9p-xattr.o
+hw-obj-$(CONFIG_REALLY_VIRTFS) += virtio-9p-debug.o
+hw-obj-$(CONFIG_VIRTFS) += virtio-9p-local.o virtio-9p-xattr.o
 hw-obj-$(CONFIG_VIRTFS) += virtio-9p-xattr-user.o virtio-9p-posix-acl.o
 
 ######################################################################
@@ -275,20 +297,17 @@ libdis-$(CONFIG_SPARC_DIS) += sparc-dis.o
 ######################################################################
 # trace
 
+ifeq ($(TRACE_BACKEND),dtrace)
+trace-obj-y = trace-dtrace.o
+else
 trace-obj-y = trace.o
 ifeq ($(TRACE_BACKEND),simple)
 trace-obj-y += simpletrace.o
 user-obj-y += qemu-timer-common.o
 endif
+endif
 
 vl.o: QEMU_CFLAGS+=$(GPROF_CFLAGS)
 
 vl.o: QEMU_CFLAGS+=$(SDL_CFLAGS)
-
-vl.o: qemu-options.def
-os-posix.o: qemu-options.def
-os-win32.o: qemu-options.def
-
-qemu-options.def: $(SRC_PATH)/qemu-options.hx
-	$(call quiet-command,sh $(SRC_PATH)/hxtool -h < $< > $@,"  GEN   $(TARGET_DIR)$@")
 
