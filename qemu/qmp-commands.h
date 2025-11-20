@@ -165,6 +165,16 @@
 
 
 {
+.name       = "client_migrate_info",
+.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
+.params     = "protocol hostname port tls-port cert-subject",
+.help       = "send migration info to spice/vnc client",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = client_migrate_info,
+},
+
+
+{
 .name       = "migrate_set_downtime",
 .args_type  = "value:T",
 .params     = "value",

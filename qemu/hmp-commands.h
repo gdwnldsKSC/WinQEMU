@@ -459,6 +459,16 @@
 },
 
 
+{
+.name       = "client_migrate_info",
+.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
+.params     = "protocol hostname port tls-port cert-subject",
+.help       = "send migration info to spice/vnc client",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = client_migrate_info,
+},
+
+
 #if defined(TARGET_I386)
 {
 .name       = "drive_add",
@@ -654,9 +664,9 @@
 
 {
 .name       = "mce",
-.args_type  = "cpu_index:i,bank:i,status:l,mcg_status:l,addr:l,misc:l",
-.params     = "cpu bank status mcgstatus addr misc",
-.help       = "inject a MCE on the given CPU",
+.args_type  = "broadcast:-b,cpu_index:i,bank:i,status:l,mcg_status:l,addr:l,misc:l",
+.params     = "[-b] cpu bank status mcgstatus addr misc",
+.help       = "inject a MCE on the given CPU [and broadcast to other CPUs with -b option]",
 .mhandler.cmd = do_inject_mce,
 },
 

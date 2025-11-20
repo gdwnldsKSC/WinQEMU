@@ -71,7 +71,7 @@ void kvm_inject_x86_mce(CPUState* cenv, int bank, uint64_t status,
 }
 #endif
 
-int kvm_init(int smp_cpus)
+int kvm_init(void)
 {
     return -ENOSYS;
 }

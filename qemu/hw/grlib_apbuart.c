@@ -184,4 +184,4 @@ static void grlib_gptimer_register(void)
     sysbus_register_withprop(&grlib_gptimer_info);
 }
 
-device_init(grlib_gptimer_register);
+device_init(grlib_gptimer_register)
