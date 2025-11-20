@@ -470,6 +470,9 @@
     <ClCompile Include="qemu\hw\omap_uart.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\pci-stub.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\pcie.c" />
     <ClCompile Include="qemu\hw\pcie_aer.c" />
     <ClCompile Include="qemu\hw\pcie_host.c" />

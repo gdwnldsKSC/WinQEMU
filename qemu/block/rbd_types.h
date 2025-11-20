@@ -39,45 +39,9 @@
 #define RBD_HEADER_SIGNATURE    "RBD"
 #define RBD_HEADER_VERSION      "001.005"
 
-#ifdef _MSC_VER
-
-#pragma pack(push, 1)
-
 struct rbd_info {
     uint64_t max_id;
-};
-
-struct rbd_obj_snap_ondisk {
-    uint64_t id;
-    uint64_t image_size;
-};
-
-struct rbd_obj_header_ondisk {
-    char text[40];
-    char block_name[RBD_MAX_BLOCK_NAME_SIZE];
-    char signature[4];
-    char version[8];
-    struct {
-        uint8_t order;
-        uint8_t crypt_type;
-        uint8_t comp_type;
-        uint8_t unused;
-    } options;  /* defined while pack(1) is active, so also packed */
-    uint64_t image_size;
-    uint64_t snap_seq;
-    uint32_t snap_count;
-    uint32_t reserved;
-    uint64_t snap_names_len;
-    struct rbd_obj_snap_ondisk snaps[0];
-};
-
-#pragma pack(pop)
-
-#else  /* ! _MSC_VER */
-
-struct rbd_info {
-    uint64_t max_id;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 struct rbd_obj_snap_ondisk {
     uint64_t id;
@@ -102,8 +66,6 @@ struct rbd_obj_header_ondisk {
     uint64_t snap_names_len;
     struct rbd_obj_snap_ondisk snaps[0];
 } __attribute__((packed));
-
-#endif
 
 
 #endif
