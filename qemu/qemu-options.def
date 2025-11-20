@@ -201,7 +201,7 @@ DEF("portrait", 0, QEMU_OPTION_portrait,
 QEMU_ARCH_ALL)
 
 DEF("vga", HAS_ARG, QEMU_OPTION_vga,
-"-vga [std|cirrus|vmware|xenfb|none]\n"
+"-vga [std|cirrus|vmware|qxl|xenfb|none]\n"
 "                select video card type\n", QEMU_ARCH_ALL)
 
 DEF("full-screen", 0, QEMU_OPTION_full_screen,

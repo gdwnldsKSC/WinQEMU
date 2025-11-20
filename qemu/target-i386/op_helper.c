@@ -28,7 +28,6 @@
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
  
-#define CPU_NO_GLOBAL_REGS
 #include "exec.h"
 #include "exec-all.h"
 #include "host-utils.h"
@@ -374,10 +373,9 @@ static void switch_tss(int tss_selector,
         new_segs[R_GS] = 0;
         new_trap = 0;
     }
-
     /* XXX: avoid a compiler warning, see
-       http://support.amd.com/us/Processor_TechDocs/24593.pdf
-       chapters 12.2.5 and 13.2.4 on how to implement TSS Trap bit */
+     http://support.amd.com/us/Processor_TechDocs/24593.pdf
+     chapters 12.2.5 and 13.2.4 on how to implement TSS Trap bit */
     (void)new_trap;
 
     /* NOTE: we must avoid memory exceptions during the task switch,
@@ -4067,9 +4065,9 @@ void helper_fbst_ST0(target_ulong ptr)
 void helper_f2xm1(void)
 {
 #ifndef _MSC_VER
-	ST0 = pow(2.0, ST0) - 1.0;
+    ST0 = pow(2.0,ST0) - 1.0;
 #else
-	ST0 = fx80_from_longdouble(pow(2.0, fx80_to_longdouble(&ST0)) - 1.0);
+    ST0 = fx80_from_longdouble(pow(2.0, fx80_to_longdouble(&ST0)) - 1.0);
 #endif
 }
 
@@ -4104,9 +4102,9 @@ void helper_fptan(void)
 
     fptemp = ST0;
 #ifndef _MSC_VER
-	if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
-	if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
 #endif
         env->fpus |= 0x400;
     } else {
@@ -4455,9 +4453,9 @@ void helper_fsin(void)
 
     fptemp = ST0;
 #ifndef _MSC_VER
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
 #else
-	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
+    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
 #endif
         env->fpus |= 0x400;
     } else {

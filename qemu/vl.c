@@ -770,8 +770,10 @@ char *get_boot_devices_list(uint32_t *size)
         }
 
         if (i->suffix && devpath) {
-            bootpath = qemu_malloc(strlen(devpath) + strlen(i->suffix) + 1);
-            sprintf(bootpath, "%s%s", devpath, i->suffix);
+            size_t bootpathlen = strlen(devpath) + strlen(i->suffix) + 1;
+
+            bootpath = qemu_malloc(bootpathlen);
+            snprintf(bootpath, bootpathlen, "%s%s", devpath, i->suffix);
             qemu_free(devpath);
         } else if (devpath) {
             bootpath = devpath;
@@ -1513,6 +1515,8 @@ static void select_vgahw (const char *p)
         vga_interface_type = VGA_VMWARE;
     } else if (strstart(p, "xenfb", &opts)) {
         vga_interface_type = VGA_XENFB;
+    } else if (strstart(p, "qxl", &opts)) {
+        vga_interface_type = VGA_QXL;
     } else if (!strstart(p, "none", &opts)) {
     invalid_vga:
         fprintf(stderr, "Unknown vga type: %s\n", p);
@@ -2617,7 +2621,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 		     if (p != NULL) {
 		        *p++ = 0;
 			if (strncmp(p, "process=", 8)) {
-			    fprintf(stderr, "Unknown subargument %s to -name", p);
+			    fprintf(stderr, "Unknown subargument %s to -name\n", p);
 			    exit(1);
 			}
 			p += 8;
@@ -3069,7 +3073,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         }
     }
 #ifdef CONFIG_SPICE
-    if (using_spice) {
+    if (using_spice && !qxl_enabled) {
         qemu_spice_display_init(ds);
     }
 #endif
@@ -3104,9 +3108,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
         exit(1);
     }
 
-    /* TODO: once all bus devices are qdevified, this should be done
-     * when bus is created by qdev.c */
-    qemu_register_reset(qbus_reset_all_fn, sysbus_get_default());
+    qemu_register_reset((void *)qbus_reset_all, sysbus_get_default());
     qemu_run_machine_init_done_notifiers();
 
     qemu_system_reset();

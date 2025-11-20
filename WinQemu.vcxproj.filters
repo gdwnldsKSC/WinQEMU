@@ -1710,6 +1710,15 @@
     <ClCompile Include="qemu\hw\ide\ahci.c">
       <Filter>qemu\hw\IDE</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\qxl.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\qxl-logger.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\qxl-render.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2629,6 +2638,9 @@
     </ClInclude>
     <ClInclude Include="qemu\block\rbd_types.h">
       <Filter>qemu\block\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\qxl.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

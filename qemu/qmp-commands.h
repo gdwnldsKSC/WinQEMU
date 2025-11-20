@@ -246,6 +246,26 @@
 
 
 {
+.name       = "set_password",
+.args_type  = "protocol:s,password:s,connected:s?",
+.params     = "protocol password action-if-connected",
+.help       = "set spice/vnc password",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = set_password,
+},
+
+
+{
+.name       = "expire_password",
+.args_type  = "protocol:s,time:s",
+.params     = "protocol time",
+.help       = "set spice/vnc password expire-time",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = expire_password,
+},
+
+
+{
 .name       = "qmp_capabilities",
 .args_type  = "",
 .params     = "",
@@ -263,6 +283,7 @@
 .user_print = monitor_user_noop,
 .mhandler.cmd_new = do_hmp_passthrough,
 },
+
 
 
 

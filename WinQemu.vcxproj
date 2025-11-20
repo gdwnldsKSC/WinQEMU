@@ -483,6 +483,15 @@
     <ClCompile Include="qemu\hw\qdev-addr.c" />
     <ClCompile Include="qemu\hw\qdev-properties.c" />
     <ClCompile Include="qemu\hw\qdev.c" />
+    <ClCompile Include="qemu\hw\qxl-logger.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\qxl-render.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\qxl.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\scsi-bus.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
@@ -1989,6 +1998,7 @@
     <ClInclude Include="qemu\hw\prep_pci.h" />
     <ClInclude Include="qemu\hw\qdev-addr.h" />
     <ClInclude Include="qemu\hw\qdev.h" />
+    <ClInclude Include="qemu\hw\qxl.h" />
     <ClInclude Include="qemu\hw\scsi-defs.h" />
     <ClInclude Include="qemu\hw\sh_pci.h" />
     <ClInclude Include="qemu\hw\smbios.h" />

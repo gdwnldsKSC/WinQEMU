@@ -321,6 +321,7 @@ static const char *sparc_decode_sparclet_cpreg (int);
 
 /* Table of opcode architectures.
    The order is defined in opcode/sparc.h.  */
+
 #ifndef _MSC_VER
 static const struct sparc_opcode_arch sparc_opcode_archs[] =
 #else
@@ -416,6 +417,7 @@ static const struct sparc_opcode sparc_opcodes[] = {
 #else
 const struct sparc_opcode sparc_opcodes[] = {
 #endif
+
 { "ld", F3(3, 0x00, 0), F3(~3, ~0x00, ~0),              "[1+2],d", 0, v6 },
 { "ld", F3(3, 0x00, 0), F3(~3, ~0x00, ~0)|RS2_G0,       "[1],d", 0, v6 }, /* ld [rs1+%g0],d */
 { "ld", F3(3, 0x00, 1), F3(~3, ~0x00, ~1),              "[1+i],d", 0, v6 },
