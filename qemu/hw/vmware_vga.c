@@ -1003,7 +1003,7 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
 }
 				else
         printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
-    }
+}
 }
 #endif
 }
@@ -1378,6 +1378,7 @@ static PCIDeviceInfo vmsvga_info = {
     .qdev.name    = "vmware-svga",
     .qdev.size    = sizeof(struct pci_vmsvga_state_s),
     .qdev.vmsd    = &vmstate_vmware_vga,
+    .no_hotplug   = 1,
     .init         = pci_vmsvga_initfn,
     .romfile      = "vgabios-vmware.bin",
 };

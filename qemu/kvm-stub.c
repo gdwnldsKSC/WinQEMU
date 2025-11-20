@@ -112,6 +112,11 @@ int kvm_has_robust_singlestep(void)
     return 0;
 }
 
+int kvm_has_many_ioeventfds(void)
+{
+    return 0;
+}
+
 void kvm_setup_guest_memory(void *start, size_t size)
 {
 }

@@ -1722,6 +1722,24 @@
     <ClCompile Include="qemu\hw\pci-stub.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\usb-desc.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\leon3.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\grlib_apbuart.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\grlib_gptimer.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\grlib_irqmp.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\qcow2-cache.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2643,6 +2661,12 @@
       <Filter>qemu\block\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\qxl.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\usb-desc.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\grlib.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>

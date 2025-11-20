@@ -239,7 +239,7 @@ void if_start(struct ttys *);
 #endif
 
 #ifndef HAVE_STRERROR
- extern char *strerror(int error);
+ char *strerror(int error);
 #endif
 
 #ifndef HAVE_INDEX

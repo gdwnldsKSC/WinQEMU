@@ -332,6 +332,7 @@
     <ClCompile Include="qemu\block\nbd.c" />
     <ClCompile Include="qemu\block\parallels.c" />
     <ClCompile Include="qemu\block\qcow.c" />
+    <ClCompile Include="qemu\block\qcow2-cache.c" />
     <ClCompile Include="qemu\block\qcow2-cluster.c" />
     <ClCompile Include="qemu\block\qcow2-refcount.c" />
     <ClCompile Include="qemu\block\qcow2-snapshot.c" />
@@ -406,6 +407,15 @@
     <ClCompile Include="qemu\hw\ds1338.c" />
     <ClCompile Include="qemu\hw\event_notifier.c" />
     <ClCompile Include="qemu\hw\framebuffer.c" />
+    <ClCompile Include="qemu\hw\grlib_apbuart.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\grlib_gptimer.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\grlib_irqmp.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\hda-audio.c" />
     <ClCompile Include="qemu\hw\ide\ahci.c" />
     <ClCompile Include="qemu\hw\ide\cmd646.c" />
@@ -427,6 +437,9 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
+    <ClCompile Include="qemu\hw\leon3.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\loader.c" />
     <ClCompile Include="qemu\hw\marvell_88w8618_audio.c" />
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
@@ -528,6 +541,7 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\sysbus.c" />
     <ClCompile Include="qemu\hw\usb-bus.c" />
+    <ClCompile Include="qemu\hw\usb-desc.c" />
     <ClCompile Include="qemu\hw\vga-isa-mm.c" />
     <ClCompile Include="qemu\hw\vga-isa.c" />
     <ClCompile Include="qemu\hw\vga-pci.c" />
@@ -1976,6 +1990,7 @@
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\event_notifier.h" />
     <ClInclude Include="qemu\hw\file-op-9p.h" />
+    <ClInclude Include="qemu\hw\grlib.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
     <ClInclude Include="qemu\hw\intel-hda-defs.h" />
@@ -2008,6 +2023,7 @@
     <ClInclude Include="qemu\hw\ssi.h" />
     <ClInclude Include="qemu\hw\syborg.h" />
     <ClInclude Include="qemu\hw\sysbus.h" />
+    <ClInclude Include="qemu\hw\usb-desc.h" />
     <ClInclude Include="qemu\hw\usb-ohci.h" />
     <ClInclude Include="qemu\hw\usb-uhci.h" />
     <ClInclude Include="qemu\hw\vhost.h" />

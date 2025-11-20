@@ -29,9 +29,10 @@
 #include "qdev.h"
 #include "sysemu.h"
 #include "monitor.h"
-#include "blockdev.h"
 
 static int qdev_hotplug = 0;
+static bool qdev_hot_added = false;
+static bool qdev_hot_removed = false;
 
 /* This is a nasty hack to allow passing a NULL bus to qdev_create.  */
 static BusState *main_system_bus;
@@ -93,6 +94,7 @@ static DeviceState *qdev_create_from_info(BusState *bus, DeviceInfo *info)
     if (qdev_hotplug) {
         assert(bus->allow_hotplug);
         dev->hotplugged = 1;
+        qdev_hot_added = true;
     }
     dev->instance_id_alias = -1;
     dev->state = DEV_STATE_CREATED;
@@ -294,6 +296,8 @@ int qdev_unplug(DeviceState *dev)
     }
     assert(dev->info->unplug != NULL);
 
+    qdev_hot_removed = true;
+
     return dev->info->unplug(dev);
 }
 
@@ -395,6 +399,11 @@ void qdev_machine_creation_done(void)
     qdev_hotplug = 1;
 }
 
+bool qdev_machine_modified(void)
+{
+    return qdev_hot_added || qdev_hot_removed;
+}
+
 /* Get a character (serial) device interface.  */
 CharDriverState *qdev_init_chardev(DeviceState *dev)
 {
@@ -446,20 +455,6 @@ void qdev_set_nic_properties(DeviceState *dev, NICInfo *nd)
         qdev_prop_exists(dev, "vectors")) {
         qdev_prop_set_uint32(dev, "vectors", nd->nvectors);
     }
-}
-
-static int next_block_unit[IF_COUNT];
-
-/* Get a block device.  This should only be used for single-drive devices
-   (e.g. SD/Floppy/MTD).  Multi-disk devices (scsi/ide) should use the
-   appropriate bus.  */
-BlockDriverState *qdev_init_bdrv(DeviceState *dev, BlockInterfaceType type)
-{
-    int unit = next_block_unit[type]++;
-    DriveInfo *dinfo;
-
-    dinfo = drive_get(type, 0, unit);
-    return dinfo ? dinfo->bdrv : NULL;
 }
 
 BusState *qdev_get_child_bus(DeviceState *dev, const char *name)
