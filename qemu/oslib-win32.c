@@ -94,14 +94,8 @@ void qemu_set_cloexec(int fd)
 {
 }
 
-/* mingw32 needs ffs for compilations without optimization. */
-#ifndef _MSC_VER
-int ffs(int i)
-{
-    /* Use gcc's builtin ffs. */
-    return __builtin_ffs(i);
-}
-#else
+/* MSVC Needs FFS implemented, mingw does not */
+#ifdef _MSC_VER
 int ffs(int x)
 {
     unsigned long idx;

@@ -98,6 +98,23 @@ static inline int sigprocmask(int how,
 }
 
 /*
+ * sigwait stub:
+ *  - We never actually see Unix signals on Windows.
+ *  - Make this fail with ENOSYS so the compat thread in compatfd.c
+ *    just bails out cleanly.
+ */
+static inline int sigwait(const sigset_t* set, int* sig)
+{
+    (void)set;
+    (void)sig;
+    errno = ENOSYS;
+    /* POSIX sigwait() returns 0 on success, or an error number on failure.
+       Returning ENOSYS here both satisfies the API and matches the old
+       "fail with ENOSYS" behaviour. */
+    return ENOSYS;
+}
+
+/*
  * sigwaitinfo stub:
  *  - We *never* actually see Unix signals on Windows.
  *  - Make this fail with ENOSYS so the compat thread in compatfd.c

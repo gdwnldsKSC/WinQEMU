@@ -66,6 +66,9 @@ int __clone2(int (*fn)(void *), void *child_stack_base,
 #ifdef CONFIG_EVENTFD
 #include <sys/eventfd.h>
 #endif
+#ifdef CONFIG_EPOLL
+#include <sys/epoll.h>
+#endif
 
 #define termios host_termios
 #define winsize host_winsize
@@ -235,6 +238,12 @@ _syscall6(int,sys_futex,int *,uaddr,int,op,int,val,
           const struct timespec *,timeout,int *,uaddr2,int,val3)
 #endif
 #endif
+#define __NR_sys_sched_getaffinity __NR_sched_getaffinity
+_syscall3(int, sys_sched_getaffinity, pid_t, pid, unsigned int, len,
+          unsigned long *, user_mask_ptr);
+#define __NR_sys_sched_setaffinity __NR_sched_setaffinity
+_syscall3(int, sys_sched_setaffinity, pid_t, pid, unsigned int, len,
+          unsigned long *, user_mask_ptr);
 
 static bitmask_transtbl fcntl_flags_tbl[] = {
   { TARGET_O_ACCMODE,   TARGET_O_WRONLY,    O_ACCMODE,   O_WRONLY,    },
@@ -529,6 +538,15 @@ static int sys_inotify_init1(int flags)
 #undef TARGET_NR_inotify_rm_watch
 #endif /* CONFIG_INOTIFY  */
 
+#if defined(TARGET_NR_ppoll)
+#ifndef __NR_ppoll
+# define __NR_ppoll -1
+#endif
+#define __NR_sys_ppoll __NR_ppoll
+_syscall5(int, sys_ppoll, struct pollfd *, fds, nfds_t, nfds,
+          struct timespec *, timeout, const __sigset_t *, sigmask,
+          size_t, sigsetsize)
+#endif
 
 extern int personality(int);
 extern int flock(int, int);
@@ -1448,7 +1466,7 @@ static abi_long do_getsockopt(int sockfd, int level, int optname,
             return -TARGET_EFAULT;
         if (len < 0)
             return -TARGET_EINVAL;
-        lv = sizeof(int);
+        lv = sizeof(lv);
         ret = get_errno(getsockopt(sockfd, level, optname, &val, &lv));
         if (ret < 0)
             return ret;
@@ -1485,7 +1503,7 @@ static abi_long do_getsockopt(int sockfd, int level, int optname,
                 return -TARGET_EFAULT;
             if (len < 0)
                 return -TARGET_EINVAL;
-            lv = sizeof(int);
+            lv = sizeof(lv);
             ret = get_errno(getsockopt(sockfd, level, optname, &val, &lv));
             if (ret < 0)
                 return ret;
@@ -6230,8 +6248,13 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         ret = do_select(arg1, arg2, arg3, arg4, arg5);
         break;
 #endif
-#ifdef TARGET_NR_poll
+#if defined(TARGET_NR_poll) || defined(TARGET_NR_ppoll)
+# ifdef TARGET_NR_poll
     case TARGET_NR_poll:
+# endif
+# ifdef TARGET_NR_ppoll
+    case TARGET_NR_ppoll:
+# endif
         {
             struct target_pollfd *target_pfd;
             unsigned int nfds = arg2;
@@ -6242,12 +6265,51 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             target_pfd = lock_user(VERIFY_WRITE, arg1, sizeof(struct target_pollfd) * nfds, 1);
             if (!target_pfd)
                 goto efault;
+
             pfd = alloca(sizeof(struct pollfd) * nfds);
             for(i = 0; i < nfds; i++) {
                 pfd[i].fd = tswap32(target_pfd[i].fd);
                 pfd[i].events = tswap16(target_pfd[i].events);
             }
-            ret = get_errno(poll(pfd, nfds, timeout));
+
+# ifdef TARGET_NR_ppoll
+            if (num == TARGET_NR_ppoll) {
+                struct timespec _timeout_ts, *timeout_ts = &_timeout_ts;
+                target_sigset_t *target_set;
+                sigset_t _set, *set = &_set;
+
+                if (arg3) {
+                    if (target_to_host_timespec(timeout_ts, arg3)) {
+                        unlock_user(target_pfd, arg1, 0);
+                        goto efault;
+                    }
+                } else {
+                    timeout_ts = NULL;
+                }
+
+                if (arg4) {
+                    target_set = lock_user(VERIFY_READ, arg4, sizeof(target_sigset_t), 1);
+                    if (!target_set) {
+                        unlock_user(target_pfd, arg1, 0);
+                        goto efault;
+                    }
+                    target_to_host_sigset(set, target_set);
+                } else {
+                    set = NULL;
+                }
+
+                ret = get_errno(sys_ppoll(pfd, nfds, timeout_ts, set, _NSIG/8));
+
+                if (!is_error(ret) && arg3) {
+                    host_to_target_timespec(arg3, timeout_ts);
+                }
+                if (arg4) {
+                    unlock_user(target_set, arg4, 0);
+                }
+            } else
+# endif
+                ret = get_errno(poll(pfd, nfds, timeout));
+
             if (!is_error(ret)) {
                 for(i = 0; i < nfds; i++) {
                     target_pfd[i].revents = tswap16(pfd[i].revents);
@@ -6300,6 +6362,67 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         /* We don't implement this, but ENOTDIR is always a safe
            return value. */
         ret = -TARGET_ENOTDIR;
+        break;
+    case TARGET_NR_sched_getaffinity:
+        {
+            unsigned int mask_size;
+            unsigned long *mask;
+
+            /*
+             * sched_getaffinity needs multiples of ulong, so need to take
+             * care of mismatches between target ulong and host ulong sizes.
+             */
+            if (arg2 & (sizeof(abi_ulong) - 1)) {
+                ret = -TARGET_EINVAL;
+                break;
+            }
+            mask_size = (arg2 + (sizeof(*mask) - 1)) & ~(sizeof(*mask) - 1);
+
+            mask = alloca(mask_size);
+            ret = get_errno(sys_sched_getaffinity(arg1, mask_size, mask));
+
+            if (!is_error(ret)) {
+                if (arg2 > ret) {
+                    /* Zero out any extra space kernel didn't fill */
+                    unsigned long zero = arg2 - ret;
+                    p = alloca(zero);
+                    memset(p, 0, zero);
+                    if (copy_to_user(arg3 + zero, p, zero)) {
+                        goto efault;
+                    }
+                    arg2 = ret;
+                }
+                if (copy_to_user(arg3, mask, arg2)) {
+                    goto efault;
+                }
+                ret = arg2;
+            }
+        }
+        break;
+    case TARGET_NR_sched_setaffinity:
+        {
+            unsigned int mask_size;
+            unsigned long *mask;
+
+            /*
+             * sched_setaffinity needs multiples of ulong, so need to take
+             * care of mismatches between target ulong and host ulong sizes.
+             */
+            if (arg2 & (sizeof(abi_ulong) - 1)) {
+                ret = -TARGET_EINVAL;
+                break;
+            }
+            mask_size = (arg2 + (sizeof(*mask) - 1)) & ~(sizeof(*mask) - 1);
+
+            mask = alloca(mask_size);
+            if (!lock_user_struct(VERIFY_READ, p, arg3, 1)) {
+                goto efault;
+            }
+            memcpy(mask, p, arg2);
+            unlock_user_struct(p, arg2, 0);
+
+            ret = get_errno(sys_sched_setaffinity(arg1, mask_size, mask));
+        }
         break;
     case TARGET_NR_sched_setparam:
         {
@@ -7490,6 +7613,110 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         ret = get_errno(sync_file_range(arg1, arg3, arg4, arg2));
 #endif
         break;
+#endif
+#endif
+#if defined(CONFIG_EPOLL)
+#if defined(TARGET_NR_epoll_create)
+    case TARGET_NR_epoll_create:
+        ret = get_errno(epoll_create(arg1));
+        break;
+#endif
+#if defined(TARGET_NR_epoll_create1) && defined(CONFIG_EPOLL_CREATE1)
+    case TARGET_NR_epoll_create1:
+        ret = get_errno(epoll_create1(arg1));
+        break;
+#endif
+#if defined(TARGET_NR_epoll_ctl)
+    case TARGET_NR_epoll_ctl:
+    {
+        struct epoll_event ep;
+        struct epoll_event *epp = 0;
+        if (arg4) {
+            struct target_epoll_event *target_ep;
+            if (!lock_user_struct(VERIFY_READ, target_ep, arg4, 1)) {
+                goto efault;
+            }
+            ep.events = tswap32(target_ep->events);
+            /* The epoll_data_t union is just opaque data to the kernel,
+             * so we transfer all 64 bits across and need not worry what
+             * actual data type it is.
+             */
+            ep.data.u64 = tswap64(target_ep->data.u64);
+            unlock_user_struct(target_ep, arg4, 0);
+            epp = &ep;
+        }
+        ret = get_errno(epoll_ctl(arg1, arg2, arg3, epp));
+        break;
+    }
+#endif
+
+#if defined(TARGET_NR_epoll_pwait) && defined(CONFIG_EPOLL_PWAIT)
+#define IMPLEMENT_EPOLL_PWAIT
+#endif
+#if defined(TARGET_NR_epoll_wait) || defined(IMPLEMENT_EPOLL_PWAIT)
+#if defined(TARGET_NR_epoll_wait)
+    case TARGET_NR_epoll_wait:
+#endif
+#if defined(IMPLEMENT_EPOLL_PWAIT)
+    case TARGET_NR_epoll_pwait:
+#endif
+    {
+        struct target_epoll_event *target_ep;
+        struct epoll_event *ep;
+        int epfd = arg1;
+        int maxevents = arg3;
+        int timeout = arg4;
+
+        target_ep = lock_user(VERIFY_WRITE, arg2,
+                              maxevents * sizeof(struct target_epoll_event), 1);
+        if (!target_ep) {
+            goto efault;
+        }
+
+        ep = alloca(maxevents * sizeof(struct epoll_event));
+
+        switch (num) {
+#if defined(IMPLEMENT_EPOLL_PWAIT)
+        case TARGET_NR_epoll_pwait:
+        {
+            target_sigset_t *target_set;
+            sigset_t _set, *set = &_set;
+
+            if (arg5) {
+                target_set = lock_user(VERIFY_READ, arg5,
+                                       sizeof(target_sigset_t), 1);
+                if (!target_set) {
+                    unlock_user(target_ep, arg2, 0);
+                    goto efault;
+                }
+                target_to_host_sigset(set, target_set);
+                unlock_user(target_set, arg5, 0);
+            } else {
+                set = NULL;
+            }
+
+            ret = get_errno(epoll_pwait(epfd, ep, maxevents, timeout, set));
+            break;
+        }
+#endif
+#if defined(TARGET_NR_epoll_wait)
+        case TARGET_NR_epoll_wait:
+            ret = get_errno(epoll_wait(epfd, ep, maxevents, timeout));
+            break;
+#endif
+        default:
+            ret = -TARGET_ENOSYS;
+        }
+        if (!is_error(ret)) {
+            int i;
+            for (i = 0; i < ret; i++) {
+                target_ep[i].events = tswap32(ep[i].events);
+                target_ep[i].data.u64 = tswap64(ep[i].data.u64);
+            }
+        }
+        unlock_user(target_ep, arg2, ret * sizeof(struct target_epoll_event));
+        break;
+    }
 #endif
 #endif
     default:

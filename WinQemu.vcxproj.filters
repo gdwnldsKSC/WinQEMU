@@ -1740,6 +1740,30 @@
     <ClCompile Include="qemu\block\qcow2-cache.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\spice-qemu-char.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\bitmap.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\bitops.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\kvmclock.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\ide\ich.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-zrle.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-zrle-template.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-zywrle-template.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2668,6 +2692,27 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\grlib.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ioapic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\kvmclock.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\bitmap.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\bitops.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\ide\ahci.h">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-enc-zrle.h">
+      <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\ui\vnc-enc-zywrle.h">
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

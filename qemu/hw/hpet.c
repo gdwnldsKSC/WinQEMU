@@ -74,8 +74,6 @@ typedef struct HPETState {
     uint8_t  hpet_id;           /* instance id */
 } HPETState;
 
-struct hpet_fw_config hpet_cfg = {.count = UINT8_MAX};
-
 static uint32_t hpet_in_legacy_mode(HPETState *s)
 {
     return s->config & HPET_CFG_LEGACY;
@@ -715,7 +713,6 @@ static int hpet_init(SysBusDevice *dev)
     s->capability |= (s->num_timers - 1) << HPET_ID_NUM_TIM_SHIFT;
     s->capability |= ((HPET_CLK_PERIOD) << 32);
 
-    isa_reserve_irq(RTC_ISA_IRQ);
     qdev_init_gpio_in(&dev->qdev, hpet_handle_rtc_irq, 1);
 
     /* HPET Area */

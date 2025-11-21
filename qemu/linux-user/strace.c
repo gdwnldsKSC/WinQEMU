@@ -398,6 +398,7 @@ UNUSED static struct flags mmap_flags[] = {
     FLAG_TARGET(MAP_DENYWRITE),
     FLAG_TARGET(MAP_FIXED),
     FLAG_TARGET(MAP_GROWSDOWN),
+    FLAG_TARGET(MAP_EXECUTABLE),
 #ifdef MAP_LOCKED
     FLAG_TARGET(MAP_LOCKED),
 #endif
@@ -407,6 +408,9 @@ UNUSED static struct flags mmap_flags[] = {
     FLAG_TARGET(MAP_NORESERVE),
 #ifdef MAP_POPULATE
     FLAG_TARGET(MAP_POPULATE),
+#endif
+#ifdef TARGET_MAP_UNINITIALIZED
+    FLAG_TARGET(MAP_UNINITIALIZED),
 #endif
     FLAG_END,
 };
@@ -437,13 +441,10 @@ get_comma(int last)
 }
 
 static void
-print_flags(const struct flags *f, abi_long tflags, int last)
+print_flags(const struct flags *f, abi_long flags, int last)
 {
     const char *sep = "";
-    int flags;
     int n;
-
-    flags = (int)tswap32(tflags);
 
     if ((flags == 0) && (f->f_value == 0)) {
         gemu_log("%s%s", f->f_string, get_comma(last));
@@ -461,36 +462,33 @@ print_flags(const struct flags *f, abi_long tflags, int last)
     if (n > 0) {
         /* print rest of the flags as numeric */
         if (flags != 0) {
-            gemu_log("%s%#x%s", sep, flags, get_comma(last));
+            gemu_log("%s%#x%s", sep, (unsigned int)flags, get_comma(last));
         } else {
             gemu_log("%s", get_comma(last));
         }
     } else {
         /* no string version of flags found, print them in hex then */
-        gemu_log("%#x%s", flags, get_comma(last));
+        gemu_log("%#x%s", (unsigned int)flags, get_comma(last));
     }
 }
 
 static void
-print_at_dirfd(abi_long tdirfd, int last)
+print_at_dirfd(abi_long dirfd, int last)
 {
-    int dirfd = tswap32(tdirfd);
-
 #ifdef AT_FDCWD
     if (dirfd == AT_FDCWD) {
         gemu_log("AT_FDCWD%s", get_comma(last));
         return;
     }
 #endif
-    gemu_log("%d%s", dirfd, get_comma(last));
+    gemu_log("%d%s", (int)dirfd, get_comma(last));
 }
 
 static void
-print_file_mode(abi_long tmode, int last)
+print_file_mode(abi_long mode, int last)
 {
     const char *sep = "";
     const struct flags *m;
-    mode_t mode = (mode_t)tswap32(tmode);
 
     for (m = &mode_flags[0]; m->f_string != NULL; m++) {
         if ((m->f_value & mode) == m->f_value) {
@@ -504,16 +502,14 @@ print_file_mode(abi_long tmode, int last)
     mode &= ~S_IFMT;
     /* print rest of the mode as octal */
     if (mode != 0)
-        gemu_log("%s%#o", sep, mode);
+        gemu_log("%s%#o", sep, (unsigned int)mode);
 
     gemu_log("%s", get_comma(last));
 }
 
 static void
-print_open_flags(abi_long tflags, int last)
+print_open_flags(abi_long flags, int last)
 {
-    int flags = tswap32(tflags);
-
     print_flags(open_access_flags, flags & TARGET_O_ACCMODE, 1);
     flags &= ~TARGET_O_ACCMODE;
     if (flags == 0) {
@@ -616,7 +612,7 @@ print_accept(const struct syscallname *name,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
     print_syscall_prologue(name);
-    print_raw_param("%d", tswap32(arg0), 0);
+    print_raw_param("%d", arg0, 0);
     print_pointer(arg1, 0);
     print_number(arg2, 1);
     print_syscall_epilogue(name);
@@ -694,7 +690,7 @@ print_execv(const struct syscallname *name,
 {
     print_syscall_prologue(name);
     print_string(arg0, 0);
-    print_raw_param("0x" TARGET_ABI_FMT_lx, tswapl(arg1), 1);
+    print_raw_param("0x" TARGET_ABI_FMT_lx, arg1, 1);
     print_syscall_epilogue(name);
 }
 #endif
@@ -738,13 +734,8 @@ print_fchownat(const struct syscallname *name,
     print_syscall_prologue(name);
     print_at_dirfd(arg0, 0);
     print_string(arg1, 0);
-#ifdef USE_UID16
-    print_raw_param("%d", tswap16(arg2), 0);
-    print_raw_param("%d", tswap16(arg3), 0);
-#else
-    print_raw_param("%d", tswap32(arg2), 0);
-    print_raw_param("%d", tswap32(arg3), 0);
-#endif
+    print_raw_param("%d", arg2, 0);
+    print_raw_param("%d", arg3, 0);
     print_flags(at_file_flags, arg4, 1);
     print_syscall_epilogue(name);
 }
@@ -757,7 +748,7 @@ print_fcntl(const struct syscallname *name,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
     print_syscall_prologue(name);
-    print_raw_param("%d", tswap32(arg0), 0);
+    print_raw_param("%d", arg0, 0);
     print_flags(fcntl_flags, arg1, 0);
     /*
      * TODO: check flags and print following argument only
@@ -838,7 +829,7 @@ print_fstat(const struct syscallname *name,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
     print_syscall_prologue(name);
-    print_raw_param("%d", tswap32(arg0), 0);
+    print_raw_param("%d", arg0, 0);
     print_pointer(arg1, 1);
     print_syscall_epilogue(name);
 }
@@ -872,20 +863,32 @@ print_mkdirat(const struct syscallname *name,
 }
 #endif
 
+#ifdef TARGET_NR_rmdir
+static void
+print_rmdir(const struct syscallname *name,
+    abi_long arg0, abi_long arg1, abi_long arg2,
+    abi_long arg3, abi_long arg4, abi_long arg5)
+{
+    print_syscall_prologue(name);
+    print_string(arg0, 0);
+    print_syscall_epilogue(name);
+}
+#endif
+
 #ifdef TARGET_NR_mknod
 static void
 print_mknod(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
-    int hasdev = (tswapl(arg1) & (S_IFCHR|S_IFBLK));
+    int hasdev = (arg1 & (S_IFCHR|S_IFBLK));
 
     print_syscall_prologue(name);
     print_string(arg0, 0);
     print_file_mode(arg1, (hasdev == 0));
     if (hasdev) {
-        print_raw_param("makedev(%d", major(tswapl(arg2)), 0);
-        print_raw_param("%d)", minor(tswapl(arg2)), 1);
+        print_raw_param("makedev(%d", major(arg2), 0);
+        print_raw_param("%d)", minor(arg2), 1);
     }
     print_syscall_epilogue(name);
 }
@@ -897,15 +900,15 @@ print_mknodat(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
-    int hasdev = (tswapl(arg2) & (S_IFCHR|S_IFBLK));
+    int hasdev = (arg2 & (S_IFCHR|S_IFBLK));
 
     print_syscall_prologue(name);
     print_at_dirfd(arg0, 0);
     print_string(arg1, 0);
     print_file_mode(arg2, (hasdev == 0));
     if (hasdev) {
-        print_raw_param("makedev(%d", major(tswapl(arg3)), 0);
-        print_raw_param("%d)", minor(tswapl(arg3)), 1);
+        print_raw_param("makedev(%d", major(arg3), 0);
+        print_raw_param("%d)", minor(arg3), 1);
     }
     print_syscall_epilogue(name);
 }
@@ -917,7 +920,7 @@ print_mq_open(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
-    int is_creat = (tswapl(arg1) & TARGET_O_CREAT);
+    int is_creat = (arg1 & TARGET_O_CREAT);
 
     print_syscall_prologue(name);
     print_string(arg0, 0);
@@ -936,7 +939,7 @@ print_open(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
-    int is_creat = (tswap32(arg1) & TARGET_O_CREAT);
+    int is_creat = (arg1 & TARGET_O_CREAT);
 
     print_syscall_prologue(name);
     print_string(arg0, 0);
@@ -953,7 +956,7 @@ print_openat(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
     abi_long arg3, abi_long arg4, abi_long arg5)
 {
-    int is_creat = (tswap32(arg2) & TARGET_O_CREAT);
+    int is_creat = (arg2 & TARGET_O_CREAT);
 
     print_syscall_prologue(name);
     print_at_dirfd(arg0, 0);
@@ -1002,7 +1005,7 @@ print_readlink(const struct syscallname *name,
     print_syscall_prologue(name);
     print_string(arg0, 0);
     print_pointer(arg1, 0);
-    print_raw_param("%u", tswapl(arg2), 1);
+    print_raw_param("%u", arg2, 1);
     print_syscall_epilogue(name);
 }
 #endif
@@ -1017,7 +1020,7 @@ print_readlinkat(const struct syscallname *name,
     print_at_dirfd(arg0, 0);
     print_string(arg1, 0);
     print_pointer(arg2, 0);
-    print_raw_param("%u", tswapl(arg3), 1);
+    print_raw_param("%u", arg3, 1);
     print_syscall_epilogue(name);
 }
 #endif
@@ -1199,7 +1202,7 @@ print_utimensat(const struct syscallname *name,
 }
 #endif
 
-#ifdef TARGET_NR_mmap
+#if defined(TARGET_NR_mmap) || defined(TARGET_NR_mmap2)
 static void
 print_mmap(const struct syscallname *name,
     abi_long arg0, abi_long arg1, abi_long arg2,
@@ -1207,11 +1210,11 @@ print_mmap(const struct syscallname *name,
 {
     print_syscall_prologue(name);
     print_pointer(arg0, 0);
-    print_raw_param("%d", tswapl(arg1), 0);
+    print_raw_param("%d", arg1, 0);
     print_flags(mmap_prot_flags, arg2, 0);
     print_flags(mmap_flags, arg3, 0);
-    print_raw_param("%d", tswapl(arg4), 0);
-    print_raw_param("%#x", tswapl(arg5), 1);
+    print_raw_param("%d", arg4, 0);
+    print_raw_param("%#x", arg5, 1);
     print_syscall_epilogue(name);
 }
 #define print_mmap2     print_mmap
@@ -1225,7 +1228,7 @@ print_mprotect(const struct syscallname *name,
 {
     print_syscall_prologue(name);
     print_pointer(arg0, 0);
-    print_raw_param("%d", tswapl(arg1), 0);
+    print_raw_param("%d", arg1, 0);
     print_flags(mmap_prot_flags, arg2, 1);
     print_syscall_epilogue(name);
 }
@@ -1239,7 +1242,7 @@ print_munmap(const struct syscallname *name,
 {
     print_syscall_prologue(name);
     print_pointer(arg0, 0);
-    print_raw_param("%d", tswapl(arg1), 1);
+    print_raw_param("%d", arg1, 1);
     print_syscall_epilogue(name);
 }
 #endif
@@ -1253,7 +1256,7 @@ if( cmd == val ) { \
     return; \
 }
 
-    int cmd = (int)tswap32(tflag);
+    int cmd = (int)tflag;
 #ifdef FUTEX_PRIVATE_FLAG
     if (cmd & FUTEX_PRIVATE_FLAG) {
         gemu_log("FUTEX_PRIVATE_FLAG|");
@@ -1287,10 +1290,10 @@ print_futex(const struct syscallname *name,
     print_syscall_prologue(name);
     print_pointer(arg0, 0);
     print_futex_op(arg1, 0);
-    print_raw_param(",%d", tswapl(arg2), 0);
+    print_raw_param(",%d", arg2, 0);
     print_pointer(arg3, 0); /* struct timespec */
     print_pointer(arg4, 0);
-    print_raw_param("%d", tswapl(arg4), 1);
+    print_raw_param("%d", arg4, 1);
     print_syscall_epilogue(name);
 }
 #endif

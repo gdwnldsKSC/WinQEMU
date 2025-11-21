@@ -48,16 +48,86 @@
 
 #define TARGET_LONG_SIZE (TARGET_LONG_BITS / 8)
 
+#ifdef _MSC_VER
+
+ /* Provide sane defaults if configure didn't generate them.
+  * These match the old QEMU configure defaults.
+  */
+#ifndef TARGET_SHORT_ALIGNMENT
+# define TARGET_SHORT_ALIGNMENT 2
+#endif
+
+#ifndef TARGET_INT_ALIGNMENT
+# define TARGET_INT_ALIGNMENT 4
+#endif
+
+#ifndef TARGET_LLONG_ALIGNMENT
+# define TARGET_LLONG_ALIGNMENT 8
+#endif
+
+#ifndef TARGET_LONG_ALIGNMENT
+# if TARGET_LONG_SIZE == 8
+#  define TARGET_LONG_ALIGNMENT 8
+# else
+#  define TARGET_LONG_ALIGNMENT 4
+# endif
+#endif
+
+#endif /* _MSC_VER */
+
+#ifdef _MSC_VER
+
+typedef __declspec(align(TARGET_SHORT_ALIGNMENT))  int16_t  target_short;
+typedef __declspec(align(TARGET_SHORT_ALIGNMENT))  uint16_t target_ushort;
+
+typedef __declspec(align(TARGET_INT_ALIGNMENT))    int32_t  target_int;
+typedef __declspec(align(TARGET_INT_ALIGNMENT))    uint32_t target_uint;
+
+typedef __declspec(align(TARGET_LLONG_ALIGNMENT))  int64_t  target_llong;
+typedef __declspec(align(TARGET_LLONG_ALIGNMENT))  uint64_t target_ullong;
+
 /* target_ulong is the type of a virtual address */
 #if TARGET_LONG_SIZE == 4
-typedef int32_t target_long;
-typedef uint32_t target_ulong;
+typedef __declspec(align(TARGET_LONG_ALIGNMENT))   int32_t  target_long;
+typedef __declspec(align(TARGET_LONG_ALIGNMENT))   uint32_t target_ulong;
+#elif TARGET_LONG_SIZE == 8
+typedef __declspec(align(TARGET_LONG_ALIGNMENT))   int64_t  target_long;
+typedef __declspec(align(TARGET_LONG_ALIGNMENT))   uint64_t target_ulong;
+#else
+#error TARGET_LONG_SIZE undefined
+#endif
+
+#else  /* ! _MSC_VER */
+
+typedef int16_t  target_short  __attribute__((aligned(TARGET_SHORT_ALIGNMENT)));
+typedef uint16_t target_ushort __attribute__((aligned(TARGET_SHORT_ALIGNMENT)));
+
+typedef int32_t  target_int    __attribute__((aligned(TARGET_INT_ALIGNMENT)));
+typedef uint32_t target_uint   __attribute__((aligned(TARGET_INT_ALIGNMENT)));
+
+typedef int64_t  target_llong  __attribute__((aligned(TARGET_LLONG_ALIGNMENT)));
+typedef uint64_t target_ullong __attribute__((aligned(TARGET_LLONG_ALIGNMENT)));
+
+/* target_ulong is the type of a virtual address */
+#if TARGET_LONG_SIZE == 4
+typedef int32_t  target_long   __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
+typedef uint32_t target_ulong  __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
+#elif TARGET_LONG_SIZE == 8
+typedef int64_t  target_long   __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
+typedef uint64_t target_ulong  __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
+#else
+#error TARGET_LONG_SIZE undefined
+#endif
+
+#endif /* _MSC_VER */
+
+/* Format macros are compiler-independent, keep them as they were */
+
+#if TARGET_LONG_SIZE == 4
 #define TARGET_FMT_lx "%08x"
 #define TARGET_FMT_ld "%d"
 #define TARGET_FMT_lu "%u"
 #elif TARGET_LONG_SIZE == 8
-typedef int64_t target_long;
-typedef uint64_t target_ulong;
 #define TARGET_FMT_lx "%016" PRIx64
 #define TARGET_FMT_ld "%" PRId64
 #define TARGET_FMT_lu "%" PRIu64
@@ -219,6 +289,7 @@ typedef struct CPUWatchpoint {
     uint32_t stopped; /* Artificially stopped */                        \
     struct QemuThread *thread;                                          \
     struct QemuCond *halt_cond;                                         \
+    int thread_kicked;                                                  \
     struct qemu_work_item *queued_work_first, *queued_work_last;        \
     const char *cpu_model_str;                                          \
     struct KVMState *kvm_state;                                         \

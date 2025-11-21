@@ -888,7 +888,7 @@ static int pxa2xx_ssp_init(SysBusDevice *dev)
 
 static inline void pxa2xx_rtc_int_update(PXA2xxState *s)
 {
-    qemu_set_irq(s->pic[PXA2XX_PIC_RTCALARM], !!(s->rtsr & 0x2553));
+    qemu_set_irq(s->rtc_irq, !!(s->rtsr & 0x2553));
 }
 
 static void pxa2xx_rtc_hzupdate(PXA2xxState *s)
@@ -1197,6 +1197,8 @@ static void pxa2xx_rtc_init(PXA2xxState *s)
     s->rtc_swal1 = qemu_new_timer(rt_clock, pxa2xx_rtc_swal1_tick, s);
     s->rtc_swal2 = qemu_new_timer(rt_clock, pxa2xx_rtc_swal2_tick, s);
     s->rtc_pi    = qemu_new_timer(rt_clock, pxa2xx_rtc_pi_tick,    s);
+
+    s->rtc_irq = qdev_get_gpio_in(s->pic, PXA2XX_PIC_RTCALARM);
 }
 
 static void pxa2xx_rtc_save(QEMUFile *f, void *opaque)
@@ -1262,10 +1264,12 @@ typedef struct {
 } PXA2xxI2CSlaveState;
 
 struct PXA2xxI2CState {
+    SysBusDevice busdev;
     PXA2xxI2CSlaveState *slave;
     i2c_bus *bus;
     qemu_irq irq;
-    target_phys_addr_t offset;
+    uint32_t offset;
+    uint32_t region_size;
 
     uint16_t control;
     uint16_t status;
@@ -1499,33 +1503,61 @@ static I2CSlaveInfo pxa2xx_i2c_slave_info = {
 PXA2xxI2CState *pxa2xx_i2c_init(target_phys_addr_t base,
                 qemu_irq irq, uint32_t region_size)
 {
-    int iomemtype;
     DeviceState *dev;
-    PXA2xxI2CState *s = qemu_mallocz(sizeof(PXA2xxI2CState));
+    SysBusDevice *i2c_dev;
+    PXA2xxI2CState *s;
 
+    i2c_dev = sysbus_from_qdev(qdev_create(NULL, "pxa2xx_i2c"));
+    qdev_prop_set_uint32(&i2c_dev->qdev, "size", region_size + 1);
+    qdev_prop_set_uint32(&i2c_dev->qdev, "offset",
+            base - (base & (~region_size) & TARGET_PAGE_MASK));
+
+    qdev_init_nofail(&i2c_dev->qdev);
+
+    sysbus_mmio_map(i2c_dev, 0, base & ~region_size);
+    sysbus_connect_irq(i2c_dev, 0, irq);
+
+    s = FROM_SYSBUS(PXA2xxI2CState, i2c_dev);
     /* FIXME: Should the slave device really be on a separate bus?  */
     dev = i2c_create_slave(i2c_init_bus(NULL, "dummy"), "pxa2xx-i2c-slave", 0);
     s->slave = FROM_I2C_SLAVE(PXA2xxI2CSlaveState, I2C_SLAVE_FROM_QDEV(dev));
     s->slave->host = s;
 
-    s->irq = irq;
-    s->bus = i2c_init_bus(NULL, "i2c");
-    s->offset = base - (base & (~region_size) & TARGET_PAGE_MASK);
+    return s;
+}
+
+static int pxa2xx_i2c_initfn(SysBusDevice *dev)
+{
+    PXA2xxI2CState *s = FROM_SYSBUS(PXA2xxI2CState, dev);
+    int iomemtype;
+
+    s->bus = i2c_init_bus(&dev->qdev, "i2c");
 
     iomemtype = cpu_register_io_memory(pxa2xx_i2c_readfn,
                     pxa2xx_i2c_writefn, s, DEVICE_NATIVE_ENDIAN);
-    cpu_register_physical_memory(base & ~region_size,
-                    region_size + 1, iomemtype);
+    sysbus_init_mmio(dev, s->region_size, iomemtype);
+    sysbus_init_irq(dev, &s->irq);
 
-    vmstate_register(NULL, base, &vmstate_pxa2xx_i2c, s);
-
-    return s;
+    return 0;
 }
 
 i2c_bus *pxa2xx_i2c_bus(PXA2xxI2CState *s)
 {
     return s->bus;
 }
+
+static SysBusDeviceInfo pxa2xx_i2c_info = {
+    .init       = pxa2xx_i2c_initfn,
+    .qdev.name  = "pxa2xx_i2c",
+    .qdev.desc  = "PXA2xx I2C Bus Controller",
+    .qdev.size  = sizeof(PXA2xxI2CState),
+    .qdev.vmsd  = &vmstate_pxa2xx_i2c,
+    .qdev.props = (Property[]) {
+        DEFINE_PROP_UINT32("size", PXA2xxI2CState, region_size, 0x10000),
+        DEFINE_PROP_UINT32("offset", PXA2xxI2CState, offset, 0),
+        DEFINE_PROP_END_OF_LIST(),
+    },
+};
 
 /* PXA Inter-IC Sound Controller */
 static void pxa2xx_i2s_reset(PXA2xxI2SState *i2s)
@@ -1631,7 +1663,7 @@ static void pxa2xx_i2s_write(void *opaque, target_phys_addr_t addr,
         }
         if (value & (1 << 4))				/* EFWR */
             printf("%s: Attempt to use special function\n", __FUNCTION__);
-        s->enable = ((value ^ 4) & 5) == 5;		/* ENB && !RST*/
+        s->enable = (value & 9) == 1;			/* ENB && !RST*/
         pxa2xx_i2s_update(s);
         break;
     case SACR1:
@@ -2065,10 +2097,10 @@ PXA2xxState *pxa270_init(unsigned int sdram_size, const char *revision)
 
     s->pic = pxa2xx_pic_init(0x40d00000, s->env);
 
-    s->dma = pxa27x_dma_init(0x40000000, s->pic[PXA2XX_PIC_DMA]);
+    s->dma = pxa27x_dma_init(0x40000000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_DMA));
 
-    pxa27x_timer_init(0x40a00000, &s->pic[PXA2XX_PIC_OST_0],
-                    s->pic[PXA27X_PIC_OST_4_11]);
+    pxa27x_timer_init(0x40a00000, s->pic);
 
     s->gpio = pxa2xx_gpio_init(0x40e00000, s->env, s->pic, 121);
 
@@ -2078,26 +2110,28 @@ PXA2xxState *pxa270_init(unsigned int sdram_size, const char *revision)
         exit(1);
     }
     s->mmc = pxa2xx_mmci_init(0x41100000, dinfo->bdrv,
-                              s->pic[PXA2XX_PIC_MMC], s->dma);
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_MMC), s->dma);
 
     for (i = 0; pxa270_serial[i].io_base; i ++)
         if (serial_hds[i])
 #ifdef TARGET_WORDS_BIGENDIAN
             serial_mm_init(pxa270_serial[i].io_base, 2,
-                           s->pic[pxa270_serial[i].irqn], 14857000/16,
-                           serial_hds[i], 1, 1);
+                            qdev_get_gpio_in(s->pic, pxa270_serial[i].irqn),
+                            14857000 / 16, serial_hds[i], 1, 1);
 #else
             serial_mm_init(pxa270_serial[i].io_base, 2,
-                           s->pic[pxa270_serial[i].irqn], 14857000/16,
-                           serial_hds[i], 1, 0);
+                            qdev_get_gpio_in(s->pic, pxa270_serial[i].irqn),
+                            14857000 / 16, serial_hds[i], 1, 0);
 #endif
         else
             break;
     if (serial_hds[i])
-        s->fir = pxa2xx_fir_init(0x40800000, s->pic[PXA2XX_PIC_ICP],
+        s->fir = pxa2xx_fir_init(0x40800000,
+                        qdev_get_gpio_in(s->pic, PXA2XX_PIC_ICP),
                         s->dma, serial_hds[i]);
 
-    s->lcd = pxa2xx_lcdc_init(0x44000000, s->pic[PXA2XX_PIC_LCD]);
+    s->lcd = pxa2xx_lcdc_init(0x44000000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_LCD));
 
     s->cm_base = 0x41300000;
     s->cm_regs[CCCR >> 2] = 0x02000210;	/* 416.0 MHz */
@@ -2129,13 +2163,13 @@ PXA2xxState *pxa270_init(unsigned int sdram_size, const char *revision)
     for (i = 0; pxa27x_ssp[i].io_base; i ++) {
         DeviceState *dev;
         dev = sysbus_create_simple("pxa2xx-ssp", pxa27x_ssp[i].io_base,
-                                   s->pic[pxa27x_ssp[i].irqn]);
+                        qdev_get_gpio_in(s->pic, pxa27x_ssp[i].irqn));
         s->ssp[i] = (SSIBus *)qdev_get_child_bus(dev, "ssi");
     }
 
     if (usb_enabled) {
         sysbus_create_simple("sysbus-ohci", 0x4c000000,
-                             s->pic[PXA2XX_PIC_USBH1]);
+                        qdev_get_gpio_in(s->pic, PXA2XX_PIC_USBH1));
     }
 
     s->pcmcia[0] = pxa2xx_pcmcia_init(0x20000000);
@@ -2149,12 +2183,16 @@ PXA2xxState *pxa270_init(unsigned int sdram_size, const char *revision)
     register_savevm(NULL, "pxa2xx_rtc", 0, 0, pxa2xx_rtc_save,
                     pxa2xx_rtc_load, s);
 
-    s->i2c[0] = pxa2xx_i2c_init(0x40301600, s->pic[PXA2XX_PIC_I2C], 0xffff);
-    s->i2c[1] = pxa2xx_i2c_init(0x40f00100, s->pic[PXA2XX_PIC_PWRI2C], 0xff);
+    s->i2c[0] = pxa2xx_i2c_init(0x40301600,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_I2C), 0xffff);
+    s->i2c[1] = pxa2xx_i2c_init(0x40f00100,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_PWRI2C), 0xff);
 
-    s->i2s = pxa2xx_i2s_init(0x40400000, s->pic[PXA2XX_PIC_I2S], s->dma);
+    s->i2s = pxa2xx_i2s_init(0x40400000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_I2S), s->dma);
 
-    s->kp = pxa27x_keypad_init(0x41500000, s->pic[PXA2XX_PIC_KEYPAD]);
+    s->kp = pxa27x_keypad_init(0x41500000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_KEYPAD));
 
     /* GPIO1 resets the processor */
     /* The handler can be overridden by board-specific code */
@@ -2188,9 +2226,10 @@ PXA2xxState *pxa255_init(unsigned int sdram_size)
 
     s->pic = pxa2xx_pic_init(0x40d00000, s->env);
 
-    s->dma = pxa255_dma_init(0x40000000, s->pic[PXA2XX_PIC_DMA]);
+    s->dma = pxa255_dma_init(0x40000000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_DMA));
 
-    pxa25x_timer_init(0x40a00000, &s->pic[PXA2XX_PIC_OST_0]);
+    pxa25x_timer_init(0x40a00000, s->pic);
 
     s->gpio = pxa2xx_gpio_init(0x40e00000, s->env, s->pic, 85);
 
@@ -2200,27 +2239,29 @@ PXA2xxState *pxa255_init(unsigned int sdram_size)
         exit(1);
     }
     s->mmc = pxa2xx_mmci_init(0x41100000, dinfo->bdrv,
-                              s->pic[PXA2XX_PIC_MMC], s->dma);
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_MMC), s->dma);
 
     for (i = 0; pxa255_serial[i].io_base; i ++)
         if (serial_hds[i]) {
 #ifdef TARGET_WORDS_BIGENDIAN
             serial_mm_init(pxa255_serial[i].io_base, 2,
-                           s->pic[pxa255_serial[i].irqn], 14745600/16,
-                           serial_hds[i], 1, 1);
+                            qdev_get_gpio_in(s->pic, pxa255_serial[i].irqn),
+                            14745600 / 16, serial_hds[i], 1, 1);
 #else
             serial_mm_init(pxa255_serial[i].io_base, 2,
-                           s->pic[pxa255_serial[i].irqn], 14745600/16,
-                           serial_hds[i], 1, 0);
+                            qdev_get_gpio_in(s->pic, pxa255_serial[i].irqn),
+                            14745600 / 16, serial_hds[i], 1, 0);
 #endif
         } else {
             break;
         }
     if (serial_hds[i])
-        s->fir = pxa2xx_fir_init(0x40800000, s->pic[PXA2XX_PIC_ICP],
+        s->fir = pxa2xx_fir_init(0x40800000,
+                        qdev_get_gpio_in(s->pic, PXA2XX_PIC_ICP),
                         s->dma, serial_hds[i]);
 
-    s->lcd = pxa2xx_lcdc_init(0x44000000, s->pic[PXA2XX_PIC_LCD]);
+    s->lcd = pxa2xx_lcdc_init(0x44000000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_LCD));
 
     s->cm_base = 0x41300000;
     s->cm_regs[CCCR >> 2] = 0x02000210;	/* 416.0 MHz */
@@ -2252,13 +2293,13 @@ PXA2xxState *pxa255_init(unsigned int sdram_size)
     for (i = 0; pxa255_ssp[i].io_base; i ++) {
         DeviceState *dev;
         dev = sysbus_create_simple("pxa2xx-ssp", pxa255_ssp[i].io_base,
-                                   s->pic[pxa255_ssp[i].irqn]);
+                        qdev_get_gpio_in(s->pic, pxa255_ssp[i].irqn));
         s->ssp[i] = (SSIBus *)qdev_get_child_bus(dev, "ssi");
     }
 
     if (usb_enabled) {
         sysbus_create_simple("sysbus-ohci", 0x4c000000,
-                             s->pic[PXA2XX_PIC_USBH1]);
+                        qdev_get_gpio_in(s->pic, PXA2XX_PIC_USBH1));
     }
 
     s->pcmcia[0] = pxa2xx_pcmcia_init(0x20000000);
@@ -2272,10 +2313,13 @@ PXA2xxState *pxa255_init(unsigned int sdram_size)
     register_savevm(NULL, "pxa2xx_rtc", 0, 0, pxa2xx_rtc_save,
                     pxa2xx_rtc_load, s);
 
-    s->i2c[0] = pxa2xx_i2c_init(0x40301600, s->pic[PXA2XX_PIC_I2C], 0xffff);
-    s->i2c[1] = pxa2xx_i2c_init(0x40f00100, s->pic[PXA2XX_PIC_PWRI2C], 0xff);
+    s->i2c[0] = pxa2xx_i2c_init(0x40301600,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_I2C), 0xffff);
+    s->i2c[1] = pxa2xx_i2c_init(0x40f00100,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_PWRI2C), 0xff);
 
-    s->i2s = pxa2xx_i2s_init(0x40400000, s->pic[PXA2XX_PIC_I2S], s->dma);
+    s->i2s = pxa2xx_i2s_init(0x40400000,
+                    qdev_get_gpio_in(s->pic, PXA2XX_PIC_I2S), s->dma);
 
     /* GPIO1 resets the processor */
     /* The handler can be overridden by board-specific code */
@@ -2287,6 +2331,7 @@ static void pxa2xx_register_devices(void)
 {
     i2c_register_slave(&pxa2xx_i2c_slave_info);
     sysbus_register_dev("pxa2xx-ssp", sizeof(PXA2xxSSPState), pxa2xx_ssp_init);
+    sysbus_register_withprop(&pxa2xx_i2c_info);
 }
 
 device_init(pxa2xx_register_devices)

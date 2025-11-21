@@ -122,6 +122,7 @@ typedef struct GlobalProperty {
 /*** Board API.  This should go away once we have a machine config file.  ***/
 
 DeviceState *qdev_create(BusState *bus, const char *name);
+DeviceState *qdev_try_create(BusState *bus, const char *name);
 int qdev_device_help(QemuOpts *opts);
 DeviceState *qdev_device_add(QemuOpts *opts);
 int qdev_init(DeviceState *dev) QEMU_WARN_UNUSED_RESULT;
@@ -289,7 +290,7 @@ extern PropertyInfo qdev_prop_pci_devfn;
     DEFINE_PROP(_n, _s, _f, qdev_prop_macaddr, MACAddr)
 
 #define DEFINE_PROP_END_OF_LIST()               \
-    {}
+    { NULL }
 
 /* Set properties between creation and init.  */
 void *qdev_get_prop_ptr(DeviceState *dev, Property *prop);

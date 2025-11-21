@@ -999,6 +999,7 @@ struct target_winsize {
 #define TARGET_MAP_NORESERVE	0x4000		/* don't check for reservations */
 #define TARGET_MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
 #define TARGET_MAP_NONBLOCK	0x10000		/* do not block on IO */
+#define TARGET_MAP_UNINITIALIZED 0x4000000	/* for anonymous mmap, memory could be uninitialized */
 #endif
 
 #if (defined(TARGET_I386) && defined(TARGET_ABI32)) || defined(TARGET_ARM) || defined(TARGET_CRIS)
@@ -2205,3 +2206,16 @@ struct target_mq_attr {
 #define FUTEX_CLOCK_REALTIME    256
 #define FUTEX_CMD_MASK          ~(FUTEX_PRIVATE_FLAG | FUTEX_CLOCK_REALTIME)
 
+#ifdef CONFIG_EPOLL
+typedef union target_epoll_data {
+    abi_ulong ptr;
+    abi_ulong fd;
+    uint32_t u32;
+    uint64_t u64;
+} target_epoll_data_t;
+
+struct target_epoll_event {
+    uint32_t events;
+    target_epoll_data_t data;
+};
+#endif

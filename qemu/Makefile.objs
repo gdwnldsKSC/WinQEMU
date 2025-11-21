@@ -100,6 +100,7 @@ common-obj-y += msmouse.o ps2.o
 common-obj-y += qdev.o qdev-properties.o
 common-obj-y += block-migration.o
 common-obj-y += pflib.o
+common-obj-y += bitmap.o bitops.o
 
 common-obj-$(CONFIG_BRLAPI) += baum.o
 common-obj-$(CONFIG_POSIX) += migration-exec.o migration-unix.o migration-fd.o
@@ -129,6 +130,7 @@ ui-obj-$(CONFIG_CURSES) += curses.o
 ui-obj-y += vnc.o d3des.o
 ui-obj-y += vnc-enc-zlib.o vnc-enc-hextile.o
 ui-obj-y += vnc-enc-tight.o vnc-palette.o
+ui-obj-y += vnc-enc-zrle.o
 ui-obj-$(CONFIG_VNC_TLS) += vnc-tls.o vnc-auth-vencrypt.o
 ui-obj-$(CONFIG_VNC_SASL) += vnc-auth-sasl.o
 ui-obj-$(CONFIG_COCOA) += cocoa.o
@@ -141,7 +143,7 @@ common-obj-y += $(addprefix ui/, $(ui-obj-y))
 
 common-obj-y += iov.o acl.o
 common-obj-$(CONFIG_THREAD) += qemu-thread.o
-common-obj-$(CONFIG_IOTHREAD) += compatfd.o
+common-obj-$(CONFIG_POSIX) += compatfd.o
 common-obj-y += notify.o event_notifier.o
 common-obj-y += qemu-timer.o qemu-timer-common.o
 
@@ -195,6 +197,8 @@ hw-obj-$(CONFIG_FDC) += fdc.o
 hw-obj-$(CONFIG_ACPI) += acpi.o acpi_piix4.o
 hw-obj-$(CONFIG_APM) += pm_smbus.o apm.o
 hw-obj-$(CONFIG_DMA) += dma.o
+hw-obj-$(CONFIG_HPET) += hpet.o
+hw-obj-$(CONFIG_APPLESMC) += applesmc.o
 
 # PPC devices
 hw-obj-$(CONFIG_OPENPIC) += openpic.o
@@ -244,6 +248,7 @@ hw-obj-$(CONFIG_IDE_CMD646) += ide/cmd646.o
 hw-obj-$(CONFIG_IDE_MACIO) += ide/macio.o
 hw-obj-$(CONFIG_IDE_VIA) += ide/via.o
 hw-obj-$(CONFIG_AHCI) += ide/ahci.o
+hw-obj-$(CONFIG_AHCI) += ide/ich.o
 
 # SCSI layer
 hw-obj-$(CONFIG_LSI_SCSI_PCI) += lsi53c895a.o
@@ -257,6 +262,7 @@ hw-obj-$(CONFIG_VGA_PCI) += vga-pci.o
 hw-obj-$(CONFIG_VGA_ISA) += vga-isa.o
 hw-obj-$(CONFIG_VGA_ISA_MM) += vga-isa-mm.o
 hw-obj-$(CONFIG_VMWARE_VGA) += vmware_vga.o
+hw-obj-$(CONFIG_VMMOUSE) += vmmouse.o
 
 hw-obj-$(CONFIG_RC4030) += rc4030.o
 hw-obj-$(CONFIG_DP8393X) += dp8393x.o

@@ -181,6 +181,18 @@ typedef void(__cdecl* qemu_ctor_fn)(void);
     static void __attribute__((constructor)) fn(void)
 #endif
 
+#ifndef timersub
+#define timersub(a, b, res)                                          \
+    do {                                                             \
+        (res)->tv_sec  = (a)->tv_sec  - (b)->tv_sec;                 \
+        (res)->tv_usec = (a)->tv_usec - (b)->tv_usec;                \
+        if ((res)->tv_usec < 0) {                                    \
+            (res)->tv_sec--;                                         \
+            (res)->tv_usec += 1000000;                               \
+        }                                                            \
+    } while (0)
+#endif /* timersub */
+
 #endif // end MSVC sections
 
 /* FIXME: Remove NEED_CPU_H.  */
@@ -366,6 +378,7 @@ void qemu_notify_event(void);
 
 /* Unblock cpu */
 void qemu_cpu_kick(void *env);
+void qemu_cpu_kick_self(void);
 int qemu_cpu_self(void *env);
 
 /* work queue */
@@ -400,6 +413,8 @@ void qemu_iovec_reset(QEMUIOVector *qiov);
 void qemu_iovec_to_buffer(QEMUIOVector *qiov, void *buf);
 void qemu_iovec_from_buffer(QEMUIOVector *qiov, const void *buf, size_t count);
 void qemu_iovec_memset(QEMUIOVector *qiov, int c, size_t count);
+void qemu_iovec_memset_skip(QEMUIOVector *qiov, int c, size_t count,
+                            size_t skip);
 
 struct Monitor;
 typedef struct Monitor Monitor;

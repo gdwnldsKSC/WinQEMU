@@ -71,7 +71,7 @@ void blockdev_auto_del(BlockDriverState *bs)
     DriveInfo *dinfo = drive_get_by_blockdev(bs);
 
     if (dinfo && dinfo->auto_del) {
-        drive_uninit(dinfo);
+        drive_put_ref(dinfo);
     }
 }
 
@@ -178,12 +178,26 @@ static void bdrv_format_print(void *opaque, const char *name)
     error_printf(" %s", name);
 }
 
-void drive_uninit(DriveInfo *dinfo)
+static void drive_uninit(DriveInfo *dinfo)
 {
     qemu_opts_del(dinfo->opts);
     bdrv_delete(dinfo->bdrv);
+    qemu_free(dinfo->id);
     QTAILQ_REMOVE(&drives, dinfo, next);
     qemu_free(dinfo);
+}
+
+void drive_put_ref(DriveInfo *dinfo)
+{
+    assert(dinfo->refcount);
+    if (--dinfo->refcount == 0) {
+        drive_uninit(dinfo);
+    }
+}
+
+void drive_get_ref(DriveInfo *dinfo)
+{
+    dinfo->refcount++;
 }
 
 static int parse_block_error_action(const char *buf, int is_read)
@@ -453,6 +467,7 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     dinfo->bus = bus_id;
     dinfo->unit = unit_id;
     dinfo->opts = opts;
+    dinfo->refcount = 1;
     if (serial)
         strncpy(dinfo->serial, serial, sizeof(dinfo->serial) - 1);
     QTAILQ_INSERT_TAIL(&drives, dinfo, next);
@@ -511,7 +526,7 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     } else if (ro == 1) {
         if (type != IF_SCSI && type != IF_VIRTIO && type != IF_FLOPPY && type != IF_NONE) {
             error_report("readonly not supported by this bus type");
-            return NULL;
+            goto err;
         }
     }
 
@@ -521,12 +536,19 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     if (ret < 0) {
         error_report("could not open disk image %s: %s",
                      file, strerror(-ret));
-        return NULL;
+        goto err;
     }
 
     if (bdrv_key_required(dinfo->bdrv))
         autostart = 0;
     return dinfo;
+
+err:
+    bdrv_delete(dinfo->bdrv);
+    qemu_free(dinfo->id);
+    QTAILQ_REMOVE(&drives, dinfo, next);
+    qemu_free(dinfo);
+    return NULL;
 }
 
 void do_commit(Monitor *mon, const QDict *qdict)
@@ -710,6 +732,10 @@ int do_drive_del(Monitor *mon, const QDict *qdict, QObject **ret_data)
     bs = bdrv_find(id);
     if (!bs) {
         qerror_report(QERR_DEVICE_NOT_FOUND, id);
+        return -1;
+    }
+    if (bdrv_in_use(bs)) {
+        qerror_report(QERR_DEVICE_IN_USE, id);
         return -1;
     }
 

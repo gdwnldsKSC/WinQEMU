@@ -317,6 +317,8 @@
     </ClCompile>
     <ClCompile Include="qemu\audio\winwaveaudio.c" />
     <ClCompile Include="qemu\balloon.c" />
+    <ClCompile Include="qemu\bitmap.c" />
+    <ClCompile Include="qemu\bitops.c" />
     <ClCompile Include="qemu\block-migration.c" />
     <ClCompile Include="qemu\blockdev.c" />
     <ClCompile Include="qemu\block\blkdebug.c" />
@@ -420,6 +422,7 @@
     <ClCompile Include="qemu\hw\ide\ahci.c" />
     <ClCompile Include="qemu\hw\ide\cmd646.c" />
     <ClCompile Include="qemu\hw\ide\core.c" />
+    <ClCompile Include="qemu\hw\ide\ich.c" />
     <ClCompile Include="qemu\hw\ide\isa.c" />
     <ClCompile Include="qemu\hw\ide\macio.c" />
     <ClCompile Include="qemu\hw\ide\microdrive.c" />
@@ -435,6 +438,7 @@
     <ClCompile Include="qemu\hw\ivshmem.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\kvmclock.c" />
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
     <ClCompile Include="qemu\hw\leon3.c">
@@ -543,7 +547,9 @@
     <ClCompile Include="qemu\hw\usb-bus.c" />
     <ClCompile Include="qemu\hw\usb-desc.c" />
     <ClCompile Include="qemu\hw\vga-isa-mm.c" />
-    <ClCompile Include="qemu\hw\vga-isa.c" />
+    <ClCompile Include="qemu\hw\vga-isa.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\vga-pci.c" />
     <ClCompile Include="qemu\hw\vhost.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -720,6 +726,13 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-tight.c" />
     <ClCompile Include="qemu\ui\vnc-enc-zlib.c" />
+    <ClCompile Include="qemu\ui\vnc-enc-zrle-template.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-enc-zrle.c" />
+    <ClCompile Include="qemu\ui\vnc-enc-zywrle-template.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\ui\vnc-jobs-async.c" />
     <ClCompile Include="qemu\ui\vnc-jobs-sync.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -1972,6 +1985,8 @@
     <ClInclude Include="qemu\acl.h" />
     <ClInclude Include="qemu\arch_init.h" />
     <ClInclude Include="qemu\audio\audio_win_int.h" />
+    <ClInclude Include="qemu\bitmap.h" />
+    <ClInclude Include="qemu\bitops.h" />
     <ClInclude Include="qemu\block-migration.h" />
     <ClInclude Include="qemu\blockdev.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
@@ -1994,12 +2009,14 @@
     <ClInclude Include="qemu\hw\event_notifier.h" />
     <ClInclude Include="qemu\hw\file-op-9p.h" />
     <ClInclude Include="qemu\hw\grlib.h" />
+    <ClInclude Include="qemu\hw\ide\ahci.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
     <ClInclude Include="qemu\hw\ide\pci.h" />
     <ClInclude Include="qemu\hw\intel-hda-defs.h" />
     <ClInclude Include="qemu\hw\intel-hda.h" />
     <ClInclude Include="qemu\hw\ioapic.h" />
     <ClInclude Include="qemu\hw\ioh3420.h" />
+    <ClInclude Include="qemu\hw\kvmclock.h" />
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\mc146818rtc.h" />
     <ClInclude Include="qemu\hw\msi.h" />
@@ -2126,6 +2143,8 @@
     <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h" />
     <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h" />
     <ClInclude Include="qemu\ui\vnc-enc-tight.h" />
+    <ClInclude Include="qemu\ui\vnc-enc-zrle.h" />
+    <ClInclude Include="qemu\ui\vnc-enc-zywrle.h" />
     <ClInclude Include="qemu\ui\vnc-jobs.h" />
     <ClInclude Include="qemu\ui\vnc-palette.h" />
     <ClInclude Include="qemu\ui\vnc-tls.h" />

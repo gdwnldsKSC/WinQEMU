@@ -30,12 +30,6 @@ these four paragraphs for those parts of this code that are retained.
 
 =============================================================================*/
 
-#if defined(TARGET_MIPS) || defined(TARGET_SH4)
-#define SNAN_BIT_IS_ONE		1
-#else
-#define SNAN_BIT_IS_ONE		0
-#endif
-
 /*----------------------------------------------------------------------------
 | Raises the exceptions specified by `flags'.  Floating-point traps can be
 | defined here if desired.  It is currently not possible for such a trap
@@ -57,17 +51,94 @@ typedef struct {
 } commonNaNT;
 
 /*----------------------------------------------------------------------------
-| The pattern for a default generated single-precision NaN.
+| Returns 1 if the half-precision floating-point value `a' is a quiet
+| NaN; otherwise returns 0.
 *----------------------------------------------------------------------------*/
-#if defined(TARGET_SPARC)
-#define float32_default_nan make_float32(0x7FFFFFFF)
-#elif defined(TARGET_PPC) || defined(TARGET_ARM) || defined(TARGET_ALPHA)
-#define float32_default_nan make_float32(0x7FC00000)
-#elif SNAN_BIT_IS_ONE
-#define float32_default_nan make_float32(0x7FBFFFFF)
+
+int float16_is_quiet_nan(float16 a_)
+{
+    uint16_t a = float16_val(a_);
+#if SNAN_BIT_IS_ONE
+    return (((a >> 9) & 0x3F) == 0x3E) && (a & 0x1FF);
 #else
-#define float32_default_nan make_float32(0xFFC00000)
+    return ((a & ~0x8000) >= 0x7c80);
 #endif
+}
+
+/*----------------------------------------------------------------------------
+| Returns 1 if the half-precision floating-point value `a' is a signaling
+| NaN; otherwise returns 0.
+*----------------------------------------------------------------------------*/
+
+int float16_is_signaling_nan(float16 a_)
+{
+    uint16_t a = float16_val(a_);
+#if SNAN_BIT_IS_ONE
+    return ((a & ~0x8000) >= 0x7c80);
+#else
+    return (((a >> 9) & 0x3F) == 0x3E) && (a & 0x1FF);
+#endif
+}
+
+/*----------------------------------------------------------------------------
+| Returns a quiet NaN if the half-precision floating point value `a' is a
+| signaling NaN; otherwise returns `a'.
+*----------------------------------------------------------------------------*/
+float16 float16_maybe_silence_nan(float16 a_)
+{
+    if (float16_is_signaling_nan(a_)) {
+#if SNAN_BIT_IS_ONE
+#  if defined(TARGET_MIPS) || defined(TARGET_SH4)
+        return float16_default_nan;
+#  else
+#    error Rules for silencing a signaling NaN are target-specific
+#  endif
+#else
+        uint16_t a = float16_val(a_);
+        a |= (1 << 9);
+        return make_float16(a);
+#endif
+    }
+    return a_;
+}
+
+/*----------------------------------------------------------------------------
+| Returns the result of converting the half-precision floating-point NaN
+| `a' to the canonical NaN format.  If `a' is a signaling NaN, the invalid
+| exception is raised.
+*----------------------------------------------------------------------------*/
+
+static commonNaNT float16ToCommonNaN( float16 a STATUS_PARAM )
+{
+    commonNaNT z;
+
+    if ( float16_is_signaling_nan( a ) ) float_raise( float_flag_invalid STATUS_VAR );
+    z.sign = float16_val(a) >> 15;
+    z.low = 0;
+    z.high = ((bits64) float16_val(a))<<54;
+    return z;
+}
+
+/*----------------------------------------------------------------------------
+| Returns the result of converting the canonical NaN `a' to the half-
+| precision floating-point format.
+*----------------------------------------------------------------------------*/
+
+static float16 commonNaNToFloat16(commonNaNT a STATUS_PARAM)
+{
+    uint16_t mantissa = a.high>>54;
+
+    if (STATUS(default_nan_mode)) {
+        return float16_default_nan;
+    }
+
+    if (mantissa) {
+        return make_float16(((((uint16_t) a.sign) << 15)
+                             | (0x1F << 10) | mantissa));
+    } else {
+        return float16_default_nan;
+    }
+}
 
 /*----------------------------------------------------------------------------
 | Returns 1 if the single-precision floating-point value `a' is a quiet
@@ -144,9 +215,14 @@ static commonNaNT float32ToCommonNaN( float32 a STATUS_PARAM )
 | precision floating-point format.
 *----------------------------------------------------------------------------*/
 
-static float32 commonNaNToFloat32( commonNaNT a )
+static float32 commonNaNToFloat32( commonNaNT a STATUS_PARAM)
 {
     bits32 mantissa = a.high>>41;
+
+    if ( STATUS(default_nan_mode) ) {
+        return float32_default_nan;
+    }
+
     if ( mantissa )
         return make_float32(
             ( ( (bits32) a.sign )<<31 ) | 0x7F800000 | ( a.high>>41 ) );
@@ -307,19 +383,6 @@ static float32 propagateFloat32NaN( float32 a, float32 b STATUS_PARAM)
 }
 
 /*----------------------------------------------------------------------------
-| The pattern for a default generated double-precision NaN.
-*----------------------------------------------------------------------------*/
-#if defined(TARGET_SPARC)
-#define float64_default_nan make_float64(LIT64( 0x7FFFFFFFFFFFFFFF ))
-#elif defined(TARGET_PPC) || defined(TARGET_ARM) || defined(TARGET_ALPHA)
-#define float64_default_nan make_float64(LIT64( 0x7FF8000000000000 ))
-#elif SNAN_BIT_IS_ONE
-#define float64_default_nan make_float64(LIT64( 0x7FF7FFFFFFFFFFFF ))
-#else
-#define float64_default_nan make_float64(LIT64( 0xFFF8000000000000 ))
-#endif
-
-/*----------------------------------------------------------------------------
 | Returns 1 if the double-precision floating-point value `a' is a quiet
 | NaN; otherwise returns 0.
 *----------------------------------------------------------------------------*/
@@ -398,9 +461,13 @@ static commonNaNT float64ToCommonNaN( float64 a STATUS_PARAM)
 | precision floating-point format.
 *----------------------------------------------------------------------------*/
 
-static float64 commonNaNToFloat64( commonNaNT a )
+static float64 commonNaNToFloat64( commonNaNT a STATUS_PARAM)
 {
     bits64 mantissa = a.high>>12;
+
+    if ( STATUS(default_nan_mode) ) {
+        return float64_default_nan;
+    }
 
     if ( mantissa )
         return make_float64(
@@ -452,19 +519,6 @@ static float64 propagateFloat64NaN( float64 a, float64 b STATUS_PARAM)
 }
 
 #ifdef FLOATX80
-
-/*----------------------------------------------------------------------------
-| The pattern for a default generated extended double-precision NaN.  The
-| `high' and `low' values hold the most- and least-significant bits,
-| respectively.
-*----------------------------------------------------------------------------*/
-#if SNAN_BIT_IS_ONE
-#define floatx80_default_nan_high 0x7FFF
-#define floatx80_default_nan_low  LIT64( 0xBFFFFFFFFFFFFFFF )
-#else
-#define floatx80_default_nan_high 0xFFFF
-#define floatx80_default_nan_low  LIT64( 0xC000000000000000 )
-#endif
 
 /*----------------------------------------------------------------------------
 | Returns 1 if the extended double-precision floating-point value `a' is a
@@ -555,9 +609,15 @@ static commonNaNT floatx80ToCommonNaN( floatx80 a STATUS_PARAM)
 | double-precision floating-point format.
 *----------------------------------------------------------------------------*/
 
-static floatx80 commonNaNToFloatx80( commonNaNT a )
+static floatx80 commonNaNToFloatx80( commonNaNT a STATUS_PARAM)
 {
     floatx80 z;
+
+    if ( STATUS(default_nan_mode) ) {
+        z.low = floatx80_default_nan_low;
+        z.high = floatx80_default_nan_high;
+        return z;
+    }
 
     if (a.high)
         z.low = a.high;
@@ -610,18 +670,6 @@ static floatx80 propagateFloatx80NaN( floatx80 a, floatx80 b STATUS_PARAM)
 #endif
 
 #ifdef FLOAT128
-
-/*----------------------------------------------------------------------------
-| The pattern for a default generated quadruple-precision NaN.  The `high' and
-| `low' values hold the most- and least-significant bits, respectively.
-*----------------------------------------------------------------------------*/
-#if SNAN_BIT_IS_ONE
-#define float128_default_nan_high LIT64( 0x7FFF7FFFFFFFFFFF )
-#define float128_default_nan_low  LIT64( 0xFFFFFFFFFFFFFFFF )
-#else
-#define float128_default_nan_high LIT64( 0xFFFF800000000000 )
-#define float128_default_nan_low  LIT64( 0x0000000000000000 )
-#endif
 
 /*----------------------------------------------------------------------------
 | Returns 1 if the quadruple-precision floating-point value `a' is a quiet
@@ -703,9 +751,15 @@ static commonNaNT float128ToCommonNaN( float128 a STATUS_PARAM)
 | precision floating-point format.
 *----------------------------------------------------------------------------*/
 
-static float128 commonNaNToFloat128( commonNaNT a )
+static float128 commonNaNToFloat128( commonNaNT a STATUS_PARAM)
 {
     float128 z;
+
+    if ( STATUS(default_nan_mode) ) {
+        z.low = float128_default_nan_low;
+        z.high = float128_default_nan_high;
+        return z;
+    }
 
     shift128Right( a.high, a.low, 16, &z.high, &z.low );
     z.high |= ( ( (bits64) a.sign )<<63 ) | LIT64( 0x7FFF000000000000 );

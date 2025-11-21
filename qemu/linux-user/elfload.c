@@ -103,13 +103,13 @@ enum {
 
 typedef target_ulong    target_elf_greg_t;
 #ifdef USE_UID16
-typedef uint16_t        target_uid_t;
-typedef uint16_t        target_gid_t;
+typedef target_ushort   target_uid_t;
+typedef target_ushort   target_gid_t;
 #else
-typedef uint32_t        target_uid_t;
-typedef uint32_t        target_gid_t;
+typedef target_uint     target_uid_t;
+typedef target_uint     target_gid_t;
 #endif
-typedef int32_t         target_pid_t;
+typedef target_int      target_pid_t;
 
 #ifdef TARGET_I386
 
@@ -1075,6 +1075,33 @@ static void zero_bss(abi_ulong elf_bss, abi_ulong last_bss, int prot)
     }
 }
 
+#ifdef CONFIG_USE_FDPIC
+static abi_ulong loader_build_fdpic_loadmap(struct image_info *info, abi_ulong sp)
+{
+    uint16_t n;
+    struct elf32_fdpic_loadseg *loadsegs = info->loadsegs;
+
+    /* elf32_fdpic_loadseg */
+    n = info->nsegs;
+    while (n--) {
+        sp -= 12;
+        put_user_u32(loadsegs[n].addr, sp+0);
+        put_user_u32(loadsegs[n].p_vaddr, sp+4);
+        put_user_u32(loadsegs[n].p_memsz, sp+8);
+    }
+
+    /* elf32_fdpic_loadmap */
+    sp -= 4;
+    put_user_u16(0, sp+0); /* version */
+    put_user_u16(info->nsegs, sp+2); /* nsegs */
+
+    info->personality = PER_LINUX_FDPIC;
+    info->loadmap_addr = sp;
+
+    return sp;
+}
+#endif
+
 static abi_ulong create_elf_tables(abi_ulong p, int argc, int envc,
                                    struct elfhdr *exec,
                                    struct image_info *info,
@@ -1087,6 +1114,21 @@ static abi_ulong create_elf_tables(abi_ulong p, int argc, int envc,
     const int n = sizeof(elf_addr_t);
 
     sp = p;
+
+#ifdef CONFIG_USE_FDPIC
+    /* Needs to be before we load the env/argc/... */
+    if (elf_is_fdpic(exec)) {
+        /* Need 4 byte alignment for these structs */
+        sp &= ~3;
+        sp = loader_build_fdpic_loadmap(info, sp);
+        info->other_info = interp_info;
+        if (interp_info) {
+            interp_info->other_info = info;
+            sp = loader_build_fdpic_loadmap(interp_info, sp);
+        }
+    }
+#endif
+
     u_platform = 0;
     k_platform = ELF_PLATFORM;
     if (k_platform) {
@@ -1197,6 +1239,11 @@ static void load_elf_image(const char *image_name, int image_fd,
     }
     bswap_phdr(phdr, ehdr->e_phnum);
 
+#ifdef CONFIG_USE_FDPIC
+    info->nsegs = 0;
+    info->pt_dynamic_addr = 0;
+#endif
+
     /* Find the maximum size of the image and allocate an appropriate
        amount of memory to handle that.  */
     loaddr = -1, hiaddr = 0;
@@ -1210,6 +1257,9 @@ static void load_elf_image(const char *image_name, int image_fd,
             if (a > hiaddr) {
                 hiaddr = a;
             }
+#ifdef CONFIG_USE_FDPIC
+            ++info->nsegs;
+#endif
         }
     }
 
@@ -1289,6 +1339,27 @@ static void load_elf_image(const char *image_name, int image_fd,
 #endif
     }
     load_bias = load_addr - loaddr;
+
+#ifdef CONFIG_USE_FDPIC
+    {
+        struct elf32_fdpic_loadseg *loadsegs = info->loadsegs =
+            qemu_malloc(sizeof(*loadsegs) * info->nsegs);
+
+        for (i = 0; i < ehdr->e_phnum; ++i) {
+            switch (phdr[i].p_type) {
+            case PT_DYNAMIC:
+                info->pt_dynamic_addr = phdr[i].p_vaddr + load_bias;
+                break;
+            case PT_LOAD:
+                loadsegs->addr = phdr[i].p_vaddr + load_bias;
+                loadsegs->p_vaddr = phdr[i].p_vaddr;
+                loadsegs->p_memsz = phdr[i].p_memsz;
+                ++loadsegs;
+                break;
+            }
+        }
+    }
+#endif
 
     info->load_bias = load_bias;
     info->load_addr = load_addr;
@@ -1481,7 +1552,7 @@ static void load_symbols(struct elfhdr *hdr, int fd, abi_ulong load_bias)
     struct elf_shdr *shdr;
     char *strings;
     struct syminfo *s;
-    struct elf_sym *syms;
+    struct elf_sym *syms, *new_syms;
 
     shnum = hdr->e_shnum;
     i = shnum * sizeof(struct elf_shdr);
@@ -1550,12 +1621,14 @@ static void load_symbols(struct elfhdr *hdr, int fd, abi_ulong load_bias)
        that we threw away.  Whether or not this has any effect on the
        memory allocation depends on the malloc implementation and how
        many symbols we managed to discard.  */
-    syms = realloc(syms, nsyms * sizeof(*syms));
-    if (syms == NULL) {
+    new_syms = realloc(syms, nsyms * sizeof(*syms));
+    if (new_syms == NULL) {
         free(s);
+        free(syms);
         free(strings);
         return;
     }
+    syms = new_syms;
 
     qsort(syms, nsyms, sizeof(*syms), symcmp);
 
@@ -1688,19 +1761,20 @@ struct memelfnote {
     size_t     namesz_rounded;
     int        type;
     size_t     datasz;
+    size_t     datasz_rounded;
     void       *data;
     size_t     notesz;
 };
 
 struct target_elf_siginfo {
-    int  si_signo; /* signal number */
-    int  si_code;  /* extra code */
-    int  si_errno; /* errno */
+    target_int  si_signo; /* signal number */
+    target_int  si_code;  /* extra code */
+    target_int  si_errno; /* errno */
 };
 
 struct target_elf_prstatus {
     struct target_elf_siginfo pr_info;      /* Info associated with signal */
-    short              pr_cursig;    /* Current signal */
+    target_short       pr_cursig;    /* Current signal */
     target_ulong       pr_sigpend;   /* XXX */
     target_ulong       pr_sighold;   /* XXX */
     target_pid_t       pr_pid;
@@ -1712,7 +1786,7 @@ struct target_elf_prstatus {
     struct target_timeval pr_cutime; /* XXX Cumulative user time */
     struct target_timeval pr_cstime; /* XXX Cumulative system time */
     target_elf_gregset_t      pr_reg;       /* GP registers */
-    int                pr_fpvalid;   /* XXX */
+    target_int         pr_fpvalid;   /* XXX */
 };
 
 #define ELF_PRARGSZ     (80) /* Number of chars for args */
@@ -1963,7 +2037,9 @@ static void fill_note(struct memelfnote *note, const char *name, int type,
     note->namesz = namesz;
     note->namesz_rounded = roundup(namesz, sizeof (int32_t));
     note->type = type;
-    note->datasz = roundup(sz, sizeof (int32_t));;
+    note->datasz = sz;
+    note->datasz_rounded = roundup(sz, sizeof (int32_t));
+
     note->data = data;
 
     /*
@@ -1971,7 +2047,7 @@ static void fill_note(struct memelfnote *note, const char *name, int type,
      * ELF document.
      */
     note->notesz = sizeof (struct elf_note) +
-        note->namesz_rounded + note->datasz;
+        note->namesz_rounded + note->datasz_rounded;
 }
 
 static void fill_elf_header(struct elfhdr *elf, int segs, uint16_t machine,
@@ -2191,7 +2267,7 @@ static int write_note(struct memelfnote *men, int fd)
         return (-1);
     if (dump_write(fd, men->name, men->namesz_rounded) != 0)
         return (-1);
-    if (dump_write(fd, men->data, men->datasz) != 0)
+    if (dump_write(fd, men->data, men->datasz_rounded) != 0)
         return (-1);
 
     return (0);
@@ -2407,7 +2483,7 @@ static int elf_core_dump(int signr, const CPUState *env)
      * ELF specification wants data to start at page boundary so
      * we align it here.
      */
-    offset = roundup(offset, ELF_EXEC_PAGESIZE);
+    data_offset = offset = roundup(offset, ELF_EXEC_PAGESIZE);
 
     /*
      * Write program headers for memory regions mapped in
@@ -2430,6 +2506,7 @@ static int elf_core_dump(int signr, const CPUState *env)
             phdr.p_flags |= PF_X;
         phdr.p_align = ELF_EXEC_PAGESIZE;
 
+        bswap_phdr(&phdr, 1);
         dump_write(fd, &phdr, sizeof (phdr));
     }
 
@@ -2441,8 +2518,6 @@ static int elf_core_dump(int signr, const CPUState *env)
         goto out;
 
     /* align data to page boundary */
-    data_offset = lseek(fd, 0, SEEK_CUR);
-    data_offset = TARGET_PAGE_ALIGN(data_offset);
     if (lseek(fd, data_offset, SEEK_SET) != data_offset)
         goto out;
 

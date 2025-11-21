@@ -29,17 +29,6 @@ these four paragraphs for those parts of this code that are retained.
 
 =============================================================================*/
 
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #ifndef SOFTFLOAT_H
 #define SOFTFLOAT_H
 
@@ -88,6 +77,12 @@ typedef int64_t sbits64;
 #define LIT64( a ) a##LL
 #define INLINE static inline
 
+#if defined(TARGET_MIPS) || defined(TARGET_SH4)
+#define SNAN_BIT_IS_ONE		1
+#else
+#define SNAN_BIT_IS_ONE		0
+#endif
+
 /*----------------------------------------------------------------------------
 | The macro `FLOATX80' must be defined to enable the extended double-precision
 | floating-point format `floatx80'.  If this macro is not defined, the
@@ -102,9 +97,7 @@ typedef int64_t sbits64;
 #else
 /* native float support */
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(CONFIG_BSD)
-#ifndef _MSC_VER
 #define FLOATX80
-#endif
 #endif
 #endif /* !CONFIG_SOFTFLOAT */
 
@@ -133,23 +126,37 @@ enum {
 //#define USE_SOFTFLOAT_STRUCT_TYPES
 #ifdef USE_SOFTFLOAT_STRUCT_TYPES
 typedef struct {
+    uint16_t v;
+} float16;
+#define float16_val(x) (((float16)(x)).v)
+#define make_float16(x) __extension__ ({ float16 f16_val = {x}; f16_val; })
+#define const_float16(x) { x }
+typedef struct {
     uint32_t v;
 } float32;
 /* The cast ensures an error if the wrong type is passed.  */
 #define float32_val(x) (((float32)(x)).v)
 #define make_float32(x) __extension__ ({ float32 f32_val = {x}; f32_val; })
+#define const_float32(x) { x }
 typedef struct {
     uint64_t v;
 } float64;
 #define float64_val(x) (((float64)(x)).v)
 #define make_float64(x) __extension__ ({ float64 f64_val = {x}; f64_val; })
+#define const_float64(x) { x }
 #else
+typedef uint16_t float16;
 typedef uint32_t float32;
 typedef uint64_t float64;
+#define float16_val(x) (x)
 #define float32_val(x) (x)
 #define float64_val(x) (x)
+#define make_float16(x) (x)
 #define make_float32(x) (x)
 #define make_float64(x) (x)
+#define const_float16(x) (x)
+#define const_float32(x) (x)
+#define const_float64(x) (x)
 #endif
 #ifdef FLOATX80
 typedef struct {
@@ -266,8 +273,26 @@ float128 int64_to_float128( int64_t STATUS_PARAM );
 /*----------------------------------------------------------------------------
 | Software half-precision conversion routines.
 *----------------------------------------------------------------------------*/
-bits16 float32_to_float16( float32, flag STATUS_PARAM );
-float32 float16_to_float32( bits16, flag STATUS_PARAM );
+float16 float32_to_float16( float32, flag STATUS_PARAM );
+float32 float16_to_float32( float16, flag STATUS_PARAM );
+
+/*----------------------------------------------------------------------------
+| Software half-precision operations.
+*----------------------------------------------------------------------------*/
+int float16_is_quiet_nan( float16 );
+int float16_is_signaling_nan( float16 );
+float16 float16_maybe_silence_nan( float16 );
+
+/*----------------------------------------------------------------------------
+| The pattern for a default generated half-precision NaN.
+*----------------------------------------------------------------------------*/
+#if defined(TARGET_ARM)
+#define float16_default_nan make_float16(0x7E00)
+#elif SNAN_BIT_IS_ONE
+#define float16_default_nan make_float16(0x7DFF)
+#else
+#define float16_default_nan make_float16(0xFE00)
+#endif
 
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE single-precision conversion routines.
@@ -354,9 +379,30 @@ INLINE int float32_is_zero_or_denormal(float32 a)
     return (float32_val(a) & 0x7f800000) == 0;
 }
 
+INLINE float32 float32_set_sign(float32 a, int sign)
+{
+    return make_float32((float32_val(a) & 0x7fffffff) | (sign << 31));
+}
+
 #define float32_zero make_float32(0)
 #define float32_one make_float32(0x3f800000)
 #define float32_ln2 make_float32(0x3f317218)
+#define float32_half make_float32(0x3f000000)
+#define float32_infinity make_float32(0x7f800000)
+
+
+/*----------------------------------------------------------------------------
+| The pattern for a default generated single-precision NaN.
+*----------------------------------------------------------------------------*/
+#if defined(TARGET_SPARC)
+#define float32_default_nan make_float32(0x7FFFFFFF)
+#elif defined(TARGET_PPC) || defined(TARGET_ARM) || defined(TARGET_ALPHA)
+#define float32_default_nan make_float32(0x7FC00000)
+#elif SNAN_BIT_IS_ONE
+#define float32_default_nan make_float32(0x7FBFFFFF)
+#else
+#define float32_default_nan make_float32(0xFFC00000)
+#endif
 
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE double-precision conversion routines.
@@ -440,9 +486,30 @@ INLINE int float64_is_any_nan(float64 a)
     return ((float64_val(a) & ~(1ULL << 63)) > 0x7ff0000000000000ULL);
 }
 
+INLINE float64 float64_set_sign(float64 a, int sign)
+{
+    return make_float64((float64_val(a) & 0x7fffffffffffffffULL)
+                        | ((int64_t)sign << 63));
+}
+
 #define float64_zero make_float64(0)
 #define float64_one make_float64(0x3ff0000000000000LL)
 #define float64_ln2 make_float64(0x3fe62e42fefa39efLL)
+#define float64_half make_float64(0x3fe0000000000000LL)
+#define float64_infinity make_float64(0x7ff0000000000000LL)
+
+/*----------------------------------------------------------------------------
+| The pattern for a default generated double-precision NaN.
+*----------------------------------------------------------------------------*/
+#if defined(TARGET_SPARC)
+#define float64_default_nan make_float64(LIT64( 0x7FFFFFFFFFFFFFFF ))
+#elif defined(TARGET_PPC) || defined(TARGET_ARM) || defined(TARGET_ALPHA)
+#define float64_default_nan make_float64(LIT64( 0x7FF8000000000000 ))
+#elif SNAN_BIT_IS_ONE
+#define float64_default_nan make_float64(LIT64( 0x7FF7FFFFFFFFFFFF ))
+#else
+#define float64_default_nan make_float64(LIT64( 0xFFF8000000000000 ))
+#endif
 
 #ifdef FLOATX80
 
@@ -511,6 +578,19 @@ INLINE int floatx80_is_any_nan(floatx80 a)
 {
     return ((a.high & 0x7fff) == 0x7fff) && (a.low<<1);
 }
+
+/*----------------------------------------------------------------------------
+| The pattern for a default generated extended double-precision NaN.  The
+| `high' and `low' values hold the most- and least-significant bits,
+| respectively.
+*----------------------------------------------------------------------------*/
+#if SNAN_BIT_IS_ONE
+#define floatx80_default_nan_high 0x7FFF
+#define floatx80_default_nan_low  LIT64( 0xBFFFFFFFFFFFFFFF )
+#else
+#define floatx80_default_nan_high 0xFFFF
+#define floatx80_default_nan_low  LIT64( 0xC000000000000000 )
+#endif
 
 #endif
 
@@ -584,6 +664,18 @@ INLINE int float128_is_any_nan(float128 a)
     return ((a.high >> 48) & 0x7fff) == 0x7fff &&
         ((a.low != 0) || ((a.high & 0xffffffffffffLL) != 0));
 }
+
+/*----------------------------------------------------------------------------
+| The pattern for a default generated quadruple-precision NaN.  The `high' and
+| `low' values hold the most- and least-significant bits, respectively.
+*----------------------------------------------------------------------------*/
+#if SNAN_BIT_IS_ONE
+#define float128_default_nan_high LIT64( 0x7FFF7FFFFFFFFFFF )
+#define float128_default_nan_low  LIT64( 0xFFFFFFFFFFFFFFFF )
+#else
+#define float128_default_nan_high LIT64( 0xFFFF800000000000 )
+#define float128_default_nan_low  LIT64( 0x0000000000000000 )
+#endif
 
 #endif
 
