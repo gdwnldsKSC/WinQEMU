@@ -517,7 +517,7 @@ txdesc_writeback(target_phys_addr_t base, struct e1000_tx_desc *dp)
     return E1000_ICR_TXDW;
 }
 
-static uint64_t tx_desc_base(E1000State* s)
+static uint64_t tx_desc_base(E1000State *s)
 {
     uint64_t bah = s->mac_reg[TDBAH];
     uint64_t bal = s->mac_reg[TDBAL] & ~0xf;
@@ -659,7 +659,7 @@ e1000_can_receive(VLANClientState *nc)
     return (s->mac_reg[RCTL] & E1000_RCTL_EN) && e1000_has_rxbufs(s, 1);
 }
 
-static uint64_t rx_desc_base(E1000State* s)
+static uint64_t rx_desc_base(E1000State *s)
 {
     uint64_t bah = s->mac_reg[RDBAH];
     uint64_t bal = s->mac_reg[RDBAL] & ~0xf;

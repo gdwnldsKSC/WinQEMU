@@ -854,14 +854,13 @@ static void lsi_do_msgout(LSIState *s)
     uint8_t msg;
     int len;
     uint32_t current_tag;
-    SCSIDevice* current_dev;
-    lsi_request* p, * p_next;
+    SCSIDevice *current_dev;
+    lsi_request *p, *p_next;
     int id;
 
     if (s->current) {
         current_tag = s->current->tag;
-    }
-    else {
+    } else {
         current_tag = s->select_tag;
     }
     id = (current_tag >> 8) & 0xf;

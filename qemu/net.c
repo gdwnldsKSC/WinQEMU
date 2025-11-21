@@ -1366,7 +1366,7 @@ void net_check_clients(void)
          * only have a single NIC.
          */
         fprintf(stderr, "Warning: more nics requested than this machine "
-            "supports; some have been ignored\n");
+                "supports; some have been ignored\n");
     }
 }
 

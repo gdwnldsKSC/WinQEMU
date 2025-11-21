@@ -1186,8 +1186,7 @@ void qemu_kill_report(void)
              * avoiding printing an odd message in that case.
              */
             fputc('\n', stderr);
-        }
-        else {
+        } else {
             fprintf(stderr, " from pid %d\n", shutdown_pid);
         }
         shutdown_signal = -1;
@@ -2506,7 +2505,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 arg_9p = qemu_malloc((len + 1) * sizeof(*arg_9p));
 
                 snprintf(arg_9p, (len + 1) * sizeof(*arg_9p),
-                    "virtio-9p,fsdev=%s,mount_tag=%s",
+                         "virtio-9p,fsdev=%s,mount_tag=%s",
                          qemu_opt_get(opts, "mount_tag"),
                          qemu_opt_get(opts, "mount_tag"));
 
