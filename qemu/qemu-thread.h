@@ -2,6 +2,8 @@
 #define __QEMU_THREAD_H 1
 #include "..\outside_qemu_tree_custom\clock_gettime.h"
 
+#include <inttypes.h>
+
 typedef struct QemuMutex QemuMutex;
 typedef struct QemuCond QemuCond;
 typedef struct QemuThread QemuThread;
