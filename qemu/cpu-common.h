@@ -34,21 +34,10 @@ typedef unsigned long ram_addr_t;
 typedef void CPUWriteMemoryFunc(void *opaque, target_phys_addr_t addr, uint32_t value);
 typedef uint32_t CPUReadMemoryFunc(void *opaque, target_phys_addr_t addr);
 
-void cpu_register_physical_memory_log(target_phys_addr_t start_addr,
-                                      ram_addr_t size,
-                                      ram_addr_t phys_offset,
-                                      ram_addr_t region_offset,
-                                      bool log_dirty);
-
-static inline void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
-                                                       ram_addr_t size,
-                                                       ram_addr_t phys_offset,
-                                                       ram_addr_t region_offset)
-{
-    cpu_register_physical_memory_log(start_addr, size, phys_offset,
-                                     region_offset, false);
-}
-
+void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
+                                         ram_addr_t size,
+                                         ram_addr_t phys_offset,
+                                         ram_addr_t region_offset);
 static inline void cpu_register_physical_memory(target_phys_addr_t start_addr,
                                                 ram_addr_t size,
                                                 ram_addr_t phys_offset)
@@ -102,8 +91,7 @@ struct CPUPhysMemoryClient {
     void (*set_memory)(struct CPUPhysMemoryClient *client,
                        target_phys_addr_t start_addr,
                        ram_addr_t size,
-                       ram_addr_t phys_offset,
-                       bool log_dirty);
+                       ram_addr_t phys_offset);
     int (*sync_dirty_bitmap)(struct CPUPhysMemoryClient *client,
                              target_phys_addr_t start_addr,
                              target_phys_addr_t end_addr);

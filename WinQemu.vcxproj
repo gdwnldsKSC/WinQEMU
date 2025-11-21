@@ -677,6 +677,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
+    <ClCompile Include="qemu\qemu-progress.c" />
     <ClCompile Include="qemu\qemu-thread-posix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
