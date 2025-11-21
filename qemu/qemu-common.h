@@ -141,8 +141,16 @@ static inline char *realpath(const char *path, char *resolved_path)
 #ifdef _MSC_VER
 #include <getopt.h>
 #include "sigcompat.h"
+#include <WinSock2.h>
 // this type isn't provided in MSVC 17/VS 2022.... 
 typedef signed int ssize_t;
+
+#ifdef _MSC_VER
+# ifndef _PID_T_DEFINED
+typedef int pid_t;      /* Windows PIDs are int-sized */
+#  define _PID_T_DEFINED
+# endif
+#endif
 
 /*these are for block devices, and otherwise missing posix attributes / defines for posix properties
  * throwing these here enables us to more closely use upstream files instead of deviating every file
@@ -292,6 +300,7 @@ ssize_t qemu_write_full(int fd, const void *buf, size_t count)
 void qemu_set_cloexec(int fd);
 
 #ifndef _WIN32
+int qemu_add_child_watch(pid_t pid);
 int qemu_eventfd(int pipefd[2]);
 int qemu_pipe(int pipefd[2]);
 #endif
@@ -304,6 +313,9 @@ void QEMU_NORETURN hw_error(const char *fmt, ...) GCC_FMT_ATTR(1, 2);
 typedef void IOReadHandler(void *opaque, const uint8_t *buf, int size);
 typedef int IOCanReadHandler(void *opaque);
 typedef void IOHandler(void *opaque);
+
+void qemu_iohandler_fill(int *pnfds, fd_set *readfds, fd_set *writefds, fd_set *xfds);
+void qemu_iohandler_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds, int rc);
 
 struct ParallelIOArg {
     void *buffer;

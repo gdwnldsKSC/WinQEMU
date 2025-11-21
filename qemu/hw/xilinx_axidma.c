@@ -506,4 +506,4 @@ static void xilinx_axidma_register(void)
     sysbus_register_withprop(&axidma_info);
 }
 
-device_init(xilinx_axidma_register);
+device_init(xilinx_axidma_register)

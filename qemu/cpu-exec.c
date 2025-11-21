@@ -212,7 +212,7 @@ static int32_t nEbpBackup;
 static void *pGenCodeBuffer = NULL;
 #endif
 
-static CPUDebugExcpHandler* debug_excp_handler = NULL;
+static CPUDebugExcpHandler* debug_excp_handler;
 
 CPUDebugExcpHandler *cpu_set_debug_excp_handler(CPUDebugExcpHandler *handler)
 {

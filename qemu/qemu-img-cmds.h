@@ -10,7 +10,7 @@ DEF("commit", img_commit,
 "commit [-f fmt] filename")
 
 DEF("convert", img_convert,
-"convert [-c] [-f fmt] [-O output_fmt] [-o options] filename [filename2 [...]] output_filename")
+"convert [-c] [-f fmt] [-O output_fmt] [-o options] [-s snapshot_name] filename [filename2 [...]] output_filename")
 
 DEF("info", img_info,
 "info [-f fmt] filename")

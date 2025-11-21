@@ -614,6 +614,7 @@
     <ClCompile Include="qemu\hw\xio3130_downstream.c" />
     <ClCompile Include="qemu\hw\xio3130_upstream.c" />
     <ClCompile Include="qemu\input.c" />
+    <ClCompile Include="qemu\iohandler.c" />
     <ClCompile Include="qemu\ioport-user.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
