@@ -117,6 +117,7 @@ kvm=""
 kvm_para=""
 nptl=""
 sdl=""
+vnc="yes"
 sparse="no"
 uuid=""
 vde=""
@@ -280,7 +281,7 @@ else
 fi
 
 case "$cpu" in
-  alpha|cris|ia64|m68k|microblaze|ppc|ppc64|sparc64)
+  alpha|cris|ia64|lm32|m68k|microblaze|ppc|ppc64|sparc64)
     cpu="$cpu"
   ;;
   i386|i486|i586|i686|i86pc|BePC)
@@ -538,6 +539,10 @@ for opt do
   --disable-sdl) sdl="no"
   ;;
   --enable-sdl) sdl="yes"
+  ;;
+  --disable-vnc) vnc="no"
+  ;;
+  --enable-vnc) vnc="yes"
   ;;
   --fmod-lib=*) fmod_lib="$optarg"
   ;;
@@ -836,6 +841,8 @@ echo "  --disable-strip          disable stripping binaries"
 echo "  --disable-werror         disable compilation abort on warning"
 echo "  --disable-sdl            disable SDL"
 echo "  --enable-sdl             enable SDL"
+echo "  --disable-vnc            disable VNC"
+echo "  --enable-vnc             enable VNC"
 echo "  --enable-cocoa           enable COCOA (Mac OS X only)"
 echo "  --audio-drv-list=LIST    set audio drivers list:"
 echo "                           Available drivers: $audio_possible_drivers"
@@ -982,6 +989,7 @@ i386-softmmu \
 x86_64-softmmu \
 arm-softmmu \
 cris-softmmu \
+lm32-softmmu \
 m68k-softmmu \
 microblaze-softmmu \
 microblazeel-softmmu \
@@ -1272,7 +1280,7 @@ fi
 
 ##########################################
 # VNC TLS detection
-if test "$vnc_tls" != "no" ; then
+if test "$vnc" = "yes" -a "$vnc_tls" != "no" ; then
   cat > $TMPC <<EOF
 #include <gnutls/gnutls.h>
 int main(void) { gnutls_session_t s; gnutls_init(&s, GNUTLS_SERVER); return 0; }
@@ -1292,7 +1300,7 @@ fi
 
 ##########################################
 # VNC SASL detection
-if test "$vnc_sasl" != "no" ; then
+if test "$vnc" = "yes" -a "$vnc_sasl" != "no" ; then
   cat > $TMPC <<EOF
 #include <sasl/sasl.h>
 #include <stdio.h>
@@ -1314,7 +1322,7 @@ fi
 
 ##########################################
 # VNC JPEG detection
-if test "$vnc_jpeg" != "no" ; then
+if test "$vnc" = "yes" -a "$vnc_jpeg" != "no" ; then
 cat > $TMPC <<EOF
 #include <stdio.h>
 #include <jpeglib.h>
@@ -1335,7 +1343,7 @@ fi
 
 ##########################################
 # VNC PNG detection
-if test "$vnc_png" != "no" ; then
+if test "$vnc" = "yes" -a "$vnc_png" != "no" ; then
 cat > $TMPC <<EOF
 //#include <stdio.h>
 #include <png.h>
@@ -1561,7 +1569,11 @@ fi
 
 ##########################################
 # curses probe
-curses_list="-lncurses -lcurses"
+if test "$mingw32" = "yes" ; then
+    curses_list="-lpdcurses"
+else
+    curses_list="-lncurses -lcurses"
+fi
 
 if test "$curses" != "no" ; then
   curses_found=no
@@ -1797,7 +1809,7 @@ if test "$rbd" != "no" ; then
 #include <rados/librados.h>
 int main(void) { rados_initialize(0, NULL); return 0; }
 EOF
-  rbd_libs="-lrados -lcrypto"
+  rbd_libs="-lrados"
   if compile_prog "" "$rbd_libs" ; then
     librados_too_old=no
     cat > $TMPC <<EOF
@@ -2490,11 +2502,14 @@ echo "Audio drivers     $audio_drv_list"
 echo "Extra audio cards $audio_card_list"
 echo "Block whitelist   $block_drv_whitelist"
 echo "Mixer emulation   $mixemu"
-echo "VNC TLS support   $vnc_tls"
-echo "VNC SASL support  $vnc_sasl"
-echo "VNC JPEG support  $vnc_jpeg"
-echo "VNC PNG support   $vnc_png"
-echo "VNC thread        $vnc_thread"
+echo "VNC support       $vnc"
+if test "$vnc" = "yes" ; then
+    echo "VNC TLS support   $vnc_tls"
+    echo "VNC SASL support  $vnc_sasl"
+    echo "VNC JPEG support  $vnc_jpeg"
+    echo "VNC PNG support   $vnc_png"
+    echo "VNC thread        $vnc_thread"
+fi
 if test -n "$sparc_cpu"; then
     echo "Target Sparc Arch $sparc_cpu"
 fi
@@ -2548,7 +2563,7 @@ echo "docdir=$docdir" >> $config_host_mak
 echo "confdir=$confdir" >> $config_host_mak
 
 case "$cpu" in
-  i386|x86_64|alpha|cris|hppa|ia64|m68k|microblaze|mips|mips64|ppc|ppc64|s390|s390x|sparc|sparc64)
+  i386|x86_64|alpha|cris|hppa|ia64|lm32|m68k|microblaze|mips|mips64|ppc|ppc64|s390|s390x|sparc|sparc64)
     ARCH=$cpu
   ;;
   armv4b|armv4l)
@@ -2644,6 +2659,9 @@ echo "CONFIG_BDRV_WHITELIST=$block_drv_whitelist" >> $config_host_mak
 if test "$mixemu" = "yes" ; then
   echo "CONFIG_MIXEMU=y" >> $config_host_mak
 fi
+if test "$vnc" = "yes" ; then
+  echo "CONFIG_VNC=y" >> $config_host_mak
+fi
 if test "$vnc_tls" = "yes" ; then
   echo "CONFIG_VNC_TLS=y" >> $config_host_mak
   echo "VNC_TLS_CFLAGS=$vnc_tls_cflags" >> $config_host_mak
@@ -2652,17 +2670,16 @@ if test "$vnc_sasl" = "yes" ; then
   echo "CONFIG_VNC_SASL=y" >> $config_host_mak
   echo "VNC_SASL_CFLAGS=$vnc_sasl_cflags" >> $config_host_mak
 fi
-if test "$vnc_jpeg" != "no" ; then
+if test "$vnc_jpeg" = "yes" ; then
   echo "CONFIG_VNC_JPEG=y" >> $config_host_mak
   echo "VNC_JPEG_CFLAGS=$vnc_jpeg_cflags" >> $config_host_mak
 fi
-if test "$vnc_png" != "no" ; then
+if test "$vnc_png" = "yes" ; then
   echo "CONFIG_VNC_PNG=y" >> $config_host_mak
   echo "VNC_PNG_CFLAGS=$vnc_png_cflags" >> $config_host_mak
 fi
-if test "$vnc_thread" != "no" ; then
+if test "$vnc_thread" = "yes" ; then
   echo "CONFIG_VNC_THREAD=y" >> $config_host_mak
-  echo "CONFIG_THREAD=y" >> $config_host_mak
 fi
 if test "$fnmatch" = "yes" ; then
   echo "CONFIG_FNMATCH=y" >> $config_host_mak
@@ -2758,7 +2775,6 @@ if test "$xen" = "yes" ; then
 fi
 if test "$io_thread" = "yes" ; then
   echo "CONFIG_IOTHREAD=y" >> $config_host_mak
-  echo "CONFIG_THREAD=y" >> $config_host_mak
 fi
 if test "$linux_aio" = "yes" ; then
   echo "CONFIG_LINUX_AIO=y" >> $config_host_mak
@@ -2904,7 +2920,7 @@ target_arch2=`echo $target | cut -d '-' -f 1`
 target_bigendian="no"
 
 case "$target_arch2" in
-  armeb|m68k|microblaze|mips|mipsn32|mips64|ppc|ppcemb|ppc64|ppc64abi32|s390x|sh4eb|sparc|sparc64|sparc32plus)
+  armeb|lm32|m68k|microblaze|mips|mipsn32|mips64|ppc|ppcemb|ppc64|ppc64abi32|s390x|sh4eb|sparc|sparc64|sparc32plus)
   target_bigendian=yes
   ;;
 esac
@@ -2997,6 +3013,9 @@ case "$target_arch2" in
   ;;
   cris)
     target_nptl="yes"
+    target_phys_bits=32
+  ;;
+  lm32)
     target_phys_bits=32
   ;;
   m68k)
@@ -3118,6 +3137,8 @@ case "$target_arch2" in
       \( "$target_arch2" = "$cpu" -o \
       \( "$target_arch2" = "ppcemb" -a "$cpu" = "ppc" \) -o \
       \( "$target_arch2" = "ppc64"  -a "$cpu" = "ppc" \) -o \
+      \( "$target_arch2" = "ppc"    -a "$cpu" = "ppc64" \) -o \
+      \( "$target_arch2" = "ppcemb" -a "$cpu" = "ppc64" \) -o \
       \( "$target_arch2" = "x86_64" -a "$cpu" = "i386"   \) -o \
       \( "$target_arch2" = "i386"   -a "$cpu" = "x86_64" \) \) ; then
       echo "CONFIG_KVM=y" >> $config_target_mak

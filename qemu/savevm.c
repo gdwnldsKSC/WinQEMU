@@ -138,7 +138,7 @@ static void qemu_announce_self_once(void *opaque)
 
     if (--count) {
         /* delay 50ms, 150ms, 250ms, ... */
-        qemu_mod_timer(timer, qemu_get_clock(rt_clock) +
+        qemu_mod_timer(timer, qemu_get_clock_ms(rt_clock) +
                        50 + (SELF_ANNOUNCE_ROUNDS - count - 1) * 100);
     } else {
 	    qemu_del_timer(timer);
@@ -149,7 +149,7 @@ static void qemu_announce_self_once(void *opaque)
 void qemu_announce_self(void)
 {
 	static QEMUTimer *timer;
-	timer = qemu_new_timer(rt_clock, qemu_announce_self_once, &timer);
+	timer = qemu_new_timer_ms(rt_clock, qemu_announce_self_once, &timer);
 	qemu_announce_self_once(&timer);
 }
 
@@ -883,6 +883,27 @@ const VMStateInfo vmstate_info_uint32 = {
     .put  = put_uint32,
 };
 
+/* 32 bit uint. See that the received value is the same than the one
+   in the field */
+
+static int get_uint32_equal(QEMUFile *f, void *pv, size_t size)
+{
+    uint32_t *v = pv;
+    uint32_t v2;
+    qemu_get_be32s(f, &v2);
+
+    if (*v == v2) {
+        return 0;
+    }
+    return -EINVAL;
+}
+
+const VMStateInfo vmstate_info_uint32_equal = {
+    .name = "uint32 equal",
+    .get  = get_uint32_equal,
+    .put  = put_uint32,
+};
+
 /* 64 bit unsigned int */
 
 static int get_uint64(QEMUFile *f, void *pv, size_t size)
@@ -1309,8 +1330,12 @@ int vmstate_load_state(QEMUFile *f, const VMStateDescription *vmsd,
                 n_elems = field->num;
             } else if (field->flags & VMS_VARRAY_INT32) {
                 n_elems = *(int32_t *)((char *)opaque+field->num_offset);
+            } else if (field->flags & VMS_VARRAY_UINT32) {
+                n_elems = *(uint32_t *)((char *)opaque+field->num_offset);
             } else if (field->flags & VMS_VARRAY_UINT16) {
                 n_elems = *(uint16_t *)((char *)opaque+field->num_offset);
+            } else if (field->flags & VMS_VARRAY_UINT8) {
+                n_elems = *(uint8_t *)((char *)opaque+field->num_offset);
             }
             if (field->flags & VMS_POINTER) {
                 base_addr = (void *)((char *)(*(void **)base_addr) + field->start);
@@ -1371,6 +1396,8 @@ void vmstate_save_state(QEMUFile *f, const VMStateDescription *vmsd,
                 n_elems = *(int32_t *)((char *)opaque+field->num_offset);
             } else if (field->flags & VMS_VARRAY_UINT16) {
                 n_elems = *(uint16_t *)((char *)opaque+field->num_offset);
+            } else if (field->flags & VMS_VARRAY_UINT8) {
+                n_elems = *(uint8_t *)((char *)opaque+field->num_offset);
             }
             if (field->flags & VMS_POINTER) {
                 base_addr = (void*)((char*)(*(void**)base_addr) + field->start);
@@ -1919,7 +1946,7 @@ void do_savevm(Monitor *mon, const QDict *qdict)
     sn->date_sec = tv.tv_sec;
     sn->date_nsec = tv.tv_usec * 1000;
 #endif
-    sn->vm_clock_nsec = qemu_get_clock(vm_clock);
+    sn->vm_clock_nsec = qemu_get_clock_ns(vm_clock);
 
     if (name) {
         ret = bdrv_snapshot_find(bs, old_sn, name);
@@ -1997,6 +2024,8 @@ int load_vmstate(const char *name)
     if (ret < 0) {
         return ret;
     } else if (sn.vm_state_size == 0) {
+        error_report("This is a disk-only snapshot. Revert to it offline "
+            "using qemu-img.");
         return -EINVAL;
     }
 

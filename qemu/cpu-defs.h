@@ -121,13 +121,13 @@ typedef uint64_t target_ulong  __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
 
 #endif /* _MSC_VER */
 
-/* Format macros are compiler-independent, keep them as they were */
-
 #if TARGET_LONG_SIZE == 4
 #define TARGET_FMT_lx "%08x"
 #define TARGET_FMT_ld "%d"
 #define TARGET_FMT_lu "%u"
 #elif TARGET_LONG_SIZE == 8
+typedef int64_t target_long __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
+typedef uint64_t target_ulong __attribute__((aligned(TARGET_LONG_ALIGNMENT)));
 #define TARGET_FMT_lx "%016" PRIx64
 #define TARGET_FMT_ld "%" PRId64
 #define TARGET_FMT_lu "%" PRIu64
@@ -281,6 +281,7 @@ typedef struct CPUWatchpoint {
     int nr_cores;  /* number of cores within this CPU package */        \
     int nr_threads;/* number of threads within this CPU */              \
     int running; /* Nonzero if cpu is currently running(usermode).  */  \
+    int thread_id;                                                      \
     /* user data */                                                     \
     void *opaque;                                                       \
                                                                         \

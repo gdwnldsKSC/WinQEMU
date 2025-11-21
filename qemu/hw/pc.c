@@ -403,7 +403,7 @@ void pc_cmos_init(ram_addr_t ram_size, ram_addr_t above_4g_mem_size,
     /* floppy type */
     for (i = 0; i < 2; i++) {
         fd[i] = drive_get(IF_FLOPPY, 0, i);
-        if (fd[i]) {
+        if (fd[i] && bdrv_is_inserted(fd[i]->bdrv)) {
             bdrv_get_floppy_geometry_hint(fd[i]->bdrv, &nb_heads, &max_track,
                                           &last_sect, FDRIVE_DRV_NONE,
                                           &fd_type[i]);
@@ -1163,6 +1163,7 @@ void pc_basic_device_init(qemu_irq *isa_irq,
     vmmouse = isa_try_create("vmmouse");
     if (vmmouse) {
         qdev_prop_set_ptr(&vmmouse->qdev, "ps2_mouse", i8042);
+        qdev_init_nofail(&vmmouse->qdev);
     }
     port92 = isa_create_simple("port92");
     port92_init(port92, &a20_line[1]);

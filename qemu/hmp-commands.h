@@ -446,6 +446,16 @@
 
 
 {
+.name       = "client_migrate_info",
+.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
+.params     = "protocol hostname port tls-port cert-subject",
+.help       = "send migration info to spice/vnc client",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = client_migrate_info,
+},
+
+
+{
 .name       = "snapshot_blkdev",
 .args_type  = "device:B,snapshot_file:s?,format:s?",
 .params     = "device [new-image-file] [format]",
@@ -456,16 +466,6 @@
 "be created in that format. Otherwise the\n\t\t\t"
 "snapshot will be internal! (currently unsupported)",
 .mhandler.cmd_new = do_snapshot_blkdev,
-},
-
-
-{
-.name       = "client_migrate_info",
-.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
-.params     = "protocol hostname port tls-port cert-subject",
-.help       = "send migration info to spice/vnc client",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = client_migrate_info,
 },
 
 

@@ -165,22 +165,22 @@
 
 
 {
-.name       = "client_migrate_info",
-.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
-.params     = "protocol hostname port tls-port cert-subject",
-.help       = "send migration info to spice/vnc client",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = client_migrate_info,
-},
-
-
-{
 .name       = "migrate_set_downtime",
 .args_type  = "value:T",
 .params     = "value",
 .help       = "set maximum tolerated downtime (in seconds) for migrations",
 .user_print = monitor_user_noop,
 .mhandler.cmd_new = do_migrate_set_downtime,
+},
+
+
+{
+.name       = "client_migrate_info",
+.args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
+.params     = "protocol hostname port tls-port cert-subject",
+.help       = "send migration info to spice/vnc client",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = client_migrate_info,
 },
 
 

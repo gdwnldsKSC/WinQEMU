@@ -141,7 +141,9 @@ void os_host_main_loop_wait(int *timeout)
         int err;
         WaitObjects *w = &wait_objects;
 
+        qemu_mutex_unlock_iothread();
         ret = WaitForMultipleObjects(w->num, w->events, FALSE, *timeout);
+        qemu_mutex_lock_iothread();
         if (WAIT_OBJECT_0 + 0 <= ret && ret <= WAIT_OBJECT_0 + w->num - 1) {
             if (w->func[ret - WAIT_OBJECT_0])
                 w->func[ret - WAIT_OBJECT_0](w->opaque[ret - WAIT_OBJECT_0]);
@@ -264,4 +266,9 @@ int qemu_create_pidfile(const char *filename)
         return -1;
     }
     return 0;
+}
+
+int qemu_get_thread_id(void)
+{
+    return GetCurrentThreadId();
 }

@@ -79,7 +79,7 @@ static void gptm_reload(gptm_state *s, int n, int reset)
 {
     int64_t tick;
     if (reset)
-        tick = qemu_get_clock(vm_clock);
+        tick = qemu_get_clock_ns(vm_clock);
     else
         tick = s->tick[n];
 
@@ -353,8 +353,8 @@ static int stellaris_gptm_init(SysBusDevice *dev)
     sysbus_init_mmio(dev, 0x1000, iomemtype);
 
     s->opaque[0] = s->opaque[1] = s;
-    s->timer[0] = qemu_new_timer(vm_clock, gptm_tick, &s->opaque[0]);
-    s->timer[1] = qemu_new_timer(vm_clock, gptm_tick, &s->opaque[1]);
+    s->timer[0] = qemu_new_timer_ns(vm_clock, gptm_tick, &s->opaque[0]);
+    s->timer[1] = qemu_new_timer_ns(vm_clock, gptm_tick, &s->opaque[1]);
     register_savevm(&dev->qdev, "stellaris_gptm", -1, 1,
                     gptm_save, gptm_load, s);
     return 0;
@@ -1338,7 +1338,7 @@ static void stellaris_init(const char *kernel_filename, const char *cpu_model,
 
     for (i = 0; i < 7; i++) {
         if (board->dc4 & (1 << i)) {
-            gpio_dev[i] = sysbus_create_simple("pl061", gpio_addr[i],
+            gpio_dev[i] = sysbus_create_simple("pl061_luminary", gpio_addr[i],
                                                pic[gpio_irq[i]]);
             for (j = 0; j < 8; j++) {
                 gpio_in[i][j] = qdev_get_gpio_in(gpio_dev[i], j);

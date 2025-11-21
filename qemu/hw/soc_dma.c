@@ -26,7 +26,6 @@
  * 
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
- 
 #include "qemu-common.h"
 #include "qemu-timer.h"
 #include "soc_dma.h"
@@ -94,7 +93,7 @@ struct dma_s {
 
 static void soc_dma_ch_schedule(struct soc_dma_ch_s *ch, int delay_bytes)
 {
-    int64_t now = qemu_get_clock(vm_clock);
+    int64_t now = qemu_get_clock_ns(vm_clock);
     struct dma_s *dma = (struct dma_s *) ch->dma;
 
     qemu_mod_timer(ch->timer, now + delay_bytes / dma->channel_freq);
@@ -256,7 +255,7 @@ struct soc_dma_s *soc_dma_init(int n)
     for (i = 0; i < n; i ++) {
         s->ch[i].dma = &s->soc;
         s->ch[i].num = i;
-        s->ch[i].timer = qemu_new_timer(vm_clock, soc_dma_ch_run, &s->ch[i]);
+        s->ch[i].timer = qemu_new_timer_ns(vm_clock, soc_dma_ch_run, &s->ch[i]);
     }
 
     soc_dma_reset(&s->soc);

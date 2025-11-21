@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include "qemu-common.h"
 
+#ifdef CONFIG_SIMPLE_TRACE
 typedef uint64_t TraceEventID;
 
 typedef struct {
@@ -37,5 +38,12 @@ void st_print_trace_file_status(FILE *stream, fprintf_function stream_printf);
 void st_set_trace_file_enabled(bool enable);
 bool st_set_trace_file(const char *file);
 void st_flush_trace_buffer(void);
+bool st_init(const char *file);
+#else
+static inline bool st_init(const char *file)
+{
+    return true;
+}
+#endif /* !CONFIG_SIMPLE_TRACE */
 
 #endif /* SIMPLETRACE_H */

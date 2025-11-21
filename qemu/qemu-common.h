@@ -37,6 +37,9 @@ typedef struct QEMUFile QEMUFile;
 typedef struct QEMUBH QEMUBH;
 typedef struct DeviceState DeviceState;
 
+struct Monitor;
+typedef struct Monitor Monitor;
+
 /* we put basic includes here to avoid repeating them in device drivers */
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,6 +55,7 @@ typedef struct DeviceState DeviceState;
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <assert.h>
 
 #ifndef O_LARGEFILE
@@ -180,18 +184,6 @@ typedef void(__cdecl* qemu_ctor_fn)(void);
 #define QEMU_CONSTRUCTOR(fn) \
     static void __attribute__((constructor)) fn(void)
 #endif
-
-#ifndef timersub
-#define timersub(a, b, res)                                          \
-    do {                                                             \
-        (res)->tv_sec  = (a)->tv_sec  - (b)->tv_sec;                 \
-        (res)->tv_usec = (a)->tv_usec - (b)->tv_usec;                \
-        if ((res)->tv_usec < 0) {                                    \
-            (res)->tv_sec--;                                         \
-            (res)->tv_usec += 1000000;                               \
-        }                                                            \
-    } while (0)
-#endif /* timersub */
 
 #endif // end MSVC sections
 
@@ -379,7 +371,7 @@ void qemu_notify_event(void);
 /* Unblock cpu */
 void qemu_cpu_kick(void *env);
 void qemu_cpu_kick_self(void);
-int qemu_cpu_self(void *env);
+int qemu_cpu_is_self(void *env);
 
 /* work queue */
 struct qemu_work_item {
@@ -415,9 +407,6 @@ void qemu_iovec_from_buffer(QEMUIOVector *qiov, const void *buf, size_t count);
 void qemu_iovec_memset(QEMUIOVector *qiov, int c, size_t count);
 void qemu_iovec_memset_skip(QEMUIOVector *qiov, int c, size_t count,
                             size_t skip);
-
-struct Monitor;
-typedef struct Monitor Monitor;
 
 /* Convert a byte between binary and BCD.  */
 static inline uint8_t to_bcd(uint8_t val)

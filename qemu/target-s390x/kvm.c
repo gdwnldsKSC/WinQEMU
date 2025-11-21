@@ -177,7 +177,7 @@ void kvm_arch_post_run(CPUState *env, struct kvm_run *run)
 {
 }
 
-int kvm_arch_process_irqchip_events(CPUState *env)
+int kvm_arch_process_async_events(CPUState *env)
 {
     return 0;
 }
@@ -194,6 +194,7 @@ static void kvm_s390_interrupt_internal(CPUState *env, int type, uint32_t parm,
 
     env->halted = 0;
     env->exception_index = -1;
+    qemu_cpu_kick(env);
 
     kvmint.type = type;
     kvmint.parm = parm;
@@ -496,6 +497,11 @@ int kvm_arch_handle_exit(CPUState *env, struct kvm_run *run)
             break;
     }
 
+    if (ret == 0) {
+        ret = EXCP_INTERRUPT;
+    } else if (ret > 0) {
+        ret = 0;
+    }
     return ret;
 }
 

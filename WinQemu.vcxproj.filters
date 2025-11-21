@@ -1605,9 +1605,6 @@
     <ClCompile Include="qemu\trace.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="fakesimpletrace.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\virtex_ml507.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1763,6 +1760,42 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zywrle-template.c">
       <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_boards.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_juart.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_pic.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_sys.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_timer.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_uart.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\petalogix_ml605_mmu.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\petalogix_s3adsp1800_mmu.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\xilinx_axidma.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\xilinx_axienet.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-thread-posix.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-thread-win32.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2713,6 +2746,27 @@
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-enc-zywrle.h">
       <Filter>qemu\ui\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\lm32.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\lm32_hwsetup.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\lm32_juart.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\lm32_pic.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\xilinx_axidma.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-thread-posix.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\qemu-thread-win32.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

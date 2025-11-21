@@ -2423,6 +2423,14 @@ int bdrv_aio_multiwrite(BlockDriverState *bs, BlockRequest *reqs, int num_reqs)
     MultiwriteCB *mcb;
     int i;
 
+    /* don't submit writes if we don't have a medium */
+    if (bs->drv == NULL) {
+        for (i = 0; i < num_reqs; i++) {
+            reqs[i].error = -ENOMEDIUM;
+        }
+        return -1;
+    }
+
     if (num_reqs == 0) {
         return 0;
     }
@@ -2501,6 +2509,8 @@ BlockDriverAIOCB *bdrv_aio_flush(BlockDriverState *bs,
         BlockDriverCompletionFunc *cb, void *opaque)
 {
     BlockDriver *drv = bs->drv;
+
+    trace_bdrv_aio_flush(bs, opaque);
 
     if (bs->open_flags & BDRV_O_NO_FLUSH) {
         return bdrv_aio_noop_em(bs, cb, opaque);

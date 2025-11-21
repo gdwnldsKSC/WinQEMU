@@ -644,6 +644,9 @@ void cpu_exec_init(CPUState *env)
     env->numa_node = 0;
     QTAILQ_INIT(&env->breakpoints);
     QTAILQ_INIT(&env->watchpoints);
+#ifndef CONFIG_USER_ONLY
+    env->thread_id = qemu_get_thread_id();
+#endif
     *penv = env;
 #if defined(CONFIG_USER_ONLY)
     cpu_list_unlock();
@@ -1646,7 +1649,7 @@ void cpu_interrupt(CPUState *env, int mask)
      * If called from iothread context, wake the target cpu in
      * case its halted.
      */
-    if (!qemu_cpu_self(env)) {
+    if (!qemu_cpu_is_self(env)) {
         qemu_cpu_kick(env);
         return;
     }
@@ -2873,6 +2876,7 @@ ram_addr_t qemu_ram_alloc_from_ptr(DeviceState *dev, const char *name,
 
     if (host) {
         new_block->host = host;
+        new_block->flags |= RAM_PREALLOC_MASK;
     } else {
         if (mem_path) {
 #if defined (__linux__) && !defined(TARGET_S390X)
@@ -2926,7 +2930,9 @@ void qemu_ram_free(ram_addr_t addr)
     QLIST_FOREACH(block, &ram_list.blocks, next) {
         if (addr == block->offset) {
             QLIST_REMOVE(block, next);
-            if (mem_path) {
+            if (block->flags & RAM_PREALLOC_MASK) {
+                ;
+            } else if (mem_path) {
 #if defined (__linux__) && !defined(TARGET_S390X)
                 if (block->fd) {
                     munmap(block->host, block->length);
@@ -2934,6 +2940,8 @@ void qemu_ram_free(ram_addr_t addr)
                 } else {
                     qemu_vfree(block->host);
                 }
+#else
+                abort();
 #endif
             } else {
 #if defined(TARGET_S390X) && defined(CONFIG_KVM)
@@ -2949,6 +2957,66 @@ void qemu_ram_free(ram_addr_t addr)
 
 }
 
+#ifndef _WIN32
+void qemu_ram_remap(ram_addr_t addr, ram_addr_t length)
+{
+    RAMBlock *block;
+    ram_addr_t offset;
+    int flags;
+    void *area, *vaddr;
+
+    QLIST_FOREACH(block, &ram_list.blocks, next) {
+        offset = addr - block->offset;
+        if (offset < block->length) {
+            vaddr = block->host + offset;
+            if (block->flags & RAM_PREALLOC_MASK) {
+                ;
+            } else {
+                flags = MAP_FIXED;
+                munmap(vaddr, length);
+                if (mem_path) {
+#if defined(__linux__) && !defined(TARGET_S390X)
+                    if (block->fd) {
+#ifdef MAP_POPULATE
+                        flags |= mem_prealloc ? MAP_POPULATE | MAP_SHARED :
+                            MAP_PRIVATE;
+#else
+                        flags |= MAP_PRIVATE;
+#endif
+                        area = mmap(vaddr, length, PROT_READ | PROT_WRITE,
+                                    flags, block->fd, offset);
+                    } else {
+                        flags |= MAP_PRIVATE | MAP_ANONYMOUS;
+                        area = mmap(vaddr, length, PROT_READ | PROT_WRITE,
+                                    flags, -1, 0);
+                    }
+#else
+                    abort();
+#endif
+                } else {
+#if defined(TARGET_S390X) && defined(CONFIG_KVM)
+                    flags |= MAP_SHARED | MAP_ANONYMOUS;
+                    area = mmap(vaddr, length, PROT_EXEC|PROT_READ|PROT_WRITE,
+                                flags, -1, 0);
+#else
+                    flags |= MAP_PRIVATE | MAP_ANONYMOUS;
+                    area = mmap(vaddr, length, PROT_READ | PROT_WRITE,
+                                flags, -1, 0);
+#endif
+                }
+                if (area != vaddr) {
+                    fprintf(stderr, "Could not remap addr: %lx@%lx\n",
+                            length, addr);
+                    exit(1);
+                }
+                qemu_madvise(vaddr, length, QEMU_MADV_MERGEABLE);
+            }
+            return;
+        }
+    }
+}
+#endif /* !_WIN32 */
+
 /* Return a host pointer to ram allocated with qemu_ram_alloc.
    With the exception of the softmmu code in this file, this should
    only be used for local memory (e.g. video ram) that the device owns,
@@ -2963,8 +3031,11 @@ void *qemu_get_ram_ptr(ram_addr_t addr)
 
     QLIST_FOREACH(block, &ram_list.blocks, next) {
         if (addr - block->offset < block->length) {
-            QLIST_REMOVE(block, next);
-            QLIST_INSERT_HEAD(&ram_list.blocks, block, next);
+            /* Move this entry to to start of the list.  */
+            if (block != QLIST_FIRST(&ram_list.blocks)) {
+                QLIST_REMOVE(block, next);
+                QLIST_INSERT_HEAD(&ram_list.blocks, block, next);
+            }
             return block->host + (addr - block->offset);
         }
     }

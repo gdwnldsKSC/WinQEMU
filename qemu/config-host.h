@@ -7,6 +7,7 @@
 #define CONFIG_WIN32 1
 //#define CONFIG_GDBSTUB 1
 #define CONFIG_STATIC 1
+#define CONFIG_VNC
 #define CONFIG_SLIRP 1
 #define CONFIG_ADLIB 1
 #define QEMU_VERSION "0.14.x"

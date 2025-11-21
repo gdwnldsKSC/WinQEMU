@@ -312,27 +312,12 @@ static inline void load_eflags(int eflags, int update_mask)
 
 static inline int cpu_has_work(CPUState *env)
 {
-    int work;
-
-    work = (env->interrupt_request & CPU_INTERRUPT_HARD) &&
-           (env->eflags & IF_MASK);
-    work |= env->interrupt_request & CPU_INTERRUPT_NMI;
-    work |= env->interrupt_request & CPU_INTERRUPT_INIT;
-    work |= env->interrupt_request & CPU_INTERRUPT_SIPI;
-
-    return work;
-}
-
-static inline int cpu_halted(CPUState *env) {
-    /* handle exit of HALTED state */
-    if (!env->halted)
-        return 0;
-    /* disable halt condition */
-    if (cpu_has_work(env)) {
-        env->halted = 0;
-        return 0;
-    }
-    return EXCP_HALTED;
+    return ((env->interrupt_request & CPU_INTERRUPT_HARD) &&
+            (env->eflags & IF_MASK)) ||
+           (env->interrupt_request & (CPU_INTERRUPT_NMI |
+                                      CPU_INTERRUPT_INIT |
+                                      CPU_INTERRUPT_SIPI |
+                                      CPU_INTERRUPT_MCE));
 }
 
 /* load efer and update the corresponding hflags. XXX: do consistency

@@ -304,7 +304,6 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
     </ClCompile>
-    <ClCompile Include="fakesimpletrace.c" />
     <ClCompile Include="gettimeofday.c" />
     <ClCompile Include="outside_qemu_tree_custom\clock_gettime.c" />
     <ClCompile Include="outside_qemu_tree_custom\XGetopt.c" />
@@ -444,6 +443,24 @@
     <ClCompile Include="qemu\hw\leon3.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_boards.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_juart.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_pic.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_sys.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_timer.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\lm32_uart.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\loader.c" />
     <ClCompile Include="qemu\hw\marvell_88w8618_audio.c" />
     <ClCompile Include="qemu\hw\microblaze_pic_cpu.c">
@@ -498,6 +515,12 @@
     <ClCompile Include="qemu\hw\pci_host.c" />
     <ClCompile Include="qemu\hw\pcnet-pci.c" />
     <ClCompile Include="qemu\hw\pc_piix.c" />
+    <ClCompile Include="qemu\hw\petalogix_ml605_mmu.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\petalogix_s3adsp1800_mmu.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\piix4.c" />
     <ClCompile Include="qemu\hw\pm_smbus.c" />
     <ClCompile Include="qemu\hw\qdev-addr.c" />
@@ -582,6 +605,12 @@
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
+    <ClCompile Include="qemu\hw\xilinx_axidma.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\xilinx_axienet.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\xio3130_downstream.c" />
     <ClCompile Include="qemu\hw\xio3130_upstream.c" />
     <ClCompile Include="qemu\input.c" />
@@ -647,7 +676,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\qemu-option.c" />
-    <ClCompile Include="qemu\qemu-thread.c" />
+    <ClCompile Include="qemu\qemu-thread-posix.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-thread-win32.c" />
+    <ClCompile Include="qemu\qemu-thread.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\qemu-timer-common.c" />
     <ClCompile Include="qemu\qemu-timer.c" />
     <ClCompile Include="qemu\qerror.c" />
@@ -2017,6 +2052,10 @@
     <ClInclude Include="qemu\hw\ioapic.h" />
     <ClInclude Include="qemu\hw\ioh3420.h" />
     <ClInclude Include="qemu\hw\kvmclock.h" />
+    <ClInclude Include="qemu\hw\lm32.h" />
+    <ClInclude Include="qemu\hw\lm32_hwsetup.h" />
+    <ClInclude Include="qemu\hw\lm32_juart.h" />
+    <ClInclude Include="qemu\hw\lm32_pic.h" />
     <ClInclude Include="qemu\hw\loader.h" />
     <ClInclude Include="qemu\hw\mc146818rtc.h" />
     <ClInclude Include="qemu\hw\msi.h" />
@@ -2056,6 +2095,7 @@
     <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\vt82c686.h" />
     <ClInclude Include="qemu\hw\watchdog.h" />
+    <ClInclude Include="qemu\hw\xilinx_axidma.h" />
     <ClInclude Include="qemu\hw\xio3130_downstream.h" />
     <ClInclude Include="qemu\hw\xio3130_upstream.h" />
     <ClInclude Include="qemu\ioport.h" />
@@ -2087,6 +2127,8 @@
     <ClInclude Include="qemu\qemu-options.h" />
     <ClInclude Include="qemu\qemu-os-posix.h" />
     <ClInclude Include="qemu\qemu-os-win32.h" />
+    <ClInclude Include="qemu\qemu-thread-posix.h" />
+    <ClInclude Include="qemu\qemu-thread-win32.h" />
     <ClInclude Include="qemu\qemu-thread.h" />
     <ClInclude Include="qemu\qerror.h" />
     <ClInclude Include="qemu\qfloat.h" />

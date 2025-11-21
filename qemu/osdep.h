@@ -22,6 +22,10 @@
 #include <sys/time.h>
 #endif
 
+#ifdef _MSC_VER
+#include <WinSock2.h>
+#endif
+
 #ifndef glue
 #define xglue(x, y) x ## y
 #define glue(x, y) xglue(x, y)
@@ -154,5 +158,23 @@ void qemu_vfree(void *ptr);
 int qemu_madvise(void *addr, size_t len, int advice);
 
 int qemu_create_pidfile(const char *filename);
+int qemu_get_thread_id(void);
+
+#ifdef _WIN32
+static inline void qemu_timersub(const struct timeval *val1,
+                                 const struct timeval *val2,
+                                 struct timeval *res)
+{
+    res->tv_sec = val1->tv_sec - val2->tv_sec;
+    if (val1->tv_usec < val2->tv_usec) {
+        res->tv_sec--;
+        res->tv_usec = val1->tv_usec - val2->tv_usec + 1000 * 1000;
+    } else {
+        res->tv_usec = val1->tv_usec - val2->tv_usec;
+    }
+}
+#else
+#define qemu_timersub timersub
+#endif
 
 #endif
