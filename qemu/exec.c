@@ -102,7 +102,9 @@ spinlock_t tb_lock = SPIN_LOCK_UNLOCKED;
 #ifndef _MSC_VER
 uint8_t code_gen_prologue[1024] code_gen_section;
 #else
+#pragma pack(push, 16)
 uint8_t code_gen_prologue[1024];
+#pragma pack(pop)
 #endif
 
 static uint8_t *code_gen_buffer;
@@ -122,6 +124,15 @@ CPUState *first_cpu;
 /* current CPU in the current thread. It is only valid inside
    cpu_exec() */
 CPUState *cpu_single_env;
+
+#ifdef _MSC_VER
+/* Global env pointer for MSVC – see qemu/target-i386/exec.h
+ */
+struct CPUX86State* global_env;
+#endif
+
+
+
 /* 0 = Do not count executed instructions.
    1 = Precise instruction counting.
    2 = Adaptive rate instruction counting.  */
