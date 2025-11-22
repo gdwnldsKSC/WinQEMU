@@ -83,6 +83,7 @@
 #include "migration.h"
 #include "qemu_socket.h"
 #include "qemu-queue.h"
+#include "cpus.h"
 
 #define SELF_ANNOUNCE_ROUNDS 5
 
@@ -1008,7 +1009,7 @@ const VMStateInfo vmstate_info_buffer = {
 };
 
 /* unused buffers: space that was used for some fields that are
-   not usefull anymore */
+   not useful anymore */
 
 static int get_unused_buffer(QEMUFile *f, void *pv, size_t size)
 {

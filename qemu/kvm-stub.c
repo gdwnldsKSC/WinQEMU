@@ -11,7 +11,6 @@
  */
 
 #include "qemu-common.h"
-#include "sysemu.h"
 #include "hw/hw.h"
 #include "exec-all.h"
 #include "gdbstub.h"
@@ -32,6 +31,7 @@ int kvm_init_vcpu(CPUState *env)
 {
     return -ENOSYS;
 }
+
 int kvm_coalesce_mmio_region(target_phys_addr_t start, ram_addr_t size)
 {
     return -ENOSYS;

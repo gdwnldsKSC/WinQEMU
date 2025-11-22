@@ -29,7 +29,6 @@
  
 #include "qemu-common.h"
 #include "qemu-char.h"
-#include "sysemu.h"
 #include "net.h"
 #include "hw/bt.h"
 
