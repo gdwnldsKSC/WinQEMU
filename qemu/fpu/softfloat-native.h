@@ -600,14 +600,17 @@ INLINE floatx80 floatx80_is_neg(floatx80 a)
 #endif
 }
 
+#ifndef _MSC_VER
 INLINE floatx80 floatx80_is_zero(floatx80 a)
 {
-#ifndef _MSC_VER
     return fpclassify(a) == FP_ZERO;
-#else
-	return fx80_from_int32 (fpclassify(fx80_to_f64 (&a)) == FP_ZERO);
-#endif
 }
+#else
+INLINE int floatx80_is_zero(floatx80 a)
+{
+    return fpclassify(fx80_to_f64(&a)) == FP_ZERO;
+}
+#endif
 
 INLINE floatx80 floatx80_scalbn(floatx80 a, int n STATUS_PARAM)
 {
