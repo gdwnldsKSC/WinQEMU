@@ -300,6 +300,8 @@ static struct {
     { .driver = "VGA",                  .flag = &default_vga       },
     { .driver = "cirrus-vga",           .flag = &default_vga       },
     { .driver = "vmware-svga",          .flag = &default_vga       },
+    { .driver = "isa-vga",              .flag = &default_vga       },
+    { .driver = "qxl-vga",              .flag = &default_vga       },
 };
 
 static int default_driver_check(QemuOpts *opts, void *opaque)
@@ -934,9 +936,13 @@ static int usb_device_add(const char *devname)
         goto done;
 
     /* the other ones */
+#ifndef CONFIG_LINUX
+    /* only the linux version is qdev-ified, usb-bsd still needs this */
     if (strstart(devname, "host:", &p)) {
         dev = usb_host_device_open(p);
-    } else if (!strcmp(devname, "bt") || strstart(devname, "bt:", &p)) {
+    } else
+#endif
+    if (!strcmp(devname, "bt") || strstart(devname, "bt:", &p)) {
         dev = usb_bt_init(devname[2] ? hci_init(p) :
                         bt_new_hci(qemu_find_bt_vlan(0)));
     } else {
@@ -1202,7 +1208,7 @@ void qemu_kill_report(void)
              */
             fputc('\n', stderr);
         } else {
-            fprintf(stderr, " from pid %d\n", shutdown_pid);
+            fprintf(stderr, " from pid " FMT_pid "\n", shutdown_pid);
         }
         shutdown_signal = -1;
     }
@@ -1258,7 +1264,7 @@ void qemu_unregister_reset(QEMUResetHandler *func, void *opaque)
     }
 }
 
-void qemu_system_reset(void)
+void qemu_system_reset(bool report)
 {
     QEMUResetEntry *re, *nre;
 
@@ -1266,7 +1272,9 @@ void qemu_system_reset(void)
     QTAILQ_FOREACH_SAFE(re, &reset_handlers, entry, nre) {
         re->func(re->opaque);
     }
-    monitor_protocol_event(QEVENT_RESET, NULL);
+    if (report) {
+        monitor_protocol_event(QEVENT_RESET, NULL);
+    }
     cpu_synchronize_all_post_reset();
 }
 
@@ -1408,7 +1416,7 @@ static void main_loop(void)
         if (qemu_reset_requested()) {
             pause_all_vcpus();
             cpu_synchronize_all_states();
-            qemu_system_reset();
+            qemu_system_reset(VMRESET_REPORT);
             resume_all_vcpus();
         }
         if (qemu_powerdown_requested()) {
@@ -1944,6 +1952,7 @@ static int configure_accelerator(void)
         p = get_opt_name(buf, sizeof (buf), p, ':');
         for (i = 0; i < ARRAY_SIZE(accel_list); i++) {
             if (strcmp(accel_list[i].opt_name, buf) == 0) {
+                *(accel_list[i].allowed) = 1;
                 ret = accel_list[i].init();
                 if (ret < 0) {
                     init_failed = 1;
@@ -1955,9 +1964,9 @@ static int configure_accelerator(void)
                                 accel_list[i].name,
                                 strerror(-ret));
                     }
+                    *(accel_list[i].allowed) = 0;
                 } else {
                     accel_initalised = 1;
-                    *(accel_list[i].allowed) = 1;
                 }
                 break;
             }
@@ -2076,6 +2085,8 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
 #endif
     int defconfig = 1;
     const char *trace_file = NULL;
+    const char *log_mask = NULL;
+    const char *log_file = NULL;
 
     atexit(qemu_run_exit_notifiers);
     error_set_progname(argv[0]);
@@ -2450,7 +2461,10 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
                 break;
 #endif
             case QEMU_OPTION_d:
-                set_cpu_log(optarg);
+                log_mask = optarg;
+                break;
+            case QEMU_OPTION_D:
+                log_file = optarg;
                 break;
             case QEMU_OPTION_s:
                 gdbstub_dev = "tcp::" DEFAULT_GDBSTUB_PORT;
@@ -2916,6 +2930,18 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     }
     loc_set_none();
 
+    /* Open the logfile at this point, if necessary. We can't open the logfile
+     * when encountering either of the logging options (-d or -D) because the
+     * other one may be encountered later on the command line, changing the
+     * location or level of logging.
+     */
+    if (log_mask) {
+        if (log_file) {
+            set_cpu_log_filename(log_file);
+        }
+        set_cpu_log(log_mask);
+    }
+
     if (!st_init(trace_file)) {
         fprintf(stderr, "warning: unable to initialize simple trace backend\n");
     }
@@ -3285,7 +3311,7 @@ int __declspec(dllexport) qemu_main(int argc, char** argv, char** envp)
     qemu_register_reset(qbus_reset_all_fn, sysbus_get_default());
     qemu_run_machine_init_done_notifiers();
 
-    qemu_system_reset();
+    qemu_system_reset(VMRESET_SILENT);
     if (loadvm) {
         if (load_vmstate(loadvm) < 0) {
             autostart = 0;

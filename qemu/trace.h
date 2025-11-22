@@ -517,6 +517,78 @@ static inline void trace_sun4m_iommu_bad_addr(uint64_t addr)
 {
 }
 
+static inline void trace_usb_ehci_reset(void)
+{
+}
+
+static inline void trace_usb_ehci_mmio_readl(uint32_t addr, const char *str, uint32_t val)
+{
+}
+
+static inline void trace_usb_ehci_mmio_writel(uint32_t addr, const char *str, uint32_t val)
+{
+}
+
+static inline void trace_usb_ehci_mmio_change(uint32_t addr, const char *str, uint32_t new, uint32_t old) 
+{
+}
+
+static inline void trace_usb_ehci_usbsts(const char *sts, int state)
+{
+}
+
+static inline void trace_usb_ehci_state(const char *schedule, const char *state)
+{
+}
+
+static inline void trace_usb_ehci_qh_ptrs(void *q, uint32_t addr, uint32_t next, uint32_t c_qtd, uint32_t n_qtd, uint32_t a_qtd)
+{
+}
+
+static inline void trace_usb_ehci_qh_fields(uint32_t addr, int rl, int mplen, int eps, int ep, int devaddr)
+{
+}
+
+static inline void trace_usb_ehci_qh_bits(uint32_t addr, int c, int h, int dtc, int i)
+{
+}
+
+static inline void trace_usb_ehci_qtd_ptrs(void *q, uint32_t addr, uint32_t next, uint32_t altnext)
+{
+}
+
+static inline void trace_usb_ehci_qtd_fields(uint32_t addr, int tbytes, int cpage, int cerr, int pid)
+{
+}
+
+static inline void trace_usb_ehci_qtd_bits(uint32_t addr, int ioc, int active, int halt, int babble, int xacterr)
+{
+}
+
+static inline void trace_usb_ehci_itd(uint32_t addr, uint32_t next, uint32_t mplen, uint32_t mult, uint32_t ep, uint32_t devaddr)
+{
+}
+
+static inline void trace_usb_ehci_port_attach(uint32_t port, const char *device)
+{
+}
+
+static inline void trace_usb_ehci_port_detach(uint32_t port)
+{
+}
+
+static inline void trace_usb_ehci_port_reset(uint32_t port, int enable)
+{
+}
+
+static inline void trace_usb_ehci_data(int rw, uint32_t cpage, uint32_t offset, uint32_t addr, uint32_t len, uint32_t bufpos)
+{
+}
+
+static inline void trace_usb_ehci_queue_action(void *q, const char *action)
+{
+}
+
 static inline void trace_usb_desc_device(int addr, int len, int ret)
 {
 }
@@ -569,7 +641,11 @@ static inline void trace_scsi_req_continue(int target, int lun, int tag)
 {
 }
 
-static inline void trace_scsi_req_parsed(int target, int lun, int tag, int cmd, int mode, int xfer, uint64_t lba)
+static inline void trace_scsi_req_parsed(int target, int lun, int tag, int cmd, int mode, int xfer)
+{
+}
+
+static inline void trace_scsi_req_parsed_lba(int target, int lun, int tag, int cmd, uint64_t lba)
 {
 }
 
@@ -1029,6 +1105,10 @@ static inline void trace_xen_ram_alloc(unsigned long ram_addr, unsigned long siz
 {
 }
 
+static inline void trace_xen_client_set_memory(uint64_t start_addr, unsigned long size, unsigned long phys_offset, bool log_dirty)
+{
+}
+
 static inline void trace_qemu_map_cache(uint64_t phys_addr)
 {
 }
@@ -1050,6 +1130,10 @@ static inline void trace_xen_unmap_block(void* addr, unsigned long size)
 }
 
 static inline void trace_qemu_put_ram_ptr(void* addr)
+{
+}
+
+static inline void trace_xen_platform_log(char *s)
 {
 }
 

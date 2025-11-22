@@ -23,7 +23,6 @@
  */
 #include <unistd.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <time.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -2075,6 +2074,7 @@ int load_vmstate(const char *name)
         return -EINVAL;
     }
 
+    qemu_system_reset(VMRESET_SILENT);
     ret = qemu_loadvm_state(f);
 
     qemu_fclose(f);

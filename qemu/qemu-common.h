@@ -58,6 +58,7 @@ typedef struct Monitor Monitor;
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <signal.h>
 
 #ifdef _WIN32
 #include "qemu-os-win32.h"
@@ -215,6 +216,11 @@ typedef void(__cdecl* qemu_ctor_fn)(void);
 #include "cpu.h"
 
 #endif /* !defined(NEED_CPU_H) */
+
+/* main function, renamed */
+#if defined(CONFIG_COCOA)
+int qemu_main(int argc, char **argv, char **envp);
+#endif
 
 /* bottom halves */
 typedef void QEMUBHFunc(void *opaque);

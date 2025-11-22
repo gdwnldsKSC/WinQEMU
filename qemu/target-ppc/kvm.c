@@ -45,9 +45,7 @@ const KVMCapabilityInfo kvm_arch_required_capabilities[] = {
 static int cap_interrupt_unset = false;
 static int cap_interrupt_level = false;
 static int cap_segstate;
-#ifdef KVM_CAP_PPC_BOOKE_SREGS
 static int cap_booke_sregs;
-#endif
 
 /* XXX We have a race condition where we actually have a level triggered
  *     interrupt, but the infrastructure can't expose that yet, so the guest
@@ -67,18 +65,10 @@ static void kvm_kick_env(void *env)
 
 int kvm_arch_init(KVMState *s)
 {
-#ifdef KVM_CAP_PPC_UNSET_IRQ
     cap_interrupt_unset = kvm_check_extension(s, KVM_CAP_PPC_UNSET_IRQ);
-#endif
-#ifdef KVM_CAP_PPC_IRQ_LEVEL
     cap_interrupt_level = kvm_check_extension(s, KVM_CAP_PPC_IRQ_LEVEL);
-#endif
-#ifdef KVM_CAP_PPC_SEGSTATE
     cap_segstate = kvm_check_extension(s, KVM_CAP_PPC_SEGSTATE);
-#endif
-#ifdef KVM_CAP_PPC_BOOKE_SREGS
     cap_booke_sregs = kvm_check_extension(s, KVM_CAP_PPC_BOOKE_SREGS);
-#endif
 
     if (!cap_interrupt_level) {
         fprintf(stderr, "KVM: Couldn't find level irq capability. Expect the "
@@ -106,21 +96,12 @@ static int kvm_arch_sync_sregs(CPUState *cenv)
         }
     }
 
-#if !defined(CONFIG_KVM_PPC_PVR)
-    if (1) {
-        fprintf(stderr, "kvm error: missing PVR setting capability\n");
-        return -ENOSYS;
-    }
-#endif
-
     ret = kvm_vcpu_ioctl(cenv, KVM_GET_SREGS, &sregs);
     if (ret) {
         return ret;
     }
 
-#ifdef CONFIG_KVM_PPC_PVR
     sregs.pvr = cenv->spr[SPR_PVR];
-#endif
     return kvm_vcpu_ioctl(cenv, KVM_SET_SREGS, &sregs);
 }
 
@@ -222,7 +203,6 @@ int kvm_arch_get_registers(CPUState *env)
     for (i = 0;i < 32; i++)
         env->gpr[i] = regs.gpr[i];
 
-#ifdef KVM_CAP_PPC_BOOKE_SREGS
     if (cap_booke_sregs) {
         ret = kvm_vcpu_ioctl(env, KVM_GET_SREGS, &sregs);
         if (ret < 0) {
@@ -326,9 +306,7 @@ int kvm_arch_get_registers(CPUState *env)
             }
         }
     }
-#endif
 
-#ifdef KVM_CAP_PPC_SEGSTATE
     if (cap_segstate) {
         ret = kvm_vcpu_ioctl(env, KVM_GET_SREGS, &sregs);
         if (ret < 0) {
@@ -358,7 +336,6 @@ int kvm_arch_get_registers(CPUState *env)
             env->IBAT[1][i] = sregs.u.s.ppc32.ibat[i] >> 32;
         }
     }
-#endif
 
     return 0;
 }
@@ -536,7 +513,6 @@ int kvmppc_get_hypercall(CPUState *env, uint8_t *buf, int buf_len)
 {
     uint32_t *hc = (uint32_t*)buf;
 
-#ifdef KVM_CAP_PPC_GET_PVINFO
     struct kvm_ppc_pvinfo pvinfo;
 
     if (kvm_check_extension(env->kvm_state, KVM_CAP_PPC_GET_PVINFO) &&
@@ -545,7 +521,6 @@ int kvmppc_get_hypercall(CPUState *env, uint8_t *buf, int buf_len)
 
         return 0;
     }
-#endif
 
     /*
      * Fallback to always fail hypercalls:

@@ -131,6 +131,16 @@
 
 
 {
+.name       = "inject-nmi",
+.args_type  = "",
+.params     = "",
+.help       = "",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = do_inject_nmi,
+},
+
+
+{
 .name       = "migrate",
 .args_type  = "detach:-d,blk:-b,inc:-i,uri:s",
 .params     = "[-d] [-b] [-i] uri",

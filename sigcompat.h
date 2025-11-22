@@ -97,6 +97,11 @@ static inline int sigprocmask(int how,
     return 0;
 }
 
+#ifndef pthread_sigmask
+#define pthread_sigmask(how, set, oldset) \
+    sigprocmask((how), (set), (oldset))
+#endif
+
 /*
  * sigwait stub:
  *  - We never actually see Unix signals on Windows.

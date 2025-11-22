@@ -488,6 +488,10 @@ DEF("d", HAS_ARG, QEMU_OPTION_d, \
 "-d item1,...    output log to /tmp/qemu.log (use -d ? for a list of log items)\n",
 QEMU_ARCH_ALL)
 
+DEF("D", HAS_ARG, QEMU_OPTION_D, \
+"-D logfile      output log to logfile (instead of the default /tmp/qemu.log)\n",
+QEMU_ARCH_ALL)
+
 DEF("hdachs", HAS_ARG, QEMU_OPTION_hdachs, \
 "-hdachs c,h,s[,t]\n" \
 "                force hard disk 0 physical geometry and the optional BIOS\n" \

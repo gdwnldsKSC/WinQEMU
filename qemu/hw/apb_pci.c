@@ -139,7 +139,7 @@ static void apb_config_writel (void *opaque, target_phys_addr_t addr,
         if (addr & 4) {
             s->pci_irq_map[(addr & 0x3f) >> 3] &= PBM_PCI_IMR_MASK;
             s->pci_irq_map[(addr & 0x3f) >> 3] |= val & ~PBM_PCI_IMR_MASK;
-        }
+}
     }
     else if (addr_temp >= 0x2000 && addr_temp <= 0x202f) { /* PCI control */
         s->pci_control[(addr & 0x3f) >> 2] = val;
@@ -389,9 +389,6 @@ static int apb_pci_bridge_initfn(PCIDevice *dev)
         return rc;
     }
 
-    pci_config_set_vendor_id(dev->config, PCI_VENDOR_ID_SUN);
-    pci_config_set_device_id(dev->config, PCI_DEVICE_ID_SUN_SIMBA);
-
     /*
      * command register:
      * According to PCI bridge spec, after reset
@@ -406,7 +403,6 @@ static int apb_pci_bridge_initfn(PCIDevice *dev)
     pci_set_word(dev->config + PCI_STATUS,
                  PCI_STATUS_FAST_BACK | PCI_STATUS_66MHZ |
                  PCI_STATUS_DEVSEL_MEDIUM);
-    pci_set_byte(dev->config + PCI_REVISION_ID, 0x11);
     return 0;
 }
 
@@ -521,14 +517,11 @@ static int pci_pbm_init_device(SysBusDevice *dev)
 
 static int pbm_pci_host_init(PCIDevice *d)
 {
-    pci_config_set_vendor_id(d->config, PCI_VENDOR_ID_SUN);
-    pci_config_set_device_id(d->config, PCI_DEVICE_ID_SUN_SABRE);
     pci_set_word(d->config + PCI_COMMAND,
                  PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
     pci_set_word(d->config + PCI_STATUS,
                  PCI_STATUS_FAST_BACK | PCI_STATUS_66MHZ |
                  PCI_STATUS_DEVSEL_MEDIUM);
-    pci_config_set_class(d->config, PCI_CLASS_BRIDGE_HOST);
     return 0;
 }
 
@@ -536,6 +529,9 @@ static PCIDeviceInfo pbm_pci_host_info = {
     .qdev.name = "pbm",
     .qdev.size = sizeof(PCIDevice),
     .init      = pbm_pci_host_init,
+    .vendor_id = PCI_VENDOR_ID_SUN,
+    .device_id = PCI_DEVICE_ID_SUN_SABRE,
+    .class_id  = PCI_CLASS_BRIDGE_HOST,
     .is_bridge = 1,
 };
 
@@ -553,6 +549,9 @@ static PCIDeviceInfo pbm_pci_bridge_info = {
     .qdev.reset = pci_bridge_reset,
     .init = apb_pci_bridge_initfn,
     .exit = pci_bridge_exitfn,
+    .vendor_id = PCI_VENDOR_ID_SUN,
+    .device_id = PCI_DEVICE_ID_SUN_SIMBA,
+    .revision = 0x11,
     .config_write = pci_bridge_write_config,
     .is_bridge = 1,
 };

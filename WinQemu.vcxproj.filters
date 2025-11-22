@@ -1821,6 +1821,18 @@
     <ClCompile Include="qemu\hw\usb-ehci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\error.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\sga.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\xen_platform.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-device.c">
+      <Filter>qemu\hw\9pfs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2794,6 +2806,15 @@
     </ClInclude>
     <ClInclude Include="qemu\xen-mapcache.h">
       <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\error.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\error_int.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\virtio-pci.h">
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

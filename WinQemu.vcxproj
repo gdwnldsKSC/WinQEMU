@@ -387,11 +387,15 @@
     <ClCompile Include="qemu\compatfd.c" />
     <ClCompile Include="qemu\cpus.c" />
     <ClCompile Include="qemu\cursor.c" />
+    <ClCompile Include="qemu\error.c" />
     <ClCompile Include="qemu\fsdev\qemu-fsdev.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\gdbstub.c" />
     <ClCompile Include="qemu\hw\9pfs\virtio-9p-debug.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-device.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\9pfs\virtio-9p-local.c">
@@ -456,7 +460,9 @@
     <ClCompile Include="qemu\hw\ivshmem.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\hw\kvmclock.c" />
+    <ClCompile Include="qemu\hw\kvmclock.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\lan9118.c" />
     <ClCompile Include="qemu\hw\lance.c" />
     <ClCompile Include="qemu\hw\leon3.c">
@@ -555,6 +561,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\scsi-bus.c" />
+    <ClCompile Include="qemu\hw\sga.c" />
     <ClCompile Include="qemu\hw\smbios.c" />
     <ClCompile Include="qemu\hw\ssi.c" />
     <ClCompile Include="qemu\hw\sun4m_iommu.c" />
@@ -607,6 +614,9 @@
     <ClCompile Include="qemu\hw\watchdog.c" />
     <ClCompile Include="qemu\hw\wdt_i6300esb.c" />
     <ClCompile Include="qemu\hw\wdt_ib700.c" />
+    <ClCompile Include="qemu\hw\xen_platform.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\xilinx_axidma.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -2043,6 +2053,8 @@
     <ClInclude Include="qemu\compatfd.h" />
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\cpus.h" />
+    <ClInclude Include="qemu\error.h" />
+    <ClInclude Include="qemu\error_int.h" />
     <ClInclude Include="qemu\fsdev\file-op-9p.h" />
     <ClInclude Include="qemu\fsdev\qemu-fsdev.h" />
     <ClInclude Include="qemu\hw\9p.h" />
@@ -2102,6 +2114,7 @@
     <ClInclude Include="qemu\hw\usb-uhci.h" />
     <ClInclude Include="qemu\hw\vhost.h" />
     <ClInclude Include="qemu\hw\vhost_net.h" />
+    <ClInclude Include="qemu\hw\virtio-pci.h" />
     <ClInclude Include="qemu\hw\virtio-serial.h" />
     <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\vt82c686.h" />
