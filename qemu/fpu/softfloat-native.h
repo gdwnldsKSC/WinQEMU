@@ -589,16 +589,21 @@ INLINE floatx80 floatx80_is_infinity(floatx80 a)
 #endif
 }
 
+#ifndef _MSC_VER
 INLINE floatx80 floatx80_is_neg(floatx80 a)
 {
     floatx80u u;
     u.f = a;
-#ifndef _MSC_VER
-    return u.i.high >> 15;
-#else
     return fx80_from_int32(u.i.high >> 15);
-#endif
 }
+#else
+INLINE int floatx80_is_neg(floatx80 a)
+{
+    floatx80u u;
+    u.f = a;
+    return (u.i.high >> 15) & 1;
+}
+#endif
 
 #ifndef _MSC_VER
 INLINE floatx80 floatx80_is_zero(floatx80 a)

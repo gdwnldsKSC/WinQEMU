@@ -3455,6 +3455,28 @@ void helper_verw(target_ulong selector1)
 
 /* x87 FPU helpers */
 
+static inline double CPU86_LDouble_to_double(CPU86_LDouble a)
+{
+    union {
+        float64 f64;
+        double d;
+    } u;
+
+    u.f64 = floatx_to_float64(a, &env->fp_status);
+    return u.d;
+}
+
+static inline CPU86_LDouble double_to_CPU86_LDouble(double a)
+{
+    union {
+        float64 f64;
+        double d;
+    } u;
+
+    u.d = a;
+    return float64_to_floatx(u.f64, &env->fp_status);
+}
+
 static void fpu_set_exception(int mask)
 {
     env->fpus |= mask;
@@ -4340,22 +4362,11 @@ void helper_fyl2xp1(void)
 
 void helper_fsqrt(void)
 {
-    CPU86_LDouble fptemp;
-
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if (fptemp<0.0) {
-#else
-	if (fx80_to_longdouble (&fptemp) <0.0) {
-#endif
+    if (floatx_is_neg(ST0)) {
         env->fpus &= (~0x4700);  /* (C3,C2,C1,C0) <-- 0000 */
         env->fpus |= 0x400;
     }
-#ifndef _MSC_VER
-    ST0 = sqrt(fptemp);
-#else
-	ST0 = fx80_sqrtl (&fptemp);
-#endif
+    ST0 = floatx_sqrt(ST0, &env->fp_status);
 }
 
 void helper_fsincos(void)
@@ -5019,16 +5030,6 @@ void helper_boundl(target_ulong a0, int v)
     if (v < low || v > high) {
         raise_exception(EXCP05_BOUND);
     }
-}
-
-static float approx_rsqrt(float a)
-{
-    return 1.0 / sqrt(a);
-}
-
-static float approx_rcp(float a)
-{
-    return 1.0 / a;
 }
 
 #if !defined(CONFIG_USER_ONLY)
