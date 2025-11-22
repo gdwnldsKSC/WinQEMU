@@ -585,6 +585,18 @@ static inline void trace_qed_write_table_cb(void *s, void *table, int flush, int
 {
 }
 
+static inline void trace_qed_need_check_timer_cb(void *s)
+{
+}
+
+static inline void trace_qed_start_need_check_timer(void *s)
+{
+}
+
+static inline void trace_qed_cancel_need_check_timer(void *s)
+{
+}
+
 static inline void trace_qed_aio_complete(void *s, void *acb, int ret)
 {
 }
@@ -829,43 +841,47 @@ static inline void trace_milkymist_memcard_memory_write(uint32_t addr, uint32_t 
 {
 }
 
-static inline void trace_milkymist_minimac_memory_read(uint32_t addr, uint32_t value)
+static inline void trace_milkymist_minimac2_memory_read(uint32_t addr, uint32_t value)
 {
 }
 
-static inline void trace_milkymist_minimac_memory_write(uint32_t addr, uint32_t value)
+static inline void trace_milkymist_minimac2_memory_write(uint32_t addr, uint32_t value)
 {
 }
 
-static inline void trace_milkymist_minimac_mdio_write(uint8_t phy_addr, uint8_t addr, uint16_t value)
+static inline void trace_milkymist_minimac2_mdio_write(uint8_t phy_addr, uint8_t addr, uint16_t value)
 {
 }
 
-static inline void trace_milkymist_minimac_mdio_read(uint8_t phy_addr, uint8_t addr, uint16_t value)
+static inline void trace_milkymist_minimac2_mdio_read(uint8_t phy_addr, uint8_t addr, uint16_t value)
 {
 }
 
-static inline void trace_milkymist_minimac_tx_frame(uint32_t length)
+static inline void trace_milkymist_minimac2_tx_frame(uint32_t length)
 {
 }
 
-static inline void trace_milkymist_minimac_rx_frame(const void *buf, uint32_t length)
+static inline void trace_milkymist_minimac2_rx_frame(const void *buf, uint32_t length)
 {
 }
 
-static inline void trace_milkymist_minimac_drop_rx_frame(const void *buf)
+static inline void trace_milkymist_minimac2_drop_rx_frame(const void *buf)
 {
 }
 
-static inline void trace_milkymist_minimac_rx_transfer(const void *buf, uint32_t length)
+static inline void trace_milkymist_minimac2_rx_transfer(const void *buf, uint32_t length)
 {
 }
 
-static inline void trace_milkymist_minimac_pulse_irq_rx(void)
+static inline void trace_milkymist_minimac2_raise_irq_rx(void)
 {
 }
 
-static inline void trace_milkymist_minimac_pulse_irq_tx(void)
+static inline void trace_milkymist_minimac2_lower_irq_rx(void)
+{
+}
+
+static inline void trace_milkymist_minimac2_pulse_irq_tx(void)
 {
 }
 
@@ -982,6 +998,34 @@ static inline void trace_milkymist_vgafb_memory_read(uint32_t addr, uint32_t val
 }
 
 static inline void trace_milkymist_vgafb_memory_write(uint32_t addr, uint32_t value)
+{
+}
+
+static inline void trace_xen_ram_alloc(unsigned long ram_addr, unsigned long size)
+{
+}
+
+static inline void trace_qemu_map_cache(uint64_t phys_addr)
+{
+}
+
+static inline void trace_qemu_remap_bucket(uint64_t index)
+{
+}
+
+static inline void trace_qemu_map_cache_return(void* ptr)
+{
+}
+
+static inline void trace_xen_map_block(uint64_t phys_addr, uint64_t size)
+{
+}
+
+static inline void trace_xen_unmap_block(void* addr, unsigned long size)
+{
+}
+
+static inline void trace_qemu_put_ram_ptr(void* addr)
 {
 }
 

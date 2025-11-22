@@ -781,6 +781,14 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc.c" />
     <ClCompile Include="qemu\ui\x_keymap.c" />
+    <ClCompile Include="qemu\xen-all.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\xen-mapcache-stub.c" />
+    <ClCompile Include="qemu\xen-mapcache.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\xen-stub.c" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -2197,6 +2205,7 @@
     <ClInclude Include="qemu\ui\vnc.h" />
     <ClInclude Include="qemu\ui\vnc_keysym.h" />
     <ClInclude Include="qemu\ui\x_keymap.h" />
+    <ClInclude Include="qemu\xen-mapcache.h" />
     <ClInclude Include="sigcompat.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

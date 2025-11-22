@@ -33,6 +33,7 @@
 #include "hw/qdev.h"
 #include "osdep.h"
 #include "kvm.h"
+#include "hw/xen.h"
 #include "qemu-timer.h"
 #if defined(CONFIG_USER_ONLY)
 #include <qemu.h>
@@ -52,6 +53,8 @@
 #include <libutil.h>
 #endif
 #endif
+#else /* !CONFIG_USER_ONLY */
+#include "xen-mapcache.h"
 #endif
 
 //#define DEBUG_TB_INVALIDATE
@@ -1635,15 +1638,15 @@ static void cpu_unlink_tb(CPUState *env)
     spin_unlock(&interrupt_lock);
 }
 
+#ifndef CONFIG_USER_ONLY
 /* mask must never be zero, except for A20 change call */
-void cpu_interrupt(CPUState *env, int mask)
+static void tcg_handle_interrupt(CPUState *env, int mask)
 {
     int old_mask;
 
     old_mask = env->interrupt_request;
     env->interrupt_request |= mask;
 
-#ifndef CONFIG_USER_ONLY
     /*
      * If called from iothread context, wake the target cpu in
      * case its halted.
@@ -1652,20 +1655,28 @@ void cpu_interrupt(CPUState *env, int mask)
         qemu_cpu_kick(env);
         return;
     }
-#endif
 
     if (use_icount) {
         env->icount_decr.u16.high = 0xffff;
-#ifndef CONFIG_USER_ONLY
         if (!can_do_io(env)
             && (mask & ~old_mask) != 0) {
             cpu_abort(env, "Raised interrupt while not in I/O function");
         }
-#endif
     } else {
         cpu_unlink_tb(env);
     }
 }
+
+CPUInterruptHandler cpu_interrupt_handler = tcg_handle_interrupt;
+
+#else /* CONFIG_USER_ONLY */
+
+void cpu_interrupt(CPUState *env, int mask)
+{
+    env->interrupt_request |= mask;
+    cpu_unlink_tb(env);
+}
+#endif /* CONFIG_USER_ONLY */
 
 void cpu_reset_interrupt(CPUState *env, int mask)
 {
@@ -1716,11 +1727,12 @@ static QLIST_HEAD(memory_client_list, CPUPhysMemoryClient) memory_client_list
 
 static void cpu_notify_set_memory(target_phys_addr_t start_addr,
                                   ram_addr_t size,
-                                  ram_addr_t phys_offset)
+                                  ram_addr_t phys_offset,
+                                  bool log_dirty)
 {
     CPUPhysMemoryClient *client;
     QLIST_FOREACH(client, &memory_client_list, list) {
-        client->set_memory(client, start_addr, size, phys_offset);
+        client->set_memory(client, start_addr, size, phys_offset, log_dirty);
     }
 }
 
@@ -1747,8 +1759,14 @@ static int cpu_notify_migration_log(int enable)
     return 0;
 }
 
+/* The l1_phys_map provides the upper P_L1_BITs of the guest physical
+ * address.  Each intermediate table provides the next L2_BITs of guest
+ * physical address space.  The number of levels vary based on host and
+ * guest configuration, making it efficient to build the final guest
+ * physical address by seeding the L1 offset and shifting and adding in
+ * each L2 offset as we recurse through them. */
 static void phys_page_for_each_1(CPUPhysMemoryClient *client,
-                                 int level, void **lp)
+                                 int level, void **lp, target_phys_addr_t addr)
 {
     int i;
 
@@ -1757,16 +1775,18 @@ static void phys_page_for_each_1(CPUPhysMemoryClient *client,
     }
     if (level == 0) {
         PhysPageDesc *pd = *lp;
+        addr <<= L2_BITS + TARGET_PAGE_BITS;
         for (i = 0; i < L2_SIZE; ++i) {
             if (pd[i].phys_offset != IO_MEM_UNASSIGNED) {
-                client->set_memory(client, pd[i].region_offset,
-                                   TARGET_PAGE_SIZE, pd[i].phys_offset);
+                client->set_memory(client, addr | i << TARGET_PAGE_BITS,
+                                   TARGET_PAGE_SIZE, pd[i].phys_offset, false);
             }
         }
     } else {
         void **pp = *lp;
         for (i = 0; i < L2_SIZE; ++i) {
-            phys_page_for_each_1(client, level - 1, pp + i);
+            phys_page_for_each_1(client, level - 1, pp + i,
+                                 (addr << L2_BITS) | i);
         }
     }
 }
@@ -1776,7 +1796,7 @@ static void phys_page_for_each(CPUPhysMemoryClient *client)
     int i;
     for (i = 0; i < P_L1_SIZE; ++i) {
         phys_page_for_each_1(client, P_L1_SHIFT / L2_BITS - 1,
-                             l1_phys_map + 1);
+                             l1_phys_map + i, i);
     }
 }
 
@@ -2047,7 +2067,7 @@ void cpu_physical_memory_reset_dirty(ram_addr_t start, ram_addr_t end,
     /* we modify the TLB cache so that the dirty bit will be set again
        when accessing the range */
     start1 = (unsigned long)qemu_safe_ram_ptr(start);
-    /* Chek that we don't span multiple blocks - this breaks the
+    /* Check that we don't span multiple blocks - this breaks the
        address comparisons below.  */
     if ((unsigned long)qemu_safe_ram_ptr(end - 1) - start1
             != (end - 1) - start) {
@@ -2605,10 +2625,11 @@ static subpage_t *subpage_init (target_phys_addr_t base, ram_addr_t *phys,
    start_addr and region_offset are rounded down to a page boundary
    before calculating this offset.  This should not be a problem unless
    the low bits of start_addr and region_offset differ.  */
-void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
+void cpu_register_physical_memory_log(target_phys_addr_t start_addr,
                                          ram_addr_t size,
                                          ram_addr_t phys_offset,
-                                         ram_addr_t region_offset)
+                                         ram_addr_t region_offset,
+                                         bool log_dirty)
 {
     target_phys_addr_t addr, end_addr;
     PhysPageDesc *p;
@@ -2617,7 +2638,7 @@ void cpu_register_physical_memory_offset(target_phys_addr_t start_addr,
     subpage_t *subpage;
 
     assert(size);
-    cpu_notify_set_memory(start_addr, size, phys_offset);
+    cpu_notify_set_memory(start_addr, size, phys_offset, log_dirty);
 
     if (phys_offset == IO_MEM_UNASSIGNED) {
         region_offset = start_addr;
@@ -2877,6 +2898,7 @@ ram_addr_t qemu_ram_alloc_from_ptr(DeviceState *dev, const char *name,
         }
     }
 
+    new_block->offset = find_ram_offset(size);
     if (host) {
         new_block->host = host;
         new_block->flags |= RAM_PREALLOC_MASK;
@@ -2894,18 +2916,28 @@ ram_addr_t qemu_ram_alloc_from_ptr(DeviceState *dev, const char *name,
 #endif
         } else {
 #if defined(TARGET_S390X) && defined(CONFIG_KVM)
-            /* XXX S390 KVM requires the topmost vma of the RAM to be < 256GB */
-            new_block->host = mmap((void*)0x1000000, size,
+            /* S390 KVM requires the topmost vma of the RAM to be smaller than
+               an system defined value, which is at least 256GB. Larger systems
+               have larger values. We put the guest between the end of data
+               segment (system break) and this value. We use 32GB as a base to
+               have enough room for the system break to grow. */
+            new_block->host = mmap((void*)0x800000000, size,
                                    PROT_EXEC|PROT_READ|PROT_WRITE,
-                                   MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                                   MAP_SHARED | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+            if (new_block->host == MAP_FAILED) {
+                fprintf(stderr, "Allocating RAM failed\n");
+                abort();
+            }
 #else
-            new_block->host = qemu_vmalloc(size);
+            if (xen_mapcache_enabled()) {
+                xen_ram_alloc(new_block->offset, size);
+            } else {
+                new_block->host = qemu_vmalloc(size);
+            }
 #endif
             qemu_madvise(new_block->host, size, QEMU_MADV_MERGEABLE);
         }
     }
-
-    new_block->offset = find_ram_offset(size);
     new_block->length = size;
 
     QLIST_INSERT_HEAD(&ram_list.blocks, new_block, next);
@@ -2950,7 +2982,11 @@ void qemu_ram_free(ram_addr_t addr)
 #if defined(TARGET_S390X) && defined(CONFIG_KVM)
                 munmap(block->host, block->length);
 #else
-                qemu_vfree(block->host);
+                if (xen_mapcache_enabled()) {
+                    qemu_invalidate_entry(block->host);
+                } else {
+                    qemu_vfree(block->host);
+                }
 #endif
             }
             qemu_free(block);
@@ -3039,6 +3075,16 @@ void *qemu_get_ram_ptr(ram_addr_t addr)
                 QLIST_REMOVE(block, next);
                 QLIST_INSERT_HEAD(&ram_list.blocks, block, next);
             }
+            if (xen_mapcache_enabled()) {
+                /* We need to check if the requested address is in the RAM
+                 * because we don't want to map the entire memory in QEMU.
+                 */
+                if (block->offset == 0) {
+                    return qemu_map_cache(addr, 0, 1);
+                } else if (block->host == NULL) {
+                    block->host = xen_map_block(block->offset, block->length);
+                }
+            }
             return block->host + (addr - block->offset);
         }
     }
@@ -3058,6 +3104,16 @@ void *qemu_safe_ram_ptr(ram_addr_t addr)
 
     QLIST_FOREACH(block, &ram_list.blocks, next) {
         if (addr - block->offset < block->length) {
+            if (xen_mapcache_enabled()) {
+                /* We need to check if the requested address is in the RAM
+                 * because we don't want to map the entire memory in QEMU.
+                 */
+                if (block->offset == 0) {
+                    return qemu_map_cache(addr, 0, 1);
+                } else if (block->host == NULL) {
+                    block->host = xen_map_block(block->offset, block->length);
+                }
+            }
             return block->host + (addr - block->offset);
         }
     }
@@ -3068,17 +3124,48 @@ void *qemu_safe_ram_ptr(ram_addr_t addr)
     return NULL;
 }
 
+void qemu_put_ram_ptr(void *addr)
+{
+    trace_qemu_put_ram_ptr(addr);
+
+    if (xen_mapcache_enabled()) {
+        RAMBlock *block;
+
+        QLIST_FOREACH(block, &ram_list.blocks, next) {
+            if (addr == block->host) {
+                break;
+            }
+        }
+        if (block && block->host) {
+            xen_unmap_block(block->host, block->length);
+            block->host = NULL;
+        } else {
+            qemu_map_cache_unlock(addr);
+        }
+    }
+}
+
 int qemu_ram_addr_from_host(void *ptr, ram_addr_t *ram_addr)
 {
     RAMBlock *block;
     uint8_t *host = ptr;
 
     QLIST_FOREACH(block, &ram_list.blocks, next) {
+        /* This case append when the block is not mapped. */
+        if (block->host == NULL) {
+            continue;
+        }
         if (host - block->host < block->length) {
             *ram_addr = block->offset + (host - block->host);
             return 0;
         }
     }
+
+    if (xen_mapcache_enabled()) {
+        *ram_addr = qemu_ram_addr_from_mapcache(ptr);
+        return 0;
+    }
+
     return -1;
 }
 
@@ -3773,6 +3860,7 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
                     cpu_physical_memory_set_dirty_flags(
                         addr1, (0xff & ~CODE_DIRTY_FLAG));
                 }
+                qemu_put_ram_ptr(ptr);
             }
         } else {
             if ((pd & ~TARGET_PAGE_MASK) > IO_MEM_ROM &&
@@ -3800,9 +3888,9 @@ void cpu_physical_memory_rw(target_phys_addr_t addr, uint8_t *buf,
                 }
             } else {
                 /* RAM case */
-                ptr = (char *)qemu_get_ram_ptr(pd & TARGET_PAGE_MASK) +
-                    (addr & ~TARGET_PAGE_MASK);
-                memcpy(buf, ptr, l);
+                ptr = qemu_get_ram_ptr(pd & TARGET_PAGE_MASK);
+                memcpy(buf, ptr + (addr & ~TARGET_PAGE_MASK), l);
+                qemu_put_ram_ptr(ptr);
             }
         }
         len -= l;
@@ -3843,6 +3931,7 @@ void cpu_physical_memory_write_rom(target_phys_addr_t addr,
             /* ROM/RAM case */
             ptr = qemu_get_ram_ptr(addr1);
             memcpy(ptr, buf, l);
+            qemu_put_ram_ptr(ptr);
         }
         len -= l;
         buf += l;
@@ -3982,6 +4071,15 @@ void cpu_physical_memory_unmap(void *buffer, target_phys_addr_t len,
                 }
                 addr1 += l;
                 access_len -= l;
+            }
+        }
+        if (xen_mapcache_enabled()) {
+            uint8_t *buffer1 = buffer;
+            uint8_t *end_buffer = (char *)buffer + len;
+
+            while (buffer1 < end_buffer) {
+                qemu_put_ram_ptr(buffer1);
+                buffer1 += TARGET_PAGE_SIZE;
             }
         }
         return;

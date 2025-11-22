@@ -504,6 +504,9 @@ DEF("bios", HAS_ARG, QEMU_OPTION_bios, \
 DEF("enable-kvm", 0, QEMU_OPTION_enable_kvm, \
 "-enable-kvm     enable KVM full virtualization support\n", QEMU_ARCH_ALL)
 
+DEF("machine", HAS_ARG, QEMU_OPTION_machine, \
+"-machine accel=accel1[:accel2]    use an accelerator (kvm,xen,tcg), default is tcg\n", QEMU_ARCH_ALL)
+
 DEF("xen-domid", HAS_ARG, QEMU_OPTION_xen_domid,
 "-xen-domid id   specify xen guest domain id\n", QEMU_ARCH_ALL)
 DEF("xen-create", 0, QEMU_OPTION_xen_create,

@@ -1809,6 +1809,18 @@
     <ClCompile Include="qemu\hw\ide\atapi.c">
       <Filter>qemu\hw\IDE</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\xen-all.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\xen-mapcache.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\xen-mapcache-stub.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\xen-stub.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2782,6 +2794,9 @@
     </ClInclude>
     <ClInclude Include="qemu\fsdev\file-op-9p.h">
       <Filter>qemu\fsdev</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\xen-mapcache.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

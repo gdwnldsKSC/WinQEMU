@@ -197,7 +197,6 @@ typedef CPU_LDoubleU CPU86_LDoubleU;
 
 #else
 
-/* NOTE: arm is horrible as double 32 bit words are stored in big endian ! */
 typedef CPU_DoubleU CPU86_LDoubleU;
 
 /* the following deal with IEEE double-precision numbers */
