@@ -151,11 +151,11 @@ typedef union {
 
 #if defined(FLOATX80)
 typedef union {
-    floatx80 d;
-    struct {
-        uint64_t lower;
-        uint16_t upper;
-    } l;
+     floatx80 d;
+     struct {
+         uint64_t lower;
+         uint16_t upper;
+     } l;
 } CPU_LDoubleU;
 #endif
 
