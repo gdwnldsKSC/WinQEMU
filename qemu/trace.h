@@ -637,15 +637,11 @@ static inline void trace_grlib_gptimer_hit(int id)
 {
 }
 
-static inline void trace_grlib_gptimer_readl(int id, const char *s, uint32_t val)
+static inline void trace_grlib_gptimer_readl(int id, uint64_t addr, uint32_t val)
 {
 }
 
-static inline void trace_grlib_gptimer_writel(int id, const char *s, uint32_t val)
-{
-}
-
-static inline void trace_grlib_gptimer_unknown_register(const char *op, uint64_t val)
+static inline void trace_grlib_gptimer_writel(int id, uint64_t addr, uint32_t val)
 {
 }
 
@@ -661,7 +657,11 @@ static inline void trace_grlib_irqmp_set_irq(int irq)
 {
 }
 
-static inline void trace_grlib_irqmp_unknown_register(const char *op, uint64_t val)
+static inline void trace_grlib_irqmp_readl_unknown(uint64_t addr)
+{
+}
+
+static inline void trace_grlib_irqmp_writel_unknown(uint64_t addr, uint32_t value)
 {
 }
 
@@ -669,7 +669,7 @@ static inline void trace_grlib_apbuart_event(int event)
 {
 }
 
-static inline void trace_grlib_apbuart_unknown_register(const char *op, uint64_t val)
+static inline void trace_grlib_apbuart_writel_unknown(uint64_t addr, uint32_t value)
 {
 }
 

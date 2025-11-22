@@ -437,6 +437,7 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\hda-audio.c" />
     <ClCompile Include="qemu\hw\ide\ahci.c" />
+    <ClCompile Include="qemu\hw\ide\atapi.c" />
     <ClCompile Include="qemu\hw\ide\cmd646.c" />
     <ClCompile Include="qemu\hw\ide\core.c" />
     <ClCompile Include="qemu\hw\ide\ich.c" />

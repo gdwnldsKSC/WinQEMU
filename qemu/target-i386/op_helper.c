@@ -3816,8 +3816,7 @@ void helper_fsub_STN_ST0(int st_index)
 
 void helper_fsubr_STN_ST0(int st_index)
 {
-    CPU86_LDouble* p = &ST(st_index);
-    *p = floatx_sub(ST0, *p, &env->fp_status);
+    ST(st_index) = floatx_sub(ST0, ST(st_index), &env->fp_status);
 }
 
 void helper_fdiv_STN_ST0(int st_index)
@@ -4007,7 +4006,7 @@ void helper_fbld_ST0(target_ulong ptr)
     int i;
 
     val = 0;
-    for (i = 8; i >= 0; i--) {
+    for(i = 8; i >= 0; i--) {
         v = ldub(ptr + i);
         val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
     }
@@ -4058,14 +4057,12 @@ void helper_fyl2x(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-
-    if (fptemp > 0.0) {
-        fptemp = log(fptemp) / log(2.0);    /* log2(ST) */
+    if (fptemp>0.0){
+        fptemp = log(fptemp)/log(2.0);    /* log2(ST) */
         fptemp *= CPU86_LDouble_to_double(ST1);
         ST1 = double_to_CPU86_LDouble(fptemp);
         fpop();
-    }
-    else {
+    } else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
@@ -4075,10 +4072,9 @@ void helper_fptan(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    }
-    else {
+    } else {
         fptemp = tan(fptemp);
         ST0 = double_to_CPU86_LDouble(fptemp);
         fpush();
@@ -4119,8 +4115,7 @@ void helper_fxtract(void)
 #endif
         fpush();
         ST0 = temp.d;
-    }
-    else {
+    } else {
         int expdif;
 
         expdif = EXPD(temp) - EXPBIAS;
@@ -4178,23 +4173,22 @@ void helper_fprem1(void)
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-            q = (signed long long int)(-dblq);
+           q = (signed long long int)(-dblq);
         else
-            q = (signed long long int)dblq;
+           q = (signed long long int)dblq;
 
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-        /* (C0,C3,C1) <-- (q2,q1,q0) */
+                                /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
         env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
         env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-    }
-    else {
+    } else {
         env->fpus |= 0x400;  /* C2 <-- 1 */
         fptemp = pow(2.0, expdif - 50);
         fpsrcop = (st0 / st1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         st0 -= (st1 * fpsrcop * fptemp);
     }
     ST0 = double_to_CPU86_LDouble(st0);
@@ -4212,12 +4206,12 @@ void helper_fprem(void)
 
     if (isinf(st0) || isnan(st0) || isnan(st1) || (st1 == 0.0)) {
 #ifndef _MSC_VER
-        ST0 = double_to_CPU86_LDouble(0.0 / 0.0); /* NaN */
+       ST0 = double_to_CPU86_LDouble(0.0 / 0.0); /* NaN */
 #else
         ST0 = double_to_CPU86_LDouble((double)NAN); /* NaN */
 #endif
-        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-        return;
+       env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+       return;
     }
 
     fpsrcop = st0;
@@ -4227,20 +4221,37 @@ void helper_fprem(void)
     expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
 
     if (expdif < 0) {
-            dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
+        /* optimisation? taken from the AMD docs */
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+        /* ST0 is unchanged */
+        return;
+    }
+
+    if ( expdif < 53 ) {
+        dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
         /* round dblq towards zero */
         dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
         st0 = fpsrcop/*ST0*/ - fptemp * dblq;
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-            int N = 32 + (expdif % 32); /* as per AMD docs */
+           q = (signed long long int)(-dblq);
+        else
+           q = (signed long long int)dblq;
+
+        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
+                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
+        env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
+        env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
+    } else {
+        int N = 32 + (expdif % 32); /* as per AMD docs */
         env->fpus |= 0x400;  /* C2 <-- 1 */
         fptemp = pow(2.0, (double)(expdif - N));
         fpsrcop = (st0 / st1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
         st0 -= (st1 * fpsrcop * fptemp);
     }
     ST0 = double_to_CPU86_LDouble(st0);
@@ -4250,13 +4261,12 @@ void helper_fyl2xp1(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-    if ((fptemp + 1.0) > 0.0) {
-        fptemp = log(fptemp + 1.0) / log(2.0); /* log2(ST+1.0) */
+    if ((fptemp+1.0)>0.0) {
+        fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
         fptemp *= CPU86_LDouble_to_double(ST1);
         ST1 = double_to_CPU86_LDouble(fptemp);
         fpop();
-    }
-    else {
+    } else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
@@ -4275,10 +4285,9 @@ void helper_fsincos(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    }
-    else {
+    } else {
         ST0 = double_to_CPU86_LDouble(sin(fptemp));
         fpush();
         ST0 = double_to_CPU86_LDouble(cos(fptemp));
@@ -4296,8 +4305,7 @@ void helper_fscale(void)
 {
     if (floatx_is_any_nan(ST1)) {
         ST0 = ST1;
-    }
-    else {
+    } else {
         int n = floatx_to_int32_round_to_zero(ST1, &env->fp_status);
         ST0 = floatx_scalbn(ST0, n, &env->fp_status);
     }
@@ -4307,10 +4315,9 @@ void helper_fsin(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    }
-    else {
+    } else {
         ST0 = double_to_CPU86_LDouble(sin(fptemp));
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**53 only */
@@ -4321,10 +4328,9 @@ void helper_fcos(void)
 {
     double fptemp = CPU86_LDouble_to_double(ST0);
 
-    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
+    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    }
-    else {
+    } else {
         ST0 = double_to_CPU86_LDouble(cos(fptemp));
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg5 < 2**63 only */
@@ -4910,10 +4916,6 @@ void helper_boundl(target_ulong a0, int v)
 #if !defined(CONFIG_USER_ONLY)
 
 #define MMUSUFFIX _mmu
-
-#ifdef _MSC_VER
-#define __USE_FAKED_GETPC
-#endif
 
 #define SHIFT 0
 #include "softmmu_template.h"

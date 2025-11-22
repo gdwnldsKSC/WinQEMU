@@ -594,14 +594,14 @@ INLINE floatx80 floatx80_is_neg(floatx80 a)
 {
     floatx80u u;
     u.f = a;
-    return fx80_from_int32(u.i.high >> 15);
+    return u.i.high >> 15;
 }
 #else
 INLINE int floatx80_is_neg(floatx80 a)
 {
     floatx80u u;
     u.f = a;
-    return (u.i.high >> 15) & 1;
+    return u.i.high >> 15;
 }
 #endif
 

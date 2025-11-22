@@ -1806,6 +1806,9 @@
     <ClCompile Include="qemu\hw\9pfs\virtio-9p-xattr-user.c">
       <Filter>qemu\hw\9pfs</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\hw\ide\atapi.c">
+      <Filter>qemu\hw\IDE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
