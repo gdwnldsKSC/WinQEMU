@@ -28,6 +28,7 @@
  * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
  */
  
+#include <math.h>
 #include "exec.h"
 #include "exec-all.h"
 #include "host-utils.h"
@@ -105,27 +106,37 @@ static const uint8_t rclb_table[32] = {
     6, 7, 8, 0, 1, 2, 3, 4,
 };
 
+#if defined(CONFIG_SOFTFLOAT)
+# define floatx_lg2 make_floatx80( 0x3ffd, 0x9a209a84fbcff799LL )
+# define floatx_l2e make_floatx80( 0x3fff, 0xb8aa3b295c17f0bcLL )
+# define floatx_l2t make_floatx80( 0x4000, 0xd49a784bcd1b8afeLL )
+#else
+# define floatx_lg2 (0.30102999566398119523L)
+# define floatx_l2e (1.44269504088896340739L)
+# define floatx_l2t (3.32192809488736234781L)
+#endif
+
 #ifndef _MSC_VER
 static const CPU86_LDouble f15rk[7] =
 {
-    0.00000000000000000000L,
-    1.00000000000000000000L,
-    3.14159265358979323851L,  /*pi*/
-    0.30102999566398119523L,  /*lg2*/
-    0.69314718055994530943L,  /*ln2*/
-    1.44269504088896340739L,  /*l2e*/
-    3.32192809488736234781L,  /*l2t*/
+    floatx_zero,
+    floatx_one,
+    floatx_pi,
+    floatx_lg2,
+    floatx_ln2,
+    floatx_l2e,
+    floatx_l2t,
 };
 #else
 static const long double f15rk[7] =
 {
-	0.00000000000000000000L,
-	1.00000000000000000000L,
-	3.14159265358979323851L,  /*pi*/
-	0.30102999566398119523L,  /*lg2*/
-	0.69314718055994530943L,  /*ln2*/
-	1.44269504088896340739L,  /*l2e*/
-	3.32192809488736234781L,  /*l2t*/
+    floatx_zero,
+    floatx_one,
+    floatx_pi,
+    floatx_lg2,
+    floatx_ln2,
+    floatx_l2e,
+    floatx_l2t,
 };
 #endif
 
@@ -4038,33 +4049,23 @@ void helper_fbst_ST0(target_ulong ptr)
 
 void helper_f2xm1(void)
 {
-#ifndef _MSC_VER
-    ST0 = pow(2.0,ST0) - 1.0;
-#else
-    ST0 = fx80_from_longdouble(pow(2.0, fx80_to_longdouble(&ST0)) - 1.0);
-#endif
+    double val = CPU86_LDouble_to_double(ST0);
+    val = pow(2.0, val) - 1.0;
+    ST0 = double_to_CPU86_LDouble(val);
 }
 
 void helper_fyl2x(void)
 {
-    CPU86_LDouble fptemp;
-#ifdef _MSC_VER
-	long double temp;
-#endif
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if (fptemp>0.0){
-        fptemp = log(fptemp)/log(2.0);	 /* log2(ST) */
-        ST1 *= fptemp;
-#else
-	if (fx80_isg_double(&fptemp, 0.0)){
-		temp = fx80_to_longdouble(&fptemp);
-		fptemp = fx80_from_longdouble(log(temp) / log(2.0));
-		fx80_mule_fx80(&ST1, &fptemp);
-#endif
+
+    if (fptemp > 0.0) {
+        fptemp = log(fptemp) / log(2.0);    /* log2(ST) */
+        fptemp *= CPU86_LDouble_to_double(ST1);
+        ST1 = double_to_CPU86_LDouble(fptemp);
         fpop();
-    } else {
+    }
+    else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
@@ -4072,26 +4073,20 @@ void helper_fyl2x(void)
 
 void helper_fptan(void)
 {
-    CPU86_LDouble fptemp;
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
-#endif
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    } else {
-#ifndef _MSC_VER
-        ST0 = tan(fptemp);
+    }
+    else {
+        fptemp = tan(fptemp);
+        ST0 = double_to_CPU86_LDouble(fptemp);
         fpush();
-        ST0 = 1.0;
+#ifndef _MSC_VER
+        ST0 = floatx_one;
 #else
-		ST0 = fx80_tanl (&fptemp);
-		fpush();
-		ST0 = fx80_from_longdouble (1.0);
+        ST0 = double_to_CPU86_LDouble(floatx_one);
 #endif
-
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**52 only */
     }
@@ -4099,15 +4094,11 @@ void helper_fptan(void)
 
 void helper_fpatan(void)
 {
-    CPU86_LDouble fptemp, fpsrcop;
+    double fptemp, fpsrcop;
 
-    fpsrcop = ST1;
-    fptemp = ST0;
-#ifndef _MSC_VER
-    ST1 = atan2(fpsrcop,fptemp);
-#else
-	ST1 = fx80_atan2l (&fpsrcop,&fptemp);
-#endif
+    fpsrcop = CPU86_LDouble_to_double(ST1);
+    fptemp = CPU86_LDouble_to_double(ST0);
+    ST1 = double_to_CPU86_LDouble(atan2(fpsrcop, fptemp));
     fpop();
 }
 
@@ -4337,24 +4328,15 @@ void helper_fprem(void)
 
 void helper_fyl2xp1(void)
 {
-    CPU86_LDouble fptemp;
-#ifdef _MSC_VER
-	CPU86_LDouble temp;
-#endif
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if ((fptemp+1.0)>0.0) {
-        fptemp = log(fptemp+1.0) / log(2.0); /* log2(ST+1.0) */
-        ST1 *= fptemp;
-#else
-	if ((fx80_to_longdouble(&fptemp) + 1.0)>0.0) {
-		temp = fx80_add_double(&fptemp, 1.0);
-		fptemp = fx80_logl(&temp);
-		fx80_mule_fx80(&ST1, &fptemp);
-#endif
+    if ((fptemp + 1.0) > 0.0) {
+        fptemp = log(fptemp + 1.0) / log(2.0); /* log2(ST+1.0) */
+        fptemp *= CPU86_LDouble_to_double(ST1);
+        ST1 = double_to_CPU86_LDouble(fptemp);
         fpop();
-    } else {
+    }
+    else {
         env->fpus &= (~0x4700);
         env->fpus |= 0x400;
     }
@@ -4371,26 +4353,15 @@ void helper_fsqrt(void)
 
 void helper_fsincos(void)
 {
-    CPU86_LDouble fptemp;
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-	if ((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
-
-#endif
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    } else {
-#ifndef _MSC_VER
-        ST0 = sin(fptemp);
+    }
+    else {
+        ST0 = double_to_CPU86_LDouble(sin(fptemp));
         fpush();
-        ST0 = cos(fptemp);
-#else
-		ST0 = fx80_sinl (&fptemp);
-		fpush();
-		ST0 = fx80_cosl(&fptemp);
-#endif
+        ST0 = double_to_CPU86_LDouble(cos(fptemp));
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**63 only */
     }
@@ -4414,21 +4385,13 @@ void helper_fscale(void)
 
 void helper_fsin(void)
 {
-    CPU86_LDouble fptemp;
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if ((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-    if ((fx80_to_longdouble(&fptemp) > MAXTAN) || (fx80_to_longdouble(&fptemp) < -MAXTAN)) {
-#endif
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    } else {
-#ifndef _MSC_VER
-        ST0 = sin(fptemp);
-#else
-		ST0 = fx80_sinl (&fptemp);
-#endif
+    }
+    else {
+        ST0 = double_to_CPU86_LDouble(sin(fptemp));
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**53 only */
     }
@@ -4436,21 +4399,13 @@ void helper_fsin(void)
 
 void helper_fcos(void)
 {
-    CPU86_LDouble fptemp;
+    double fptemp = CPU86_LDouble_to_double(ST0);
 
-    fptemp = ST0;
-#ifndef _MSC_VER
-    if((fptemp > MAXTAN)||(fptemp < -MAXTAN)) {
-#else
-	if((fx80_to_longdouble (&fptemp) > MAXTAN)||(fx80_to_longdouble (&fptemp) < -MAXTAN)) {
-#endif
+    if ((fptemp > MAXTAN) || (fptemp < -MAXTAN)) {
         env->fpus |= 0x400;
-    } else {
-#ifndef _MSC_VER
-        ST0 = cos(fptemp);
-#else
-		ST0 = fx80_cosl (&fptemp);
-#endif
+    }
+    else {
+        ST0 = double_to_CPU86_LDouble(cos(fptemp));
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg5 < 2**63 only */
     }
