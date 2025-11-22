@@ -273,15 +273,6 @@ void cpu_dump_state(CPUState *env, FILE *f, fprintf_function cpu_fprintf,
     char cc_op_name[32];
     static const char *seg_name[6] = { "ES", "CS", "SS", "DS", "FS", "GS" };
 
-#if defined(USE_X86LDOUBLE)
-	union {
-		long double d;
-		struct {
-			uint64_t lower;
-			uint16_t upper;
-		} l;
-	} tmp = {0};
-#endif
     cpu_synchronize_state(env);
 
     eflags = env->eflags;
@@ -424,20 +415,10 @@ void cpu_dump_state(CPUState *env, FILE *f, fprintf_function cpu_fprintf,
                     env->mxcsr);
         for(i=0;i<8;i++) {
 #if defined(USE_X86LDOUBLE)
-#ifndef _MSC_VER
-            union {
-                long double d;
-                struct {
-                    uint64_t lower;
-                    uint16_t upper;
-                } l;
-            } tmp;
-            tmp.d = env->fpregs[i].d;
-#else
-			tmp.d = fx80_to_longdouble (&env->fpregs[i].d);
-#endif
+            CPU_LDoubleU u;
+            u.d = env->fpregs[i].d;
             cpu_fprintf(f, "FPR%d=%016" PRIx64 " %04x",
-                        i, tmp.l.lower, tmp.l.upper);
+                        i, u.l.lower, u.l.upper);
 #else
             cpu_fprintf(f, "FPR%d=%016" PRIx64,
                         i, env->fpregs[i].mmx.q);

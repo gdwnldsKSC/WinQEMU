@@ -31,9 +31,6 @@
     <Filter Include="qemu\hw">
       <UniqueIdentifier>{235ece8c-2ac3-4df3-b0ad-eb16e2b5ed48}</UniqueIdentifier>
     </Filter>
-    <Filter Include="qemu\hw\inc">
-      <UniqueIdentifier>{b0874354-61cf-45ce-9050-7e50250010c8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="qemu\hw\src">
       <UniqueIdentifier>{afbd14fa-13cd-4831-b451-74396ee9f2a4}</UniqueIdentifier>
     </Filter>
@@ -84,6 +81,9 @@
     </Filter>
     <Filter Include="qemu\slirp">
       <UniqueIdentifier>{afdae92a-ba13-4761-b9ce-184813dc9134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\inc">
+      <UniqueIdentifier>{b0874354-61cf-45ce-9050-7e50250010c8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -2772,6 +2772,9 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-thread-win32.h">
+      <Filter>qemu\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\bt-host.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>

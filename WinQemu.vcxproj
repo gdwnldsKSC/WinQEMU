@@ -2030,6 +2030,7 @@
     <ClInclude Include="qemu\block\qed.h" />
     <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\block\rbd_types.h" />
+    <ClInclude Include="qemu\bt-host.h" />
     <ClInclude Include="qemu\cmd.h" />
     <ClInclude Include="qemu\compatfd.h" />
     <ClInclude Include="qemu\cpu-common.h" />

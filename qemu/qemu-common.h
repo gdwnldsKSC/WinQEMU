@@ -150,7 +150,6 @@ static inline char *realpath(const char *path, char *resolved_path)
 #ifdef _MSC_VER
 #include <getopt.h>
 #include "sigcompat.h"
-#include <WinSock2.h>
 // this type isn't provided in MSVC 17/VS 2022.... 
 typedef signed int ssize_t;
 
