@@ -30,7 +30,7 @@
 #undef ERROR // MSVC/Windows SDK defines this in wingcli.h, we just fix that here to make it happy....
 
 enum json_lexer_state {
-    ERROR = 0,
+    IN_ERROR = 0,
     IN_DQ_UCODE3,
     IN_DQ_UCODE2,
     IN_DQ_UCODE1,
@@ -285,7 +285,7 @@ static const uint8_t json_lexer[][256] =  {
     /* Zero */
     [IN_ZERO] = {
         TERMINAL(JSON_INTEGER),
-        ['0' ... '9'] = ERROR,
+        ['0' ... '9'] = IN_ERROR,
         ['.'] = IN_MANTISSA,
     },
 
@@ -1139,16 +1139,16 @@ static const uint8_t json_lexer[][256] =  {
 /* Zero */
 [IN_ZERO] = {
     TERMINAL(JSON_INTEGER),
-    ['0'] = ERROR,
-    ['1'] = ERROR,
-    ['2'] = ERROR,
-    ['3'] = ERROR,
-    ['4'] = ERROR,
-    ['5'] = ERROR,
-    ['6'] = ERROR,
-    ['7'] = ERROR,
-    ['8'] = ERROR,
-    ['9'] = ERROR,
+    ['0'] = IN_ERROR,
+    ['1'] = IN_ERROR,
+    ['2'] = IN_ERROR,
+    ['3'] = IN_ERROR,
+    ['4'] = IN_ERROR,
+    ['5'] = IN_ERROR,
+    ['6'] = IN_ERROR,
+    ['7'] = IN_ERROR,
+    ['8'] = IN_ERROR,
+    ['9'] = IN_ERROR,
     ['.'] = IN_MANTISSA,
 },
 
@@ -1421,7 +1421,7 @@ static int json_lexer_feed_char(JSONLexer *lexer, char ch)
             lexer->token = qstring_new();
             new_state = IN_START;
             break;
-        case ERROR:
+        case IN_ERROR:
             return -EINVAL;
         default:
             break;
