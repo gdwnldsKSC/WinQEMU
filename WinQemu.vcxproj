@@ -391,6 +391,24 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\gdbstub.c" />
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-debug.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-local.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-posix-acl.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-xattr-user.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p-xattr.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\9pfs\virtio-9p.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="qemu\hw\a9mpcore.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -579,24 +597,6 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\vhost_net.c" />
     <ClCompile Include="qemu\hw\virtex_ml507.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p-debug.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p-local.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p-posix-acl.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p-xattr-user.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p-xattr.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\virtio-9p.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\virtio-pci.c" />
@@ -2035,8 +2035,12 @@
     <ClInclude Include="qemu\compatfd.h" />
     <ClInclude Include="qemu\cpu-common.h" />
     <ClInclude Include="qemu\cpus.h" />
+    <ClInclude Include="qemu\fsdev\file-op-9p.h" />
     <ClInclude Include="qemu\fsdev\qemu-fsdev.h" />
     <ClInclude Include="qemu\hw\9p.h" />
+    <ClInclude Include="qemu\hw\9pfs\virtio-9p-debug.h" />
+    <ClInclude Include="qemu\hw\9pfs\virtio-9p-xattr.h" />
+    <ClInclude Include="qemu\hw\9pfs\virtio-9p.h" />
     <ClInclude Include="qemu\hw\acpi.h" />
     <ClInclude Include="qemu\hw\apb_pci.h" />
     <ClInclude Include="qemu\hw\apic.h" />
@@ -2045,7 +2049,6 @@
     <ClInclude Include="qemu\hw\cris-boot.h" />
     <ClInclude Include="qemu\hw\elf_ops.h" />
     <ClInclude Include="qemu\hw\event_notifier.h" />
-    <ClInclude Include="qemu\hw\file-op-9p.h" />
     <ClInclude Include="qemu\hw\grlib.h" />
     <ClInclude Include="qemu\hw\ide\ahci.h" />
     <ClInclude Include="qemu\hw\ide\internal.h" />
@@ -2091,9 +2094,6 @@
     <ClInclude Include="qemu\hw\usb-uhci.h" />
     <ClInclude Include="qemu\hw\vhost.h" />
     <ClInclude Include="qemu\hw\vhost_net.h" />
-    <ClInclude Include="qemu\hw\virtio-9p-debug.h" />
-    <ClInclude Include="qemu\hw\virtio-9p-xattr.h" />
-    <ClInclude Include="qemu\hw\virtio-9p.h" />
     <ClInclude Include="qemu\hw\virtio-serial.h" />
     <ClInclude Include="qemu\hw\vmware_vga.h" />
     <ClInclude Include="qemu\hw\vt82c686.h" />
