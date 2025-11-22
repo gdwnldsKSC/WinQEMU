@@ -300,9 +300,6 @@
     <ClCompile Include="qemu\audio\wavcapture.c">
       <Filter>qemu\audio</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\fpu\softfloat-native.c">
-      <Filter>qemu\fpu</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\fpu\softfloat.c">
       <Filter>qemu\fpu</Filter>
     </ClCompile>
@@ -2016,9 +2013,6 @@
       <Filter>qemu\audio</Filter>
     </ClInclude>
     <ClInclude Include="qemu\fpu\softfloat-macros.h">
-      <Filter>qemu\fpu</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\fpu\softfloat-native.h">
       <Filter>qemu\fpu</Filter>
     </ClInclude>
     <ClInclude Include="qemu\fpu\softfloat-specialize.h">

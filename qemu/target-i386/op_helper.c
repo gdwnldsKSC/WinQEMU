@@ -106,39 +106,9 @@ static const uint8_t rclb_table[32] = {
     6, 7, 8, 0, 1, 2, 3, 4,
 };
 
-#if defined(CONFIG_SOFTFLOAT)
-# define floatx_lg2 make_floatx80( 0x3ffd, 0x9a209a84fbcff799LL )
-# define floatx_l2e make_floatx80( 0x3fff, 0xb8aa3b295c17f0bcLL )
-# define floatx_l2t make_floatx80( 0x4000, 0xd49a784bcd1b8afeLL )
-#else
-# define floatx_lg2 (0.30102999566398119523L)
-# define floatx_l2e (1.44269504088896340739L)
-# define floatx_l2t (3.32192809488736234781L)
-#endif
-
-#ifndef _MSC_VER
-static const CPU86_LDouble f15rk[7] =
-{
-    floatx_zero,
-    floatx_one,
-    floatx_pi,
-    floatx_lg2,
-    floatx_ln2,
-    floatx_l2e,
-    floatx_l2t,
-};
-#else
-static const long double f15rk[7] =
-{
-    floatx_zero,
-    floatx_one,
-    floatx_pi,
-    floatx_lg2,
-    floatx_ln2,
-    floatx_l2e,
-    floatx_l2t,
-};
-#endif
+#define floatx80_lg2 make_floatx80( 0x3ffd, 0x9a209a84fbcff799LL )
+#define floatx80_l2e make_floatx80( 0x3fff, 0xb8aa3b295c17f0bcLL )
+#define floatx80_l2t make_floatx80( 0x4000, 0xd49a784bcd1b8afeLL )
 
 /* broken thread support */
 
@@ -3846,74 +3816,42 @@ void helper_fabs_ST0(void)
 
 void helper_fld1_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[1];
-#else
-	ST0 = fx80_from_longdouble(f15rk[1]);
-#endif
+    ST0 = floatx80_one;
 }
 
 void helper_fldl2t_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[6];
-#else
-	ST0 = fx80_from_longdouble(f15rk[6]);
-#endif
+    ST0 = floatx80_l2t;
 }
 
 void helper_fldl2e_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[5];
-#else
-	ST0 = fx80_from_longdouble(f15rk[5]);
-#endif
+    ST0 = floatx80_l2e;
 }
 
 void helper_fldpi_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[2];
-#else
-	ST0 = fx80_from_longdouble(f15rk[2]);
-#endif
+    ST0 = floatx80_pi;
 }
 
 void helper_fldlg2_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[3];
-#else
-	ST0 = fx80_from_longdouble(f15rk[3]);
-#endif
+    ST0 = floatx80_lg2;
 }
 
 void helper_fldln2_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[4];
-#else
-	ST0 = fx80_from_longdouble(f15rk[4]);
-#endif
+    ST0 = floatx80_ln2;
 }
 
 void helper_fldz_ST0(void)
 {
-#ifndef _MSC_VER
-    ST0 = f15rk[0];
-#else
-	ST0 = fx80_from_longdouble(f15rk[0]);
-#endif
+    ST0 = floatx80_zero;
 }
 
 void helper_fldz_FT0(void)
 {
-#ifndef _MSC_VER
-    FT0 = f15rk[0];
-#else
-	FT0 = fx80_from_longdouble(f15rk[0]);
-#endif
+    FT0 = floatx80_zero;
 }
 
 uint32_t helper_fnstsw(void)
@@ -4078,11 +4016,7 @@ void helper_fptan(void)
         fptemp = tan(fptemp);
         ST0 = double_to_CPU86_LDouble(fptemp);
         fpush();
-#ifndef _MSC_VER
         ST0 = floatx_one;
-#else
-        ST0 = double_to_CPU86_LDouble(floatx_one);
-#endif
         env->fpus &= (~0x400);  /* C2 <-- 0 */
         /* the above code is for  |arg| < 2**52 only */
     }

@@ -1010,9 +1010,7 @@
     <ClCompile Include="qemu\audio\sdlaudio.c" />
     <ClCompile Include="qemu\audio\wavaudio.c" />
     <ClCompile Include="qemu\audio\wavcapture.c" />
-    <ClCompile Include="qemu\fpu\softfloat-native.c" />
     <ClCompile Include="qemu\fpu\softfloat.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
@@ -2271,7 +2269,6 @@
     <ClInclude Include="qemu\audio\mixeng_template.h" />
     <ClInclude Include="qemu\audio\rate_template.h" />
     <ClInclude Include="qemu\fpu\softfloat-macros.h" />
-    <ClInclude Include="qemu\fpu\softfloat-native.h" />
     <ClInclude Include="qemu\fpu\softfloat-specialize.h" />
     <ClInclude Include="qemu\fpu\softfloat.h" />
     <ClInclude Include="qemu\hw\arm-misc.h" />
