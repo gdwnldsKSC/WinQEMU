@@ -553,6 +553,30 @@ static inline void trace_usb_set_device_feature(int addr, int feature, int ret)
 {
 }
 
+static inline void trace_scsi_req_alloc(int target, int lun, int tag)
+{
+}
+
+static inline void trace_scsi_req_data(int target, int lun, int tag, int len)
+{
+}
+
+static inline void trace_scsi_req_dequeue(int target, int lun, int tag)
+{
+}
+
+static inline void trace_scsi_req_continue(int target, int lun, int tag)
+{
+}
+
+static inline void trace_scsi_req_parsed(int target, int lun, int tag, int cmd, int mode, int xfer, uint64_t lba)
+{
+}
+
+static inline void trace_scsi_req_parse_bad(int target, int lun, int tag, int cmd)
+{
+}
+
 static inline void trace_vm_state_notify(int running, int reason)
 {
 }
