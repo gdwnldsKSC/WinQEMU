@@ -4105,20 +4105,31 @@ void helper_fpatan(void)
 void helper_fxtract(void)
 {
     CPU86_LDoubleU temp;
-    unsigned int expdif;
 
     temp.d = ST0;
-    expdif = EXPD(temp) - EXPBIAS;
-    /*DP exponent bias*/
-#ifndef _MSC_VER
-    ST0 = expdif;
-#else
-	ST0 = fx80_from_int32(expdif);
-#endif
 
-    fpush();
-    BIASEXPONENT(temp);
-    ST0 = temp.d;
+    if (floatx_is_zero(ST0)) {
+        /* Easy way to generate -inf and raising division by 0 exception */
+#ifndef _MSC_VER
+        ST0 = floatx_div(floatx_chs(floatx_one), floatx_zero, &env->fp_status);
+#else
+        CPU86_LDouble mone = int32_to_floatx(-1, &env->fp_status);
+        CPU86_LDouble zero = int32_to_floatx(0, &env->fp_status);
+        ST0 = floatx_div(mone, zero, &env->fp_status);
+#endif
+        fpush();
+        ST0 = temp.d;
+    }
+    else {
+        int expdif;
+
+        expdif = EXPD(temp) - EXPBIAS;
+        /*DP exponent bias*/
+        ST0 = int32_to_floatx(expdif, &env->fp_status);
+        fpush();
+        BIASEXPONENT(temp);
+        ST0 = temp.d;
+    }
 }
 
 #ifdef _MSC_VER
