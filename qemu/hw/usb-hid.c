@@ -222,6 +222,7 @@ static const USBDescDevice desc_device_mouse = {
             .iConfiguration        = STR_CONFIG_MOUSE,
             .bmAttributes          = 0xa0,
             .bMaxPower             = 50,
+            .nif = 1,
             .ifs = &desc_iface_mouse,
         },
     },
@@ -238,6 +239,7 @@ static const USBDescDevice desc_device_tablet = {
             .iConfiguration        = STR_CONFIG_TABLET,
             .bmAttributes          = 0xa0,
             .bMaxPower             = 50,
+            .nif = 1,
             .ifs = &desc_iface_tablet,
         },
     },
@@ -254,6 +256,7 @@ static const USBDescDevice desc_device_keyboard = {
             .iConfiguration        = STR_CONFIG_KEYBOARD,
             .bmAttributes          = 0xa0,
             .bMaxPower             = 50,
+            .nif = 1,
             .ifs = &desc_iface_keyboard,
         },
     },
@@ -756,13 +759,13 @@ static void usb_hid_set_next_idle(USBHIDState *s, int64_t curtime)
     s->next_idle_clock = curtime + (get_ticks_per_sec() * s->idle * 4) / 1000;
 }
 
-static int usb_hid_handle_control(USBDevice *dev, int request, int value,
-                                  int index, int length, uint8_t *data)
+static int usb_hid_handle_control(USBDevice *dev, USBPacket *p,
+               int request, int value, int index, int length, uint8_t *data)
 {
     USBHIDState *s = (USBHIDState *)dev;
     int ret;
 
-    ret = usb_desc_handle_control(dev, request, value, index, length, data);
+    ret = usb_desc_handle_control(dev, p, request, value, index, length, data);
     if (ret >= 0) {
         return ret;
     }

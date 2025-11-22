@@ -588,6 +588,7 @@
     <ClCompile Include="qemu\hw\sysbus.c" />
     <ClCompile Include="qemu\hw\usb-bus.c" />
     <ClCompile Include="qemu\hw\usb-desc.c" />
+    <ClCompile Include="qemu\hw\usb-ehci.c" />
     <ClCompile Include="qemu\hw\vga-isa-mm.c" />
     <ClCompile Include="qemu\hw\vga-isa.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
