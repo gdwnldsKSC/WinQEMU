@@ -4404,11 +4404,13 @@ void helper_frndint(void)
 
 void helper_fscale(void)
 {
-#ifndef _MSC_VER
-    ST0 = ldexp (ST0, (int)(ST1));
-#else
-	ST0 = fx80_ldexp (&(ST0), fx80_to_int32 (&(ST1)));
-#endif
+    if (floatx_is_any_nan(ST1)) {
+        ST0 = ST1;
+    }
+    else {
+        int n = floatx_to_int32_round_to_zero(ST1, &env->fp_status);
+        ST0 = floatx_scalbn(ST0, n, &env->fp_status);
+    }
 }
 
 void helper_fsin(void)

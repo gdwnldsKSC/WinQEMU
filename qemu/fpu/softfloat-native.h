@@ -614,7 +614,7 @@ INLINE floatx80 floatx80_scalbn(floatx80 a, int n STATUS_PARAM)
 #ifndef _MSC_VER
     return scalbnl(a, n);
 #else
-	return fx80_from_int32 (scalbnl(fx80_to_f64 (&a), n));
+	return fx80_from_double(scalbnl(fx80_to_f64 (&a), n));
 #endif
 }
 
