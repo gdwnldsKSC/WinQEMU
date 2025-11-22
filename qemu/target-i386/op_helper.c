@@ -4128,31 +4128,28 @@ static unsigned int __qnan[] = {0x7fc00001};
 
 void helper_fprem1(void)
 {
-    CPU86_LDouble dblq, fpsrcop, fptemp;
+    double st0, st1, dblq, fpsrcop, fptemp;
     CPU86_LDoubleU fpsrcop1, fptemp1;
     int expdif;
     signed long long int q;
 
+    st0 = CPU86_LDouble_to_double(ST0);
+    st1 = CPU86_LDouble_to_double(ST1);
+
+    if (isinf(st0) || isnan(st0) || isnan(st1) || (st1 == 0.0)) {
 #ifndef _MSC_VER
-    if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
-        ST0 = 0.0 / 0.0; /* NaN */
+        ST0 = double_to_CPU86_LDouble(0.0 / 0.0); /* NaN */
 #else
-	CPU86_LDouble temp, temp1;
-	temp1 = ST(1);
-	long double ldST1 = fx80_to_longdouble(&temp1);
-	temp = ST0;
-	long double ldST0 = fx80_to_longdouble(&temp);
-	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
-		ST0 = fx80_from_longdouble(NAN);
+		ST0 = double_to_CPU86_LDouble((double)NAN); /* NaN */
 #endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
         return;
     }
 
-    fpsrcop = ST0;
-    fptemp = ST1;
-    fpsrcop1.d = fpsrcop;
-    fptemp1.d = fptemp;
+    fpsrcop = st0;
+    fptemp = st1;
+    fpsrcop1.d = ST0;
+    fptemp1.d = ST1;
     expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
 
     if (expdif < 0) {
@@ -4163,167 +4160,79 @@ void helper_fprem1(void)
     }
 
     if (expdif < 53) {
-#ifndef _MSC_VER
         dblq = fpsrcop / fptemp;
         /* round dblq towards nearest integer */
         dblq = rint(dblq);
-        ST0 = fpsrcop - fptemp * dblq;
+        st0 = fpsrcop - fptemp * dblq;
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-           q = (signed long long int)(-dblq);
+            q = (signed long long int)(-dblq);
         else
-           q = (signed long long int)dblq;
-#else
-		dblq = fx80_div_fx80(&fpsrcop, &fptemp);
-		/* round dblq towards nearest integer */
-		dblq = fx80_from_longdouble(rint(fx80_to_longdouble(&dblq)));
-		temp = fx80_mul_x80(&fptemp, &dblq);
-		ST0 = fx80_sub_fx80(&fpsrcop, &temp);
+            q = (signed long long int)dblq;
 
-#ifndef _MSC_VER
-		if (dblq < 0.0)
-#else
-		if (fx80_to_longdouble(&dblq) < 0.0)
-#endif
-		{
-			temp = fx80_chs(&dblq);
-			q = fx80_to_int64(&temp);
-		}
-		else
-			q = fx80_to_int64(&dblq);
-#endif
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-                                /* (C0,C3,C1) <-- (q2,q1,q0) */
+        /* (C0,C3,C1) <-- (q2,q1,q0) */
         env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
         env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
         env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-    } else {
+    }
+    else {
         env->fpus |= 0x400;  /* C2 <-- 1 */
-#ifndef _MSC_VER
         fptemp = pow(2.0, expdif - 50);
-        fpsrcop = (ST0 / ST1) / fptemp;
+        fpsrcop = (st0 / st1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
-        ST0 -= (ST1 * fpsrcop * fptemp);
-
-
-#else
-		fptemp = fx80_from_longdouble(pow(2.0, expdif - 50));
-		temp = fx80_div_fx80(&ST0, &ST1);
-		fpsrcop = fx80_div_fx80(&temp, &fptemp);
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
-			-(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
-		temp = fx80_mul_x80(&ST1, &fpsrcop);
-		temp1 = fx80_mul_x80(&temp, &fptemp);
-		fx80_sube_fx80(&ST0, &temp1);
-#endif
+            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+        st0 -= (st1 * fpsrcop * fptemp);
     }
+    ST0 = double_to_CPU86_LDouble(st0);
 }
 
 void helper_fprem(void)
 {
-    CPU86_LDouble dblq, fpsrcop, fptemp;
+    double st0, st1, dblq, fpsrcop, fptemp;
     CPU86_LDoubleU fpsrcop1, fptemp1;
     int expdif;
     signed long long int q;
 
-#ifndef _MSC_VER
-    if (isinf(ST0) || isnan(ST0) || isnan(ST1) || (ST1 == 0.0)) {
-       ST0 = 0.0 / 0.0; /* NaN */
-#else
-	CPU86_LDouble temp, temp1;
-	temp1 = ST(1);
-	long double ldST1 = fx80_to_longdouble(&temp1);
-	temp = ST0;
-	long double ldST0 = fx80_to_longdouble(&temp);
-	if (isinf(ldST0) || isnan(ldST0) || isnan(ldST1) || (ldST1 == 0.0)) {
-		ST0 = fx80_from_longdouble(NAN);
-#endif
-       env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-       return;
-    }
+    st0 = CPU86_LDouble_to_double(ST0);
+    st1 = CPU86_LDouble_to_double(ST1);
 
+    if (isinf(st0) || isnan(st0) || isnan(st1) || (st1 == 0.0)) {
 #ifndef _MSC_VER
-    fpsrcop = (CPU86_LDouble)ST0;
-    fptemp = (CPU86_LDouble)ST1;
+        ST0 = double_to_CPU86_LDouble(0.0 / 0.0); /* NaN */
 #else
-	fpsrcop = ST0;
-	fptemp = ST1;
+        ST0 = double_to_CPU86_LDouble((double)NAN); /* NaN */
 #endif
-    fpsrcop1.d = fpsrcop;
-    fptemp1.d = fptemp;
-    expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
-
-    if (expdif < 0) {
-        /* optimisation? taken from the AMD docs */
         env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-        /* ST0 is unchanged */
         return;
     }
 
-    if ( expdif < 53 ) {
-#ifndef _MSC_VER
-        dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
+    fpsrcop = st0;
+    fptemp = st1;
+    fpsrcop1.d = ST0;
+    fptemp1.d = ST1;
+    expdif = EXPD(fpsrcop1) - EXPD(fptemp1);
+
+    if (expdif < 0) {
+            dblq = fpsrcop/*ST0*/ / fptemp/*ST1*/;
         /* round dblq towards zero */
         dblq = (dblq < 0.0) ? ceil(dblq) : floor(dblq);
-        ST0 = fpsrcop/*ST0*/ - fptemp * dblq;
+        st0 = fpsrcop/*ST0*/ - fptemp * dblq;
 
         /* convert dblq to q by truncating towards zero */
         if (dblq < 0.0)
-           q = (signed long long int)(-dblq);
-        else
-           q = (signed long long int)dblq;
-#else
-		dblq = fx80_div_fx80(&fpsrcop/*ST0*/, &fptemp/*ST1*/);
-		/* round dblq towards zero */
-		dblq = fx80_from_longdouble((fx80_isl_double(&dblq, 0.0)) ? ceil(fx80_to_longdouble(&dblq)) : floor(fx80_to_longdouble(&dblq)));
-		temp = fx80_mul_x80(&fptemp, &dblq);
-		ST0 = fx80_sub_fx80(&fpsrcop/*ST0*/, &temp);
-
-		/* convert dblq to q by truncating towards zero */
-
-#ifndef _MSC_VER
-		if (dblq < 0.0)
-#else
-		if (fx80_to_longdouble(&dblq) < 0.0)
-#endif
-		{
-			temp = fx80_chs(&dblq);
-			q = fx80_to_int64(&temp);
-		}
-		else
-			q = fx80_to_int64(&dblq);
-#endif
-        env->fpus &= (~0x4700); /* (C3,C2,C1,C0) <-- 0000 */
-                                /* (C0,C3,C1) <-- (q2,q1,q0) */
-        env->fpus |= (q & 0x4) << (8 - 2);  /* (C0) <-- q2 */
-        env->fpus |= (q & 0x2) << (14 - 1); /* (C3) <-- q1 */
-        env->fpus |= (q & 0x1) << (9 - 0);  /* (C1) <-- q0 */
-    } else {
-        int N = 32 + (expdif % 32); /* as per AMD docs */
+            int N = 32 + (expdif % 32); /* as per AMD docs */
         env->fpus |= 0x400;  /* C2 <-- 1 */
-#ifndef _MSC_VER
         fptemp = pow(2.0, (double)(expdif - N));
-        fpsrcop = (ST0 / ST1) / fptemp;
+        fpsrcop = (st0 / st1) / fptemp;
         /* fpsrcop = integer obtained by chopping */
         fpsrcop = (fpsrcop < 0.0) ?
-                  -(floor(fabs(fpsrcop))) : floor(fpsrcop);
-        ST0 -= (ST1 * fpsrcop * fptemp);
-#else
-		fptemp = fx80_from_longdouble(pow(2.0, (double)(expdif - N)));
-		temp = fx80_div_fx80(&ST0, &ST1);
-		fpsrcop = fx80_div_fx80(&temp, &fptemp);
-		/* fpsrcop = integer obtained by chopping */
-		fpsrcop = fx80_from_longdouble((fx80_isl_double(&fpsrcop, 0.0)) ?
-			-(floor(fabs(fx80_to_longdouble(&fpsrcop)))) : floor(fx80_to_longdouble(&fpsrcop)));
-		temp = fx80_mul_x80(&ST1, &fpsrcop);
-		temp1 = fx80_mul_x80(&temp, &fptemp);
-		fx80_sube_fx80(&ST0, &temp1);
-#endif
+            -(floor(fabs(fpsrcop))) : floor(fpsrcop);
+        st0 -= (st1 * fpsrcop * fptemp);
     }
+    ST0 = double_to_CPU86_LDouble(st0);
 }
 
 void helper_fyl2xp1(void)
