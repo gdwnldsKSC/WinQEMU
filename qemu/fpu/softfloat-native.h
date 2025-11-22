@@ -239,7 +239,7 @@ INLINE int float32_lt( float32 a, float32 b STATUS_PARAM)
 {
     return a < b;
 }
-INLINE int float32_eq_signaling( float32 a, float32 b STATUS_PARAM)
+INLINE int float32_eq( float32 a, float32 b STATUS_PARAM)
 {
     return a <= b && a >= b;
 }
@@ -350,7 +350,7 @@ INLINE int float64_lt( float64 a, float64 b STATUS_PARAM)
 {
     return a < b;
 }
-INLINE int float64_eq_signaling( float64 a, float64 b STATUS_PARAM)
+INLINE int float64_eq( float64 a, float64 b STATUS_PARAM)
 {
     return a <= b && a >= b;
 }
@@ -485,7 +485,7 @@ INLINE int floatx80_lt( floatx80 a, floatx80 b STATUS_PARAM)
 	return fx80_isl_fx80 (&a, &b);
 #endif
 }
-INLINE int floatx80_eq_signaling( floatx80 a, floatx80 b STATUS_PARAM)
+INLINE int floatx80_eq( floatx80 a, floatx80 b STATUS_PARAM)
 {
 #ifndef _MSC_VER
     return a <= b && a >= b;
