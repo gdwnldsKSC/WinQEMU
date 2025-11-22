@@ -3979,23 +3979,16 @@ void helper_fbld_ST0(target_ulong ptr)
     int i;
 
     val = 0;
-    for(i = 8; i >= 0; i--) {
+    for (i = 8; i >= 0; i--) {
         v = ldub(ptr + i);
         val = (val * 100) + ((v >> 4) * 10) + (v & 0xf);
     }
-#ifndef _MSC_VER
-    tmp = val;
-    if (ldub(ptr + 9) & 0x80)
-        tmp = -tmp;
+    tmp = int64_to_floatx(val, &env->fp_status);
+    if (ldub(ptr + 9) & 0x80) {
+        floatx_chs(tmp);
+    }
     fpush();
     ST0 = tmp;
-#else
-	tmp = fx80_from_int64(val);
-	if (ldub(ptr + 9) & 0x80)
-		tmp = fx80_chs(&tmp); // BUGBUG
-    fpush(); // adding in
-    ST0 = tmp;
-#endif
 }
 
 void helper_fbst_ST0(target_ulong ptr)
