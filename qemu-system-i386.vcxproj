@@ -740,7 +740,6 @@
     <ClCompile Include="qemu\qom\object.c" />
     <ClCompile Include="qemu\qom\qom-qobject.c" />
     <ClCompile Include="qemu\qstring.c" />
-    <ClCompile Include="qemu\rwhandler.c" />
     <ClCompile Include="qemu\slirp\arp_table.c" />
     <ClCompile Include="qemu\spice-qemu-char.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -2262,7 +2261,6 @@
     <ClInclude Include="qemu\qobject.h" />
     <ClInclude Include="qemu\qstring.h" />
     <ClInclude Include="qemu\range.h" />
-    <ClInclude Include="qemu\rwhandler.h" />
     <ClInclude Include="qemu\tap-linux.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
