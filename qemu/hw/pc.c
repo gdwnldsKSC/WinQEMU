@@ -144,7 +144,7 @@ void cpu_smm_register(cpu_set_smm_t callback, void *arg)
     smm_arg = arg;
 }
 
-void cpu_smm_update(CPUState *env)
+void cpu_smm_update(CPUX86State *env)
 {
     if (smm_set && smm_arg && env == first_cpu)
         smm_set(!!(env->hflags & HF_SMM_MASK), smm_arg);
@@ -152,7 +152,7 @@ void cpu_smm_update(CPUState *env)
 
 
 /* IRQ handling */
-int cpu_get_pic_interrupt(CPUState *env)
+int cpu_get_pic_interrupt(CPUX86State *env)
 {
     int intno;
 
@@ -171,7 +171,7 @@ int cpu_get_pic_interrupt(CPUState *env)
 
 static void pic_irq_request(void *opaque, int irq, int level)
 {
-    CPUState *env = first_cpu;
+    CPUX86State *env = first_cpu;
 
     DPRINTF("pic_irqs: %s irq %d\n", level? "raise" : "lower", irq);
     if (env->apic_state) {
@@ -526,7 +526,7 @@ type_init(port92_register_types);
 
 static void handle_a20_line_change(void *opaque, int irq, int level)
 {
-    CPUState *cpu = opaque;
+    CPUX86State *cpu = opaque;
 
     /* XXX: send to all CPUs ? */
     /* XXX: add logic to handle multiple A20 line sources */
@@ -873,7 +873,7 @@ void pc_init_ne2k_isa(ISABus *bus, NICInfo *nd)
     nb_ne2k++;
 }
 
-int cpu_is_bsp(CPUState *env)
+int cpu_is_bsp(CPUX86State *env)
 {
     /* We hard-wire the BSP to the first CPU. */
     return env->cpu_index == 0;
@@ -921,7 +921,7 @@ static DeviceState *apic_init(void *env, uint8_t apic_id)
 
 void pc_acpi_smi_interrupt(void *opaque, int irq, int level)
 {
-    CPUState *s = opaque;
+    CPUX86State *s = opaque;
 
     if (level) {
         cpu_interrupt(s, CPU_INTERRUPT_SMI);
@@ -930,15 +930,15 @@ void pc_acpi_smi_interrupt(void *opaque, int irq, int level)
 
 static void pc_cpu_reset(void *opaque)
 {
-    CPUState *env = opaque;
+    CPUX86State *env = opaque;
 
-    cpu_reset(env);
+    cpu_state_reset(env);
     env->halted = !cpu_is_bsp(env);
 }
 
-static CPUState *pc_new_cpu(const char *cpu_model)
+static CPUX86State *pc_new_cpu(const char *cpu_model)
 {
-    CPUState *env;
+    CPUX86State *env;
 
     env = cpu_init(cpu_model);
     if (!env) {
@@ -1074,7 +1074,7 @@ DeviceState *pc_vga_init(ISABus *isa_bus, PCIBus *pci_bus)
 
 static void cpu_request_exit(void *opaque, int irq, int level)
 {
-    CPUState *env = cpu_single_env;
+    CPUX86State *env = cpu_single_env;
 
     if (env && level) {
         cpu_exit(env);
