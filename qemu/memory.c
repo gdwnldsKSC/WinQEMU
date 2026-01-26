@@ -386,6 +386,9 @@ static void memory_region_iorange_read(IORange *iorange,
         = container_of(iorange, MemoryRegionIORange, iorange);
     MemoryRegion *mr = mrio->mr;
 
+    fprintf(stderr, "IORANGE read: as_offset=0x%llx width=%u\n",
+        (unsigned long long)(offset + mrio->offset), width);
+
     offset += mrio->offset;
     if (mr->ops->old_portio) {
         const MemoryRegionPortio *mrp = find_portio(mr, offset - mrio->offset,
@@ -426,7 +429,7 @@ static void memory_region_iorange_write(IORange *iorange,
         if (mrp) {
             mrp->write(mr->opaque, offset, data);
         } else if (width == 2) {
-            mrp = find_portio(mr, offset - mrio->offset, 1, false);
+            mrp = find_portio(mr, offset - mrio->offset, 1, true);
             assert(mrp);
             mrp->write(mr->opaque, offset, data & 0xff);
             mrp->write(mr->opaque, offset + 1, data >> 8);
