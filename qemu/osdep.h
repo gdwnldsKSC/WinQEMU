@@ -95,20 +95,6 @@
 #define inline always_inline
 #endif
 
-#ifdef __i386__
-
-#ifdef _MSC_VER
-#define REGPARM
-typedef long (REGPARM* tcg_exec_fn)(void*);
-#else
-#define REGPARM __attribute__((regparm(3)))
-typedef long (*tcg_exec_fn)(void*);
-#endif
-
-#else
-#define REGPARM
-#endif
-
 #define qemu_printf printf
 
 int qemu_daemon(int nochdir, int noclose);

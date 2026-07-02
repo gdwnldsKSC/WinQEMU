@@ -1587,8 +1587,10 @@ uint32_t ide_status_read(void *opaque, uint32_t addr)
     IDEState *s = idebus_active_if(bus);
     int ret;
 
+#if 0 /* TEMPORARILY DISABLED: per-I/O stderr writes throttle the guest */
     fprintf(stderr, "IDE: status_read port=0x%x status=0x%02x\n",
         addr, s->status);
+#endif
 
     if ((!bus->ifs[0].bs && !bus->ifs[1].bs) ||
         (s != bus->ifs && !s->bs))

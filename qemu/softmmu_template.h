@@ -88,9 +88,8 @@ static inline DATA_TYPE glue(io_read, SUFFIX)(target_phys_addr_t physaddr,
     return res;
 }
 
-#ifndef _MSC_VER
 /* handle all cases except unaligned access which span two pages */
-DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
+DATA_TYPE glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
                                                       int mmu_idx)
 {
     DATA_TYPE res;
@@ -145,87 +144,6 @@ DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
     }
     return res;
 }
-#else
-/* handle all cases except unaligned access which span two pages */
-DATA_TYPE glue(glue(my__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
-													  int mmu_idx, void* return_addr)
-{
-	DATA_TYPE res;
-	int index;
-	target_ulong tlb_addr;
-	target_phys_addr_t addend;
-	void *retaddr;
-
-
-	/* test if there is match for unaligned or IO access */
-	/* XXX: could done more in memory macro in a non portable way */
-	index = (addr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
-redo:
-	tlb_addr = env->tlb_table[mmu_idx][index].ADDR_READ;
-	if ((addr & TARGET_PAGE_MASK) == (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {
-		if (tlb_addr & ~TARGET_PAGE_MASK) {
-			/* IO access */
-			if ((addr & (DATA_SIZE - 1)) != 0)
-				goto do_unaligned_access;
-			retaddr = return_addr;
-			addend = env->iotlb[mmu_idx][index];
-			res = glue(io_read, SUFFIX)(addend, addr, retaddr);
-		} else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
-			/* slow unaligned access (it spans two pages or IO) */
-do_unaligned_access:
-			retaddr = return_addr;
-#ifdef ALIGNED_ONLY
-			do_unaligned_access(addr, READ_ACCESS_TYPE, mmu_idx, retaddr);
-#endif
-			res = glue(glue(slow_ld, SUFFIX), MMUSUFFIX)(addr,
-				mmu_idx, retaddr);
-		} else {
-			/* unaligned/aligned access in the same page */
-#ifdef ALIGNED_ONLY
-			if ((addr & (DATA_SIZE - 1)) != 0) {
-				retaddr = return_addr;
-				do_unaligned_access(addr, READ_ACCESS_TYPE, mmu_idx, retaddr);
-			}
-#endif
-			addend = env->tlb_table[mmu_idx][index].addend;
-			res = glue(glue(ld, USUFFIX), _raw)((uint8_t *)(long)(addr+addend));
-		}
-	} else {
-		/* the page is not in the TLB : fill it */
-		retaddr = return_addr;
-#ifdef ALIGNED_ONLY
-		if ((addr & (DATA_SIZE - 1)) != 0)
-			do_unaligned_access(addr, READ_ACCESS_TYPE, mmu_idx, retaddr);
-#endif
-		tlb_fill(env, addr, READ_ACCESS_TYPE, mmu_idx, retaddr);
-
-		goto redo;
-	}
-	return res;
-}
-
-__declspec (naked) DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
-														 int mmu_idx)
-{
-	__asm
-	{
-#ifdef __USE_FAKED_GETPC
-		push DWORD PTR [esp];
-#else
-		push 0;
-#endif
-		push edx;		// mmu_idx
-		push eax;		// addr
-
-		
-		call glue(glue(my__ld, SUFFIX), MMUSUFFIX);
-		add esp, (TARGET_LONG_SIZE*3);
-
-		ret;
-	}
-}
-
-#endif
 
 /* handle all unaligned cases */
 static DATA_TYPE glue(glue(slow_ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
@@ -314,8 +232,7 @@ static inline void glue(io_write, SUFFIX)(target_phys_addr_t physaddr,
 #endif /* SHIFT > 2 */
 }
 
-#ifndef _MSC_VER
-void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
+void glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
                                                  DATA_TYPE val,
                                                  int mmu_idx)
 {
@@ -366,112 +283,6 @@ void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
         goto redo;
     }
 }
-#else
-
-void glue(glue(my__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
-												 DATA_TYPE val,
-												 int mmu_idx, void* return_addr)
-{
-	target_phys_addr_t addend;
-	target_ulong tlb_addr;
-	void *retaddr;
-	int index;
-	static target_ulong addr_backup = 0;
-	addr_backup = addr;
-
-	index = (addr >> TARGET_PAGE_BITS) & (CPU_TLB_SIZE - 1);
-redo:
-	tlb_addr = env->tlb_table[mmu_idx][index].addr_write;
-	if ((addr & TARGET_PAGE_MASK) == (tlb_addr & (TARGET_PAGE_MASK | TLB_INVALID_MASK))) {
-		if (tlb_addr & ~TARGET_PAGE_MASK) {
-			/* IO access */
-			if ((addr & (DATA_SIZE - 1)) != 0)
-				goto do_unaligned_access;
-			retaddr = return_addr;
-			addend = env->iotlb[mmu_idx][index];
-			glue(io_write, SUFFIX)(addend, val, addr, retaddr);
-		} else if (((addr & ~TARGET_PAGE_MASK) + DATA_SIZE - 1) >= TARGET_PAGE_SIZE) {
-do_unaligned_access:
-			retaddr = return_addr;
-#ifdef ALIGNED_ONLY
-			do_unaligned_access(addr, 1, mmu_idx, retaddr);
-#endif
-			glue(glue(slow_st, SUFFIX), MMUSUFFIX)(addr, val,
-				mmu_idx, retaddr);
-		} else {
-			/* aligned/unaligned access in the same page */
-#ifdef ALIGNED_ONLY
-			if ((addr & (DATA_SIZE - 1)) != 0) {
-				retaddr = return_addr;
-				do_unaligned_access(addr, 1, mmu_idx, retaddr);
-			}
-#endif
-			addend = env->tlb_table[mmu_idx][index].addend;
-			glue(glue(st, SUFFIX), _raw)((uint8_t *)(long)(addr+addend), val);
-}
-	} else {
-		/* the page is not in the TLB : fill it */
-		retaddr = return_addr;
-#ifdef ALIGNED_ONLY
-		if ((addr & (DATA_SIZE - 1)) != 0)
-			do_unaligned_access(addr, 1, mmu_idx, retaddr);
-#endif
-		tlb_fill(env, addr, 1, mmu_idx, retaddr);
-
-		if (addr_backup != addr)
-		{
-			addr = addr_backup;
-		}
-        goto redo;
-    }
-}
-
-__declspec (naked) void REGPARM glue(glue(__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
-												   DATA_TYPE val,
-												   int mmu_idx)
-{
-	
-	__asm
-	{
-#ifdef __USE_FAKED_GETPC
-		push DWORD PTR [esp];
-#else
-		push 0;
-#endif
-
-#if DATA_SIZE == 1
-		push ecx;		// mmu_idx
-		and  edx, 0x000000FF;
-		push edx;       // val
-#elif (DATA_SIZE == 2)
-		push ecx;		// mmu_idx
-		and  edx, 0x0000FFFF;
-		push edx;        // val
-#elif DATA_SIZE == 4
-		push ecx;		// mmu_idx
-		push edx;       // val
-#elif DATA_SIZE == 8
-		push DWORD PTR [esp + 8];		// mmu_idx
-		push ecx;		// val
-		push edx;       // val
-#else
-		int 3;int 3;int 3;int 3;int 3;int 3;int 3;int 3;int 3;int 3;int 3;int 3;
-#endif
-		
-		push eax;		// addr
-		
-		call glue(glue(my__st, SUFFIX), MMUSUFFIX);
-
-#if DATA_SIZE == 8
-		add esp, (TARGET_LONG_SIZE*5);
-#else
-		add esp, (TARGET_LONG_SIZE*4);
-#endif
-
-		ret;
-	}
-}
-#endif
 
 /* handles all unaligned cases */
 static void glue(glue(slow_st, SUFFIX), MMUSUFFIX)(target_ulong addr,

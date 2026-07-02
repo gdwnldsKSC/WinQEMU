@@ -296,7 +296,9 @@ extern void *tci_tb_ptr;
 #elif defined (_MSC_VER)
 #include <intrin.h>
 #pragma intrinsic(_ReturnAddress)
-#define GETPC _ReturnAddress
+/* Like the GCC definitions below, subtract one so the address points
+   into the call instruction itself rather than the following one. */
+#define GETPC() ((void *)((unsigned long)_ReturnAddress() - 1))
 #else
 # define GETPC() ((void *)((unsigned long)__builtin_return_address(0) - 1))
 #endif

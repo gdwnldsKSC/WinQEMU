@@ -116,17 +116,7 @@ static inline int tcg_target_get_call_iarg_regs_count(int flags)
         return 6;
     }
 
-    flags &= TCG_CALL_TYPE_MASK;
-    switch(flags) {
-    case TCG_CALL_TYPE_STD:
-        return 0;
-    case TCG_CALL_TYPE_REGPARM_1:
-    case TCG_CALL_TYPE_REGPARM_2:
-    case TCG_CALL_TYPE_REGPARM:
-        return flags - TCG_CALL_TYPE_REGPARM_1 + 1;
-    default:
-        tcg_abort();
-    }
+    return 0;
 }
 
 /* parse target specific constraints */
@@ -1148,7 +1138,12 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     int data_reg, data_reg2 = 0;
     int addrlo_idx;
 #if defined(CONFIG_SOFTMMU)
-    int mem_index, s_bits, arg_idx;
+    int mem_index, s_bits;
+#if TCG_TARGET_REG_BITS == 64
+    int arg_idx;
+#else
+    int stack_adjust;
+#endif
     uint8_t *label_ptr[3];
 #endif
 
@@ -1184,15 +1179,32 @@ static void tcg_out_qemu_ld(TCGContext *s, const TCGArg *args,
     }
 
     /* XXX: move that code at the end of the TB */
+#if TCG_TARGET_REG_BITS == 32
+    tcg_out_pushi(s, mem_index);
+    stack_adjust = 4;
+    if (TARGET_LONG_BITS == 64) {
+        tcg_out_push(s, args[addrlo_idx + 1]);
+        stack_adjust += 4;
+    }
+    tcg_out_push(s, args[addrlo_idx]);
+    stack_adjust += 4;
+#else
     /* The first argument is already loaded with addrlo.  */
     arg_idx = 1;
-    if (TCG_TARGET_REG_BITS == 32 && TARGET_LONG_BITS == 64) {
-        tcg_out_mov(s, TCG_TYPE_I32, tcg_target_call_iarg_regs[arg_idx++],
-                    args[addrlo_idx + 1]);
-    }
     tcg_out_movi(s, TCG_TYPE_I32, tcg_target_call_iarg_regs[arg_idx],
                  mem_index);
+#endif
+
     tcg_out_calli(s, (tcg_target_long)qemu_ld_helpers[s_bits]);
+
+#if TCG_TARGET_REG_BITS == 32
+    if (stack_adjust == (TCG_TARGET_REG_BITS / 8)) {
+        /* Pop and discard.  This is 2 bytes smaller than the add.  */
+        tcg_out_pop(s, TCG_REG_ECX);
+    } else if (stack_adjust != 0) {
+        tcg_out_addi(s, TCG_REG_CALL_STACK, stack_adjust);
+    }
+#endif
 
     switch(opc) {
     case 0 | 4:
@@ -1359,45 +1371,27 @@ static void tcg_out_qemu_st(TCGContext *s, const TCGArg *args,
     }
 
     /* XXX: move that code at the end of the TB */
-    if (TCG_TARGET_REG_BITS == 64) {
-        tcg_out_mov(s, (opc == 3 ? TCG_TYPE_I64 : TCG_TYPE_I32),
-                    TCG_REG_RSI, data_reg);
-        tcg_out_movi(s, TCG_TYPE_I32, TCG_REG_RDX, mem_index);
-        stack_adjust = 0;
-    } else if (TARGET_LONG_BITS == 32) {
-        tcg_out_mov(s, TCG_TYPE_I32, TCG_REG_EDX, data_reg);
-        if (opc == 3) {
-            tcg_out_mov(s, TCG_TYPE_I32, TCG_REG_ECX, data_reg2);
-            tcg_out_pushi(s, mem_index);
-            stack_adjust = 4;
-        } else {
-            tcg_out_movi(s, TCG_TYPE_I32, TCG_REG_ECX, mem_index);
-            stack_adjust = 0;
-        }
-    } else {
-        if (opc == 3) {
-            tcg_out_mov(s, TCG_TYPE_I32, TCG_REG_EDX, args[addrlo_idx + 1]);
-            tcg_out_pushi(s, mem_index);
-            tcg_out_push(s, data_reg2);
-            tcg_out_push(s, data_reg);
-            stack_adjust = 12;
-        } else {
-            tcg_out_mov(s, TCG_TYPE_I32, TCG_REG_EDX, args[addrlo_idx + 1]);
-            switch(opc) {
-            case 0:
-                tcg_out_ext8u(s, TCG_REG_ECX, data_reg);
-                break;
-            case 1:
-                tcg_out_ext16u(s, TCG_REG_ECX, data_reg);
-                break;
-            case 2:
-                tcg_out_mov(s, TCG_TYPE_I32, TCG_REG_ECX, data_reg);
-                break;
-            }
-            tcg_out_pushi(s, mem_index);
-            stack_adjust = 4;
-        }
+#if TCG_TARGET_REG_BITS == 32
+    tcg_out_pushi(s, mem_index);
+    stack_adjust = 4;
+    if (opc == 3) {
+        tcg_out_push(s, data_reg2);
+        stack_adjust += 4;
     }
+    tcg_out_push(s, data_reg);
+    stack_adjust += 4;
+    if (TARGET_LONG_BITS == 64) {
+        tcg_out_push(s, args[addrlo_idx + 1]);
+        stack_adjust += 4;
+    }
+    tcg_out_push(s, args[addrlo_idx]);
+    stack_adjust += 4;
+#else
+    tcg_out_mov(s, (opc == 3 ? TCG_TYPE_I64 : TCG_TYPE_I32),
+                TCG_REG_RSI, data_reg);
+    tcg_out_movi(s, TCG_TYPE_I32, TCG_REG_RDX, mem_index);
+    stack_adjust = 0;
+#endif
 
     tcg_out_calli(s, (tcg_target_long)qemu_st_helpers[s_bits]);
 
@@ -1957,41 +1951,23 @@ static void tcg_target_qemu_prologue(TCGContext *s)
     tcg_set_frame(s, TCG_REG_CALL_STACK, TCG_STATIC_CALL_ARGS_SIZE,
                   CPU_TEMP_BUF_NLONGS * sizeof(long));
 
-#ifdef _MSC_VER
-    /*
-     * MSVC 32-bit uses __cdecl: arguments are on the stack:
-     *   [esp+4] = env, [esp+8] = tb->tc_ptr.
-     * Load them into registers before we touch the stack.
-     */
-    tcg_out_ld(s, TCG_TYPE_PTR, TCG_REG_EAX, TCG_REG_ESP, 4);  /* env  */
-    tcg_out_ld(s, TCG_TYPE_PTR, TCG_REG_EDX, TCG_REG_ESP, 8);  /* tb   */
-
     /* Save all callee saved registers.  */
     for (i = 0; i < ARRAY_SIZE(tcg_target_callee_save_regs); i++) {
         tcg_out_push(s, tcg_target_callee_save_regs[i]);
     }
 
-    tcg_out_addi(s, TCG_REG_ESP, -stack_addend);
-
-    /* AREG0 (EBP) := env (from EAX).  */
-    tcg_out_mov(s, TCG_TYPE_PTR, TCG_AREG0, TCG_REG_EAX);
-
-    /* jmp *tb (EDX).  */
-    tcg_out_modrm(s, OPC_GRP5, EXT5_JMPN_Ev, TCG_REG_EDX);
-
+#if TCG_TARGET_REG_BITS == 32
+    tcg_out_ld(s, TCG_TYPE_PTR, TCG_AREG0, TCG_REG_ESP,
+               (ARRAY_SIZE(tcg_target_callee_save_regs) + 1) * 4);
+    tcg_out_ld(s, TCG_TYPE_PTR, tcg_target_call_iarg_regs[1], TCG_REG_ESP,
+               (ARRAY_SIZE(tcg_target_callee_save_regs) + 2) * 4);
 #else
-    /* Save all callee saved registers.  */
-    for (i = 0; i < ARRAY_SIZE(tcg_target_callee_save_regs); i++) {
-        tcg_out_push(s, tcg_target_callee_save_regs[i]);
-    }
-
-    tcg_out_addi(s, TCG_REG_ESP, -stack_addend);
-
     tcg_out_mov(s, TCG_TYPE_PTR, TCG_AREG0, tcg_target_call_iarg_regs[0]);
+#endif
+    tcg_out_addi(s, TCG_REG_ESP, -stack_addend);
 
     /* jmp *tb.  */
     tcg_out_modrm(s, OPC_GRP5, EXT5_JMPN_Ev, tcg_target_call_iarg_regs[1]);
-#endif
 
     /* TB epilogue */
     tb_ret_addr = s->code_ptr;

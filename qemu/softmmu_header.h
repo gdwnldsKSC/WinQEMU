@@ -90,10 +90,6 @@
 #endif
 
 /* generic load/store macros */
-#ifdef _MSC_VER
-DATA_TYPE glue(glue(my__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
-														int mmu_idx, void* return_addr);
-#endif
 
 static inline RES_TYPE glue(glue(ld, USUFFIX), MEMSUFFIX)(target_ulong ptr)
 {
@@ -108,11 +104,7 @@ static inline RES_TYPE glue(glue(ld, USUFFIX), MEMSUFFIX)(target_ulong ptr)
     mmu_idx = CPU_MMU_INDEX;
     if (unlikely(env->tlb_table[mmu_idx][page_index].ADDR_READ !=
                  (addr & (TARGET_PAGE_MASK | (DATA_SIZE - 1))))) {
-#ifndef _MSC_VER
         res = glue(glue(__ld, SUFFIX), MMUSUFFIX)(addr, mmu_idx);
-#else
-		res = glue(glue(my__ld, SUFFIX), MMUSUFFIX)(addr, mmu_idx, (target_ulong)NULL);
-#endif
     } else {
         physaddr = addr + env->tlb_table[mmu_idx][page_index].addend;
         res = glue(glue(ld, USUFFIX), _raw)((uint8_t *)physaddr);
@@ -133,11 +125,7 @@ static inline int glue(glue(lds, SUFFIX), MEMSUFFIX)(target_ulong ptr)
     mmu_idx = CPU_MMU_INDEX;
     if (unlikely(env->tlb_table[mmu_idx][page_index].ADDR_READ !=
                  (addr & (TARGET_PAGE_MASK | (DATA_SIZE - 1))))) {
-#ifndef _MSC_VER
         res = (DATA_STYPE)glue(glue(__ld, SUFFIX), MMUSUFFIX)(addr, mmu_idx);
-#else
-	res = (DATA_STYPE)glue(glue(my__ld, SUFFIX), MMUSUFFIX)(addr, mmu_idx, (target_ulong)NULL);
-#endif
     } else {
         physaddr = addr + env->tlb_table[mmu_idx][page_index].addend;
         res = glue(glue(lds, SUFFIX), _raw)((uint8_t *)physaddr);
@@ -149,11 +137,6 @@ static inline int glue(glue(lds, SUFFIX), MEMSUFFIX)(target_ulong ptr)
 #if ACCESS_TYPE != (NB_MMU_MODES + 1)
 
 /* generic store macro */
-#ifdef _MSC_VER
-void glue(glue(my__st, SUFFIX), MMUSUFFIX)(target_ulong addr,
-										   DATA_TYPE val,
-										   int mmu_idx, void* return_addr);
-#endif
 
 static inline void glue(glue(st, SUFFIX), MEMSUFFIX)(target_ulong ptr, RES_TYPE v)
 {
@@ -167,11 +150,7 @@ static inline void glue(glue(st, SUFFIX), MEMSUFFIX)(target_ulong ptr, RES_TYPE 
     mmu_idx = CPU_MMU_INDEX;
     if (unlikely(env->tlb_table[mmu_idx][page_index].addr_write !=
                  (addr & (TARGET_PAGE_MASK | (DATA_SIZE - 1))))) {
-#ifndef _MSC_VER
         glue(glue(__st, SUFFIX), MMUSUFFIX)(addr, v, mmu_idx);
-#else
-		glue(glue(my__st, SUFFIX), MMUSUFFIX)(addr, v, mmu_idx, NULL);
-#endif
     } else {
         physaddr = addr + env->tlb_table[mmu_idx][page_index].addend;
         glue(glue(st, SUFFIX), _raw)((uint8_t *)physaddr, v);

@@ -386,8 +386,12 @@ static void memory_region_iorange_read(IORange *iorange,
         = container_of(iorange, MemoryRegionIORange, iorange);
     MemoryRegion *mr = mrio->mr;
 
+#if 0 /* TEMPORARILY DISABLED: this fires on every guest port read and each
+         line costs ~4ms via NtWriteFile with the unbuffered debug CRT,
+         throttling the guest to ~260 port reads/sec */
     fprintf(stderr, "IORANGE read: as_offset=0x%llx width=%u\n",
         (unsigned long long)(offset + mrio->offset), width);
+#endif
 
     offset += mrio->offset;
     if (mr->ops->old_portio) {

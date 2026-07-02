@@ -57,35 +57,82 @@ static int glue(sdl_zoom_rgb, BPP)(SDL_Surface *src, SDL_Surface *dst, int smoot
     int x, y, sx, sy, *sax, *say, *csax, *csay, csx, csy, ex, ey, t1, t2, sstep, sstep_jump;
     SDL_TYPE *c00, *c01, *c10, *c11, *sp, *csp, *dp;
     int d_gap;
+    int dst_width, dst_height, max_width_by_pitch;
+    SDL_Rect safe_rect;
     SDL_PixelFormat *spf = src->format;
     SDL_PixelFormat *dpf = dst->format;
+
+    if (dst == NULL || dst->pixels == NULL || dst->format == NULL ||
+        dst->format->BytesPerPixel == 0) {
+        return (-1);
+    }
+
+    dst_width = dst->w;
+    if (dst->clip_rect.w > 0 && dst->clip_rect.w < dst_width) {
+        dst_width = dst->clip_rect.w;
+    }
+    max_width_by_pitch = dst->pitch / dst->format->BytesPerPixel;
+    if (max_width_by_pitch > 0 && max_width_by_pitch < dst_width) {
+        dst_width = max_width_by_pitch;
+    }
+
+    dst_height = dst->h;
+    if (dst->clip_rect.h > 0 && dst->clip_rect.h < dst_height) {
+        dst_height = dst->clip_rect.h;
+    }
+
+    if (dst_width <= 0 || dst_height <= 0) {
+        return (-1);
+    }
+
+    safe_rect = *dst_rect;
+    if (safe_rect.x < 0) {
+        safe_rect.w += safe_rect.x;
+        safe_rect.x = 0;
+    }
+    if (safe_rect.y < 0) {
+        safe_rect.h += safe_rect.y;
+        safe_rect.y = 0;
+    }
+    if (safe_rect.x >= dst_width || safe_rect.y >= dst_height) {
+        return (0);
+    }
+    if (safe_rect.w > (dst_width - safe_rect.x)) {
+        safe_rect.w = dst_width - safe_rect.x;
+    }
+    if (safe_rect.h > (dst_height - safe_rect.y)) {
+        safe_rect.h = dst_height - safe_rect.y;
+    }
+    if (safe_rect.w <= 0 || safe_rect.h <= 0) {
+        return (0);
+    }
 
     if (smooth) { 
         /* For interpolation: assume source dimension is one pixel.
          * Smaller here to avoid overflow on right and bottom edge.
          */
-        sx = (int) (65536.0 * (float) (src->w - 1) / (float) dst->w);
-        sy = (int) (65536.0 * (float) (src->h - 1) / (float) dst->h);
+        sx = (int) (65536.0 * (float) (src->w - 1) / (float) dst_width);
+        sy = (int) (65536.0 * (float) (src->h - 1) / (float) dst_height);
     } else {
-        sx = (int) (65536.0 * (float) src->w / (float) dst->w);
-        sy = (int) (65536.0 * (float) src->h / (float) dst->h);
+        sx = (int) (65536.0 * (float) src->w / (float) dst_width);
+        sy = (int) (65536.0 * (float) src->h / (float) dst_height);
     }
 
-    if ((sax = (int *) malloc((dst->w + 1) * sizeof(Uint32))) == NULL) {
+    if ((sax = (int *) malloc((dst_width + 1) * sizeof(Uint32))) == NULL) {
         return (-1);
     }
-    if ((say = (int *) malloc((dst->h + 1) * sizeof(Uint32))) == NULL) {
+    if ((say = (int *) malloc((dst_height + 1) * sizeof(Uint32))) == NULL) {
         free(sax);
         return (-1);
     }
 
     sp = csp = (SDL_TYPE *) src->pixels;
-    dp = (SDL_TYPE *) ((char *)dst->pixels + dst_rect->y * dst->pitch +
-                       dst_rect->x * dst->format->BytesPerPixel);
+    dp = (SDL_TYPE *) ((char *)dst->pixels + safe_rect.y * dst->pitch +
+                       safe_rect.x * dst->format->BytesPerPixel);
 
     csx = 0;
     csax = sax;
-    for (x = 0; x <= dst->w; x++) {
+    for (x = 0; x <= dst_width; x++) {
         *csax = csx;
         csax++;
         csx &= 0xffff;
@@ -93,18 +140,18 @@ static int glue(sdl_zoom_rgb, BPP)(SDL_Surface *src, SDL_Surface *dst, int smoot
     }
     csy = 0;
     csay = say;
-    for (y = 0; y <= dst->h; y++) {
+    for (y = 0; y <= dst_height; y++) {
         *csay = csy;
         csay++;
         csy &= 0xffff;
         csy += sy;
     }
 
-    d_gap = dst->pitch - dst_rect->w * dst->format->BytesPerPixel;
+    d_gap = dst->pitch - safe_rect.w * dst->format->BytesPerPixel;
 
     if (smooth) {
         csay = say;
-        for (y = 0; y < dst_rect->y; y++) {
+        for (y = 0; y < safe_rect.y; y++) {
             csay++;
             sstep = (*csay >> 16) * src->pitch;
             csp = (SDL_TYPE *) ((Uint8 *) csp + sstep);
@@ -113,21 +160,21 @@ static int glue(sdl_zoom_rgb, BPP)(SDL_Surface *src, SDL_Surface *dst, int smoot
         /* Calculate sstep_jump */
         csax = sax; 
         sstep_jump = 0;
-        for (x = 0; x < dst_rect->x; x++) {
+        for (x = 0; x < safe_rect.x; x++) {
             csax++; 
             sstep = (*csax >> 16);
             sstep_jump += sstep;
         }
 
-        for (y = 0; y < dst_rect->h ; y++) {
+        for (y = 0; y < safe_rect.h ; y++) {
             /* Setup colour source pointers */
             c00 = csp + sstep_jump;
             c01 = c00 + 1;
             c10 = (SDL_TYPE *) ((Uint8 *) csp + src->pitch) + sstep_jump;
             c11 = c10 + 1;
-            csax = sax + dst_rect->x; 
+            csax = sax + safe_rect.x; 
 
-            for (x = 0; x < dst_rect->w; x++) {
+            for (x = 0; x < safe_rect.w; x++) {
 
                 /* Interpolate colours */
                 ex = (*csax & 0xffff);
@@ -174,7 +221,7 @@ static int glue(sdl_zoom_rgb, BPP)(SDL_Surface *src, SDL_Surface *dst, int smoot
     } else {
         csay = say;
 
-        for (y = 0; y < dst_rect->y; y++) {
+        for (y = 0; y < safe_rect.y; y++) {
             csay++;
             sstep = (*csay >> 16) * src->pitch;
             csp = (SDL_TYPE *) ((Uint8 *) csp + sstep);
@@ -183,17 +230,17 @@ static int glue(sdl_zoom_rgb, BPP)(SDL_Surface *src, SDL_Surface *dst, int smoot
         /* Calculate sstep_jump */
         csax = sax; 
         sstep_jump = 0;
-        for (x = 0; x < dst_rect->x; x++) {
+        for (x = 0; x < safe_rect.x; x++) {
             csax++; 
             sstep = (*csax >> 16);
             sstep_jump += sstep;
         }
 
-        for (y = 0 ; y < dst_rect->h ; y++) {
+        for (y = 0 ; y < safe_rect.h ; y++) {
             sp = csp + sstep_jump;
-            csax = sax + dst_rect->x;
+            csax = sax + safe_rect.x;
 
-            for (x = 0; x < dst_rect->w; x++) {
+            for (x = 0; x < safe_rect.w; x++) {
 
                 /* Draw */
                 *dp = *sp;
