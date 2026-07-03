@@ -2,351 +2,14 @@
 #include "gdbstub.h"
 #include "helper.h"
 #include "host-utils.h"
-#if !defined(CONFIG_USER_ONLY)
-#include "hw/loader.h"
-#endif
 #include "sysemu.h"
 
-static uint32_t cortexa15_cp15_c0_c1[8] = {
-    0x00001131, 0x00011011, 0x02010555, 0x00000000,
-    0x10201105, 0x20000000, 0x01240000, 0x02102211
-};
-
-static uint32_t cortexa15_cp15_c0_c2[8] = {
-    0x02101110, 0x13112111, 0x21232041, 0x11112131, 0x10011142, 0, 0, 0
-};
-
-static uint32_t cortexa9_cp15_c0_c1[8] =
-{ 0x1031, 0x11, 0x000, 0, 0x00100103, 0x20000000, 0x01230000, 0x00002111 };
-
-static uint32_t cortexa9_cp15_c0_c2[8] =
-{ 0x00101111, 0x13112111, 0x21232041, 0x11112131, 0x00111142, 0, 0, 0 };
-
-static uint32_t cortexa8_cp15_c0_c1[8] =
-{ 0x1031, 0x11, 0x400, 0, 0x31100003, 0x20000000, 0x01202000, 0x11 };
-
-static uint32_t cortexa8_cp15_c0_c2[8] =
-{ 0x00101111, 0x12112111, 0x21232031, 0x11112131, 0x00111142, 0, 0, 0 };
-
-static uint32_t mpcore_cp15_c0_c1[8] =
-{ 0x111, 0x1, 0, 0x2, 0x01100103, 0x10020302, 0x01222000, 0 };
-
-static uint32_t mpcore_cp15_c0_c2[8] =
-{ 0x00100011, 0x12002111, 0x11221011, 0x01102131, 0x141, 0, 0, 0 };
-
-static uint32_t arm1136_cp15_c0_c1[8] =
-{ 0x111, 0x1, 0x2, 0x3, 0x01130003, 0x10030302, 0x01222110, 0 };
-
-static uint32_t arm1136_cp15_c0_c2[8] =
-{ 0x00140011, 0x12002111, 0x11231111, 0x01102131, 0x141, 0, 0, 0 };
-
-static uint32_t arm1176_cp15_c0_c1[8] =
-{ 0x111, 0x11, 0x33, 0, 0x01130003, 0x10030302, 0x01222100, 0 };
-
-static uint32_t arm1176_cp15_c0_c2[8] =
-{ 0x0140011, 0x12002111, 0x11231121, 0x01102131, 0x01141, 0, 0, 0 };
-
-static uint32_t cpu_arm_find_by_name(const char *name);
-
-static inline void set_feature(CPUARMState *env, int feature)
+void cpu_state_reset(CPUARMState *env)
 {
-    env->features |= 1u << feature;
+    cpu_reset(ENV_GET_CPU(env));
 }
 
-static void cpu_reset_model_id(CPUARMState *env, uint32_t id)
-{
-    env->cp15.c0_cpuid = id;
-    switch (id) {
-    case ARM_CPUID_ARM926:
-        set_feature(env, ARM_FEATURE_V5);
-        set_feature(env, ARM_FEATURE_VFP);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x41011090;
-        env->cp15.c0_cachetype = 0x1dd20d2;
-        env->cp15.c1_sys = 0x00090078;
-        break;
-    case ARM_CPUID_ARM946:
-        set_feature(env, ARM_FEATURE_V5);
-        set_feature(env, ARM_FEATURE_MPU);
-        env->cp15.c0_cachetype = 0x0f004006;
-        env->cp15.c1_sys = 0x00000078;
-        break;
-    case ARM_CPUID_ARM1026:
-        set_feature(env, ARM_FEATURE_V5);
-        set_feature(env, ARM_FEATURE_VFP);
-        set_feature(env, ARM_FEATURE_AUXCR);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410110a0;
-        env->cp15.c0_cachetype = 0x1dd20d2;
-        env->cp15.c1_sys = 0x00090078;
-        break;
-    case ARM_CPUID_ARM1136:
-        /* This is the 1136 r1, which is a v6K core */
-        set_feature(env, ARM_FEATURE_V6K);
-        /* Fall through */
-    case ARM_CPUID_ARM1136_R2:
-        /* What qemu calls "arm1136_r2" is actually the 1136 r0p2, ie an
-         * older core than plain "arm1136". In particular this does not
-         * have the v6K features.
-         */
-        set_feature(env, ARM_FEATURE_V6);
-        set_feature(env, ARM_FEATURE_VFP);
-        /* These ID register values are correct for 1136 but may be wrong
-         * for 1136_r2 (in particular r0p2 does not actually implement most
-         * of the ID registers).
-         */
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410120b4;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11111111;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x00000000;
-        memcpy(env->cp15.c0_c1, arm1136_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, arm1136_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x1dd20d2;
-        env->cp15.c1_sys = 0x00050078;
-        break;
-    case ARM_CPUID_ARM1176:
-        set_feature(env, ARM_FEATURE_V6K);
-        set_feature(env, ARM_FEATURE_VFP);
-        set_feature(env, ARM_FEATURE_VAPA);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410120b5;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11111111;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x00000000;
-        memcpy(env->cp15.c0_c1, arm1176_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, arm1176_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x1dd20d2;
-        env->cp15.c1_sys = 0x00050078;
-        break;
-    case ARM_CPUID_ARM11MPCORE:
-        set_feature(env, ARM_FEATURE_V6K);
-        set_feature(env, ARM_FEATURE_VFP);
-        set_feature(env, ARM_FEATURE_VAPA);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410120b4;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11111111;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x00000000;
-        memcpy(env->cp15.c0_c1, mpcore_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, mpcore_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x1dd20d2;
-        break;
-    case ARM_CPUID_CORTEXA8:
-        set_feature(env, ARM_FEATURE_V7);
-        set_feature(env, ARM_FEATURE_VFP3);
-        set_feature(env, ARM_FEATURE_NEON);
-        set_feature(env, ARM_FEATURE_THUMB2EE);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410330c0;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11110222;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x00011100;
-        memcpy(env->cp15.c0_c1, cortexa8_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, cortexa8_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x82048004;
-        env->cp15.c0_clid = (1 << 27) | (2 << 24) | 3;
-        env->cp15.c0_ccsid[0] = 0xe007e01a; /* 16k L1 dcache. */
-        env->cp15.c0_ccsid[1] = 0x2007e01a; /* 16k L1 icache. */
-        env->cp15.c0_ccsid[2] = 0xf0000000; /* No L2 icache. */
-        env->cp15.c1_sys = 0x00c50078;
-        break;
-    case ARM_CPUID_CORTEXA9:
-        set_feature(env, ARM_FEATURE_V7);
-        set_feature(env, ARM_FEATURE_VFP3);
-        set_feature(env, ARM_FEATURE_VFP_FP16);
-        set_feature(env, ARM_FEATURE_NEON);
-        set_feature(env, ARM_FEATURE_THUMB2EE);
-        /* Note that A9 supports the MP extensions even for
-         * A9UP and single-core A9MP (which are both different
-         * and valid configurations; we don't model A9UP).
-         */
-        set_feature(env, ARM_FEATURE_V7MP);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x41033090;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x11110222;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x01111111;
-        memcpy(env->cp15.c0_c1, cortexa9_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, cortexa9_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x80038003;
-        env->cp15.c0_clid = (1 << 27) | (1 << 24) | 3;
-        env->cp15.c0_ccsid[0] = 0xe00fe015; /* 16k L1 dcache. */
-        env->cp15.c0_ccsid[1] = 0x200fe015; /* 16k L1 icache. */
-        env->cp15.c1_sys = 0x00c50078;
-        break;
-    case ARM_CPUID_CORTEXA15:
-        set_feature(env, ARM_FEATURE_V7);
-        set_feature(env, ARM_FEATURE_VFP4);
-        set_feature(env, ARM_FEATURE_VFP_FP16);
-        set_feature(env, ARM_FEATURE_NEON);
-        set_feature(env, ARM_FEATURE_THUMB2EE);
-        set_feature(env, ARM_FEATURE_ARM_DIV);
-        set_feature(env, ARM_FEATURE_V7MP);
-        set_feature(env, ARM_FEATURE_GENERIC_TIMER);
-        env->vfp.xregs[ARM_VFP_FPSID] = 0x410430f0;
-        env->vfp.xregs[ARM_VFP_MVFR0] = 0x10110222;
-        env->vfp.xregs[ARM_VFP_MVFR1] = 0x11111111;
-        memcpy(env->cp15.c0_c1, cortexa15_cp15_c0_c1, 8 * sizeof(uint32_t));
-        memcpy(env->cp15.c0_c2, cortexa15_cp15_c0_c2, 8 * sizeof(uint32_t));
-        env->cp15.c0_cachetype = 0x8444c004;
-        env->cp15.c0_clid = 0x0a200023;
-        env->cp15.c0_ccsid[0] = 0x701fe00a; /* 32K L1 dcache */
-        env->cp15.c0_ccsid[1] = 0x201fe00a; /* 32K L1 icache */
-        env->cp15.c0_ccsid[2] = 0x711fe07a; /* 4096K L2 unified cache */
-        env->cp15.c1_sys = 0x00c50078;
-        break;
-    case ARM_CPUID_CORTEXM3:
-        set_feature(env, ARM_FEATURE_V7);
-        set_feature(env, ARM_FEATURE_M);
-        break;
-    case ARM_CPUID_ANY: /* For userspace emulation.  */
-        set_feature(env, ARM_FEATURE_V7);
-        set_feature(env, ARM_FEATURE_VFP4);
-        set_feature(env, ARM_FEATURE_VFP_FP16);
-        set_feature(env, ARM_FEATURE_NEON);
-        set_feature(env, ARM_FEATURE_THUMB2EE);
-        set_feature(env, ARM_FEATURE_ARM_DIV);
-        set_feature(env, ARM_FEATURE_V7MP);
-        break;
-    case ARM_CPUID_TI915T:
-    case ARM_CPUID_TI925T:
-        set_feature(env, ARM_FEATURE_V4T);
-        set_feature(env, ARM_FEATURE_OMAPCP);
-        env->cp15.c0_cpuid = ARM_CPUID_TI925T; /* Depends on wiring.  */
-        env->cp15.c0_cachetype = 0x5109149;
-        env->cp15.c1_sys = 0x00000070;
-        env->cp15.c15_i_max = 0x000;
-        env->cp15.c15_i_min = 0xff0;
-        break;
-    case ARM_CPUID_PXA250:
-    case ARM_CPUID_PXA255:
-    case ARM_CPUID_PXA260:
-    case ARM_CPUID_PXA261:
-    case ARM_CPUID_PXA262:
-        set_feature(env, ARM_FEATURE_V5);
-        set_feature(env, ARM_FEATURE_XSCALE);
-        /* JTAG_ID is ((id << 28) | 0x09265013) */
-        env->cp15.c0_cachetype = 0xd172172;
-        env->cp15.c1_sys = 0x00000078;
-        break;
-    case ARM_CPUID_PXA270_A0:
-    case ARM_CPUID_PXA270_A1:
-    case ARM_CPUID_PXA270_B0:
-    case ARM_CPUID_PXA270_B1:
-    case ARM_CPUID_PXA270_C0:
-    case ARM_CPUID_PXA270_C5:
-        set_feature(env, ARM_FEATURE_V5);
-        set_feature(env, ARM_FEATURE_XSCALE);
-        /* JTAG_ID is ((id << 28) | 0x09265013) */
-        set_feature(env, ARM_FEATURE_IWMMXT);
-        env->iwmmxt.cregs[ARM_IWMMXT_wCID] = 0x69051000 | 'Q';
-        env->cp15.c0_cachetype = 0xd172172;
-        env->cp15.c1_sys = 0x00000078;
-        break;
-    case ARM_CPUID_SA1100:
-    case ARM_CPUID_SA1110:
-        set_feature(env, ARM_FEATURE_STRONGARM);
-        env->cp15.c1_sys = 0x00000070;
-        break;
-    default:
-        cpu_abort(env, "Bad CPU ID: %x\n", id);
-        break;
-    }
-
-    /* Some features automatically imply others: */
-    if (arm_feature(env, ARM_FEATURE_V7)) {
-        set_feature(env, ARM_FEATURE_VAPA);
-        set_feature(env, ARM_FEATURE_THUMB2);
-        if (!arm_feature(env, ARM_FEATURE_M)) {
-            set_feature(env, ARM_FEATURE_V6K);
-        } else {
-            set_feature(env, ARM_FEATURE_V6);
-        }
-    }
-    if (arm_feature(env, ARM_FEATURE_V6K)) {
-        set_feature(env, ARM_FEATURE_V6);
-    }
-    if (arm_feature(env, ARM_FEATURE_V6)) {
-        set_feature(env, ARM_FEATURE_V5);
-        if (!arm_feature(env, ARM_FEATURE_M)) {
-            set_feature(env, ARM_FEATURE_AUXCR);
-        }
-    }
-    if (arm_feature(env, ARM_FEATURE_V5)) {
-        set_feature(env, ARM_FEATURE_V4T);
-    }
-    if (arm_feature(env, ARM_FEATURE_M)) {
-        set_feature(env, ARM_FEATURE_THUMB_DIV);
-    }
-    if (arm_feature(env, ARM_FEATURE_ARM_DIV)) {
-        set_feature(env, ARM_FEATURE_THUMB_DIV);
-    }
-    if (arm_feature(env, ARM_FEATURE_VFP4)) {
-        set_feature(env, ARM_FEATURE_VFP3);
-    }
-    if (arm_feature(env, ARM_FEATURE_VFP3)) {
-        set_feature(env, ARM_FEATURE_VFP);
-    }
-}
-
-void cpu_reset(CPUARMState *env)
-{
-    uint32_t id;
-    uint32_t tmp = 0;
-
-    if (qemu_loglevel_mask(CPU_LOG_RESET)) {
-        qemu_log("CPU Reset (CPU %d)\n", env->cpu_index);
-        log_cpu_state(env, 0);
-    }
-
-    id = env->cp15.c0_cpuid;
-    tmp = env->cp15.c15_config_base_address;
-    memset(env, 0, offsetof(CPUARMState, breakpoints));
-    if (id)
-        cpu_reset_model_id(env, id);
-    env->cp15.c15_config_base_address = tmp;
-#if defined (CONFIG_USER_ONLY)
-    env->uncached_cpsr = ARM_CPU_MODE_USR;
-    /* For user mode we must enable access to coprocessors */
-    env->vfp.xregs[ARM_VFP_FPEXC] = 1 << 30;
-    if (arm_feature(env, ARM_FEATURE_IWMMXT)) {
-        env->cp15.c15_cpar = 3;
-    } else if (arm_feature(env, ARM_FEATURE_XSCALE)) {
-        env->cp15.c15_cpar = 1;
-    }
-#else
-    /* SVC mode with interrupts disabled.  */
-    env->uncached_cpsr = ARM_CPU_MODE_SVC | CPSR_A | CPSR_F | CPSR_I;
-    /* On ARMv7-M the CPSR_I is the value of the PRIMASK register, and is
-       clear at reset.  Initial SP and PC are loaded from ROM.  */
-    if (IS_M(env)) {
-        uint32_t pc;
-        uint8_t *rom;
-        env->uncached_cpsr &= ~CPSR_I;
-        rom = rom_ptr(0);
-        if (rom) {
-            /* We should really use ldl_phys here, in case the guest
-               modified flash and reset itself.  However images
-               loaded via -kernel have not been copied yet, so load the
-               values directly from there.  */
-            env->regs[13] = ldl_p(rom);
-            pc = ldl_p(rom + 4);
-            env->thumb = pc & 1;
-            env->regs[15] = pc & ~1;
-        }
-    }
-    env->vfp.xregs[ARM_VFP_FPEXC] = 0;
-    env->cp15.c2_base_mask = 0xffffc000u;
-    /* v7 performance monitor control register: same implementor
-     * field as main ID register, and we implement no event counters.
-     */
-    env->cp15.c9_pmcr = (id & 0xff000000);
-#endif
-    set_flush_to_zero(1, &env->vfp.standard_fp_status);
-    set_flush_inputs_to_zero(1, &env->vfp.standard_fp_status);
-    set_default_nan_mode(1, &env->vfp.standard_fp_status);
-    set_float_detect_tininess(float_tininess_before_rounding,
-                              &env->vfp.fp_status);
-    set_float_detect_tininess(float_tininess_before_rounding,
-                              &env->vfp.standard_fp_status);
-    tlb_flush(env, 1);
-    /* Reset is a state change for some CPUState fields which we
-     * bake assumptions about into translated code, so we need to
-     * tb_flush().
-     */
-    tb_flush(env);
-}
-
-static int vfp_gdb_get_reg(CPUState *env, uint8_t *buf, int reg)
+static int vfp_gdb_get_reg(CPUARMState *env, uint8_t *buf, int reg)
 {
     int nregs;
 
@@ -373,7 +36,7 @@ static int vfp_gdb_get_reg(CPUState *env, uint8_t *buf, int reg)
     return 0;
 }
 
-static int vfp_gdb_set_reg(CPUState *env, uint8_t *buf, int reg)
+static int vfp_gdb_set_reg(CPUARMState *env, uint8_t *buf, int reg)
 {
     int nregs;
 
@@ -398,25 +61,26 @@ static int vfp_gdb_set_reg(CPUState *env, uint8_t *buf, int reg)
     return 0;
 }
 
-CPUARMState *cpu_arm_init(const char *cpu_model)
+ARMCPU *cpu_arm_init(const char *cpu_model)
 {
+    ARMCPU *cpu;
     CPUARMState *env;
-    uint32_t id;
     static int inited = 0;
 
-    id = cpu_arm_find_by_name(cpu_model);
-    if (id == 0)
+    if (!object_class_by_name(cpu_model)) {
         return NULL;
-    env = g_malloc0(sizeof(CPUARMState));
-    cpu_exec_init(env);
+    }
+    cpu = ARM_CPU(object_new(cpu_model));
+    env = &cpu->env;
+    env->cpu_model_str = cpu_model;
+    arm_cpu_realize(cpu);
+
     if (tcg_enabled() && !inited) {
         inited = 1;
         arm_translate_init();
     }
 
-    env->cpu_model_str = cpu_model;
-    env->cp15.c0_cpuid = id;
-    cpu_reset(env);
+    cpu_state_reset(env);
     if (arm_feature(env, ARM_FEATURE_NEON)) {
         gdb_register_coprocessor(env, vfp_gdb_get_reg, vfp_gdb_set_reg,
                                  51, "arm-neon.xml", 0);
@@ -428,77 +92,57 @@ CPUARMState *cpu_arm_init(const char *cpu_model)
                                  19, "arm-vfp.xml", 0);
     }
     qemu_init_vcpu(env);
-    return env;
+    return cpu;
 }
 
-struct arm_cpu_t {
-    uint32_t id;
-    const char *name;
-};
+typedef struct ARMCPUListState {
+    fprintf_function cpu_fprintf;
+    FILE *file;
+} ARMCPUListState;
 
-static const struct arm_cpu_t arm_cpu_names[] = {
-    { ARM_CPUID_ARM926, "arm926"},
-    { ARM_CPUID_ARM946, "arm946"},
-    { ARM_CPUID_ARM1026, "arm1026"},
-    { ARM_CPUID_ARM1136, "arm1136"},
-    { ARM_CPUID_ARM1136_R2, "arm1136-r2"},
-    { ARM_CPUID_ARM1176, "arm1176"},
-    { ARM_CPUID_ARM11MPCORE, "arm11mpcore"},
-    { ARM_CPUID_CORTEXM3, "cortex-m3"},
-    { ARM_CPUID_CORTEXA8, "cortex-a8"},
-    { ARM_CPUID_CORTEXA9, "cortex-a9"},
-    { ARM_CPUID_CORTEXA15, "cortex-a15" },
-    { ARM_CPUID_TI925T, "ti925t" },
-    { ARM_CPUID_PXA250, "pxa250" },
-    { ARM_CPUID_SA1100,    "sa1100" },
-    { ARM_CPUID_SA1110,    "sa1110" },
-    { ARM_CPUID_PXA255, "pxa255" },
-    { ARM_CPUID_PXA260, "pxa260" },
-    { ARM_CPUID_PXA261, "pxa261" },
-    { ARM_CPUID_PXA262, "pxa262" },
-    { ARM_CPUID_PXA270, "pxa270" },
-    { ARM_CPUID_PXA270_A0, "pxa270-a0" },
-    { ARM_CPUID_PXA270_A1, "pxa270-a1" },
-    { ARM_CPUID_PXA270_B0, "pxa270-b0" },
-    { ARM_CPUID_PXA270_B1, "pxa270-b1" },
-    { ARM_CPUID_PXA270_C0, "pxa270-c0" },
-    { ARM_CPUID_PXA270_C5, "pxa270-c5" },
-    { ARM_CPUID_ANY, "any"},
-    { 0, NULL}
-};
+/* Sort alphabetically by type name, except for "any". */
+static gint arm_cpu_list_compare(gconstpointer a, gconstpointer b)
+{
+    ObjectClass *class_a = (ObjectClass *)a;
+    ObjectClass *class_b = (ObjectClass *)b;
+    const char *name_a, *name_b;
+
+    name_a = object_class_get_name(class_a);
+    name_b = object_class_get_name(class_b);
+    if (strcmp(name_a, "any") == 0) {
+        return 1;
+    } else if (strcmp(name_b, "any") == 0) {
+        return -1;
+    } else {
+        return strcmp(name_a, name_b);
+    }
+}
+
+static void arm_cpu_list_entry(gpointer data, gpointer user_data)
+{
+    ObjectClass *oc = data;
+    ARMCPUListState *s = user_data;
+
+    (*s->cpu_fprintf)(s->file, "  %s\n",
+                      object_class_get_name(oc));
+}
 
 void arm_cpu_list(FILE *f, fprintf_function cpu_fprintf)
 {
-    int i;
+    ARMCPUListState s = {
+        .file = f,
+        .cpu_fprintf = cpu_fprintf,
+    };
+    GSList *list;
 
+    list = object_class_get_list(TYPE_ARM_CPU, false);
+    list = g_slist_sort(list, arm_cpu_list_compare);
     (*cpu_fprintf)(f, "Available CPUs:\n");
-    for (i = 0; arm_cpu_names[i].name; i++) {
-        (*cpu_fprintf)(f, "  %s\n", arm_cpu_names[i].name);
-    }
+    g_slist_foreach(list, arm_cpu_list_entry, &s);
+    g_slist_free(list);
 }
 
-/* return 0 if not found */
-static uint32_t cpu_arm_find_by_name(const char *name)
-{
-    int i;
-    uint32_t id;
-
-    id = 0;
-    for (i = 0; arm_cpu_names[i].name; i++) {
-        if (strcmp(name, arm_cpu_names[i].name) == 0) {
-            id = arm_cpu_names[i].id;
-            break;
-        }
-    }
-    return id;
-}
-
-void cpu_arm_close(CPUARMState *env)
-{
-    g_free(env);
-}
-
-static int bad_mode_switch(CPUState *env, int mode)
+static int bad_mode_switch(CPUARMState *env, int mode)
 {
     /* Return true if it is not valid for us to switch to
      * this CPU mode (ie all the UNPREDICTABLE cases in
@@ -628,12 +272,12 @@ uint32_t HELPER(abs)(uint32_t x)
 
 #if defined(CONFIG_USER_ONLY)
 
-void do_interrupt (CPUState *env)
+void do_interrupt (CPUARMState *env)
 {
     env->exception_index = -1;
 }
 
-int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
+int cpu_arm_handle_mmu_fault (CPUARMState *env, target_ulong address, int rw,
                               int mmu_idx)
 {
     if (rw == 2) {
@@ -647,54 +291,54 @@ int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address, int rw,
 }
 
 /* These should probably raise undefined insn exceptions.  */
-void HELPER(set_cp)(CPUState *env, uint32_t insn, uint32_t val)
+void HELPER(set_cp)(CPUARMState *env, uint32_t insn, uint32_t val)
 {
     int op1 = (insn >> 8) & 0xf;
     cpu_abort(env, "cp%i insn %08x\n", op1, insn);
     return;
 }
 
-uint32_t HELPER(get_cp)(CPUState *env, uint32_t insn)
+uint32_t HELPER(get_cp)(CPUARMState *env, uint32_t insn)
 {
     int op1 = (insn >> 8) & 0xf;
     cpu_abort(env, "cp%i insn %08x\n", op1, insn);
     return 0;
 }
 
-void HELPER(set_cp15)(CPUState *env, uint32_t insn, uint32_t val)
+void HELPER(set_cp15)(CPUARMState *env, uint32_t insn, uint32_t val)
 {
     cpu_abort(env, "cp15 insn %08x\n", insn);
 }
 
-uint32_t HELPER(get_cp15)(CPUState *env, uint32_t insn)
+uint32_t HELPER(get_cp15)(CPUARMState *env, uint32_t insn)
 {
     cpu_abort(env, "cp15 insn %08x\n", insn);
 }
 
 /* These should probably raise undefined insn exceptions.  */
-void HELPER(v7m_msr)(CPUState *env, uint32_t reg, uint32_t val)
+void HELPER(v7m_msr)(CPUARMState *env, uint32_t reg, uint32_t val)
 {
     cpu_abort(env, "v7m_mrs %d\n", reg);
 }
 
-uint32_t HELPER(v7m_mrs)(CPUState *env, uint32_t reg)
+uint32_t HELPER(v7m_mrs)(CPUARMState *env, uint32_t reg)
 {
     cpu_abort(env, "v7m_mrs %d\n", reg);
     return 0;
 }
 
-void switch_mode(CPUState *env, int mode)
+void switch_mode(CPUARMState *env, int mode)
 {
     if (mode != ARM_CPU_MODE_USR)
         cpu_abort(env, "Tried to switch out of user mode\n");
 }
 
-void HELPER(set_r13_banked)(CPUState *env, uint32_t mode, uint32_t val)
+void HELPER(set_r13_banked)(CPUARMState *env, uint32_t mode, uint32_t val)
 {
     cpu_abort(env, "banked r13 write\n");
 }
 
-uint32_t HELPER(get_r13_banked)(CPUState *env, uint32_t mode)
+uint32_t HELPER(get_r13_banked)(CPUARMState *env, uint32_t mode)
 {
     cpu_abort(env, "banked r13 read\n");
     return 0;
@@ -703,7 +347,7 @@ uint32_t HELPER(get_r13_banked)(CPUState *env, uint32_t mode)
 #else
 
 /* Map CPU modes onto saved register banks.  */
-static inline int bank_number(CPUState *env, int mode)
+static inline int bank_number(CPUARMState *env, int mode)
 {
     switch (mode) {
     case ARM_CPU_MODE_USR:
@@ -724,7 +368,7 @@ static inline int bank_number(CPUState *env, int mode)
     return -1;
 }
 
-void switch_mode(CPUState *env, int mode)
+void switch_mode(CPUARMState *env, int mode)
 {
     int old_mode;
     int i;
@@ -840,7 +484,7 @@ static void do_interrupt_v7m(CPUARMState *env)
     case EXCP_BKPT:
         if (semihosting_enabled) {
             int nr;
-            nr = lduw_code(env->regs[15]) & 0xff;
+            nr = arm_lduw_code(env->regs[15], env->bswap_code) & 0xff;
             if (nr == 0xab) {
                 env->regs[15] += 2;
                 env->regs[0] = do_arm_semihosting(env);
@@ -877,7 +521,8 @@ static void do_interrupt_v7m(CPUARMState *env)
     v7m_push(env, env->regs[1]);
     v7m_push(env, env->regs[0]);
     switch_v7m_sp(env, 0);
-    env->uncached_cpsr &= ~CPSR_IT;
+    /* Clear IT bits */
+    env->condexec_bits = 0;
     env->regs[14] = lr;
     addr = ldl_phys(env->v7m.vecbase + env->v7m.exception * 4);
     env->regs[15] = addr & 0xfffffffe;
@@ -911,9 +556,10 @@ void do_interrupt(CPUARMState *env)
         if (semihosting_enabled) {
             /* Check for semihosting interrupt.  */
             if (env->thumb) {
-                mask = lduw_code(env->regs[15] - 2) & 0xff;
+                mask = arm_lduw_code(env->regs[15] - 2, env->bswap_code) & 0xff;
             } else {
-                mask = ldl_code(env->regs[15] - 4) & 0xffffff;
+                mask = arm_ldl_code(env->regs[15] - 4, env->bswap_code)
+                    & 0xffffff;
             }
             /* Only intercept calls from privileged modes, to provide some
                semblance of security.  */
@@ -933,7 +579,7 @@ void do_interrupt(CPUARMState *env)
     case EXCP_BKPT:
         /* See if this is a semihosting syscall.  */
         if (env->thumb && semihosting_enabled) {
-            mask = lduw_code(env->regs[15]) & 0xff;
+            mask = arm_lduw_code(env->regs[15], env->bswap_code) & 0xff;
             if (mask == 0xab
                   && (env->uncached_cpsr & CPSR_M) != ARM_CPU_MODE_USR) {
                 env->regs[15] += 2;
@@ -997,7 +643,7 @@ void do_interrupt(CPUARMState *env)
 /* Check section/page access permissions.
    Returns the page protection flags, or zero if the access is not
    permitted.  */
-static inline int check_ap(CPUState *env, int ap, int domain_prot,
+static inline int check_ap(CPUARMState *env, int ap, int domain_prot,
                            int access_type, int is_user)
 {
   int prot_ro;
@@ -1047,7 +693,7 @@ static inline int check_ap(CPUState *env, int ap, int domain_prot,
   }
 }
 
-static uint32_t get_level1_table_address(CPUState *env, uint32_t address)
+static uint32_t get_level1_table_address(CPUARMState *env, uint32_t address)
 {
     uint32_t table;
 
@@ -1060,7 +706,7 @@ static uint32_t get_level1_table_address(CPUState *env, uint32_t address)
     return table;
 }
 
-static int get_phys_addr_v5(CPUState *env, uint32_t address, int access_type,
+static int get_phys_addr_v5(CPUARMState *env, uint32_t address, int access_type,
 			    int is_user, uint32_t *phys_ptr, int *prot,
                             target_ulong *page_size)
 {
@@ -1155,7 +801,7 @@ do_fault:
     return code | (domain << 4);
 }
 
-static int get_phys_addr_v6(CPUState *env, uint32_t address, int access_type,
+static int get_phys_addr_v6(CPUARMState *env, uint32_t address, int access_type,
 			    int is_user, uint32_t *phys_ptr, int *prot,
                             target_ulong *page_size)
 {
@@ -1259,7 +905,7 @@ do_fault:
     return code | (domain << 4);
 }
 
-static int get_phys_addr_mpu(CPUState *env, uint32_t address, int access_type,
+static int get_phys_addr_mpu(CPUARMState *env, uint32_t address, int access_type,
 			     int is_user, uint32_t *phys_ptr, int *prot)
 {
     int n;
@@ -1319,7 +965,7 @@ static int get_phys_addr_mpu(CPUState *env, uint32_t address, int access_type,
     return 0;
 }
 
-static inline int get_phys_addr(CPUState *env, uint32_t address,
+static inline int get_phys_addr(CPUARMState *env, uint32_t address,
                                 int access_type, int is_user,
                                 uint32_t *phys_ptr, int *prot,
                                 target_ulong *page_size)
@@ -1347,7 +993,7 @@ static inline int get_phys_addr(CPUState *env, uint32_t address,
     }
 }
 
-int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address,
+int cpu_arm_handle_mmu_fault (CPUARMState *env, target_ulong address,
                               int access_type, int mmu_idx)
 {
     uint32_t phys_addr;
@@ -1380,7 +1026,7 @@ int cpu_arm_handle_mmu_fault (CPUState *env, target_ulong address,
     return 1;
 }
 
-target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
+target_phys_addr_t cpu_get_phys_page_debug(CPUARMState *env, target_ulong addr)
 {
     uint32_t phys_addr;
     target_ulong page_size;
@@ -1395,7 +1041,7 @@ target_phys_addr_t cpu_get_phys_page_debug(CPUState *env, target_ulong addr)
     return phys_addr;
 }
 
-void HELPER(set_cp)(CPUState *env, uint32_t insn, uint32_t val)
+void HELPER(set_cp)(CPUARMState *env, uint32_t insn, uint32_t val)
 {
     int cp_num = (insn >> 8) & 0xf;
     int cp_info = (insn >> 5) & 7;
@@ -1407,7 +1053,7 @@ void HELPER(set_cp)(CPUState *env, uint32_t insn, uint32_t val)
                                  cp_info, src, operand, val);
 }
 
-uint32_t HELPER(get_cp)(CPUState *env, uint32_t insn)
+uint32_t HELPER(get_cp)(CPUARMState *env, uint32_t insn)
 {
     int cp_num = (insn >> 8) & 0xf;
     int cp_info = (insn >> 5) & 7;
@@ -1450,7 +1096,7 @@ static uint32_t extended_mpu_ap_bits(uint32_t val)
     return ret;
 }
 
-void HELPER(set_cp15)(CPUState *env, uint32_t insn, uint32_t val)
+void HELPER(set_cp15)(CPUARMState *env, uint32_t insn, uint32_t val)
 {
     int op1;
     int op2;
@@ -1860,7 +1506,7 @@ bad_reg:
               (insn >> 16) & 0xf, crm, op1, op2);
 }
 
-uint32_t HELPER(get_cp15)(CPUState *env, uint32_t insn)
+uint32_t HELPER(get_cp15)(CPUARMState *env, uint32_t insn)
 {
     int op1;
     int op2;
@@ -2025,7 +1671,7 @@ uint32_t HELPER(get_cp15)(CPUState *env, uint32_t insn)
             return env->cp15.c5_data;
         case 1:
             if (arm_feature(env, ARM_FEATURE_MPU))
-                return simple_mpu_ap_bits(env->cp15.c5_data);
+                return simple_mpu_ap_bits(env->cp15.c5_insn);
             return env->cp15.c5_insn;
         case 2:
             if (!arm_feature(env, ARM_FEATURE_MPU))
@@ -2261,7 +1907,7 @@ bad_reg:
     return 0;
 }
 
-void HELPER(set_r13_banked)(CPUState *env, uint32_t mode, uint32_t val)
+void HELPER(set_r13_banked)(CPUARMState *env, uint32_t mode, uint32_t val)
 {
     if ((env->uncached_cpsr & CPSR_M) == mode) {
         env->regs[13] = val;
@@ -2270,7 +1916,7 @@ void HELPER(set_r13_banked)(CPUState *env, uint32_t mode, uint32_t val)
     }
 }
 
-uint32_t HELPER(get_r13_banked)(CPUState *env, uint32_t mode)
+uint32_t HELPER(get_r13_banked)(CPUARMState *env, uint32_t mode)
 {
     if ((env->uncached_cpsr & CPSR_M) == mode) {
         return env->regs[13];
@@ -2279,7 +1925,7 @@ uint32_t HELPER(get_r13_banked)(CPUState *env, uint32_t mode)
     }
 }
 
-uint32_t HELPER(v7m_mrs)(CPUState *env, uint32_t reg)
+uint32_t HELPER(v7m_mrs)(CPUARMState *env, uint32_t reg)
 {
     switch (reg) {
     case 0: /* APSR */
@@ -2316,7 +1962,7 @@ uint32_t HELPER(v7m_mrs)(CPUState *env, uint32_t reg)
     }
 }
 
-void HELPER(v7m_msr)(CPUState *env, uint32_t reg, uint32_t val)
+void HELPER(v7m_msr)(CPUARMState *env, uint32_t reg, uint32_t val)
 {
     switch (reg) {
     case 0: /* APSR */
@@ -2672,7 +2318,7 @@ static inline int vfp_exceptbits_from_host(int host_bits)
     return target_bits;
 }
 
-uint32_t HELPER(vfp_get_fpscr)(CPUState *env)
+uint32_t HELPER(vfp_get_fpscr)(CPUARMState *env)
 {
     int i;
     uint32_t fpscr;
@@ -2686,7 +2332,7 @@ uint32_t HELPER(vfp_get_fpscr)(CPUState *env)
     return fpscr;
 }
 
-uint32_t vfp_get_fpscr(CPUState *env)
+uint32_t vfp_get_fpscr(CPUARMState *env)
 {
     return HELPER(vfp_get_fpscr)(env);
 }
@@ -2711,7 +2357,7 @@ static inline int vfp_exceptbits_to_host(int target_bits)
     return host_bits;
 }
 
-void HELPER(vfp_set_fpscr)(CPUState *env, uint32_t val)
+void HELPER(vfp_set_fpscr)(CPUARMState *env, uint32_t val)
 {
     int i;
     uint32_t changed;
@@ -2752,7 +2398,7 @@ void HELPER(vfp_set_fpscr)(CPUState *env, uint32_t val)
     set_float_exception_flags(0, &env->vfp.standard_fp_status);
 }
 
-void vfp_set_fpscr(CPUState *env, uint32_t val)
+void vfp_set_fpscr(CPUARMState *env, uint32_t val)
 {
     HELPER(vfp_set_fpscr)(env, val);
 }
@@ -2796,19 +2442,19 @@ float64 VFP_HELPER(abs, d)(float64 a)
     return float64_abs(a);
 }
 
-float32 VFP_HELPER(sqrt, s)(float32 a, CPUState *env)
+float32 VFP_HELPER(sqrt, s)(float32 a, CPUARMState *env)
 {
     return float32_sqrt(a, &env->vfp.fp_status);
 }
 
-float64 VFP_HELPER(sqrt, d)(float64 a, CPUState *env)
+float64 VFP_HELPER(sqrt, d)(float64 a, CPUARMState *env)
 {
     return float64_sqrt(a, &env->vfp.fp_status);
 }
 
 /* XXX: check quiet/signaling case */
 #define DO_VFP_cmp(p, type) \
-void VFP_HELPER(cmp, p)(type a, type b, CPUState *env)  \
+void VFP_HELPER(cmp, p)(type a, type b, CPUARMState *env)  \
 { \
     uint32_t flags; \
     switch(type ## _compare_quiet(a, b, &env->vfp.fp_status)) { \
@@ -2820,7 +2466,7 @@ void VFP_HELPER(cmp, p)(type a, type b, CPUState *env)  \
     env->vfp.xregs[ARM_VFP_FPSCR] = (flags << 28) \
         | (env->vfp.xregs[ARM_VFP_FPSCR] & 0x0fffffff); \
 } \
-void VFP_HELPER(cmpe, p)(type a, type b, CPUState *env) \
+void VFP_HELPER(cmpe, p)(type a, type b, CPUARMState *env) \
 { \
     uint32_t flags; \
     switch(type ## _compare(a, b, &env->vfp.fp_status)) { \
@@ -2871,7 +2517,7 @@ FLOAT_CONVS(ui, d, 64, u)
 #undef FLOAT_CONVS
 
 /* floating point conversion */
-float64 VFP_HELPER(fcvtd, s)(float32 x, CPUState *env)
+float64 VFP_HELPER(fcvtd, s)(float32 x, CPUARMState *env)
 {
     float64 r = float32_to_float64(x, &env->vfp.fp_status);
     /* ARM requires that S<->D conversion of any kind of NaN generates
@@ -2880,7 +2526,7 @@ float64 VFP_HELPER(fcvtd, s)(float32 x, CPUState *env)
     return float64_maybe_silence_nan(r);
 }
 
-float32 VFP_HELPER(fcvts, d)(float64 x, CPUState *env)
+float32 VFP_HELPER(fcvts, d)(float64 x, CPUARMState *env)
 {
     float32 r =  float64_to_float32(x, &env->vfp.fp_status);
     /* ARM requires that S<->D conversion of any kind of NaN generates
@@ -2923,7 +2569,7 @@ VFP_CONV_FIX(ul, s, 32, uint32, u)
 #undef VFP_CONV_FIX
 
 /* Half precision conversions.  */
-static float32 do_fcvt_f16_to_f32(uint32_t a, CPUState *env, float_status *s)
+static float32 do_fcvt_f16_to_f32(uint32_t a, CPUARMState *env, float_status *s)
 {
     int ieee = (env->vfp.xregs[ARM_VFP_FPSCR] & (1 << 26)) == 0;
     float32 r = float16_to_float32(make_float16(a), ieee, s);
@@ -2933,7 +2579,7 @@ static float32 do_fcvt_f16_to_f32(uint32_t a, CPUState *env, float_status *s)
     return r;
 }
 
-static uint32_t do_fcvt_f32_to_f16(float32 a, CPUState *env, float_status *s)
+static uint32_t do_fcvt_f32_to_f16(float32 a, CPUARMState *env, float_status *s)
 {
     int ieee = (env->vfp.xregs[ARM_VFP_FPSCR] & (1 << 26)) == 0;
     float16 r = float32_to_float16(a, ieee, s);
@@ -2943,22 +2589,22 @@ static uint32_t do_fcvt_f32_to_f16(float32 a, CPUState *env, float_status *s)
     return float16_val(r);
 }
 
-float32 HELPER(neon_fcvt_f16_to_f32)(uint32_t a, CPUState *env)
+float32 HELPER(neon_fcvt_f16_to_f32)(uint32_t a, CPUARMState *env)
 {
     return do_fcvt_f16_to_f32(a, env, &env->vfp.standard_fp_status);
 }
 
-uint32_t HELPER(neon_fcvt_f32_to_f16)(float32 a, CPUState *env)
+uint32_t HELPER(neon_fcvt_f32_to_f16)(float32 a, CPUARMState *env)
 {
     return do_fcvt_f32_to_f16(a, env, &env->vfp.standard_fp_status);
 }
 
-float32 HELPER(vfp_fcvt_f16_to_f32)(uint32_t a, CPUState *env)
+float32 HELPER(vfp_fcvt_f16_to_f32)(uint32_t a, CPUARMState *env)
 {
     return do_fcvt_f16_to_f32(a, env, &env->vfp.fp_status);
 }
 
-uint32_t HELPER(vfp_fcvt_f32_to_f16)(float32 a, CPUState *env)
+uint32_t HELPER(vfp_fcvt_f32_to_f16)(float32 a, CPUARMState *env)
 {
     return do_fcvt_f32_to_f16(a, env, &env->vfp.fp_status);
 }
@@ -2967,7 +2613,7 @@ uint32_t HELPER(vfp_fcvt_f32_to_f16)(float32 a, CPUState *env)
 #define float32_three make_float32(0x40400000)
 #define float32_one_point_five make_float32(0x3fc00000)
 
-float32 HELPER(recps_f32)(float32 a, float32 b, CPUState *env)
+float32 HELPER(recps_f32)(float32 a, float32 b, CPUARMState *env)
 {
     float_status *s = &env->vfp.standard_fp_status;
     if ((float32_is_infinity(a) && float32_is_zero_or_denormal(b)) ||
@@ -2980,7 +2626,7 @@ float32 HELPER(recps_f32)(float32 a, float32 b, CPUState *env)
     return float32_sub(float32_two, float32_mul(a, b, s), s);
 }
 
-float32 HELPER(rsqrts_f32)(float32 a, float32 b, CPUState *env)
+float32 HELPER(rsqrts_f32)(float32 a, float32 b, CPUARMState *env)
 {
     float_status *s = &env->vfp.standard_fp_status;
     float32 product;
@@ -3005,7 +2651,7 @@ float32 HELPER(rsqrts_f32)(float32 a, float32 b, CPUState *env)
 /* The algorithm that must be used to calculate the estimate
  * is specified by the ARM ARM.
  */
-static float64 recip_estimate(float64 a, CPUState *env)
+static float64 recip_estimate(float64 a, CPUARMState *env)
 {
     /* These calculations mustn't set any fp exception flags,
      * so we use a local copy of the fp_status.
@@ -3031,7 +2677,7 @@ static float64 recip_estimate(float64 a, CPUState *env)
     return float64_div(int64_to_float64(q_int, s), float64_256, s);
 }
 
-float32 HELPER(recpe_f32)(float32 a, CPUState *env)
+float32 HELPER(recpe_f32)(float32 a, CPUARMState *env)
 {
     float_status *s = &env->vfp.standard_fp_status;
     float64 f64;
@@ -3075,7 +2721,7 @@ float32 HELPER(recpe_f32)(float32 a, CPUState *env)
 /* The algorithm that must be used to calculate the estimate
  * is specified by the ARM ARM.
  */
-static float64 recip_sqrt_estimate(float64 a, CPUState *env)
+static float64 recip_sqrt_estimate(float64 a, CPUARMState *env)
 {
     /* These calculations mustn't set any fp exception flags,
      * so we use a local copy of the fp_status.
@@ -3127,7 +2773,7 @@ static float64 recip_sqrt_estimate(float64 a, CPUState *env)
     return float64_div(int64_to_float64(q_int, s), float64_256, s);
 }
 
-float32 HELPER(rsqrte_f32)(float32 a, CPUState *env)
+float32 HELPER(rsqrte_f32)(float32 a, CPUARMState *env)
 {
     float_status *s = &env->vfp.standard_fp_status;
     int result_exp;
@@ -3178,7 +2824,7 @@ float32 HELPER(rsqrte_f32)(float32 a, CPUState *env)
     return make_float32(val);
 }
 
-uint32_t HELPER(recpe_u32)(uint32_t a, CPUState *env)
+uint32_t HELPER(recpe_u32)(uint32_t a, CPUARMState *env)
 {
     float64 f64;
 
@@ -3194,7 +2840,7 @@ uint32_t HELPER(recpe_u32)(uint32_t a, CPUState *env)
     return 0x80000000 | ((float64_val(f64) >> 21) & 0x7fffffff);
 }
 
-uint32_t HELPER(rsqrte_u32)(uint32_t a, CPUState *env)
+uint32_t HELPER(rsqrte_u32)(uint32_t a, CPUARMState *env)
 {
     float64 f64;
 
@@ -3228,7 +2874,7 @@ float64 VFP_HELPER(muladd, d)(float64 a, float64 b, float64 c, void *fpstp)
     return float64_muladd(a, b, c, 0, fpst);
 }
 
-void HELPER(set_teecr)(CPUState *env, uint32_t val)
+void HELPER(set_teecr)(CPUARMState *env, uint32_t val)
 {
     val &= 1;
     if (env->teecr != val) {

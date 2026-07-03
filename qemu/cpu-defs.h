@@ -115,8 +115,6 @@ typedef __declspec(align(TARGET_LONG_ALIGNMENT))   uint64_t target_ulong;
 #endif
 #endif
 
-#define HOST_LONG_SIZE (HOST_LONG_BITS / 8)
-
 #define EXCP_INTERRUPT 	0x10000 /* async interruption */
 #define EXCP_HLT        0x10001 /* hlt instruction reached */
 #define EXCP_DEBUG      0x10002 /* cpu stopped after a breakpoint or singlestep */
@@ -155,15 +153,14 @@ typedef struct CPUTLBEntry {
     target_ulong addr_code;
     /* Addend to virtual address to get host address.  IO accesses
        use the corresponding iotlb value.  */
-    unsigned long addend;
+    uintptr_t addend;
     /* padding to get a power of two size */
 #if CPU_TLB_ENTRY_BITS == 5    // dummy is 0 on x86/32-bit, so MSVC compilation errors result. Only compute dummy for 64-bit.....
-    uint8_t dummy[(1 << CPU_TLB_ENTRY_BITS) - 
-                  (sizeof(target_ulong) * 3 + 
-                   ((-sizeof(target_ulong) * 3) & (sizeof(unsigned long) - 1)) + 
-                   sizeof(unsigned long))];
+    uint8_t dummy[(1 << CPU_TLB_ENTRY_BITS) -
+                  (sizeof(target_ulong) * 3 +
+                   ((-sizeof(target_ulong) * 3) & (sizeof(uintptr_t) - 1)) +
+                   sizeof(uintptr_t))];
 #endif
-
 } CPUTLBEntry;
 
 extern int CPUTLBEntry_wrong_size[sizeof(CPUTLBEntry) == (1 << CPU_TLB_ENTRY_BITS) ? 1 : -1];
@@ -226,8 +223,8 @@ typedef struct CPUWatchpoint {
     /* in order to avoid passing too many arguments to the MMIO         \
        helpers, we store some rarely used information in the CPU        \
        context) */                                                      \
-    unsigned long mem_io_pc; /* host pc at which the memory was         \
-                                accessed */                             \
+    uintptr_t mem_io_pc; /* host pc at which the memory was             \
+                            accessed */                                 \
     target_ulong mem_io_vaddr; /* target virtual addr at which the      \
                                      memory was accessed */             \
     uint32_t halted; /* Nonzero if the CPU is in suspend state */       \
@@ -262,7 +259,7 @@ typedef struct CPUWatchpoint {
     jmp_buf jmp_env;                                                    \
     int exception_index;                                                \
                                                                         \
-    CPUState *next_cpu; /* next CPU sharing TB cache */                 \
+    CPUArchState *next_cpu; /* next CPU sharing TB cache */                 \
     int cpu_index; /* CPU index (informative) */                        \
     uint32_t host_tid; /* host thread ID */                             \
     int numa_node; /* NUMA node this cpu is belonging to  */            \

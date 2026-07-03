@@ -28,7 +28,6 @@
 #define __QEMU_VNC_H
 
 #include "qemu-common.h"
-#include <WinSock2.h>
 #include "qemu-queue.h"
 #ifdef CONFIG_VNC_THREAD
 #include "qemu-thread.h"
@@ -305,6 +304,8 @@ struct VncState
     VncJob job;
 #else
     QemuMutex output_mutex;
+    QEMUBH *bh;
+    Buffer jobs_buffer;
 #endif
 
     /* Encoding specific, if you add something here, don't forget to

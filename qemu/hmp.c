@@ -14,6 +14,7 @@
  */
 
 #include "hmp.h"
+#include "qemu-timer.h"
 #include "qmp-commands.h"
 
 static void hmp_handle_error(Monitor *mon, Error **errp)
@@ -349,6 +350,8 @@ void hmp_info_spice(Monitor *mon)
     }
     monitor_printf(mon, "        auth: %s\n", info->auth);
     monitor_printf(mon, "    compiled: %s\n", info->compiled_version);
+    monitor_printf(mon, "  mouse-mode: %s\n",
+                   SpiceQueryMouseMode_lookup[info->mouse_mode]);
 
     if (!info->has_channels || info->channels == NULL) {
         monitor_printf(mon, "Channels: none\n");
@@ -692,6 +695,8 @@ void hmp_snapshot_blkdev(Monitor *mon, const QDict *qdict)
     const char *device = qdict_get_str(qdict, "device");
     const char *filename = qdict_get_try_str(qdict, "snapshot-file");
     const char *format = qdict_get_try_str(qdict, "format");
+    int reuse = qdict_get_try_bool(qdict, "reuse", 0);
+    enum NewImageMode mode;
     Error *errp = NULL;
 
     if (!filename) {
@@ -702,7 +707,9 @@ void hmp_snapshot_blkdev(Monitor *mon, const QDict *qdict)
         return;
     }
 
-    qmp_blockdev_snapshot_sync(device, filename, !!format, format, &errp);
+    mode = reuse ? NEW_IMAGE_MODE_EXISTING : NEW_IMAGE_MODE_ABSOLUTE_PATHS;
+    qmp_blockdev_snapshot_sync(device, filename, !!format, format,
+                               true, mode, &errp);
     hmp_handle_error(mon, &errp);
 }
 
@@ -830,8 +837,10 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
     Error *error = NULL;
     const char *device = qdict_get_str(qdict, "device");
     const char *base = qdict_get_try_str(qdict, "base");
+    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
 
-    qmp_block_stream(device, base != NULL, base, &error);
+    qmp_block_stream(device, base != NULL, base,
+                     qdict_haskey(qdict, "speed"), speed, &error);
 
     hmp_handle_error(mon, &error);
 }
@@ -840,7 +849,7 @@ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
 {
     Error *error = NULL;
     const char *device = qdict_get_str(qdict, "device");
-    int64_t value = qdict_get_int(qdict, "value");
+    int64_t value = qdict_get_int(qdict, "speed");
 
     qmp_block_job_set_speed(device, value, &error);
 
@@ -855,4 +864,86 @@ void hmp_block_job_cancel(Monitor *mon, const QDict *qdict)
     qmp_block_job_cancel(device, &error);
 
     hmp_handle_error(mon, &error);
+}
+
+typedef struct MigrationStatus
+{
+    QEMUTimer *timer;
+    Monitor *mon;
+    bool is_block_migration;
+} MigrationStatus;
+
+static void hmp_migrate_status_cb(void *opaque)
+{
+    MigrationStatus *status = opaque;
+    MigrationInfo *info;
+
+    info = qmp_query_migrate(NULL);
+    if (!info->has_status || strcmp(info->status, "active") == 0) {
+        if (info->has_disk) {
+            int progress;
+
+            if (info->disk->remaining) {
+                progress = info->disk->transferred * 100 / info->disk->total;
+            } else {
+                progress = 100;
+            }
+
+            monitor_printf(status->mon, "Completed %d %%\r", progress);
+            monitor_flush(status->mon);
+        }
+
+        qemu_mod_timer(status->timer, qemu_get_clock_ms(rt_clock) + 1000);
+    } else {
+        if (status->is_block_migration) {
+            monitor_printf(status->mon, "\n");
+        }
+        monitor_resume(status->mon);
+        qemu_del_timer(status->timer);
+        g_free(status);
+    }
+
+    qapi_free_MigrationInfo(info);
+}
+
+void hmp_migrate(Monitor *mon, const QDict *qdict)
+{
+    int detach = qdict_get_try_bool(qdict, "detach", 0);
+    int blk = qdict_get_try_bool(qdict, "blk", 0);
+    int inc = qdict_get_try_bool(qdict, "inc", 0);
+    const char *uri = qdict_get_str(qdict, "uri");
+    Error *err = NULL;
+
+    qmp_migrate(uri, !!blk, blk, !!inc, inc, false, false, &err);
+    if (err) {
+        monitor_printf(mon, "migrate: %s\n", error_get_pretty(err));
+        error_free(err);
+        return;
+    }
+
+    if (!detach) {
+        MigrationStatus *status;
+
+        if (monitor_suspend(mon) < 0) {
+            monitor_printf(mon, "terminal does not allow synchronous "
+                           "migration, continuing detached\n");
+            return;
+        }
+
+        status = g_malloc0(sizeof(*status));
+        status->mon = mon;
+        status->is_block_migration = blk || inc;
+        status->timer = qemu_new_timer_ms(rt_clock, hmp_migrate_status_cb,
+                                          status);
+        qemu_mod_timer(status->timer, qemu_get_clock_ms(rt_clock));
+    }
+}
+
+void hmp_device_del(Monitor *mon, const QDict *qdict)
+{
+    const char *id = qdict_get_str(qdict, "id");
+    Error *err = NULL;
+
+    qmp_device_del(id, &err);
+    hmp_handle_error(mon, &err);
 }

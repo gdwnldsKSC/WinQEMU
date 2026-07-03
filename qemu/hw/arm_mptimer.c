@@ -97,7 +97,6 @@ static uint64_t timerblock_read(void *opaque, target_phys_addr_t addr,
 {
     timerblock *tb = (timerblock *)opaque;
     int64_t val;
-    addr &= 0x1f;
     switch (addr) {
     case 0: /* Load */
         return tb->load;
@@ -126,7 +125,6 @@ static void timerblock_write(void *opaque, target_phys_addr_t addr,
 {
     timerblock *tb = (timerblock *)opaque;
     int64_t old;
-    addr &= 0x1f;
     switch (addr) {
     case 0: /* Load */
         tb->load = value;
@@ -230,6 +228,9 @@ static void timerblock_reset(timerblock *tb)
     tb->control = 0;
     tb->status = 0;
     tb->tick = 0;
+    if (tb->timer) {
+        qemu_del_timer(tb->timer);
+    }
 }
 
 static void arm_mptimer_reset(DeviceState *dev)

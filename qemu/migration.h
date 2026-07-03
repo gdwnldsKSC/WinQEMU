@@ -26,7 +26,6 @@ struct MigrationState
     int64_t bandwidth_limit;
     QEMUFile *file;
     int fd;
-    Monitor *mon;
     int state;
     int (*get_error)(MigrationState *s);
     int (*close)(MigrationState *s);
@@ -38,9 +37,7 @@ struct MigrationState
 
 void process_incoming_migration(QEMUFile *f);
 
-int qemu_start_incoming_migration(const char *uri);
-
-int do_migrate(Monitor *mon, const QDict *qdict, QObject **ret_data);
+int qemu_start_incoming_migration(const char *uri, Error **errp);
 
 uint64_t migrate_max_downtime(void);
 
@@ -52,9 +49,10 @@ int exec_start_incoming_migration(const char *host_port);
 
 int exec_start_outgoing_migration(MigrationState *s, const char *host_port);
 
-int tcp_start_incoming_migration(const char *host_port);
+int tcp_start_incoming_migration(const char *host_port, Error **errp);
 
-int tcp_start_outgoing_migration(MigrationState *s, const char *host_port);
+int tcp_start_outgoing_migration(MigrationState *s, const char *host_port,
+                                 Error **errp);
 
 int unix_start_incoming_migration(const char *path);
 
@@ -78,7 +76,7 @@ uint64_t ram_bytes_remaining(void);
 uint64_t ram_bytes_transferred(void);
 uint64_t ram_bytes_total(void);
 
-int ram_save_live(Monitor *mon, QEMUFile *f, int stage, void *opaque);
+int ram_save_live(QEMUFile *f, int stage, void *opaque);
 int ram_load(QEMUFile *f, void *opaque, int version_id);
 
 /**

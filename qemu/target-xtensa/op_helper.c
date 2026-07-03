@@ -27,11 +27,11 @@
 
 #include "cpu.h"
 #include "dyngen-exec.h"
-#include "helpers.h"
+#include "helper.h"
 #include "host-utils.h"
 
 static void do_unaligned_access(target_ulong addr, int is_write, int is_user,
-        void *retaddr);
+                                uintptr_t retaddr);
 
 #define ALIGNED_ONLY
 #define MMUSUFFIX _mmu
@@ -48,10 +48,9 @@ static void do_unaligned_access(target_ulong addr, int is_write, int is_user,
 #define SHIFT 3
 #include "softmmu_template.h"
 
-static void do_restore_state(void *pc_ptr)
+static void do_restore_state(uintptr_t pc)
 {
     TranslationBlock *tb;
-    uint32_t pc = (uint32_t)(intptr_t)pc_ptr;
 
     tb = tb_find_pc(pc);
     if (tb) {
@@ -60,7 +59,7 @@ static void do_restore_state(void *pc_ptr)
 }
 
 static void do_unaligned_access(target_ulong addr, int is_write, int is_user,
-        void *retaddr)
+                                uintptr_t retaddr)
 {
     if (xtensa_option_enabled(env->config, XTENSA_OPTION_UNALIGNED_EXCEPTION) &&
             !xtensa_option_enabled(env->config, XTENSA_OPTION_HW_ALIGNMENT)) {
@@ -70,10 +69,10 @@ static void do_unaligned_access(target_ulong addr, int is_write, int is_user,
     }
 }
 
-void tlb_fill(CPUState *env1, target_ulong vaddr, int is_write, int mmu_idx,
-              void *retaddr)
+void tlb_fill(CPUXtensaState *env1, target_ulong vaddr, int is_write, int mmu_idx,
+              uintptr_t retaddr)
 {
-    CPUState *saved_env = env;
+    CPUXtensaState *saved_env = env;
 
     env = env1;
     {
@@ -97,6 +96,18 @@ void tlb_fill(CPUState *env1, target_ulong vaddr, int is_write, int mmu_idx,
         }
     }
     env = saved_env;
+}
+
+static void tb_invalidate_virtual_addr(CPUXtensaState *env, uint32_t vaddr)
+{
+    uint32_t paddr;
+    uint32_t page_size;
+    unsigned access;
+    int ret = xtensa_get_physical_addr(env, vaddr, 2, 0,
+            &paddr, &page_size, &access);
+    if (ret == 0) {
+        tb_invalidate_phys_addr(paddr);
+    }
 }
 
 void HELPER(exception)(uint32_t excp)
@@ -134,7 +145,7 @@ void HELPER(exception_cause_vaddr)(uint32_t pc, uint32_t cause, uint32_t vaddr)
     HELPER(exception_cause)(pc, cause);
 }
 
-void debug_exception_env(CPUState *new_env, uint32_t cause)
+void debug_exception_env(CPUXtensaState *new_env, uint32_t cause)
 {
     if (xtensa_get_cintlevel(new_env) < new_env->config->debug_level) {
         env = new_env;
@@ -168,7 +179,7 @@ uint32_t HELPER(nsau)(uint32_t v)
     return v ? clz32(v) : 32;
 }
 
-static void copy_window_from_phys(CPUState *env,
+static void copy_window_from_phys(CPUXtensaState *env,
         uint32_t window, uint32_t phys, uint32_t n)
 {
     assert(phys < env->config->nareg);
@@ -184,7 +195,7 @@ static void copy_window_from_phys(CPUState *env,
     }
 }
 
-static void copy_phys_from_window(CPUState *env,
+static void copy_phys_from_window(CPUXtensaState *env,
         uint32_t phys, uint32_t window, uint32_t n)
 {
     assert(phys < env->config->nareg);
@@ -201,22 +212,22 @@ static void copy_phys_from_window(CPUState *env,
 }
 
 
-static inline unsigned windowbase_bound(unsigned a, const CPUState *env)
+static inline unsigned windowbase_bound(unsigned a, const CPUXtensaState *env)
 {
     return a & (env->config->nareg / 4 - 1);
 }
 
-static inline unsigned windowstart_bit(unsigned a, const CPUState *env)
+static inline unsigned windowstart_bit(unsigned a, const CPUXtensaState *env)
 {
     return 1 << windowbase_bound(a, env);
 }
 
-void xtensa_sync_window_from_phys(CPUState *env)
+void xtensa_sync_window_from_phys(CPUXtensaState *env)
 {
     copy_window_from_phys(env, 0, env->sregs[WINDOW_BASE] * 4, 16);
 }
 
-void xtensa_sync_phys_from_window(CPUState *env)
+void xtensa_sync_phys_from_window(CPUXtensaState *env)
 {
     copy_phys_from_window(env, env->sregs[WINDOW_BASE] * 4, 0, 16);
 }
@@ -358,8 +369,7 @@ void HELPER(movsp)(uint32_t pc)
 void HELPER(wsr_lbeg)(uint32_t v)
 {
     if (env->sregs[LBEG] != v) {
-        tb_invalidate_phys_page_range(
-                env->sregs[LEND] - 1, env->sregs[LEND], 0);
+        tb_invalidate_virtual_addr(env, env->sregs[LEND] - 1);
         env->sregs[LBEG] = v;
     }
 }
@@ -367,11 +377,9 @@ void HELPER(wsr_lbeg)(uint32_t v)
 void HELPER(wsr_lend)(uint32_t v)
 {
     if (env->sregs[LEND] != v) {
-        tb_invalidate_phys_page_range(
-                env->sregs[LEND] - 1, env->sregs[LEND], 0);
+        tb_invalidate_virtual_addr(env, env->sregs[LEND] - 1);
         env->sregs[LEND] = v;
-        tb_invalidate_phys_page_range(
-                env->sregs[LEND] - 1, env->sregs[LEND], 0);
+        tb_invalidate_virtual_addr(env, env->sregs[LEND] - 1);
     }
 }
 
@@ -409,7 +417,7 @@ void HELPER(advance_ccount)(uint32_t d)
     xtensa_advance_ccount(env, d);
 }
 
-void HELPER(check_interrupts)(CPUState *env)
+void HELPER(check_interrupts)(CPUXtensaState *env)
 {
     check_interrupts(env);
 }
@@ -423,7 +431,7 @@ void HELPER(wsr_rasid)(uint32_t v)
     }
 }
 
-static uint32_t get_page_size(const CPUState *env, bool dtlb, uint32_t way)
+static uint32_t get_page_size(const CPUXtensaState *env, bool dtlb, uint32_t way)
 {
     uint32_t tlbcfg = env->sregs[dtlb ? DTLBCFG : ITLBCFG];
 
@@ -445,7 +453,7 @@ static uint32_t get_page_size(const CPUState *env, bool dtlb, uint32_t way)
 /*!
  * Get bit mask for the virtual address bits translated by the TLB way
  */
-uint32_t xtensa_tlb_get_addr_mask(const CPUState *env, bool dtlb, uint32_t way)
+uint32_t xtensa_tlb_get_addr_mask(const CPUXtensaState *env, bool dtlb, uint32_t way)
 {
     if (xtensa_option_enabled(env->config, XTENSA_OPTION_MMU)) {
         bool varway56 = dtlb ?
@@ -482,7 +490,7 @@ uint32_t xtensa_tlb_get_addr_mask(const CPUState *env, bool dtlb, uint32_t way)
  * Get bit mask for the 'VPN without index' field.
  * See ISA, 4.6.5.6, data format for RxTLB0
  */
-static uint32_t get_vpn_mask(const CPUState *env, bool dtlb, uint32_t way)
+static uint32_t get_vpn_mask(const CPUXtensaState *env, bool dtlb, uint32_t way)
 {
     if (way < 4) {
         bool is32 = (dtlb ?
@@ -511,7 +519,7 @@ static uint32_t get_vpn_mask(const CPUState *env, bool dtlb, uint32_t way)
  * Split virtual address into VPN (with index) and entry index
  * for the given TLB way
  */
-void split_tlb_entry_spec_way(const CPUState *env, uint32_t v, bool dtlb,
+void split_tlb_entry_spec_way(const CPUXtensaState *env, uint32_t v, bool dtlb,
         uint32_t *vpn, uint32_t wi, uint32_t *ei)
 {
     bool varway56 = dtlb ?
@@ -647,7 +655,7 @@ uint32_t HELPER(ptlb)(uint32_t v, uint32_t dtlb)
     }
 }
 
-void xtensa_tlb_set_entry(CPUState *env, bool dtlb,
+void xtensa_tlb_set_entry(CPUXtensaState *env, bool dtlb,
         unsigned wi, unsigned ei, uint32_t vpn, uint32_t pte)
 {
     xtensa_tlb_entry *entry = xtensa_tlb_get_entry(env, dtlb, wi, ei);
@@ -692,8 +700,7 @@ void HELPER(wsr_ibreakenable)(uint32_t v)
 
     for (i = 0; i < env->config->nibreak; ++i) {
         if (change & (1 << i)) {
-            tb_invalidate_phys_page_range(
-                    env->sregs[IBREAKA + i], env->sregs[IBREAKA + i] + 1, 0);
+            tb_invalidate_virtual_addr(env, env->sregs[IBREAKA + i]);
         }
     }
     env->sregs[IBREAKENABLE] = v & ((1 << env->config->nibreak) - 1);
@@ -702,9 +709,8 @@ void HELPER(wsr_ibreakenable)(uint32_t v)
 void HELPER(wsr_ibreaka)(uint32_t i, uint32_t v)
 {
     if (env->sregs[IBREAKENABLE] & (1 << i) && env->sregs[IBREAKA + i] != v) {
-        tb_invalidate_phys_page_range(
-                env->sregs[IBREAKA + i], env->sregs[IBREAKA + i] + 1, 0);
-        tb_invalidate_phys_page_range(v, v + 1, 0);
+        tb_invalidate_virtual_addr(env, env->sregs[IBREAKA + i]);
+        tb_invalidate_virtual_addr(env, v);
     }
     env->sregs[IBREAKA + i] = v;
 }

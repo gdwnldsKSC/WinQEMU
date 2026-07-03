@@ -23,7 +23,7 @@
 
 #define ELF_MACHINE	EM_ARM
 
-#define CPUState struct CPUARMState
+#define CPUArchState struct CPUARMState
 
 #include "config.h"
 #include "qemu-common.h"
@@ -170,9 +170,6 @@ typedef struct CPUARMState {
     uint32_t teecr;
     uint32_t teehbr;
 
-    /* Internal CPU feature flags.  */
-    uint32_t features;
-
     /* VFP coprocessor state.  */
     struct {
         float64 regs[32];
@@ -216,6 +213,9 @@ typedef struct CPUARMState {
         uint32_t cregs[16];
     } iwmmxt;
 
+    /* For mixed endian mode.  */
+    bool bswap_code;
+
 #if defined(CONFIG_USER_ONLY)
     /* For usermode syscall translation.  */
     int eabi;
@@ -224,6 +224,9 @@ typedef struct CPUARMState {
     CPU_COMMON
 
     /* These fields after the common ones so they are preserved on reset.  */
+
+    /* Internal CPU feature flags.  */
+    uint32_t features;
 
     /* Coprocessor IO used by peripherals */
     struct {
@@ -235,10 +238,11 @@ typedef struct CPUARMState {
     const struct arm_boot_info *boot_info;
 } CPUARMState;
 
-CPUARMState *cpu_arm_init(const char *cpu_model);
+#include "cpu-qom.h"
+
+ARMCPU *cpu_arm_init(const char *cpu_model);
 void arm_translate_init(void);
 int cpu_arm_exec(CPUARMState *s);
-void cpu_arm_close(CPUARMState *s);
 void do_interrupt(CPUARMState *);
 void switch_mode(CPUARMState *, int);
 uint32_t do_arm_semihosting(CPUARMState *env);
@@ -358,6 +362,10 @@ enum arm_cpu_mode {
 #define ARM_IWMMXT_wCGR2	10
 #define ARM_IWMMXT_wCGR3	11
 
+/* If adding a feature bit which corresponds to a Linux ELF
+ * HWCAP bit, remember to update the feature-bit-to-hwcap
+ * mapping in linux-user/elfload.c:get_elf_hwcap().
+ */
 enum arm_features {
     ARM_FEATURE_VFP,
     ARM_FEATURE_AUXCR,  /* ARM1026 Auxiliary control register.  */
@@ -383,6 +391,7 @@ enum arm_features {
     ARM_FEATURE_ARM_DIV, /* divide supported in ARM encoding */
     ARM_FEATURE_VFP4, /* VFPv4 (implies that NEON is v2) */
     ARM_FEATURE_GENERIC_TIMER,
+    ARM_FEATURE_MVFR, /* Media and VFP Feature Registers 0 and 1 */
 };
 
 static inline int arm_feature(CPUARMState *env, int feature)
@@ -449,7 +458,15 @@ void cpu_arm_set_cp_io(CPUARMState *env, int cpnum,
 #define TARGET_PHYS_ADDR_SPACE_BITS 32
 #define TARGET_VIRT_ADDR_SPACE_BITS 32
 
-#define cpu_init cpu_arm_init
+static inline CPUARMState *cpu_init(const char *cpu_model)
+{
+    ARMCPU *cpu = cpu_arm_init(cpu_model);
+    if (cpu) {
+        return &cpu->env;
+    }
+    return NULL;
+}
+
 #define cpu_exec cpu_arm_exec
 #define cpu_gen_code cpu_arm_gen_code
 #define cpu_signal_handler cpu_arm_signal_handler
@@ -461,13 +478,13 @@ void cpu_arm_set_cp_io(CPUARMState *env, int cpnum,
 #define MMU_MODE0_SUFFIX _kernel
 #define MMU_MODE1_SUFFIX _user
 #define MMU_USER_IDX 1
-static inline int cpu_mmu_index (CPUState *env)
+static inline int cpu_mmu_index (CPUARMState *env)
 {
     return (env->uncached_cpsr & CPSR_M) == ARM_CPU_MODE_USR ? 1 : 0;
 }
 
 #if defined(CONFIG_USER_ONLY)
-static inline void cpu_clone_regs(CPUState *env, target_ulong newsp)
+static inline void cpu_clone_regs(CPUARMState *env, target_ulong newsp)
 {
     if (newsp)
         env->regs[13] = newsp;
@@ -490,7 +507,9 @@ static inline void cpu_clone_regs(CPUState *env, target_ulong newsp)
 #define ARM_TBFLAG_VFPEN_MASK       (1 << ARM_TBFLAG_VFPEN_SHIFT)
 #define ARM_TBFLAG_CONDEXEC_SHIFT   8
 #define ARM_TBFLAG_CONDEXEC_MASK    (0xff << ARM_TBFLAG_CONDEXEC_SHIFT)
-/* Bits 31..16 are currently unused. */
+#define ARM_TBFLAG_BSWAP_CODE_SHIFT 16
+#define ARM_TBFLAG_BSWAP_CODE_MASK  (1 << ARM_TBFLAG_BSWAP_CODE_SHIFT)
+/* Bits 31..17 are currently unused. */
 
 /* some convenience accessor macros */
 #define ARM_TBFLAG_THUMB(F) \
@@ -505,8 +524,10 @@ static inline void cpu_clone_regs(CPUState *env, target_ulong newsp)
     (((F) & ARM_TBFLAG_VFPEN_MASK) >> ARM_TBFLAG_VFPEN_SHIFT)
 #define ARM_TBFLAG_CONDEXEC(F) \
     (((F) & ARM_TBFLAG_CONDEXEC_MASK) >> ARM_TBFLAG_CONDEXEC_SHIFT)
+#define ARM_TBFLAG_BSWAP_CODE(F) \
+    (((F) & ARM_TBFLAG_BSWAP_CODE_MASK) >> ARM_TBFLAG_BSWAP_CODE_SHIFT)
 
-static inline void cpu_get_tb_cpu_state(CPUState *env, target_ulong *pc,
+static inline void cpu_get_tb_cpu_state(CPUARMState *env, target_ulong *pc,
                                         target_ulong *cs_base, int *flags)
 {
     int privmode;
@@ -515,7 +536,8 @@ static inline void cpu_get_tb_cpu_state(CPUState *env, target_ulong *pc,
     *flags = (env->thumb << ARM_TBFLAG_THUMB_SHIFT)
         | (env->vfp.vec_len << ARM_TBFLAG_VECLEN_SHIFT)
         | (env->vfp.vec_stride << ARM_TBFLAG_VECSTRIDE_SHIFT)
-        | (env->condexec_bits << ARM_TBFLAG_CONDEXEC_SHIFT);
+        | (env->condexec_bits << ARM_TBFLAG_CONDEXEC_SHIFT)
+        | (env->bswap_code << ARM_TBFLAG_BSWAP_CODE_SHIFT);
     if (arm_feature(env, ARM_FEATURE_M)) {
         privmode = !((env->v7m.exception == 0) && (env->v7m.control & 1));
     } else {
@@ -529,7 +551,7 @@ static inline void cpu_get_tb_cpu_state(CPUState *env, target_ulong *pc,
     }
 }
 
-static inline bool cpu_has_work(CPUState *env)
+static inline bool cpu_has_work(CPUARMState *env)
 {
     return env->interrupt_request &
         (CPU_INTERRUPT_FIQ | CPU_INTERRUPT_HARD | CPU_INTERRUPT_EXITTB);
@@ -537,9 +559,29 @@ static inline bool cpu_has_work(CPUState *env)
 
 #include "exec-all.h"
 
-static inline void cpu_pc_from_tb(CPUState *env, TranslationBlock *tb)
+static inline void cpu_pc_from_tb(CPUARMState *env, TranslationBlock *tb)
 {
     env->regs[15] = tb->pc;
+}
+
+/* Load an instruction and return it in the standard little-endian order */
+static inline uint32_t arm_ldl_code(uint32_t addr, bool do_swap)
+{
+    uint32_t insn = ldl_code(addr);
+    if (do_swap) {
+        return bswap32(insn);
+    }
+    return insn;
+}
+
+/* Ditto, for a halfword (Thumb) instruction */
+static inline uint16_t arm_lduw_code(uint32_t addr, bool do_swap)
+{
+    uint16_t insn = lduw_code(addr);
+    if (do_swap) {
+        return bswap16(insn);
+    }
+    return insn;
 }
 
 #endif

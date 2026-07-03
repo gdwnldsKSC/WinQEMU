@@ -166,6 +166,12 @@ QError *qobject_to_qerror(const QObject *obj);
 #define QERR_KVM_MISSING_CAP \
     "{ 'class': 'KVMMissingCap', 'data': { 'capability': %s, 'feature': %s } }"
 
+#define QERR_MIGRATION_ACTIVE \
+    "{ 'class': 'MigrationActive', 'data': {} }"
+
+#define QERR_MIGRATION_NOT_SUPPORTED \
+    "{ 'class': 'MigrationNotSupported', 'data': {'device': %s} }"
+
 #define QERR_MIGRATION_EXPECTED \
     "{ 'class': 'MigrationExpected', 'data': {} }"
 
@@ -195,6 +201,10 @@ QError *qobject_to_qerror(const QObject *obj);
 
 #define QERR_PROPERTY_VALUE_NOT_FOUND \
     "{ 'class': 'PropertyValueNotFound', 'data': { 'device': %s, 'property': %s, 'value': %s } }"
+
+#define QERR_PROPERTY_VALUE_NOT_POWER_OF_2 \
+    "{ 'class': 'PropertyValueNotPowerOf2', 'data': { " \
+    "'device': %s, 'property': %s, 'value': %"PRId64" } }"
 
 #define QERR_PROPERTY_VALUE_OUT_OF_RANGE \
     "{ 'class': 'PropertyValueOutOfRange', 'data': { 'device': %s, 'property': %s, 'value': %"PRId64", 'min': %"PRId64", 'max': %"PRId64" } }"
@@ -237,5 +247,20 @@ QError *qobject_to_qerror(const QObject *obj);
 
 #define QERR_VNC_SERVER_FAILED \
     "{ 'class': 'VNCServerFailed', 'data': { 'target': %s } }"
+
+#define QERR_SOCKET_CONNECT_IN_PROGRESS \
+    "{ 'class': 'SockConnectInprogress', 'data': {} }"
+
+#define QERR_SOCKET_CONNECT_FAILED \
+    "{ 'class': 'SockConnectFailed', 'data': {} }"
+
+#define QERR_SOCKET_LISTEN_FAILED \
+    "{ 'class': 'SockListenFailed', 'data': {} }"
+
+#define QERR_SOCKET_BIND_FAILED \
+    "{ 'class': 'SockBindFailed', 'data': {} }"
+
+#define QERR_SOCKET_CREATE_FAILED \
+    "{ 'class': 'SockCreateFailed', 'data': {} }"
 
 #endif /* QERROR_H */

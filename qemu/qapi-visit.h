@@ -77,6 +77,8 @@ void visit_type_VncInfoList(Visitor *m, VncInfoList ** obj, const char *name, Er
 void visit_type_SpiceChannel(Visitor *m, SpiceChannel ** obj, const char *name, Error **errp);
 void visit_type_SpiceChannelList(Visitor *m, SpiceChannelList ** obj, const char *name, Error **errp);
 
+void visit_type_SpiceQueryMouseMode(Visitor *m, SpiceQueryMouseMode * obj, const char *name, Error **errp);
+
 void visit_type_SpiceInfo(Visitor *m, SpiceInfo ** obj, const char *name, Error **errp);
 void visit_type_SpiceInfoList(Visitor *m, SpiceInfoList ** obj, const char *name, Error **errp);
 
@@ -101,8 +103,15 @@ void visit_type_PciInfoList(Visitor *m, PciInfoList ** obj, const char *name, Er
 void visit_type_BlockJobInfo(Visitor *m, BlockJobInfo ** obj, const char *name, Error **errp);
 void visit_type_BlockJobInfoList(Visitor *m, BlockJobInfoList ** obj, const char *name, Error **errp);
 
-void visit_type_SnapshotDev(Visitor *m, SnapshotDev ** obj, const char *name, Error **errp);
-void visit_type_SnapshotDevList(Visitor *m, SnapshotDevList ** obj, const char *name, Error **errp);
+void visit_type_NewImageMode(Visitor *m, NewImageMode * obj, const char *name, Error **errp);
+
+void visit_type_BlockdevSnapshot(Visitor *m, BlockdevSnapshot ** obj, const char *name, Error **errp);
+void visit_type_BlockdevSnapshotList(Visitor *m, BlockdevSnapshotList ** obj, const char *name, Error **errp);
+
+void visit_type_BlockdevActionKind(Visitor *m, BlockdevActionKind * obj, const char *name, Error **errp);
+
+void visit_type_BlockdevAction(Visitor *m, BlockdevAction ** obj, const char *name, Error **errp);
+void visit_type_BlockdevActionList(Visitor *m, BlockdevActionList ** obj, const char *name, Error **errp);
 
 void visit_type_ObjectPropertyInfo(Visitor *m, ObjectPropertyInfo ** obj, const char *name, Error **errp);
 void visit_type_ObjectPropertyInfoList(Visitor *m, ObjectPropertyInfoList ** obj, const char *name, Error **errp);

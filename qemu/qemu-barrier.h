@@ -1,6 +1,10 @@
 #ifndef __QEMU_BARRIER_H
 #define __QEMU_BARRIER_H 1
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 /* Compiler barrier */
 #ifndef _MSC_VER
 #define barrier()   asm volatile("" ::: "memory")
@@ -8,28 +12,53 @@
 #define barrier()   _ReadWriteBarrier()
 #endif
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__)
 
 /*
- * Because of the strongly ordered x86 storage model, wmb() is a nop
+ * Because of the strongly ordered x86 storage model, wmb() and rmb() are nops
  * on x86(well, a compiler barrier only).  Well, at least as long as
  * qemu doesn't do accesses to write-combining memory or non-temporal
  * load/stores from C code.
  */
-#ifndef _MSC_VER
 #define smp_wmb()   barrier()
+#define smp_rmb()   barrier()
+/*
+ * We use GCC builtin if it's available, as that can use
+ * mfence on 32 bit as well, e.g. if built with -march=pentium-m.
+ * However, on i386, there seem to be known bugs as recently as 4.3.
+ * */
+#if defined(_MSC_VER)
+/* MSVC modification: no GCC builtins or inline asm, use the mfence
+   intrinsic for a full memory barrier */
+#define smp_mb() _mm_mfence()
+#elif defined(__GNUC__) && __GNUC__ >= 4 && __GNUC_MINOR__ >= 4
+#define smp_mb() __sync_synchronize()
 #else
-#define smp_wmb()   _ReadWriteBarrier()
+#define smp_mb() asm volatile("lock; addl $0,0(%%esp) " ::: "memory")
 #endif
+
+#elif defined(__x86_64__)
+
+#define smp_wmb()   barrier()
+#define smp_rmb()   barrier()
+#define smp_mb() asm volatile("mfence" ::: "memory")
 
 #elif defined(_ARCH_PPC)
 
 /*
- * We use an eieio() for a wmb() on powerpc.  This assumes we don't
+ * We use an eieio() for wmb() on powerpc.  This assumes we don't
  * need to order cacheable and non-cacheable stores with respect to
  * each other
  */
 #define smp_wmb()   asm volatile("eieio" ::: "memory")
+
+#if defined(__powerpc64__)
+#define smp_rmb()   asm volatile("lwsync" ::: "memory")
+#else
+#define smp_rmb()   asm volatile("sync" ::: "memory")
+#endif
+
+#define smp_mb()   asm volatile("sync" ::: "memory")
 
 #else
 
@@ -37,9 +66,11 @@
  * For (host) platforms we don't have explicit barrier definitions
  * for, we use the gcc __sync_synchronize() primitive to generate a
  * full barrier.  This should be safe on all platforms, though it may
- * be overkill.
+ * be overkill for wmb() and rmb().
  */
 #define smp_wmb()   __sync_synchronize()
+#define smp_mb()   __sync_synchronize()
+#define smp_rmb()   __sync_synchronize()
 
 #endif
 

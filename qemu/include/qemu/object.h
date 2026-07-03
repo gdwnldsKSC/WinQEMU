@@ -555,11 +555,28 @@ ObjectClass *object_class_dynamic_cast(ObjectClass *klass,
  */
 const char *object_class_get_name(ObjectClass *klass);
 
+/**
+ * object_class_by_name:
+ * @typename: The QOM typename to obtain the class for.
+ *
+ * Returns: The class for @typename or %NULL if not found.
+ */
 ObjectClass *object_class_by_name(const char *typename);
 
 void object_class_foreach(void (*fn)(ObjectClass *klass, void *opaque),
                           const char *implements_type, bool include_abstract,
                           void *opaque);
+
+/**
+ * object_class_get_list:
+ * @implements_type: The type to filter for, including its derivatives.
+ * @include_abstract: Whether to include abstract classes.
+ *
+ * Returns: A singly-linked list of the classes in reverse hashtable order.
+ */
+GSList *object_class_get_list(const char *implements_type,
+                              bool include_abstract);
+
 /**
  * object_ref:
  * @obj: the object
@@ -826,6 +843,18 @@ Object *object_resolve_path_type(const char *path, const char *typename,
                                  bool *ambiguous);
 
 /**
+ * object_resolve_path_component:
+ * @parent: the object in which to resolve the path
+ * @part: the component to resolve.
+ *
+ * This is similar to object_resolve_path with an absolute path, but it
+ * only resolves one element (@part) and takes the others from @parent.
+ *
+ * Returns: The resolved object or NULL on path lookup failure.
+ */
+Object *object_resolve_path_component(Object *parent, gchar *part);
+
+/**
  * object_property_add_child:
  * @obj: the object to add a property to
  * @name: the name of the property
@@ -879,5 +908,18 @@ void object_property_add_str(Object *obj, const char *name,
                              char *(*get)(Object *, struct Error **),
                              void (*set)(Object *, const char *, struct Error **),
                              struct Error **errp);
+
+/**
+ * container_get:
+ * @root: root of the #path, e.g., object_get_root()
+ * @path: path to the container
+ *
+ * Return a container object whose path is @path.  Create more containers
+ * along the path if necessary.
+ *
+ * Returns: the container object.
+ */
+Object *container_get(Object *root, const char *path);
+
 
 #endif

@@ -31,11 +31,10 @@ static void qxl_blit(PCIQXLDevice *qxl, QXLRect *rect)
         return;
     }
     if (!qxl->guest_primary.data) {
-        dprint(qxl, 1, "%s: initializing guest_primary.data\n", __func__);
+        trace_qxl_render_blit_guest_primary_initialized();
         qxl->guest_primary.data = memory_region_get_ram_ptr(&qxl->vga.vram);
     }
-    dprint(qxl, 2, "%s: stride %d, [%d, %d, %d, %d]\n", __func__,
-            qxl->guest_primary.qxl_stride,
+    trace_qxl_render_blit(qxl->guest_primary.qxl_stride,
             rect->left, rect->right, rect->top, rect->bottom);
     src = qxl->guest_primary.data;
     if (qxl->guest_primary.qxl_stride < 0) {
@@ -107,8 +106,7 @@ static void qxl_render_update_area_unlocked(PCIQXLDevice *qxl)
         qxl->guest_primary.data = memory_region_get_ram_ptr(&qxl->vga.vram);
         qxl_set_rect_to_surface(qxl, &qxl->dirty[0]);
         qxl->num_dirty_rects = 1;
-        dprint(qxl, 1, "%s: %dx%d, stride %d, bpp %d, depth %d\n",
-               __FUNCTION__,
+        trace_qxl_render_guest_primary_resized(
                qxl->guest_primary.surface.width,
                qxl->guest_primary.surface.height,
                qxl->guest_primary.qxl_stride,
@@ -118,8 +116,6 @@ static void qxl_render_update_area_unlocked(PCIQXLDevice *qxl)
     if (surface->width != qxl->guest_primary.surface.width ||
         surface->height != qxl->guest_primary.surface.height) {
         if (qxl->guest_primary.qxl_stride > 0) {
-            dprint(qxl, 1, "%s: using guest_primary for displaysurface\n",
-                   __func__);
             qemu_free_displaysurface(vga->ds);
             qemu_create_displaysurface_from(qxl->guest_primary.surface.width,
                                             qxl->guest_primary.surface.height,
@@ -127,12 +123,11 @@ static void qxl_render_update_area_unlocked(PCIQXLDevice *qxl)
                                             qxl->guest_primary.abs_stride,
                                             qxl->guest_primary.data);
         } else {
-            dprint(qxl, 1, "%s: resizing displaysurface to guest_primary\n",
-                   __func__);
             qemu_resize_displaysurface(vga->ds,
                     qxl->guest_primary.surface.width,
                     qxl->guest_primary.surface.height);
         }
+        dpy_resize(vga->ds);
     }
     for (i = 0; i < qxl->num_dirty_rects; i++) {
         if (qemu_spice_rect_is_empty(qxl->dirty+i)) {
@@ -187,6 +182,7 @@ void qxl_render_update_area_bh(void *opaque)
 void qxl_render_update_area_done(PCIQXLDevice *qxl, QXLCookie *cookie)
 {
     qemu_mutex_lock(&qxl->ssd.lock);
+    trace_qxl_render_update_area_done(cookie);
     qemu_bh_schedule(qxl->update_area_bh);
     qxl->render_update_cookie_num--;
     qemu_mutex_unlock(&qxl->ssd.lock);
@@ -232,14 +228,18 @@ fail:
 
 
 /* called from spice server thread context only */
-void qxl_render_cursor(PCIQXLDevice *qxl, QXLCommandExt *ext)
+int qxl_render_cursor(PCIQXLDevice *qxl, QXLCommandExt *ext)
 {
     QXLCursorCmd *cmd = qxl_phys2virt(qxl, ext->cmd.data, ext->group_id);
     QXLCursor *cursor;
     QEMUCursor *c;
 
+    if (!cmd) {
+        return 1;
+    }
+
     if (!qxl->ssd.ds->mouse_set || !qxl->ssd.ds->cursor_define) {
-        return;
+        return 0;
     }
 
     if (qxl->debug > 1 && cmd->type != QXL_CURSOR_MOVE) {
@@ -250,9 +250,12 @@ void qxl_render_cursor(PCIQXLDevice *qxl, QXLCommandExt *ext)
     switch (cmd->type) {
     case QXL_CURSOR_SET:
         cursor = qxl_phys2virt(qxl, cmd->u.set.shape, ext->group_id);
+        if (!cursor) {
+            return 1;
+        }
         if (cursor->chunk.data_size != cursor->data_size) {
             fprintf(stderr, "%s: multiple chunks\n", __FUNCTION__);
-            return;
+            return 1;
         }
         c = qxl_cursor(qxl, cursor);
         if (c == NULL) {
@@ -274,4 +277,5 @@ void qxl_render_cursor(PCIQXLDevice *qxl, QXLCommandExt *ext)
         qemu_mutex_unlock(&qxl->ssd.lock);
         break;
     }
+    return 0;
 }

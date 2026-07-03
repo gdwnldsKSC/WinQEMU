@@ -130,8 +130,6 @@
 
 #define SVM_CR0_SELECTIVE_MASK (1 << 3 | 1) /* TS and MP */
 
-MSC_PACKED_BEGIN_1
-
 struct QEMU_PACKED vmcb_control_area {
 	uint16_t intercept_cr_read;
 	uint16_t intercept_cr_write;
@@ -220,7 +218,5 @@ struct QEMU_PACKED vmcb {
 	struct vmcb_control_area control;
 	struct vmcb_save_area save;
 };
-
-MSC_PACKED_END
 
 #endif

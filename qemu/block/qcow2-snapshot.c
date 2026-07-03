@@ -26,8 +26,6 @@
 #include "block_int.h"
 #include "block/qcow2.h"
 
-MSC_PACKED_BEGIN_1
-
 typedef struct QEMU_PACKED QCowSnapshotHeader {
     /* header is 8 byte aligned */
     uint64_t l1_table_offset;
@@ -50,9 +48,8 @@ typedef struct QEMU_PACKED QCowSnapshotHeader {
 
 typedef struct QEMU_PACKED QCowSnapshotExtraData {
     uint64_t vm_state_size_large;
+    uint64_t disk_size;
 } QCowSnapshotExtraData;
-
-MSC_PACKED_END
 
 void qcow2_free_snapshots(BlockDriverState *bs)
 {
@@ -119,6 +116,12 @@ int qcow2_read_snapshots(BlockDriverState *bs)
 
         if (extra_data_size >= 8) {
             sn->vm_state_size = be64_to_cpu(extra.vm_state_size_large);
+        }
+
+        if (extra_data_size >= 16) {
+            sn->disk_size = be64_to_cpu(extra.disk_size);
+        } else {
+            sn->disk_size = bs->total_sectors * BDRV_SECTOR_SIZE;
         }
 
         /* Read snapshot ID */
@@ -201,6 +204,7 @@ static int qcow2_write_snapshots(BlockDriverState *bs)
 
         memset(&extra, 0, sizeof(extra));
         extra.vm_state_size_large = cpu_to_be64(sn->vm_state_size);
+        extra.disk_size = cpu_to_be64(sn->disk_size);
 
         id_str_size = strlen(sn->id_str);
         name_size = strlen(sn->name);
@@ -327,13 +331,14 @@ int qcow2_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
 
     /* Check that the ID is unique */
     if (find_snapshot_by_id(bs, sn_info->id_str) >= 0) {
-        return -ENOENT;
+        return -EEXIST;
     }
 
     /* Populate sn with passed data */
     sn->id_str = g_strdup(sn_info->id_str);
     sn->name = g_strdup(sn_info->name);
 
+    sn->disk_size = bs->total_sectors * BDRV_SECTOR_SIZE;
     sn->vm_state_size = sn_info->vm_state_size;
     sn->date_sec = sn_info->date_sec;
     sn->date_nsec = sn_info->date_nsec;
@@ -429,6 +434,13 @@ int qcow2_snapshot_goto(BlockDriverState *bs, const char *snapshot_id)
         return -ENOENT;
     }
     sn = &s->snapshots[snapshot_index];
+
+    if (sn->disk_size != bs->total_sectors * BDRV_SECTOR_SIZE) {
+        error_report("qcow2: Loading snapshots with different disk "
+            "size is not implemented");
+        ret = -ENOTSUP;
+        goto fail;
+    }
 
     /*
      * Make sure that the current L1 table is big enough to contain the whole

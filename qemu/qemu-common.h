@@ -77,6 +77,9 @@ typedef struct Monitor Monitor;
 #if !defined(ENOTSUP)
 #define ENOTSUP 4096
 #endif
+#if !defined(ECANCELED)
+#define ECANCELED 4097
+#endif
 #ifndef TIME_MAX
 #define TIME_MAX LONG_MAX
 #endif
@@ -273,7 +276,6 @@ ssize_t qemu_send_full(int fd, const void *buf, size_t count, int flags)
     QEMU_WARN_UNUSED_RESULT;
 ssize_t qemu_recv_full(int fd, void *buf, size_t count, int flags)
     QEMU_WARN_UNUSED_RESULT;
-void qemu_set_cloexec(int fd);
 
 #ifndef _WIN32
 int qemu_eventfd(int pipefd[2]);
@@ -321,7 +323,6 @@ typedef struct MACAddr MACAddr;
 typedef struct VLANState VLANState;
 typedef struct VLANClientState VLANClientState;
 typedef struct i2c_bus i2c_bus;
-typedef struct i2c_slave i2c_slave;
 typedef struct ISABus ISABus;
 typedef struct SMBusDevice SMBusDevice;
 typedef struct PCIHostState PCIHostState;
@@ -345,6 +346,7 @@ typedef struct SSIBus SSIBus;
 typedef struct EventNotifier EventNotifier;
 typedef struct VirtIODevice VirtIODevice;
 typedef struct QEMUSGList QEMUSGList;
+typedef struct SHPCDevice SHPCDevice;
 
 typedef uint64_t pcibus_t;
 

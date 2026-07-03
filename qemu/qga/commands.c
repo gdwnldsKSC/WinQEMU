@@ -29,6 +29,12 @@ void slog(const gchar *fmt, ...)
     va_end(ap);
 }
 
+int64_t qmp_guest_sync_delimited(int64_t id, Error **errp)
+{
+    ga_set_response_delimited(ga_state);
+    return id;
+}
+
 int64_t qmp_guest_sync(int64_t id, Error **errp)
 {
     return id;
@@ -46,7 +52,7 @@ struct GuestAgentInfo *qmp_guest_info(Error **err)
     GuestAgentCommandInfoList *cmd_info_list;
     char **cmd_list_head, **cmd_list;
 
-    info->version = g_strdup(QGA_VERSION);
+    info->version = g_strdup(QEMU_VERSION);
 
     cmd_list_head = cmd_list = qmp_get_command_list();
     if (*cmd_list_head == NULL) {

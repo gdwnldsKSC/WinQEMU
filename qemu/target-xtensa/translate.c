@@ -37,9 +37,9 @@
 #include "qemu-log.h"
 #include "sysemu.h"
 
-#include "helpers.h"
+#include "helper.h"
 #define GEN_HELPER 1
-#include "helpers.h"
+#include "helper.h"
 
 typedef struct DisasContext {
     const XtensaConfig *config;
@@ -159,18 +159,18 @@ void xtensa_translate_init(void)
 
     cpu_env = tcg_global_reg_new_ptr(TCG_AREG0, "env");
     cpu_pc = tcg_global_mem_new_i32(TCG_AREG0,
-            offsetof(CPUState, pc), "pc");
+            offsetof(CPUXtensaState, pc), "pc");
 
     for (i = 0; i < 16; i++) {
         cpu_R[i] = tcg_global_mem_new_i32(TCG_AREG0,
-                offsetof(CPUState, regs[i]),
+                offsetof(CPUXtensaState, regs[i]),
                 regnames[i]);
     }
 
     for (i = 0; i < 256; ++i) {
         if (sregnames[i]) {
             cpu_SR[i] = tcg_global_mem_new_i32(TCG_AREG0,
-                    offsetof(CPUState, sregs[i]),
+                    offsetof(CPUXtensaState, sregs[i]),
                     sregnames[i]);
         }
     }
@@ -178,12 +178,12 @@ void xtensa_translate_init(void)
     for (i = 0; i < 256; ++i) {
         if (uregnames[i]) {
             cpu_UR[i] = tcg_global_mem_new_i32(TCG_AREG0,
-                    offsetof(CPUState, uregs[i]),
+                    offsetof(CPUXtensaState, uregs[i]),
                     uregnames[i]);
         }
     }
 #define GEN_HELPER 2
-#include "helpers.h"
+#include "helper.h"
 }
 
 static inline bool option_bits_enabled(DisasContext *dc, uint64_t opt)
@@ -459,11 +459,13 @@ static void gen_rsr(DisasContext *dc, TCGv_i32 d, uint32_t sr)
 static void gen_wsr_lbeg(DisasContext *dc, uint32_t sr, TCGv_i32 s)
 {
     gen_helper_wsr_lbeg(s);
+    gen_jumpi_check_loop_end(dc, 0);
 }
 
 static void gen_wsr_lend(DisasContext *dc, uint32_t sr, TCGv_i32 s)
 {
     gen_helper_wsr_lend(s);
+    gen_jumpi_check_loop_end(dc, 0);
 }
 
 static void gen_wsr_sar(DisasContext *dc, uint32_t sr, TCGv_i32 s)
@@ -2276,7 +2278,7 @@ static void disas_xtensa_insn(DisasContext *dc)
 
                         tcg_gen_subi_i32(cpu_SR[LCOUNT], cpu_R[RRI8_S], 1);
                         tcg_gen_movi_i32(cpu_SR[LBEG], dc->next_pc);
-                        gen_wsr_lend(dc, LEND, tmp);
+                        gen_helper_wsr_lend(tmp);
                         tcg_temp_free(tmp);
 
                         if (BRI8_R > 8) {
@@ -2493,7 +2495,7 @@ invalid_opcode:
 #undef HAS_OPTION
 }
 
-static void check_breakpoint(CPUState *env, DisasContext *dc)
+static void check_breakpoint(CPUXtensaState *env, DisasContext *dc)
 {
     CPUBreakpoint *bp;
 
@@ -2508,7 +2510,7 @@ static void check_breakpoint(CPUState *env, DisasContext *dc)
     }
 }
 
-static void gen_ibreak_check(CPUState *env, DisasContext *dc)
+static void gen_ibreak_check(CPUXtensaState *env, DisasContext *dc)
 {
     unsigned i;
 
@@ -2522,7 +2524,7 @@ static void gen_ibreak_check(CPUState *env, DisasContext *dc)
 }
 
 static void gen_intermediate_code_internal(
-        CPUState *env, TranslationBlock *tb, int search_pc)
+        CPUXtensaState *env, TranslationBlock *tb, int search_pc)
 {
     DisasContext dc;
     int insn_count = 0;
@@ -2644,17 +2646,17 @@ static void gen_intermediate_code_internal(
     }
 }
 
-void gen_intermediate_code(CPUState *env, TranslationBlock *tb)
+void gen_intermediate_code(CPUXtensaState *env, TranslationBlock *tb)
 {
     gen_intermediate_code_internal(env, tb, 0);
 }
 
-void gen_intermediate_code_pc(CPUState *env, TranslationBlock *tb)
+void gen_intermediate_code_pc(CPUXtensaState *env, TranslationBlock *tb)
 {
     gen_intermediate_code_internal(env, tb, 1);
 }
 
-void cpu_dump_state(CPUState *env, FILE *f, fprintf_function cpu_fprintf,
+void cpu_dump_state(CPUXtensaState *env, FILE *f, fprintf_function cpu_fprintf,
         int flags)
 {
     int i, j;
@@ -2692,7 +2694,7 @@ void cpu_dump_state(CPUState *env, FILE *f, fprintf_function cpu_fprintf,
     }
 }
 
-void restore_state_to_opc(CPUState *env, TranslationBlock *tb, int pc_pos)
+void restore_state_to_opc(CPUXtensaState *env, TranslationBlock *tb, int pc_pos)
 {
     env->pc = gen_opc_pc[pc_pos];
 }

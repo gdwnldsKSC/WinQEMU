@@ -28,6 +28,7 @@
 #include "net.h"
 #include "qdev.h"
 #include "sysemu.h"
+#include "error.h"
 
 int qdev_hotplug = 0;
 static bool qdev_hot_added = false;
@@ -113,14 +114,14 @@ DeviceState *qdev_create(BusState *bus, const char *name)
     return dev;
 }
 
-DeviceState *qdev_try_create(BusState *bus, const char *name)
+DeviceState *qdev_try_create(BusState *bus, const char *type)
 {
     DeviceState *dev;
 
-    if (object_class_by_name(name) == NULL) {
+    if (object_class_by_name(type) == NULL) {
         return NULL;
     }
-    dev = DEVICE(object_new(name));
+    dev = DEVICE(object_new(type));
     if (!dev) {
         return NULL;
     }
@@ -152,6 +153,17 @@ int qdev_init(DeviceState *dev)
         qdev_free(dev);
         return rc;
     }
+
+    if (!OBJECT(dev)->parent) {
+        static int unattached_count = 0;
+        gchar *name = g_strdup_printf("device[%d]", unattached_count++);
+
+        object_property_add_child(container_get(qdev_get_machine(),
+                                                "/unattached"),
+                                  name, OBJECT(dev), NULL);
+        g_free(name);
+    }
+
     if (qdev_get_vmsd(dev)) {
         vmstate_register_with_alias_id(dev, -1, qdev_get_vmsd(dev), dev,
                                        dev->instance_id_alias,
@@ -172,19 +184,22 @@ void qdev_set_legacy_instance_id(DeviceState *dev, int alias_id,
     dev->alias_required_for_version = required_for_version;
 }
 
-int qdev_unplug(DeviceState *dev)
+void qdev_unplug(DeviceState *dev, Error **errp)
 {
     DeviceClass *dc = DEVICE_GET_CLASS(dev);
 
     if (!dev->parent_bus->allow_hotplug) {
-        qerror_report(QERR_BUS_NO_HOTPLUG, dev->parent_bus->name);
-        return -1;
+        error_set(errp, QERR_BUS_NO_HOTPLUG, dev->parent_bus->name);
+        return;
     }
     assert(dc->unplug != NULL);
 
     qdev_hot_removed = true;
 
-    return dc->unplug(dev);
+    if (dc->unplug(dev) < 0) {
+        error_set(errp, QERR_UNDEFINED_ERROR);
+        return;
+    }
 }
 
 static int qdev_reset_one(DeviceState *dev, void *opaque)
@@ -561,9 +576,12 @@ void qdev_property_add_legacy(DeviceState *dev, Property *prop,
 {
     gchar *name, *type;
 
-    if (!prop->info->print && !prop->info->parse) {
+    /* Register pointer properties as legacy properties */
+    if (!prop->info->print && !prop->info->parse &&
+        (prop->info->set || prop->info->get)) {
         return;
     }
+
     name = g_strdup_printf("legacy-%s", prop->name);
     type = g_strdup_printf("legacy<%s>",
                            prop->info->legacy_name ? prop->info->legacy_name : prop->info->name);
@@ -656,6 +674,17 @@ void device_reset(DeviceState *dev)
     if (klass->reset) {
         klass->reset(dev);
     }
+}
+
+Object *qdev_get_machine(void)
+{
+    static Object *dev;
+
+    if (dev == NULL) {
+        dev = container_get(object_get_root(), "/machine");
+    }
+
+    return dev;
 }
 
 static TypeInfo device_type_info = {

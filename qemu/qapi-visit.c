@@ -17,22 +17,32 @@
 
 void visit_type_NameInfo(Visitor *m, NameInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "NameInfo", name, sizeof(NameInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_name : NULL, "name", errp);
     if ((*obj)->has_name) {
         visit_type_str(m, (obj && *obj) ? &(*obj)->name : NULL, "name", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_NameInfoList(Visitor *m, NameInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         NameInfoList *native_i = (NameInfoList *)i;
         visit_type_NameInfo(m, &native_i->value, NULL, errp);
     }
@@ -42,23 +52,33 @@ void visit_type_NameInfoList(Visitor *m, NameInfoList ** obj, const char *name, 
 
 void visit_type_VersionInfo(Visitor *m, VersionInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "VersionInfo", name, sizeof(VersionInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_start_struct(m, NULL, "", "qemu", 0, errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->qemu.major : NULL, "major", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->qemu.minor : NULL, "minor", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->qemu.micro : NULL, "micro", errp);
     visit_end_struct(m, errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->package : NULL, "package", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_VersionInfoList(Visitor *m, VersionInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         VersionInfoList *native_i = (VersionInfoList *)i;
         visit_type_VersionInfo(m, &native_i->value, NULL, errp);
     }
@@ -68,19 +88,29 @@ void visit_type_VersionInfoList(Visitor *m, VersionInfoList ** obj, const char *
 
 void visit_type_KvmInfo(Visitor *m, KvmInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "KvmInfo", name, sizeof(KvmInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_bool(m, (obj && *obj) ? &(*obj)->enabled : NULL, "enabled", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->present : NULL, "present", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_KvmInfoList(Visitor *m, KvmInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         KvmInfoList *native_i = (KvmInfoList *)i;
         visit_type_KvmInfo(m, &native_i->value, NULL, errp);
     }
@@ -95,20 +125,30 @@ void visit_type_RunState(Visitor *m, RunState * obj, const char *name, Error **e
 
 void visit_type_StatusInfo(Visitor *m, StatusInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "StatusInfo", name, sizeof(StatusInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_bool(m, (obj && *obj) ? &(*obj)->running : NULL, "running", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->singlestep : NULL, "singlestep", errp);
     visit_type_RunState(m, (obj && *obj) ? &(*obj)->status : NULL, "status", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_StatusInfoList(Visitor *m, StatusInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         StatusInfoList *native_i = (StatusInfoList *)i;
         visit_type_StatusInfo(m, &native_i->value, NULL, errp);
     }
@@ -118,18 +158,28 @@ void visit_type_StatusInfoList(Visitor *m, StatusInfoList ** obj, const char *na
 
 void visit_type_UuidInfo(Visitor *m, UuidInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "UuidInfo", name, sizeof(UuidInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->UUID : NULL, "UUID", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_UuidInfoList(Visitor *m, UuidInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         UuidInfoList *native_i = (UuidInfoList *)i;
         visit_type_UuidInfo(m, &native_i->value, NULL, errp);
     }
@@ -139,19 +189,29 @@ void visit_type_UuidInfoList(Visitor *m, UuidInfoList ** obj, const char *name, 
 
 void visit_type_ChardevInfo(Visitor *m, ChardevInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "ChardevInfo", name, sizeof(ChardevInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->label : NULL, "label", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->filename : NULL, "filename", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_ChardevInfoList(Visitor *m, ChardevInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         ChardevInfoList *native_i = (ChardevInfoList *)i;
         visit_type_ChardevInfo(m, &native_i->value, NULL, errp);
     }
@@ -161,18 +221,28 @@ void visit_type_ChardevInfoList(Visitor *m, ChardevInfoList ** obj, const char *
 
 void visit_type_CommandInfo(Visitor *m, CommandInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "CommandInfo", name, sizeof(CommandInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->name : NULL, "name", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_CommandInfoList(Visitor *m, CommandInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         CommandInfoList *native_i = (CommandInfoList *)i;
         visit_type_CommandInfo(m, &native_i->value, NULL, errp);
     }
@@ -182,20 +252,30 @@ void visit_type_CommandInfoList(Visitor *m, CommandInfoList ** obj, const char *
 
 void visit_type_MigrationStats(Visitor *m, MigrationStats ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "MigrationStats", name, sizeof(MigrationStats), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->transferred : NULL, "transferred", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->remaining : NULL, "remaining", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->total : NULL, "total", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_MigrationStatsList(Visitor *m, MigrationStatsList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         MigrationStatsList *native_i = (MigrationStatsList *)i;
         visit_type_MigrationStats(m, &native_i->value, NULL, errp);
     }
@@ -205,7 +285,13 @@ void visit_type_MigrationStatsList(Visitor *m, MigrationStatsList ** obj, const 
 
 void visit_type_MigrationInfo(Visitor *m, MigrationInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "MigrationInfo", name, sizeof(MigrationInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_status : NULL, "status", errp);
     if ((*obj)->has_status) {
         visit_type_str(m, (obj && *obj) ? &(*obj)->status : NULL, "status", errp);
@@ -221,16 +307,20 @@ void visit_type_MigrationInfo(Visitor *m, MigrationInfo ** obj, const char *name
         visit_type_MigrationStats(m, (obj && *obj) ? &(*obj)->disk : NULL, "disk", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_MigrationInfoList(Visitor *m, MigrationInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         MigrationInfoList *native_i = (MigrationInfoList *)i;
         visit_type_MigrationInfo(m, &native_i->value, NULL, errp);
     }
@@ -240,21 +330,31 @@ void visit_type_MigrationInfoList(Visitor *m, MigrationInfoList ** obj, const ch
 
 void visit_type_MouseInfo(Visitor *m, MouseInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "MouseInfo", name, sizeof(MouseInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->name : NULL, "name", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->index : NULL, "index", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->current : NULL, "current", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->absolute : NULL, "absolute", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_MouseInfoList(Visitor *m, MouseInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         MouseInfoList *native_i = (MouseInfoList *)i;
         visit_type_MouseInfo(m, &native_i->value, NULL, errp);
     }
@@ -264,7 +364,13 @@ void visit_type_MouseInfoList(Visitor *m, MouseInfoList ** obj, const char *name
 
 void visit_type_CpuInfo(Visitor *m, CpuInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "CpuInfo", name, sizeof(CpuInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->CPU : NULL, "CPU", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->current : NULL, "current", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->halted : NULL, "halted", errp);
@@ -289,16 +395,20 @@ void visit_type_CpuInfo(Visitor *m, CpuInfo ** obj, const char *name, Error **er
     }
     visit_end_optional(m, errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->thread_id : NULL, "thread_id", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_CpuInfoList(Visitor *m, CpuInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         CpuInfoList *native_i = (CpuInfoList *)i;
         visit_type_CpuInfo(m, &native_i->value, NULL, errp);
     }
@@ -308,7 +418,13 @@ void visit_type_CpuInfoList(Visitor *m, CpuInfoList ** obj, const char *name, Er
 
 void visit_type_BlockDeviceInfo(Visitor *m, BlockDeviceInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BlockDeviceInfo", name, sizeof(BlockDeviceInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->file : NULL, "file", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->ro : NULL, "ro", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->drv : NULL, "drv", errp);
@@ -324,16 +440,20 @@ void visit_type_BlockDeviceInfo(Visitor *m, BlockDeviceInfo ** obj, const char *
     visit_type_int(m, (obj && *obj) ? &(*obj)->iops : NULL, "iops", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->iops_rd : NULL, "iops_rd", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->iops_wr : NULL, "iops_wr", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BlockDeviceInfoList(Visitor *m, BlockDeviceInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BlockDeviceInfoList *native_i = (BlockDeviceInfoList *)i;
         visit_type_BlockDeviceInfo(m, &native_i->value, NULL, errp);
     }
@@ -348,7 +468,13 @@ void visit_type_BlockDeviceIoStatus(Visitor *m, BlockDeviceIoStatus * obj, const
 
 void visit_type_BlockInfo(Visitor *m, BlockInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BlockInfo", name, sizeof(BlockInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->device : NULL, "device", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->type : NULL, "type", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->removable : NULL, "removable", errp);
@@ -368,16 +494,20 @@ void visit_type_BlockInfo(Visitor *m, BlockInfo ** obj, const char *name, Error 
         visit_type_BlockDeviceIoStatus(m, (obj && *obj) ? &(*obj)->io_status : NULL, "io-status", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BlockInfoList(Visitor *m, BlockInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BlockInfoList *native_i = (BlockInfoList *)i;
         visit_type_BlockInfo(m, &native_i->value, NULL, errp);
     }
@@ -387,7 +517,13 @@ void visit_type_BlockInfoList(Visitor *m, BlockInfoList ** obj, const char *name
 
 void visit_type_BlockDeviceStats(Visitor *m, BlockDeviceStats ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BlockDeviceStats", name, sizeof(BlockDeviceStats), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->rd_bytes : NULL, "rd_bytes", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->wr_bytes : NULL, "wr_bytes", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->rd_operations : NULL, "rd_operations", errp);
@@ -397,16 +533,20 @@ void visit_type_BlockDeviceStats(Visitor *m, BlockDeviceStats ** obj, const char
     visit_type_int(m, (obj && *obj) ? &(*obj)->wr_total_time_ns : NULL, "wr_total_time_ns", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->rd_total_time_ns : NULL, "rd_total_time_ns", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->wr_highest_offset : NULL, "wr_highest_offset", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BlockDeviceStatsList(Visitor *m, BlockDeviceStatsList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BlockDeviceStatsList *native_i = (BlockDeviceStatsList *)i;
         visit_type_BlockDeviceStats(m, &native_i->value, NULL, errp);
     }
@@ -416,7 +556,13 @@ void visit_type_BlockDeviceStatsList(Visitor *m, BlockDeviceStatsList ** obj, co
 
 void visit_type_BlockStats(Visitor *m, BlockStats ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BlockStats", name, sizeof(BlockStats), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_device : NULL, "device", errp);
     if ((*obj)->has_device) {
         visit_type_str(m, (obj && *obj) ? &(*obj)->device : NULL, "device", errp);
@@ -428,16 +574,20 @@ void visit_type_BlockStats(Visitor *m, BlockStats ** obj, const char *name, Erro
         visit_type_BlockStats(m, (obj && *obj) ? &(*obj)->parent : NULL, "parent", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BlockStatsList(Visitor *m, BlockStatsList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BlockStatsList *native_i = (BlockStatsList *)i;
         visit_type_BlockStats(m, &native_i->value, NULL, errp);
     }
@@ -447,7 +597,13 @@ void visit_type_BlockStatsList(Visitor *m, BlockStatsList ** obj, const char *na
 
 void visit_type_VncClientInfo(Visitor *m, VncClientInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "VncClientInfo", name, sizeof(VncClientInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->host : NULL, "host", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->family : NULL, "family", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->service : NULL, "service", errp);
@@ -461,16 +617,20 @@ void visit_type_VncClientInfo(Visitor *m, VncClientInfo ** obj, const char *name
         visit_type_str(m, (obj && *obj) ? &(*obj)->sasl_username : NULL, "sasl_username", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_VncClientInfoList(Visitor *m, VncClientInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         VncClientInfoList *native_i = (VncClientInfoList *)i;
         visit_type_VncClientInfo(m, &native_i->value, NULL, errp);
     }
@@ -480,7 +640,13 @@ void visit_type_VncClientInfoList(Visitor *m, VncClientInfoList ** obj, const ch
 
 void visit_type_VncInfo(Visitor *m, VncInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "VncInfo", name, sizeof(VncInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_bool(m, (obj && *obj) ? &(*obj)->enabled : NULL, "enabled", errp);
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_host : NULL, "host", errp);
     if ((*obj)->has_host) {
@@ -507,16 +673,20 @@ void visit_type_VncInfo(Visitor *m, VncInfo ** obj, const char *name, Error **er
         visit_type_VncClientInfoList(m, (obj && *obj) ? &(*obj)->clients : NULL, "clients", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_VncInfoList(Visitor *m, VncInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         VncInfoList *native_i = (VncInfoList *)i;
         visit_type_VncInfo(m, &native_i->value, NULL, errp);
     }
@@ -526,7 +696,13 @@ void visit_type_VncInfoList(Visitor *m, VncInfoList ** obj, const char *name, Er
 
 void visit_type_SpiceChannel(Visitor *m, SpiceChannel ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "SpiceChannel", name, sizeof(SpiceChannel), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->host : NULL, "host", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->family : NULL, "family", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->port : NULL, "port", errp);
@@ -534,16 +710,20 @@ void visit_type_SpiceChannel(Visitor *m, SpiceChannel ** obj, const char *name, 
     visit_type_int(m, (obj && *obj) ? &(*obj)->channel_type : NULL, "channel-type", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->channel_id : NULL, "channel-id", errp);
     visit_type_bool(m, (obj && *obj) ? &(*obj)->tls : NULL, "tls", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_SpiceChannelList(Visitor *m, SpiceChannelList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         SpiceChannelList *native_i = (SpiceChannelList *)i;
         visit_type_SpiceChannel(m, &native_i->value, NULL, errp);
     }
@@ -551,9 +731,20 @@ void visit_type_SpiceChannelList(Visitor *m, SpiceChannelList ** obj, const char
     visit_end_list(m, errp);
 }
 
+void visit_type_SpiceQueryMouseMode(Visitor *m, SpiceQueryMouseMode * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, SpiceQueryMouseMode_lookup, "SpiceQueryMouseMode", name, errp);
+}
+
 void visit_type_SpiceInfo(Visitor *m, SpiceInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "SpiceInfo", name, sizeof(SpiceInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_bool(m, (obj && *obj) ? &(*obj)->enabled : NULL, "enabled", errp);
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_host : NULL, "host", errp);
     if ((*obj)->has_host) {
@@ -580,21 +771,26 @@ void visit_type_SpiceInfo(Visitor *m, SpiceInfo ** obj, const char *name, Error 
         visit_type_str(m, (obj && *obj) ? &(*obj)->compiled_version : NULL, "compiled-version", errp);
     }
     visit_end_optional(m, errp);
+    visit_type_SpiceQueryMouseMode(m, (obj && *obj) ? &(*obj)->mouse_mode : NULL, "mouse-mode", errp);
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_channels : NULL, "channels", errp);
     if ((*obj)->has_channels) {
         visit_type_SpiceChannelList(m, (obj && *obj) ? &(*obj)->channels : NULL, "channels", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_SpiceInfoList(Visitor *m, SpiceInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         SpiceInfoList *native_i = (SpiceInfoList *)i;
         visit_type_SpiceInfo(m, &native_i->value, NULL, errp);
     }
@@ -604,7 +800,13 @@ void visit_type_SpiceInfoList(Visitor *m, SpiceInfoList ** obj, const char *name
 
 void visit_type_BalloonInfo(Visitor *m, BalloonInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BalloonInfo", name, sizeof(BalloonInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->actual : NULL, "actual", errp);
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_mem_swapped_in : NULL, "mem_swapped_in", errp);
     if ((*obj)->has_mem_swapped_in) {
@@ -636,16 +838,20 @@ void visit_type_BalloonInfo(Visitor *m, BalloonInfo ** obj, const char *name, Er
         visit_type_int(m, (obj && *obj) ? &(*obj)->total_mem : NULL, "total_mem", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BalloonInfoList(Visitor *m, BalloonInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BalloonInfoList *native_i = (BalloonInfoList *)i;
         visit_type_BalloonInfo(m, &native_i->value, NULL, errp);
     }
@@ -655,19 +861,29 @@ void visit_type_BalloonInfoList(Visitor *m, BalloonInfoList ** obj, const char *
 
 void visit_type_PciMemoryRange(Visitor *m, PciMemoryRange ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "PciMemoryRange", name, sizeof(PciMemoryRange), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->base : NULL, "base", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->limit : NULL, "limit", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_PciMemoryRangeList(Visitor *m, PciMemoryRangeList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         PciMemoryRangeList *native_i = (PciMemoryRangeList *)i;
         visit_type_PciMemoryRange(m, &native_i->value, NULL, errp);
     }
@@ -677,7 +893,13 @@ void visit_type_PciMemoryRangeList(Visitor *m, PciMemoryRangeList ** obj, const 
 
 void visit_type_PciMemoryRegion(Visitor *m, PciMemoryRegion ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "PciMemoryRegion", name, sizeof(PciMemoryRegion), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->bar : NULL, "bar", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->type : NULL, "type", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->address : NULL, "address", errp);
@@ -692,16 +914,20 @@ void visit_type_PciMemoryRegion(Visitor *m, PciMemoryRegion ** obj, const char *
         visit_type_bool(m, (obj && *obj) ? &(*obj)->mem_type_64 : NULL, "mem_type_64", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_PciMemoryRegionList(Visitor *m, PciMemoryRegionList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         PciMemoryRegionList *native_i = (PciMemoryRegionList *)i;
         visit_type_PciMemoryRegion(m, &native_i->value, NULL, errp);
     }
@@ -711,7 +937,13 @@ void visit_type_PciMemoryRegionList(Visitor *m, PciMemoryRegionList ** obj, cons
 
 void visit_type_PciBridgeInfo(Visitor *m, PciBridgeInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "PciBridgeInfo", name, sizeof(PciBridgeInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_start_struct(m, NULL, "", "bus", 0, errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->bus.number : NULL, "number", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->bus.secondary : NULL, "secondary", errp);
@@ -725,16 +957,20 @@ void visit_type_PciBridgeInfo(Visitor *m, PciBridgeInfo ** obj, const char *name
         visit_type_PciDeviceInfoList(m, (obj && *obj) ? &(*obj)->devices : NULL, "devices", errp);
     }
     visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_PciBridgeInfoList(Visitor *m, PciBridgeInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         PciBridgeInfoList *native_i = (PciBridgeInfoList *)i;
         visit_type_PciBridgeInfo(m, &native_i->value, NULL, errp);
     }
@@ -744,7 +980,13 @@ void visit_type_PciBridgeInfoList(Visitor *m, PciBridgeInfoList ** obj, const ch
 
 void visit_type_PciDeviceInfo(Visitor *m, PciDeviceInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "PciDeviceInfo", name, sizeof(PciDeviceInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->bus : NULL, "bus", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->slot : NULL, "slot", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->function : NULL, "function", errp);
@@ -772,16 +1014,20 @@ void visit_type_PciDeviceInfo(Visitor *m, PciDeviceInfo ** obj, const char *name
     }
     visit_end_optional(m, errp);
     visit_type_PciMemoryRegionList(m, (obj && *obj) ? &(*obj)->regions : NULL, "regions", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_PciDeviceInfoList(Visitor *m, PciDeviceInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         PciDeviceInfoList *native_i = (PciDeviceInfoList *)i;
         visit_type_PciDeviceInfo(m, &native_i->value, NULL, errp);
     }
@@ -791,19 +1037,29 @@ void visit_type_PciDeviceInfoList(Visitor *m, PciDeviceInfoList ** obj, const ch
 
 void visit_type_PciInfo(Visitor *m, PciInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "PciInfo", name, sizeof(PciInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_int(m, (obj && *obj) ? &(*obj)->bus : NULL, "bus", errp);
     visit_type_PciDeviceInfoList(m, (obj && *obj) ? &(*obj)->devices : NULL, "devices", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_PciInfoList(Visitor *m, PciInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         PciInfoList *native_i = (PciInfoList *)i;
         visit_type_PciInfo(m, &native_i->value, NULL, errp);
     }
@@ -813,22 +1069,32 @@ void visit_type_PciInfoList(Visitor *m, PciInfoList ** obj, const char *name, Er
 
 void visit_type_BlockJobInfo(Visitor *m, BlockJobInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "BlockJobInfo", name, sizeof(BlockJobInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->type : NULL, "type", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->device : NULL, "device", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->len : NULL, "len", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->offset : NULL, "offset", errp);
     visit_type_int(m, (obj && *obj) ? &(*obj)->speed : NULL, "speed", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_BlockJobInfoList(Visitor *m, BlockJobInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         BlockJobInfoList *native_i = (BlockJobInfoList *)i;
         visit_type_BlockJobInfo(m, &native_i->value, NULL, errp);
     }
@@ -836,9 +1102,20 @@ void visit_type_BlockJobInfoList(Visitor *m, BlockJobInfoList ** obj, const char
     visit_end_list(m, errp);
 }
 
-void visit_type_SnapshotDev(Visitor *m, SnapshotDev ** obj, const char *name, Error **errp)
+void visit_type_NewImageMode(Visitor *m, NewImageMode * obj, const char *name, Error **errp)
 {
-    visit_start_struct(m, (void **)obj, "SnapshotDev", name, sizeof(SnapshotDev), errp);
+    visit_type_enum(m, (int *)obj, NewImageMode_lookup, "NewImageMode", name, errp);
+}
+
+void visit_type_BlockdevSnapshot(Visitor *m, BlockdevSnapshot ** obj, const char *name, Error **errp)
+{
+    if (error_is_set(errp)) {
+        return;
+    }
+    visit_start_struct(m, (void **)obj, "BlockdevSnapshot", name, sizeof(BlockdevSnapshot), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->device : NULL, "device", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->snapshot_file : NULL, "snapshot-file", errp);
     visit_start_optional(m, (obj && *obj) ? &(*obj)->has_format : NULL, "format", errp);
@@ -846,18 +1123,76 @@ void visit_type_SnapshotDev(Visitor *m, SnapshotDev ** obj, const char *name, Er
         visit_type_str(m, (obj && *obj) ? &(*obj)->format : NULL, "format", errp);
     }
     visit_end_optional(m, errp);
+    visit_start_optional(m, (obj && *obj) ? &(*obj)->has_mode : NULL, "mode", errp);
+    if ((*obj)->has_mode) {
+        visit_type_NewImageMode(m, (obj && *obj) ? &(*obj)->mode : NULL, "mode", errp);
+    }
+    visit_end_optional(m, errp);
+end:
     visit_end_struct(m, errp);
 }
 
-void visit_type_SnapshotDevList(Visitor *m, SnapshotDevList ** obj, const char *name, Error **errp)
+void visit_type_BlockdevSnapshotList(Visitor *m, BlockdevSnapshotList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
-        SnapshotDevList *native_i = (SnapshotDevList *)i;
-        visit_type_SnapshotDev(m, &native_i->value, NULL, errp);
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
+        BlockdevSnapshotList *native_i = (BlockdevSnapshotList *)i;
+        visit_type_BlockdevSnapshot(m, &native_i->value, NULL, errp);
+    }
+
+    visit_end_list(m, errp);
+}
+
+void visit_type_BlockdevActionKind(Visitor *m, BlockdevActionKind * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, BlockdevActionKind_lookup, "BlockdevActionKind", name, errp);
+}
+
+void visit_type_BlockdevAction(Visitor *m, BlockdevAction ** obj, const char *name, Error **errp)
+{
+    Error *err = NULL;
+
+    if (error_is_set(errp)) {
+        return;
+    }
+    visit_start_struct(m, (void **)obj, "BlockdevAction", name, sizeof(BlockdevAction), &err);
+    if (obj && !*obj) {
+        goto end;
+    }
+    visit_type_BlockdevActionKind(m, &(*obj)->kind, "type", &err);
+    if (err) {
+        error_propagate(errp, err);
+        goto end;
+    }
+    switch ((*obj)->kind) {
+    case BLOCKDEV_ACTION_KIND_BLOCKDEV_SNAPSHOT_SYNC:
+        visit_type_BlockdevSnapshot(m, &(*obj)->blockdev_snapshot_sync, "data", errp);
+        break;
+    default:
+        abort();
+    }
+end:
+    visit_end_struct(m, errp);
+}
+
+void visit_type_BlockdevActionList(Visitor *m, BlockdevActionList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+
+    if (error_is_set(errp)) {
+        return;
+    }
+    visit_start_list(m, name, errp);
+
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
+        BlockdevActionList *native_i = (BlockdevActionList *)i;
+        visit_type_BlockdevAction(m, &native_i->value, NULL, errp);
     }
 
     visit_end_list(m, errp);
@@ -865,19 +1200,29 @@ void visit_type_SnapshotDevList(Visitor *m, SnapshotDevList ** obj, const char *
 
 void visit_type_ObjectPropertyInfo(Visitor *m, ObjectPropertyInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "ObjectPropertyInfo", name, sizeof(ObjectPropertyInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->name : NULL, "name", errp);
     visit_type_str(m, (obj && *obj) ? &(*obj)->type : NULL, "type", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_ObjectPropertyInfoList(Visitor *m, ObjectPropertyInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         ObjectPropertyInfoList *native_i = (ObjectPropertyInfoList *)i;
         visit_type_ObjectPropertyInfo(m, &native_i->value, NULL, errp);
     }
@@ -887,18 +1232,28 @@ void visit_type_ObjectPropertyInfoList(Visitor *m, ObjectPropertyInfoList ** obj
 
 void visit_type_ObjectTypeInfo(Visitor *m, ObjectTypeInfo ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "ObjectTypeInfo", name, sizeof(ObjectTypeInfo), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
     visit_type_str(m, (obj && *obj) ? &(*obj)->name : NULL, "name", errp);
+end:
     visit_end_struct(m, errp);
 }
 
 void visit_type_ObjectTypeInfoList(Visitor *m, ObjectTypeInfoList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         ObjectTypeInfoList *native_i = (ObjectTypeInfoList *)i;
         visit_type_ObjectTypeInfo(m, &native_i->value, NULL, errp);
     }

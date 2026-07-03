@@ -103,47 +103,47 @@ static void sh4_translate_init(void)
 
     for (i = 0; i < 24; i++)
         cpu_gregs[i] = tcg_global_mem_new_i32(TCG_AREG0,
-                                              offsetof(CPUState, gregs[i]),
+                                              offsetof(CPUSH4State, gregs[i]),
                                               gregnames[i]);
 
     cpu_pc = tcg_global_mem_new_i32(TCG_AREG0,
-                                    offsetof(CPUState, pc), "PC");
+                                    offsetof(CPUSH4State, pc), "PC");
     cpu_sr = tcg_global_mem_new_i32(TCG_AREG0,
-                                    offsetof(CPUState, sr), "SR");
+                                    offsetof(CPUSH4State, sr), "SR");
     cpu_ssr = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, ssr), "SSR");
+                                     offsetof(CPUSH4State, ssr), "SSR");
     cpu_spc = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, spc), "SPC");
+                                     offsetof(CPUSH4State, spc), "SPC");
     cpu_gbr = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, gbr), "GBR");
+                                     offsetof(CPUSH4State, gbr), "GBR");
     cpu_vbr = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, vbr), "VBR");
+                                     offsetof(CPUSH4State, vbr), "VBR");
     cpu_sgr = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, sgr), "SGR");
+                                     offsetof(CPUSH4State, sgr), "SGR");
     cpu_dbr = tcg_global_mem_new_i32(TCG_AREG0,
-                                     offsetof(CPUState, dbr), "DBR");
+                                     offsetof(CPUSH4State, dbr), "DBR");
     cpu_mach = tcg_global_mem_new_i32(TCG_AREG0,
-                                      offsetof(CPUState, mach), "MACH");
+                                      offsetof(CPUSH4State, mach), "MACH");
     cpu_macl = tcg_global_mem_new_i32(TCG_AREG0,
-                                      offsetof(CPUState, macl), "MACL");
+                                      offsetof(CPUSH4State, macl), "MACL");
     cpu_pr = tcg_global_mem_new_i32(TCG_AREG0,
-                                    offsetof(CPUState, pr), "PR");
+                                    offsetof(CPUSH4State, pr), "PR");
     cpu_fpscr = tcg_global_mem_new_i32(TCG_AREG0,
-                                       offsetof(CPUState, fpscr), "FPSCR");
+                                       offsetof(CPUSH4State, fpscr), "FPSCR");
     cpu_fpul = tcg_global_mem_new_i32(TCG_AREG0,
-                                      offsetof(CPUState, fpul), "FPUL");
+                                      offsetof(CPUSH4State, fpul), "FPUL");
 
     cpu_flags = tcg_global_mem_new_i32(TCG_AREG0,
-				       offsetof(CPUState, flags), "_flags_");
+				       offsetof(CPUSH4State, flags), "_flags_");
     cpu_delayed_pc = tcg_global_mem_new_i32(TCG_AREG0,
-					    offsetof(CPUState, delayed_pc),
+					    offsetof(CPUSH4State, delayed_pc),
 					    "_delayed_pc_");
     cpu_ldst = tcg_global_mem_new_i32(TCG_AREG0,
-				      offsetof(CPUState, ldst), "_ldst_");
+				      offsetof(CPUSH4State, ldst), "_ldst_");
 
     for (i = 0; i < 32; i++)
         cpu_fregs[i] = tcg_global_mem_new_i32(TCG_AREG0,
-                                              offsetof(CPUState, fregs[i]),
+                                              offsetof(CPUSH4State, fregs[i]),
                                               fregnames[i]);
 
     /* register helpers */
@@ -153,7 +153,7 @@ static void sh4_translate_init(void)
     done_init = 1;
 }
 
-void cpu_dump_state(CPUState * env, FILE * f,
+void cpu_dump_state(CPUSH4State * env, FILE * f,
 		    int (*cpu_fprintf) (FILE * f, const char *fmt, ...),
 		    int flags)
 {
@@ -178,27 +178,9 @@ void cpu_dump_state(CPUState * env, FILE * f,
     }
 }
 
-void cpu_reset(CPUSH4State * env)
+void cpu_state_reset(CPUSH4State *env)
 {
-    if (qemu_loglevel_mask(CPU_LOG_RESET)) {
-        qemu_log("CPU Reset (CPU %d)\n", env->cpu_index);
-        log_cpu_state(env, 0);
-    }
-
-    memset(env, 0, offsetof(CPUSH4State, breakpoints));
-    tlb_flush(env, 1);
-
-    env->pc = 0xA0000000;
-#if defined(CONFIG_USER_ONLY)
-    env->fpscr = FPSCR_PR; /* value for userspace according to the kernel */
-    set_float_rounding_mode(float_round_nearest_even, &env->fp_status); /* ?! */
-#else
-    env->sr = SR_MD | SR_RB | SR_BL | SR_I3 | SR_I2 | SR_I1 | SR_I0;
-    env->fpscr = FPSCR_DN | FPSCR_RM_ZERO; /* CPU reset value according to SH4 manual */
-    set_float_rounding_mode(float_round_to_zero, &env->fp_status);
-    set_flush_to_zero(1, &env->fp_status);
-#endif
-    set_default_nan_mode(1, &env->fp_status);
+    cpu_reset(ENV_GET_CPU(env));
 }
 
 typedef struct {
@@ -267,19 +249,19 @@ static void cpu_register(CPUSH4State *env, const sh4_def_t *def)
 
 CPUSH4State *cpu_sh4_init(const char *cpu_model)
 {
+    SuperHCPU *cpu;
     CPUSH4State *env;
     const sh4_def_t *def;
 
     def = cpu_sh4_find_by_name(cpu_model);
     if (!def)
 	return NULL;
-    env = g_malloc0(sizeof(CPUSH4State));
+    cpu = SUPERH_CPU(object_new(TYPE_SUPERH_CPU));
+    env = &cpu->env;
     env->features = def->features;
-    cpu_exec_init(env);
-    env->movcal_backup_tail = &(env->movcal_backup);
     sh4_translate_init();
     env->cpu_model_str = cpu_model;
-    cpu_reset(env);
+    cpu_reset(CPU(cpu));
     cpu_register(env, def);
     qemu_init_vcpu(env);
     return env;
@@ -1918,7 +1900,7 @@ static void decode_opc(DisasContext * ctx)
 }
 
 static inline void
-gen_intermediate_code_internal(CPUState * env, TranslationBlock * tb,
+gen_intermediate_code_internal(CPUSH4State * env, TranslationBlock * tb,
                                int search_pc)
 {
     DisasContext ctx;
@@ -2044,17 +2026,17 @@ gen_intermediate_code_internal(CPUState * env, TranslationBlock * tb,
 #endif
 }
 
-void gen_intermediate_code(CPUState * env, struct TranslationBlock *tb)
+void gen_intermediate_code(CPUSH4State * env, struct TranslationBlock *tb)
 {
     gen_intermediate_code_internal(env, tb, 0);
 }
 
-void gen_intermediate_code_pc(CPUState * env, struct TranslationBlock *tb)
+void gen_intermediate_code_pc(CPUSH4State * env, struct TranslationBlock *tb)
 {
     gen_intermediate_code_internal(env, tb, 1);
 }
 
-void restore_state_to_opc(CPUState *env, TranslationBlock *tb, int pc_pos)
+void restore_state_to_opc(CPUSH4State *env, TranslationBlock *tb, int pc_pos)
 {
     env->pc = gen_opc_pc[pc_pos];
     env->flags = gen_opc_hflags[pc_pos];

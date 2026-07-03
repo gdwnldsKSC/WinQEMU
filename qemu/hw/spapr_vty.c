@@ -70,9 +70,7 @@ static int spapr_vty_init(VIOsPAPRDevice *sdev)
 }
 
 /* Forward declaration */
-static VIOsPAPRDevice *vty_lookup(sPAPREnvironment *spapr, target_ulong reg);
-
-static target_ulong h_put_term_char(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_put_term_char(CPUPPCState *env, sPAPREnvironment *spapr,
                                     target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -99,7 +97,7 @@ static target_ulong h_put_term_char(CPUState *env, sPAPREnvironment *spapr,
     return H_SUCCESS;
 }
 
-static target_ulong h_get_term_char(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_get_term_char(CPUPPCState *env, sPAPREnvironment *spapr,
                                     target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -125,18 +123,17 @@ static target_ulong h_get_term_char(CPUState *env, sPAPREnvironment *spapr,
     return H_SUCCESS;
 }
 
-void spapr_vty_create(VIOsPAPRBus *bus, uint32_t reg, CharDriverState *chardev)
+void spapr_vty_create(VIOsPAPRBus *bus, CharDriverState *chardev)
 {
     DeviceState *dev;
 
     dev = qdev_create(&bus->bus, "spapr-vty");
-    qdev_prop_set_uint32(dev, "reg", reg);
     qdev_prop_set_chr(dev, "chardev", chardev);
     qdev_init_nofail(dev);
 }
 
 static Property spapr_vty_properties[] = {
-    DEFINE_SPAPR_PROPERTIES(VIOsPAPRVTYDevice, sdev, SPAPR_VTY_BASE_ADDRESS, 0),
+    DEFINE_SPAPR_PROPERTIES(VIOsPAPRVTYDevice, sdev, 0),
     DEFINE_PROP_CHR("chardev", VIOsPAPRVTYDevice, chardev),
     DEFINE_PROP_END_OF_LIST(),
 };
@@ -195,7 +192,7 @@ VIOsPAPRDevice *spapr_vty_get_default(VIOsPAPRBus *bus)
     return selected;
 }
 
-static VIOsPAPRDevice *vty_lookup(sPAPREnvironment *spapr, target_ulong reg)
+VIOsPAPRDevice *vty_lookup(sPAPREnvironment *spapr, target_ulong reg)
 {
     VIOsPAPRDevice *sdev;
 

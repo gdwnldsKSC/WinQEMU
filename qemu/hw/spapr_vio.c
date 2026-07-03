@@ -194,7 +194,7 @@ static void rtce_init(VIOsPAPRDevice *dev)
     }
 }
 
-static target_ulong h_put_tce(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_put_tce(CPUPPCState *env, sPAPREnvironment *spapr,
                               target_ulong opcode, target_ulong *args)
 {
     target_ulong liobn = args[0];
@@ -204,8 +204,7 @@ static target_ulong h_put_tce(CPUState *env, sPAPREnvironment *spapr,
     VIOsPAPR_RTCE *rtce;
 
     if (!dev) {
-        hcall_dprintf("spapr_vio_put_tce on non-existent LIOBN "
-                      TARGET_FMT_lx "\n", liobn);
+        hcall_dprintf("LIOBN 0x" TARGET_FMT_lx " does not exist\n", liobn);
         return H_PARAMETER;
     }
 
@@ -217,8 +216,7 @@ static target_ulong h_put_tce(CPUState *env, sPAPREnvironment *spapr,
 #endif
 
     if (ioba >= dev->rtce_window_size) {
-        hcall_dprintf("spapr_vio_put_tce on out-of-boards IOBA 0x"
-                      TARGET_FMT_lx "\n", ioba);
+        hcall_dprintf("Out-of-bounds IOBA 0x" TARGET_FMT_lx "\n", ioba);
         return H_PARAMETER;
     }
 
@@ -405,7 +403,7 @@ uint64_t ldq_tce(VIOsPAPRDevice *dev, uint64_t taddr)
 /*
  * CRQ handling
  */
-static target_ulong h_reg_crq(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_reg_crq(CPUPPCState *env, sPAPREnvironment *spapr,
                               target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -414,33 +412,32 @@ static target_ulong h_reg_crq(CPUState *env, sPAPREnvironment *spapr,
     VIOsPAPRDevice *dev = spapr_vio_find_by_reg(spapr->vio_bus, reg);
 
     if (!dev) {
-        hcall_dprintf("h_reg_crq on non-existent unit 0x"
-                      TARGET_FMT_lx "\n", reg);
+        hcall_dprintf("Unit 0x" TARGET_FMT_lx " does not exist\n", reg);
         return H_PARAMETER;
     }
 
     /* We can't grok a queue size bigger than 256M for now */
     if (queue_len < 0x1000 || queue_len > 0x10000000) {
-        hcall_dprintf("h_reg_crq, queue size too small or too big (0x%llx)\n",
-                      (unsigned long long)queue_len);
+        hcall_dprintf("Queue size too small or too big (0x" TARGET_FMT_lx
+                      ")\n", queue_len);
         return H_PARAMETER;
     }
 
     /* Check queue alignment */
     if (queue_addr & 0xfff) {
-        hcall_dprintf("h_reg_crq, queue not aligned (0x%llx)\n",
-                      (unsigned long long)queue_addr);
+        hcall_dprintf("Queue not aligned (0x" TARGET_FMT_lx ")\n", queue_addr);
         return H_PARAMETER;
     }
 
     /* Check if device supports CRQs */
     if (!dev->crq.SendFunc) {
+        hcall_dprintf("Device does not support CRQ\n");
         return H_NOT_FOUND;
     }
 
-
     /* Already a queue ? */
     if (dev->crq.qsize) {
+        hcall_dprintf("CRQ already registered\n");
         return H_RESOURCE;
     }
     dev->crq.qladdr = queue_addr;
@@ -453,28 +450,32 @@ static target_ulong h_reg_crq(CPUState *env, sPAPREnvironment *spapr,
     return H_SUCCESS;
 }
 
-static target_ulong h_free_crq(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong free_crq(VIOsPAPRDevice *dev)
+{
+    dev->crq.qladdr = 0;
+    dev->crq.qsize = 0;
+    dev->crq.qnext = 0;
+
+    dprintf("CRQ for dev 0x%" PRIx32 " freed\n", dev->reg);
+
+    return H_SUCCESS;
+}
+
+static target_ulong h_free_crq(CPUPPCState *env, sPAPREnvironment *spapr,
                                target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
     VIOsPAPRDevice *dev = spapr_vio_find_by_reg(spapr->vio_bus, reg);
 
     if (!dev) {
-        hcall_dprintf("h_free_crq on non-existent unit 0x"
-                      TARGET_FMT_lx "\n", reg);
+        hcall_dprintf("Unit 0x" TARGET_FMT_lx " does not exist\n", reg);
         return H_PARAMETER;
     }
 
-    dev->crq.qladdr = 0;
-    dev->crq.qsize = 0;
-    dev->crq.qnext = 0;
-
-    dprintf("CRQ for dev 0x" TARGET_FMT_lx " freed\n", reg);
-
-    return H_SUCCESS;
+    return free_crq(dev);
 }
 
-static target_ulong h_send_crq(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_send_crq(CPUPPCState *env, sPAPREnvironment *spapr,
                                target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
@@ -484,8 +485,7 @@ static target_ulong h_send_crq(CPUState *env, sPAPREnvironment *spapr,
     uint64_t crq_mangle[2];
 
     if (!dev) {
-        hcall_dprintf("h_send_crq on non-existent unit 0x"
-                      TARGET_FMT_lx "\n", reg);
+        hcall_dprintf("Unit 0x" TARGET_FMT_lx " does not exist\n", reg);
         return H_PARAMETER;
     }
     crq_mangle[0] = cpu_to_be64(msg_hi);
@@ -498,15 +498,14 @@ static target_ulong h_send_crq(CPUState *env, sPAPREnvironment *spapr,
     return H_HARDWARE;
 }
 
-static target_ulong h_enable_crq(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_enable_crq(CPUPPCState *env, sPAPREnvironment *spapr,
                                  target_ulong opcode, target_ulong *args)
 {
     target_ulong reg = args[0];
     VIOsPAPRDevice *dev = spapr_vio_find_by_reg(spapr->vio_bus, reg);
 
     if (!dev) {
-        hcall_dprintf("h_enable_crq on non-existent unit 0x"
-                      TARGET_FMT_lx "\n", reg);
+        hcall_dprintf("Unit 0x" TARGET_FMT_lx " does not exist\n", reg);
         return H_PARAMETER;
     }
 
@@ -621,32 +620,40 @@ static void rtas_quiesce(sPAPREnvironment *spapr, uint32_t token,
     rtas_st(rets, 0, 0);
 }
 
-static int spapr_vio_check_reg(VIOsPAPRDevice *sdev)
+static VIOsPAPRDevice *reg_conflict(VIOsPAPRDevice *dev)
 {
-    VIOsPAPRDevice *other_sdev;
+    VIOsPAPRBus *bus = DO_UPCAST(VIOsPAPRBus, bus, dev->qdev.parent_bus);
     DeviceState *qdev;
-    VIOsPAPRBus *sbus;
-
-    sbus = DO_UPCAST(VIOsPAPRBus, bus, sdev->qdev.parent_bus);
+    VIOsPAPRDevice *other;
 
     /*
-     * Check two device aren't given clashing addresses by the user (or some
-     * other mechanism). We have to open code this because we have to check
-     * for matches with devices other than us.
+     * Check for a device other than the given one which is already
+     * using the requested address. We have to open code this because
+     * the given dev might already be in the list.
      */
-    QTAILQ_FOREACH(qdev, &sbus->bus.children, sibling) {
-        other_sdev = DO_UPCAST(VIOsPAPRDevice, qdev, qdev);
+    QTAILQ_FOREACH(qdev, &bus->bus.children, sibling) {
+        other = DO_UPCAST(VIOsPAPRDevice, qdev, qdev);
 
-        if (other_sdev != sdev && other_sdev->reg == sdev->reg) {
-            fprintf(stderr, "vio: %s and %s devices conflict at address %#x\n",
-                    object_get_typename(OBJECT(sdev)),
-                    object_get_typename(OBJECT(qdev)),
-                    sdev->reg);
-            return -EEXIST;
+        if (other != dev && other->reg == dev->reg) {
+            return other;
         }
     }
 
     return 0;
+}
+
+static void spapr_vio_busdev_reset(DeviceState *qdev)
+{
+    VIOsPAPRDevice *dev = DO_UPCAST(VIOsPAPRDevice, qdev, qdev);
+    VIOsPAPRDeviceClass *pc = VIO_SPAPR_DEVICE_GET_CLASS(dev);
+
+    if (dev->crq.qsize) {
+        free_crq(dev);
+    }
+
+    if (pc->reset) {
+        pc->reset(dev);
+    }
 }
 
 static int spapr_vio_busdev_init(DeviceState *qdev)
@@ -654,11 +661,30 @@ static int spapr_vio_busdev_init(DeviceState *qdev)
     VIOsPAPRDevice *dev = (VIOsPAPRDevice *)qdev;
     VIOsPAPRDeviceClass *pc = VIO_SPAPR_DEVICE_GET_CLASS(dev);
     char *id;
-    int ret;
 
-    ret = spapr_vio_check_reg(dev);
-    if (ret) {
-        return ret;
+    if (dev->reg != -1) {
+        /*
+         * Explicitly assigned address, just verify that no-one else
+         * is using it.  other mechanism). We have to open code this
+         * rather than using spapr_vio_find_by_reg() because sdev
+         * itself is already in the list.
+         */
+        VIOsPAPRDevice *other = reg_conflict(dev);
+
+        if (other) {
+            fprintf(stderr, "vio: %s and %s devices conflict at address %#x\n",
+                    object_get_typename(OBJECT(qdev)),
+                    object_get_typename(OBJECT(&other->qdev)),
+                    dev->reg);
+            return -1;
+        }
+    } else {
+        /* Need to assign an address */
+        VIOsPAPRBus *bus = DO_UPCAST(VIOsPAPRBus, bus, dev->qdev.parent_bus);
+
+        do {
+            dev->reg = bus->next_reg++;
+        } while (reg_conflict(dev));
     }
 
     /* Don't overwrite ids assigned on the command line */
@@ -670,7 +696,7 @@ static int spapr_vio_busdev_init(DeviceState *qdev)
         dev->qdev.id = id;
     }
 
-    dev->qirq = spapr_allocate_irq(dev->vio_irq_num, &dev->vio_irq_num);
+    dev->qirq = spapr_allocate_msi(dev->vio_irq_num, &dev->vio_irq_num);
     if (!dev->qirq) {
         return -1;
     }
@@ -680,7 +706,7 @@ static int spapr_vio_busdev_init(DeviceState *qdev)
     return pc->init(dev);
 }
 
-static target_ulong h_vio_signal(CPUState *env, sPAPREnvironment *spapr,
+static target_ulong h_vio_signal(CPUPPCState *env, sPAPREnvironment *spapr,
                                  target_ulong opcode,
                                  target_ulong *args)
 {
@@ -718,6 +744,7 @@ VIOsPAPRBus *spapr_vio_bus_init(void)
 
     qbus = qbus_create(&spapr_vio_bus_info, dev, "spapr-vio");
     bus = DO_UPCAST(VIOsPAPRBus, bus, qbus);
+    bus->next_reg = 0x1000;
 
     /* hcall-vio */
     spapr_register_hypercall(H_VIO_SIGNAL, h_vio_signal);
@@ -766,6 +793,7 @@ static void vio_spapr_device_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *k = DEVICE_CLASS(klass);
     k->init = spapr_vio_busdev_init;
+    k->reset = spapr_vio_busdev_reset;
     k->bus_info = &spapr_vio_bus_info;
 }
 

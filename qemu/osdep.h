@@ -22,6 +22,13 @@
 #include <sys/time.h>
 #endif
 
+#if defined(CONFIG_SOLARIS) && CONFIG_SOLARIS_VERSION < 10
+/* [u]int_fast*_t not in <sys/int_types.h> */
+typedef unsigned char           uint_fast8_t;
+typedef unsigned int            uint_fast16_t;
+typedef signed int              int_fast16_t;
+#endif
+
 #ifdef _MSC_VER
 #include <WinSock2.h>
 #endif
@@ -42,9 +49,6 @@
 #define unlikely(x)   __builtin_expect(!!(x), 0)
 #endif
 
-#ifdef CONFIG_NEED_OFFSETOF
-#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *) 0)->MEMBER)
-#endif
 #ifndef container_of
  // MSVC modficiation ..... similar result, no GCC syntax
 #ifndef _MSC_VER
@@ -164,5 +168,7 @@ static inline void qemu_timersub(const struct timeval *val1,
 #else
 #define qemu_timersub timersub
 #endif
+
+void qemu_set_cloexec(int fd);
 
 #endif

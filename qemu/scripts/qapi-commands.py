@@ -10,7 +10,10 @@
 # This work is licensed under the terms of the GNU GPLv2.
 # See the COPYING.LIB file in the top-level directory.
 
-from ordereddict import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from qapi import *
 import sys
 import os
@@ -42,7 +45,7 @@ def generate_command_decl(name, args, ret_type):
     return mcgen('''
 %(ret_type)s qmp_%(name)s(%(args)sError **errp);
 ''',
-                 ret_type=c_type(ret_type), name=c_var(name), args=arglist).strip()
+                 ret_type=c_type(ret_type), name=c_fun(name), args=arglist).strip()
 
 def gen_sync_call(name, args, ret_type, indent=0):
     ret = ""
@@ -59,7 +62,7 @@ def gen_sync_call(name, args, ret_type, indent=0):
 %(retval)sqmp_%(name)s(%(args)serrp);
 
 ''',
-                name=c_var(name), args=arglist, retval=retval).rstrip()
+                name=c_fun(name), args=arglist, retval=retval).rstrip()
     if ret_type:
         ret += "\n" + mcgen(''''
 if (!error_is_set(errp)) {
@@ -74,7 +77,7 @@ if (!error_is_set(errp)) {
 def gen_marshal_output_call(name, ret_type):
     if not ret_type:
         return ""
-    return "qmp_marshal_output_%s(retval, ret, errp);" % c_var(name)
+    return "qmp_marshal_output_%s(retval, ret, errp);" % c_fun(name)
 
 def gen_visitor_output_containers_decl(ret_type):
     ret = ""
@@ -140,7 +143,7 @@ v = qapi_dealloc_get_visitor(md);
 ''')
     else:
         ret += mcgen('''
-mi = qmp_input_visitor_new(%(obj)s);
+mi = qmp_input_visitor_new_strict(%(obj)s);
 v = qmp_input_get_visitor(mi);
 ''',
                      obj=obj)
@@ -198,16 +201,16 @@ static void qmp_marshal_output_%(c_name)s(%(c_ret_type)s ret_in, QObject **ret_o
     qapi_dealloc_visitor_cleanup(md);
 }
 ''',
-                c_ret_type=c_type(ret_type), c_name=c_var(name),
+                c_ret_type=c_type(ret_type), c_name=c_fun(name),
                 visitor=type_visitor(ret_type))
 
     return ret
 
 def gen_marshal_input_decl(name, args, ret_type, middle_mode):
     if middle_mode:
-        return 'int qmp_marshal_input_%s(Monitor *mon, const QDict *qdict, QObject **ret)' % c_var(name)
+        return 'int qmp_marshal_input_%s(Monitor *mon, const QDict *qdict, QObject **ret)' % c_fun(name)
     else:
-        return 'static void qmp_marshal_input_%s(QDict *args, QObject **ret, Error **errp)' % c_var(name)
+        return 'static void qmp_marshal_input_%s(QDict *args, QObject **ret, Error **errp)' % c_fun(name)
 
 
 
@@ -291,14 +294,24 @@ out:
 
     return ret
 
+def option_value_matches(opt, val, cmd):
+    if opt in cmd and cmd[opt] == val:
+        return True
+    return False
+
 def gen_registry(commands):
     registry=""
     push_indent()
     for cmd in commands:
+        options = 'QCO_NO_OPTIONS'
+        if option_value_matches('success-response', 'no', cmd):
+            options = 'QCO_NO_SUCCESS_RESP'
+
         registry += mcgen('''
-qmp_register_command("%(name)s", qmp_marshal_input_%(c_name)s);
+qmp_register_command("%(name)s", qmp_marshal_input_%(c_name)s, %(opts)s);
 ''',
-                     name=cmd['command'], c_name=c_var(cmd['command']))
+                     name=cmd['command'], c_name=c_fun(cmd['command']),
+                     opts=options)
     pop_indent()
     ret = mcgen('''
 static void qmp_init_marshal(void)
@@ -375,8 +388,8 @@ try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "chp:o:m",
                                    ["source", "header", "prefix=",
                                     "output-dir=", "type=", "middle"])
-except getopt.GetoptError, err:
-    print str(err)
+except getopt.GetoptError as err:
+    print(str(err))
     sys.exit(1)
 
 output_dir = ""
@@ -414,18 +427,18 @@ def maybe_open(really, name, opt):
     if really:
         return open(name, opt)
     else:
-        import StringIO
-        return StringIO.StringIO()
+        from io import StringIO
+        return StringIO()
 
 try:
     os.makedirs(output_dir)
-except os.error, e:
+except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
 exprs = parse_schema(sys.stdin)
-commands = filter(lambda expr: expr.has_key('command'), exprs)
-commands = filter(lambda expr: not expr.has_key('gen'), commands)
+commands = [expr for expr in exprs if 'command' in expr]
+commands = [expr for expr in commands if 'gen' not in expr]
 
 if dispatch_type == "sync":
     fdecl = maybe_open(do_h, h_file, 'w')
@@ -438,9 +451,9 @@ if dispatch_type == "sync":
     for cmd in commands:
         arglist = []
         ret_type = None
-        if cmd.has_key('data'):
+        if 'data' in cmd:
             arglist = cmd['data']
-        if cmd.has_key('returns'):
+        if 'returns' in cmd:
             ret_type = cmd['returns']
         ret = generate_command_decl(cmd['command'], arglist, ret_type) + "\n"
         fdecl.write(ret)

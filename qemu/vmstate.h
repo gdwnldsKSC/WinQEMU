@@ -28,8 +28,7 @@
 
 typedef void SaveSetParamsHandler(int blk_enable, int shared, void * opaque);
 typedef void SaveStateHandler(QEMUFile *f, void *opaque);
-typedef int SaveLiveStateHandler(Monitor *mon, QEMUFile *f, int stage,
-                                 void *opaque);
+typedef int SaveLiveStateHandler(QEMUFile *f, int stage, void *opaque);
 typedef int LoadStateHandler(QEMUFile *f, void *opaque, int version_id);
 
 int register_savevm(DeviceState *dev,
@@ -595,7 +594,7 @@ extern const VMStateInfo vmstate_info_unused_buffer;
     VMSTATE_UNUSED_BUFFER(_test, 0, _size)
 
 #define VMSTATE_END_OF_LIST()                                         \
-    { NULL }
+    {}
 
 int vmstate_load_state(QEMUFile *f, const VMStateDescription *vmsd,
                        void *opaque, int version_id);

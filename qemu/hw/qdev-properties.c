@@ -753,10 +753,12 @@ static void set_mac(Object *obj, Visitor *v, void *opaque,
         }
         mac->a[i] = strtol(str+pos, &p, 16);
     }
+    g_free(str);
     return;
 
 inval:
     error_set_from_qdev_prop_error(errp, EINVAL, dev, prop, str);
+    g_free(str);
 }
 
 PropertyInfo qdev_prop_macaddr = {
@@ -825,7 +827,7 @@ static void set_pci_devfn(Object *obj, Visitor *v, void *opaque,
     uint32_t *ptr = qdev_get_prop_ptr(dev, prop);
     unsigned int slot, fn, n;
     Error *local_err = NULL;
-    char *str = (char *)"";
+    char *str;
 
     if (dev->state != DEV_STATE_CREATED) {
         error_set(errp, QERR_PERMISSION_DENIED);
@@ -834,6 +836,7 @@ static void set_pci_devfn(Object *obj, Visitor *v, void *opaque,
 
     visit_type_str(v, &str, name, &local_err);
     if (local_err) {
+        error_free(local_err);
         return set_int32(obj, v, opaque, name, errp);
     }
 
@@ -847,10 +850,12 @@ static void set_pci_devfn(Object *obj, Visitor *v, void *opaque,
         goto invalid;
     }
     *ptr = slot << 3 | fn;
+    g_free(str);
     return;
 
 invalid:
     error_set_from_qdev_prop_error(errp, EINVAL, dev, prop, str);
+    g_free(str);
 }
 
 static int print_pci_devfn(DeviceState *dev, Property *prop, char *dest, size_t len)
@@ -875,6 +880,52 @@ PropertyInfo qdev_prop_pci_devfn = {
      */
     .min   = 0,
     .max   = 0xFFFFFFFFULL,
+};
+
+/* --- blocksize --- */
+
+static void set_blocksize(Object *obj, Visitor *v, void *opaque,
+                          const char *name, Error **errp)
+{
+    DeviceState *dev = DEVICE(obj);
+    Property *prop = opaque;
+    int16_t *ptr = qdev_get_prop_ptr(dev, prop);
+    Error *local_err = NULL;
+    int64_t value;
+
+    if (dev->state != DEV_STATE_CREATED) {
+        error_set(errp, QERR_PERMISSION_DENIED);
+        return;
+    }
+
+    visit_type_int(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+    if (value < prop->info->min || value > prop->info->max) {
+        error_set(errp, QERR_PROPERTY_VALUE_OUT_OF_RANGE,
+                  dev->id ? dev->id :"", name, value, prop->info->min,
+                  prop->info->max);
+        return;
+    }
+
+    /* We rely on power-of-2 blocksizes for bitmasks */
+    if ((value & (value - 1)) != 0) {
+        error_set(errp, QERR_PROPERTY_VALUE_NOT_POWER_OF_2,
+                  dev->id ? dev->id :"", name, value);
+        return;
+    }
+
+    *ptr = value;
+}
+
+PropertyInfo qdev_prop_blocksize = {
+    .name  = "blocksize",
+    .get   = get_int16,
+    .set   = set_blocksize,
+    .min   = 512,
+    .max   = 65024,
 };
 
 /* --- public helpers --- */

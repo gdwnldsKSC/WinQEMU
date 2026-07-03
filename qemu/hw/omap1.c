@@ -2888,7 +2888,7 @@ static void omap_rtc_reset(struct omap_rtc_s *s)
     s->pm_am = 0;
     s->auto_comp = 0;
     s->round = 0;
-    s->tick = qemu_get_clock_ms(rt_clock);
+    s->tick = qemu_get_clock_ms(rtc_clock);
     memset(&s->alarm_tm, 0, sizeof(s->alarm_tm));
     s->alarm_tm.tm_mday = 0x01;
     s->status = 1 << 7;
@@ -2909,7 +2909,7 @@ static struct omap_rtc_s *omap_rtc_init(MemoryRegion *system_memory,
 
     s->irq = timerirq;
     s->alarm = alarmirq;
-    s->clk = qemu_new_timer_ms(rt_clock, omap_rtc_tick, s);
+    s->clk = qemu_new_timer_ms(rtc_clock, omap_rtc_tick, s);
 
     omap_rtc_reset(s);
 
@@ -3497,9 +3497,9 @@ static void omap_lpg_tick(void *opaque)
     struct omap_lpg_s *s = opaque;
 
     if (s->cycle)
-        qemu_mod_timer(s->tm, qemu_get_clock_ms(rt_clock) + s->period - s->on);
+        qemu_mod_timer(s->tm, qemu_get_clock_ms(vm_clock) + s->period - s->on);
     else
-        qemu_mod_timer(s->tm, qemu_get_clock_ms(rt_clock) + s->on);
+        qemu_mod_timer(s->tm, qemu_get_clock_ms(vm_clock) + s->on);
 
     s->cycle = !s->cycle;
     printf("%s: LED is %s\n", __FUNCTION__, s->cycle ? "on" : "off");
@@ -3617,7 +3617,7 @@ static struct omap_lpg_s *omap_lpg_init(MemoryRegion *system_memory,
     struct omap_lpg_s *s = (struct omap_lpg_s *)
             g_malloc0(sizeof(struct omap_lpg_s));
 
-    s->tm = qemu_new_timer_ms(rt_clock, omap_lpg_tick, s);
+    s->tm = qemu_new_timer_ms(vm_clock, omap_lpg_tick, s);
 
     omap_lpg_reset(s);
 
@@ -3694,7 +3694,6 @@ static void omap1_mpu_reset(void *opaque)
     omap_uwire_reset(mpu->microwire);
     omap_pwl_reset(mpu->pwl);
     omap_pwt_reset(mpu->pwt);
-    omap_i2c_reset(mpu->i2c[0]);
     omap_rtc_reset(mpu->rtc);
     omap_mcbsp_reset(mpu->mcbsp1);
     omap_mcbsp_reset(mpu->mcbsp2);
@@ -3702,7 +3701,7 @@ static void omap1_mpu_reset(void *opaque)
     omap_lpg_reset(mpu->led[0]);
     omap_lpg_reset(mpu->led[1]);
     omap_clkm_reset(mpu);
-    cpu_reset(mpu->env);
+    cpu_state_reset(mpu->env);
 }
 
 static const struct omap_map_s {
@@ -3993,9 +3992,15 @@ struct omap_mpu_state_s *omap310_mpu_init(MemoryRegion *system_memory,
     s->pwt = omap_pwt_init(system_memory, 0xfffb6000,
                            omap_findclk(s, "armxor_ck"));
 
-    s->i2c[0] = omap_i2c_init(system_memory, 0xfffb3800,
-                              qdev_get_gpio_in(s->ih[1], OMAP_INT_I2C),
-                    &s->drq[OMAP_DMA_I2C_RX], omap_findclk(s, "mpuper_ck"));
+    s->i2c[0] = qdev_create(NULL, "omap_i2c");
+    qdev_prop_set_uint8(s->i2c[0], "revision", 0x11);
+    qdev_prop_set_ptr(s->i2c[0], "fclk", omap_findclk(s, "mpuper_ck"));
+    qdev_init_nofail(s->i2c[0]);
+    busdev = sysbus_from_qdev(s->i2c[0]);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(s->ih[1], OMAP_INT_I2C));
+    sysbus_connect_irq(busdev, 1, s->drq[OMAP_DMA_I2C_TX]);
+    sysbus_connect_irq(busdev, 2, s->drq[OMAP_DMA_I2C_RX]);
+    sysbus_mmio_map(busdev, 0, 0xfffb3800);
 
     s->rtc = omap_rtc_init(system_memory, 0xfffb4800,
                            qdev_get_gpio_in(s->ih[1], OMAP_INT_RTC_TIMER),

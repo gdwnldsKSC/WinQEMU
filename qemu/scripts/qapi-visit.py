@@ -10,7 +10,10 @@
 # This work is licensed under the terms of the GNU GPLv2.
 # See the COPYING.LIB file in the top-level directory.
 
-from ordereddict import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from qapi import *
 import sys
 import os
@@ -61,7 +64,13 @@ def generate_visit_struct(name, members):
 
 void visit_type_%(name)s(Visitor *m, %(name)s ** obj, const char *name, Error **errp)
 {
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_struct(m, (void **)obj, "%(name)s", name, sizeof(%(name)s), errp);
+    if (obj && !*obj) {
+        goto end;
+    }
 ''',
                 name=name)
     push_indent()
@@ -69,6 +78,7 @@ void visit_type_%(name)s(Visitor *m, %(name)s ** obj, const char *name, Error **
     pop_indent()
 
     ret += mcgen('''
+end:
     visit_end_struct(m, errp);
 }
 ''')
@@ -79,11 +89,14 @@ def generate_visit_list(name, members):
 
 void visit_type_%(name)sList(Visitor *m, %(name)sList ** obj, const char *name, Error **errp)
 {
-    GenericList *i, **head = (GenericList **)obj;
+    GenericList *i, **prev = (GenericList **)obj;
 
+    if (error_is_set(errp)) {
+        return;
+    }
     visit_start_list(m, name, errp);
 
-    for (*head = i = visit_next_list(m, head, errp); i; i = visit_next_list(m, &i, errp)) {
+    for (; (i = visit_next_list(m, prev, errp)) != NULL; prev = &i) {
         %(name)sList *native_i = (%(name)sList *)i;
         visit_type_%(name)s(m, &native_i->value, NULL, errp);
     }
@@ -104,15 +117,49 @@ void visit_type_%(name)s(Visitor *m, %(name)s * obj, const char *name, Error **e
                  name=name)
 
 def generate_visit_union(name, members):
-    ret = generate_visit_enum('%sKind' % name, members.keys())
+    ret = generate_visit_enum('%sKind' % name, list(members.keys()))
 
     ret += mcgen('''
 
 void visit_type_%(name)s(Visitor *m, %(name)s ** obj, const char *name, Error **errp)
 {
-}
+    Error *err = NULL;
+
+    if (error_is_set(errp)) {
+        return;
+    }
+    visit_start_struct(m, (void **)obj, "%(name)s", name, sizeof(%(name)s), &err);
+    if (obj && !*obj) {
+        goto end;
+    }
+    visit_type_%(name)sKind(m, &(*obj)->kind, "type", &err);
+    if (err) {
+        error_propagate(errp, err);
+        goto end;
+    }
+    switch ((*obj)->kind) {
 ''',
                  name=name)
+
+    for key in members:
+        ret += mcgen('''
+    case %(abbrev)s_KIND_%(enum)s:
+        visit_type_%(c_type)s(m, &(*obj)->%(c_name)s, "data", errp);
+        break;
+''',
+                abbrev = de_camel_case(name).upper(),
+                enum = c_fun(de_camel_case(key)).upper(),
+                c_type=members[key],
+                c_name=c_fun(key))
+
+    ret += mcgen('''
+    default:
+        abort();
+    }
+end:
+    visit_end_struct(m, errp);
+}
+''')
 
     return ret
 
@@ -141,8 +188,8 @@ void visit_type_%(name)s(Visitor *m, %(name)s * obj, const char *name, Error **e
 try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "chp:o:",
                                    ["source", "header", "prefix=", "output-dir="])
-except getopt.GetoptError, err:
-    print str(err)
+except getopt.GetoptError as err:
+    print(str(err))
     sys.exit(1)
 
 output_dir = ""
@@ -172,7 +219,7 @@ h_file = output_dir + prefix + h_file
 
 try:
     os.makedirs(output_dir)
-except os.error, e:
+except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
@@ -180,8 +227,8 @@ def maybe_open(really, name, opt):
     if really:
         return open(name, opt)
     else:
-        import StringIO
-        return StringIO.StringIO()
+        from io import StringIO
+        return StringIO()
 
 fdef = maybe_open(do_c, c_file, 'w')
 fdecl = maybe_open(do_h, h_file, 'w')
@@ -233,21 +280,22 @@ fdecl.write(mcgen('''
 exprs = parse_schema(sys.stdin)
 
 for expr in exprs:
-    if expr.has_key('type'):
+    if 'type' in expr:
         ret = generate_visit_struct(expr['type'], expr['data'])
         ret += generate_visit_list(expr['type'], expr['data'])
         fdef.write(ret)
 
         ret = generate_declaration(expr['type'], expr['data'])
         fdecl.write(ret)
-    elif expr.has_key('union'):
+    elif 'union' in expr:
         ret = generate_visit_union(expr['union'], expr['data'])
+        ret += generate_visit_list(expr['union'], expr['data'])
         fdef.write(ret)
 
-        ret = generate_decl_enum('%sKind' % expr['union'], expr['data'].keys())
+        ret = generate_decl_enum('%sKind' % expr['union'], list(expr['data'].keys()))
         ret += generate_declaration(expr['union'], expr['data'])
         fdecl.write(ret)
-    elif expr.has_key('enum'):
+    elif 'enum' in expr:
         ret = generate_visit_enum(expr['enum'], expr['data'])
         fdef.write(ret)
 

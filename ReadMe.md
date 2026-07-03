@@ -196,11 +196,11 @@ run:
 ./scripts/hxtool -h < qemu-img-cmds.hx > qemu-img-cmds.h  
 ./scripts/hxtool -h < qmp-commands.hx > qmp-commands-old.h  
 ./scripts/hxtool -q < qmp-commands.hx > qmp-commands.txt  
-./scripts/tracetool --nop -c < trace-events > trace.c   
-./scripts/tracetool --nop -h < trace-events > trace.h  
-python ./scripts/qapi-types.py -o . < qapi-schema.json  
-python ./scripts/qapi-visit.py -o . < qapi-schema.json  
-python ./scripts/qapi-commands.py -o . < qapi-schema.json  
+python3 ./scripts/tracetool.py --nop -c < trace-events > trace.c   
+python3 ./scripts/tracetool.py --nop -h < trace-events > trace.h  
+python3 ./scripts/qapi-types.py -o . < qapi-schema.json  
+python3 ./scripts/qapi-visit.py -o . < qapi-schema.json  
+python3 ./scripts/qapi-commands.py -o . < qapi-schema.json  
 
 Rebaselined on upstream vl.c which now (as of a few iterations ago) uses that  
 header instead of declaring all the enum and help files in source to allow them   

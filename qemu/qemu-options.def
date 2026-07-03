@@ -64,7 +64,7 @@ DEF("set", HAS_ARG, QEMU_OPTION_set,
 "                i.e. -set drive.$id.file=/path/to/image\n", QEMU_ARCH_ALL)
 
 DEF("global", HAS_ARG, QEMU_OPTION_global,
-"-global driver.property=value\n"
+"-global driver.prop=value\n"
 "                set a global default for a driver property\n",
 QEMU_ARCH_ALL)
 
@@ -315,18 +315,27 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "", QEMU_ARCH_ALL)
 "                connect the host TAP network interface to VLAN 'n'\n"
 #else // Non-Windows TAP options - we don't really need it, but having it as reference will help future updates
 #define TAP_OPTIONS \
-"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,sndbuf=nbytes][,vnet_hdr=on|off]\n" \
-"                connect the host TAP network interface to VLAN 'n' and use the\n" \
-"                network scripts 'file' (default=%s)\n" \
-"                and 'dfile' (default=%s);\n" \
-"                use '[down]script=no' to disable script execution;\n" \
+"-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,helper=helper][,sndbuf=nbytes][,vnet_hdr=on|off][,vhost=on|off][,vhostfd=h][,vhostforce=on|off]\n" \
+"                connect the host TAP network interface to VLAN 'n' \n" \
+"                use network scripts 'file' (default=" DEFAULT_NETWORK_SCRIPT ")\n" \
+"                to configure it and 'dfile' (default=" DEFAULT_NETWORK_DOWN_SCRIPT ")\n" \
+"                to deconfigure it\n" \
+"                use '[down]script=no' to disable script execution\n" \
+"                use network helper 'helper' (default=" DEFAULT_BRIDGE_HELPER ") to\n" \
+"                configure it\n" \
 "                use 'fd=h' to connect to an already opened TAP interface\n" \
-"                use 'sndbuf=nbytes' to limit the size of the send buffer; the\n" \
-"                default of 'sndbuf=1048576' can be disabled using 'sndbuf=0'\n" \
-"                use vnet_hdr=off to avoid enabling the IFF_VNET_HDR tap flag\n"
+"                use 'sndbuf=nbytes' to limit the size of the send buffer (the\n" \
+"                default is disabled 'sndbuf=0' to enable flow control set 'sndbuf=1048576')\n" \
+"                use vnet_hdr=off to avoid enabling the IFF_VNET_HDR tap flag\n" \
 "                use vnet_hdr=on to make the lack of IFF_VNET_HDR support an error condition\n" \
 "                use vhost=on to enable experimental in kernel accelerator\n" \
-"                use 'vhostfd=h' to connect to an already opened vhost net device\n"
+"                    (only has effect for virtio guests which use MSIX)\n" \
+"                use vhostforce=on to force vhost on for non-MSIX virtio guests\n" \
+"                use 'vhostfd=h' to connect to an already opened vhost net device\n" \
+"-net bridge[,vlan=n][,name=str][,br=bridge][,helper=helper]\n" \
+"                connects a host TAP network interface to a host bridge device 'br'\n" \
+"                (default=" DEFAULT_BRIDGE_INTERFACE ") using the program 'helper'\n" \
+"                (default=" DEFAULT_BRIDGE_HELPER ")\n"
 #endif
 
 #ifdef CONFIG_VDE
@@ -351,13 +360,16 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
 	TAP_OPTIONS \
 	"-net socket[,vlan=n][,name=str][,fd=h][,listen=[host]:port][,connect=host:port]\n" \
 	"                connect the vlan 'n' to another VLAN using a socket connection\n" \
-	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port]\n" \
+	"-net socket[,vlan=n][,name=str][,fd=h][,mcast=maddr:port[,localaddr=addr]]\n" \
 	"                connect the vlan 'n' to multicast maddr and port\n" \
+	"                use 'localaddr=addr' to specify the host address to send packets from\n" \
+	"-net socket[,vlan=n][,name=str][,fd=h][,udp=host:port][,localaddr=host:port]\n" \
+	"                connect the vlan 'n' to another VLAN using an UDP tunnel\n" \
 	VDE_OPTIONS \
 	"-net dump[,vlan=n][,file=f][,len=n]\n" \
 	"                dump traffic on vlan 'n' to file 'f' (max n bytes per packet)\n" \
-	"-net none       use it alone to have zero network devices; if no -net option\n" \
-"                is provided, the default is '-net nic -net user'\n", QEMU_ARCH_ALL)
+	"-net none       use it alone to have zero network devices. If no -net option\n" \
+	"                is provided, the default is '-net nic -net user'\n", QEMU_ARCH_ALL) 
 
 	// netdev section
 #ifdef CONFIG_SLIRP
@@ -377,6 +389,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
 	"-netdev [" \
 	NETDEV_SLIRP \
 	"tap|" \
+	"bridge|" \
 	NETDEV_VDE \
 "socket],id=str[,option][,option][,...]\n", QEMU_ARCH_ALL)
 
@@ -415,6 +428,12 @@ DEFHEADING(Character device options:)
 #else
 #define CHARDEV_PARPORT ""
 #endif
+#if defined(CONFIG_SPICE)
+#define CHARDEV_SPICE \
+"-chardev spicevmc,id=id,name=name[,debug=debug]\n"
+#else
+#define CHARDEV_SPICE ""
+#endif
 
 DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 	"-chardev null,id=id[,mux=on|off]\n" \
@@ -431,7 +450,8 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 	CHARDEV_OPTS \
 	CHARDEV_BRLAPI \
 	CHARDEV_TTY \
-	CHARDEV_PARPORT, QEMU_ARCH_ALL
+	CHARDEV_PARPORT \
+	CHARDEV_SPICE, QEMU_ARCH_ALL
 )
 
 // END HEAVILY MODIFIED SECTION
@@ -530,7 +550,7 @@ QEMU_ARCH_ALL)
 DEF("hdachs", HAS_ARG, QEMU_OPTION_hdachs, \
 "-hdachs c,h,s[,t]\n" \
 "                force hard disk 0 physical geometry and the optional BIOS\n" \
-"                translation (t=none or lba) (usually qemu can guess them)\n",
+"                translation (t=none or lba) (usually QEMU can guess them)\n",
 QEMU_ARCH_ALL)
 
 DEF("L", HAS_ARG, QEMU_OPTION_L, \
@@ -551,7 +571,7 @@ DEF("xen-create", 0, QEMU_OPTION_xen_create,
 QEMU_ARCH_ALL)
 DEF("xen-attach", 0, QEMU_OPTION_xen_attach,
 "-xen-attach     attach to existing xen domain\n"
-"                xend will use this when starting qemu\n",
+"                xend will use this when starting QEMU\n",
 QEMU_ARCH_ALL)
 
 DEF("no-reboot", 0, QEMU_OPTION_no_reboot, \
@@ -583,7 +603,7 @@ DEF("localtime", 0, QEMU_OPTION_localtime, "", QEMU_ARCH_ALL)
 DEF("startdate", HAS_ARG, QEMU_OPTION_startdate, "", QEMU_ARCH_ALL)
 
 DEF("rtc", HAS_ARG, QEMU_OPTION_rtc, \
-"-rtc [base=utc|localtime|date][,clock=host|vm][,driftfix=none|slew]\n" \
+"-rtc [base=utc|localtime|date][,clock=host|rt|vm][,driftfix=none|slew]\n" \
 "                set the RTC base and clock, enable drift fix for clock ticks (x86 only)\n",
 QEMU_ARCH_ALL)
 
@@ -654,8 +674,20 @@ DEF("nodefconfig", 0, QEMU_OPTION_nodefconfig,
 "-nodefconfig\n"
 "                do not load default config files at startup\n",
 QEMU_ARCH_ALL)
+DEF("no-user-config", 0, QEMU_OPTION_nouserconfig,
+"-no-user-config\n"
+"                do not load user-provided config files at startup\n",
+QEMU_ARCH_ALL)
 DEF("trace", HAS_ARG, QEMU_OPTION_trace,
 "-trace [events=<file>][,file=<file>]\n"
 "                specify tracing options\n",
+QEMU_ARCH_ALL)
+
+DEF("qtest", HAS_ARG, QEMU_OPTION_qtest,
+"-qtest CHR      specify tracing options\n",
+QEMU_ARCH_ALL)
+
+DEF("qtest-log", HAS_ARG, QEMU_OPTION_qtest_log,
+"-qtest-log LOG  specify tracing options\n",
 QEMU_ARCH_ALL)
 

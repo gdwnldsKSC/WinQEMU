@@ -129,12 +129,12 @@ typedef struct {
     VirtIOSCSIConf *conf;
 
     SCSIBus bus;
-    VirtQueue *ctrl_vq;
-    VirtQueue *event_vq;
-    VirtQueue *cmd_vq;
     uint32_t sense_size;
     uint32_t cdb_size;
     int resetting;
+    VirtQueue *ctrl_vq;
+    VirtQueue *event_vq;
+    VirtQueue *cmd_vqs[0];
 } VirtIOSCSI;
 
 typedef struct VirtIOSCSIReq {
@@ -240,7 +240,10 @@ static VirtIOSCSIReq *virtio_scsi_pop_req(VirtIOSCSI *s, VirtQueue *vq)
 static void virtio_scsi_save_request(QEMUFile *f, SCSIRequest *sreq)
 {
     VirtIOSCSIReq *req = sreq->hba_private;
+    uint32_t n = virtio_queue_get_id(req->vq) - 2;
 
+    assert(n < req->dev->conf->num_queues);
+    qemu_put_be32s(f, &n);
     qemu_put_buffer(f, (unsigned char *)&req->elem, sizeof(req->elem));
 }
 
@@ -249,10 +252,13 @@ static void *virtio_scsi_load_request(QEMUFile *f, SCSIRequest *sreq)
     SCSIBus *bus = sreq->bus;
     VirtIOSCSI *s = container_of(bus, VirtIOSCSI, bus);
     VirtIOSCSIReq *req;
+    uint32_t n;
 
     req = g_malloc(sizeof(*req));
+    qemu_get_be32s(f, &n);
+    assert(n < s->conf->num_queues);
     qemu_get_buffer(f, (unsigned char *)&req->elem, sizeof(req->elem));
-    virtio_scsi_parse_req(s, s->cmd_vq, req);
+    virtio_scsi_parse_req(s, s->cmd_vqs[n], req);
 
     scsi_req_ref(sreq);
     req->sreq = sreq;
@@ -558,7 +564,12 @@ static void virtio_scsi_save(QEMUFile *f, void *opaque)
 static int virtio_scsi_load(QEMUFile *f, void *opaque, int version_id)
 {
     VirtIOSCSI *s = opaque;
-    virtio_load(&s->vdev, f);
+    int ret;
+
+    ret = virtio_load(&s->vdev, f);
+    if (ret) {
+        return ret;
+    }
     return 0;
 }
 
@@ -579,10 +590,12 @@ VirtIODevice *virtio_scsi_init(DeviceState *dev, VirtIOSCSIConf *proxyconf)
 {
     VirtIOSCSI *s;
     static int virtio_scsi_id;
+    size_t sz;
+    int i;
 
+    sz = sizeof(VirtIOSCSI) + proxyconf->num_queues * sizeof(VirtQueue *);
     s = (VirtIOSCSI *)virtio_common_init("virtio-scsi", VIRTIO_ID_SCSI,
-                                         sizeof(VirtIOSCSIConfig),
-                                         sizeof(VirtIOSCSI));
+                                         sizeof(VirtIOSCSIConfig), sz);
 
     s->qdev = dev;
     s->conf = proxyconf;
@@ -597,8 +610,10 @@ VirtIODevice *virtio_scsi_init(DeviceState *dev, VirtIOSCSIConf *proxyconf)
                                    virtio_scsi_handle_ctrl);
     s->event_vq = virtio_add_queue(&s->vdev, VIRTIO_SCSI_VQ_SIZE,
                                    NULL);
-    s->cmd_vq = virtio_add_queue(&s->vdev, VIRTIO_SCSI_VQ_SIZE,
-                                   virtio_scsi_handle_cmd);
+    for (i = 0; i < s->conf->num_queues; i++) {
+        s->cmd_vqs[i] = virtio_add_queue(&s->vdev, VIRTIO_SCSI_VQ_SIZE,
+                                         virtio_scsi_handle_cmd);
+    }
 
     scsi_bus_new(&s->bus, dev, &virtio_scsi_scsi_info);
     if (!dev->hotplugged) {
@@ -613,5 +628,7 @@ VirtIODevice *virtio_scsi_init(DeviceState *dev, VirtIOSCSIConf *proxyconf)
 
 void virtio_scsi_exit(VirtIODevice *vdev)
 {
+    VirtIOSCSI *s = (VirtIOSCSI *)vdev;
+    unregister_savevm(s->qdev, "virtio-scsi", s);
     virtio_cleanup(vdev);
 }

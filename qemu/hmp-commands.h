@@ -39,8 +39,8 @@
 
 {
 .name       = "block_stream",
-.args_type  = "device:B,base:s?",
-.params     = "device [base]",
+.args_type  = "device:B,speed:o?,base:s?",
+.params     = "device [speed [base]]",
 .help       = "copy data from a backing file into a block device",
 .mhandler.cmd = hmp_block_stream,
 },
@@ -48,8 +48,8 @@
 
 {
 .name       = "block_job_set_speed",
-.args_type  = "device:B,value:o",
-.params     = "device value",
+.args_type  = "device:B,speed:o",
+.params     = "device speed",
 .help       = "set maximum speed for a background block operation",
 .mhandler.cmd = hmp_block_job_set_speed,
 },
@@ -326,8 +326,7 @@
 .args_type  = "id:s",
 .params     = "device",
 .help       = "remove device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_device_del,
+.mhandler.cmd = hmp_device_del,
 },
 
 
@@ -433,8 +432,7 @@
 " full copy of disk\n\t\t\t -i for migration without "
 "shared storage with incremental copy of disk "
 "(base image shared between src and destination)",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_migrate,
+.mhandler.cmd = hmp_migrate,
 },
 
 
@@ -480,14 +478,17 @@
 
 {
 .name       = "snapshot_blkdev",
-.args_type  = "device:B,snapshot-file:s?,format:s?",
-.params     = "device [new-image-file] [format]",
+.args_type  = "reuse:-n,device:B,snapshot-file:s?,format:s?",
+.params     = "[-n] device [new-image-file] [format]",
 .help       = "initiates a live snapshot\n\t\t\t"
 "of device. If a new image file is specified, the\n\t\t\t"
 "new image file will become the new root image.\n\t\t\t"
 "If format is specified, the snapshot file will\n\t\t\t"
 "be created in that format. Otherwise the\n\t\t\t"
-"snapshot will be internal! (currently unsupported)",
+"snapshot will be internal! (currently unsupported).\n\t\t\t"
+"The default format is qcow2.  The -n flag requests QEMU\n\t\t\t"
+"to reuse the image found in new-image-file, instead of\n\t\t\t"
+"recreating it from scratch.",
 .mhandler.cmd = hmp_snapshot_blkdev,
 },
 

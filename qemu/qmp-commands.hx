@@ -314,10 +314,7 @@ EQMP
     {
         .name       = "device_del",
         .args_type  = "id:s",
-        .params     = "device",
-        .help       = "remove device",
-        .user_print = monitor_user_noop,
-        .mhandler.cmd_new = do_device_del,
+        .mhandler.cmd_new = qmp_marshal_input_device_del,
     },
 
 SQMP
@@ -444,16 +441,36 @@ Note: inject-nmi is only supported for x86 guest currently, it will
 EQMP
 
     {
+        .name       = "xen-save-devices-state",
+        .args_type  = "filename:F",
+    .mhandler.cmd_new = qmp_marshal_input_xen_save_devices_state,
+    },
+
+SQMP
+xen-save-devices-state
+-------
+
+Save the state of all devices to file. The RAM and the block devices
+of the VM are not saved by this command.
+
+Arguments:
+
+- "filename": the file to save the state of the devices to as binary
+data. See xen-save-devices-state.txt for a description of the binary
+format.
+
+Example:
+
+-> { "execute": "xen-save-devices-state",
+     "arguments": { "filename": "/tmp/save" } }
+<- { "return": {} }
+
+EQMP
+
+    {
         .name       = "migrate",
         .args_type  = "detach:-d,blk:-b,inc:-i,uri:s",
-        .params     = "[-d] [-b] [-i] uri",
-        .help       = "migrate to URI (using -d to not wait for completion)"
-		      "\n\t\t\t -b for migration without shared storage with"
-		      " full copy of disk\n\t\t\t -i for migration without "
-		      "shared storage with incremental copy of disk "
-		      "(base image shared between src and destination)",
-        .user_print = monitor_user_noop,	
-	.mhandler.cmd_new = do_migrate,
+        .mhandler.cmd_new = qmp_marshal_input_migrate,
     },
 
 SQMP
@@ -670,65 +687,79 @@ Example:
 EQMP
 
     {
-        .name       = "block_stream",
-        .args_type  = "device:B,base:s?",
+        .name       = "block-stream",
+        .args_type  = "device:B,base:s?,speed:o?",
         .mhandler.cmd_new = qmp_marshal_input_block_stream,
     },
 
     {
-        .name       = "block_job_set_speed",
-        .args_type  = "device:B,value:o",
+        .name       = "block-job-set-speed",
+        .args_type  = "device:B,speed:o",
         .mhandler.cmd_new = qmp_marshal_input_block_job_set_speed,
     },
 
     {
-        .name       = "block_job_cancel",
+        .name       = "block-job-cancel",
         .args_type  = "device:B",
         .mhandler.cmd_new = qmp_marshal_input_block_job_cancel,
     },
     {
-        .name       = "blockdev-group-snapshot-sync",
-        .args_type  = "devlist:O",
-        .params  = "device:B,snapshot-file:s,format:s?",
-        .mhandler.cmd_new = qmp_marshal_input_blockdev_group_snapshot_sync,
+        .name       = "transaction",
+        .args_type  = "actions:q",
+        .mhandler.cmd_new = qmp_marshal_input_transaction,
     },
 
 SQMP
-blockdev-group-snapshot-sync
-----------------------
+transaction
+-----------
 
-Synchronous snapshot of one or more block devices.  A list array input
-is accepted, that contains the device and snapshot file information for
-each device in group. The default format, if not specified, is qcow2.
+Atomically operate on one or more block devices.  The only supported
+operation for now is snapshotting.  If there is any failure performing
+any of the operations, all snapshots for the group are abandoned, and
+the original disks pre-snapshot attempt are used.
 
-If there is any failure creating or opening a new snapshot, all snapshots
-for the group are abandoned, and the original disks pre-snapshot attempt
-are used.
+A list of dictionaries is accepted, that contains the actions to be performed.
+For snapshots this is the device, the file to use for the new snapshot,
+and the format.  The default format, if not specified, is qcow2.
 
+Each new snapshot defaults to being created by QEMU (wiping any
+contents if the file already exists), but it is also possible to reuse
+an externally-created file.  In the latter case, you should ensure that
+the new image file has the same contents as the current one; QEMU cannot
+perform any meaningful check.  Typically this is achieved by using the
+current image file as the backing file for the new image.
 
 Arguments:
 
-devlist array:
-    - "device": device name to snapshot (json-string)
-    - "snapshot-file": name of new image file (json-string)
-    - "format": format of new image (json-string, optional)
+actions array:
+    - "type": the operation to perform.  The only supported
+      value is "blockdev-snapshot-sync". (json-string)
+    - "data": a dictionary.  The contents depend on the value
+      of "type".  When "type" is "blockdev-snapshot-sync":
+      - "device": device name to snapshot (json-string)
+      - "snapshot-file": name of new image file (json-string)
+      - "format": format of new image (json-string, optional)
+      - "mode": whether and how QEMU should create the snapshot file
+        (NewImageMode, optional, default "absolute-paths")
 
 Example:
 
--> { "execute": "blockdev-group-snapshot-sync", "arguments":
-                      { "devlist": [{ "device": "ide-hd0",
-                                      "snapshot-file": "/some/place/my-image",
-                                      "format": "qcow2" },
-                                    { "device": "ide-hd1",
-                                      "snapshot-file": "/some/place/my-image2",
-                                      "format": "qcow2" }] } }
+-> { "execute": "transaction",
+     "arguments": { "actions": [
+         { 'type': 'blockdev-snapshot-sync', 'data' : { "device": "ide-hd0",
+                                         "snapshot-file": "/some/place/my-image",
+                                         "format": "qcow2" } },
+         { 'type': 'blockdev-snapshot-sync', 'data' : { "device": "ide-hd1",
+                                         "snapshot-file": "/some/place/my-image2",
+                                         "mode": "existing",
+                                         "format": "qcow2" } } ] } }
 <- { "return": {} }
 
 EQMP
 
     {
         .name       = "blockdev-snapshot-sync",
-        .args_type  = "device:B,snapshot-file:s,format:s?",
+        .args_type  = "device:B,snapshot-file:s,format:s?,mode:s?",
         .mhandler.cmd_new = qmp_marshal_input_blockdev_snapshot_sync,
     },
 
@@ -746,6 +777,8 @@ Arguments:
 
 - "device": device name to snapshot (json-string)
 - "snapshot-file": name of new image file (json-string)
+- "mode": whether and how QEMU should create the snapshot file
+  (NewImageMode, optional, default "absolute-paths")
 - "format": format of new image (json-string, optional)
 
 Example:
@@ -2089,7 +2122,7 @@ EQMP
 
     {
         .name       = "qom-set",
-	.args_type  = "path:s,property:s,opts:O",
+	.args_type  = "path:s,property:s,value:q",
 	.mhandler.cmd_new = qmp_qom_set,
     },
 

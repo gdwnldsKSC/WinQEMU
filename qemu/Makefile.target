@@ -58,13 +58,14 @@ else
 TARGET_TYPE=system
 endif
 
-$(QEMU_PROG).stp:
-	$(call quiet-command,sh $(SRC_PATH)/scripts/tracetool \
-		--$(TRACE_BACKEND) \
-		--binary $(bindir)/$(QEMU_PROG) \
-		--target-arch $(TARGET_ARCH) \
-		--target-type $(TARGET_TYPE) \
-		--stap < $(SRC_PATH)/trace-events > $(QEMU_PROG).stp,"  GEN   $(QEMU_PROG).stp")
+$(QEMU_PROG).stp: $(SRC_PATH)/trace-events
+	$(call quiet-command,$(TRACETOOL) \
+		--format=stap \
+		--backend=$(TRACE_BACKEND) \
+		--binary=$(bindir)/$(QEMU_PROG) \
+		--target-arch=$(TARGET_ARCH) \
+		--target-type=$(TARGET_TYPE) \
+		< $< > $@,"  GEN   $(QEMU_PROG).stp")
 else
 stap:
 endif
@@ -80,19 +81,24 @@ libobj-y = exec.o translate-all.o cpu-exec.o translate.o
 libobj-y += tcg/tcg.o tcg/optimize.o
 libobj-$(CONFIG_TCG_INTERPRETER) += tci.o
 libobj-y += fpu/softfloat.o
-libobj-y += op_helper.o helper.o
-ifeq ($(TARGET_BASE_ARCH), i386)
-libobj-y += cpuid.o
+ifneq ($(TARGET_BASE_ARCH), sparc)
+ifneq ($(TARGET_BASE_ARCH), alpha)
+libobj-y += op_helper.o
+endif
+endif
+libobj-y += helper.o
+ifneq ($(TARGET_BASE_ARCH), ppc)
+libobj-y += cpu.o
 endif
 libobj-$(TARGET_SPARC64) += vis_helper.o
 libobj-$(CONFIG_NEED_MMU) += mmu.o
 libobj-$(TARGET_ARM) += neon_helper.o iwmmxt_helper.o
 ifeq ($(TARGET_BASE_ARCH), sparc)
 libobj-y += fop_helper.o cc_helper.o win_helper.o mmu_helper.o ldst_helper.o
-libobj-y += cpu_init.o
 endif
 libobj-$(TARGET_SPARC) += int32_helper.o
 libobj-$(TARGET_SPARC64) += int64_helper.o
+libobj-$(TARGET_ALPHA) += int_helper.o fpu_helper.o sys_helper.o mem_helper.o
 
 libobj-y += disas.o
 libobj-$(CONFIG_TCI_DIS) += tci-dis.o
@@ -101,9 +107,12 @@ tci-dis.o: QEMU_CFLAGS += -I$(SRC_PATH)/tcg -I$(SRC_PATH)/tcg/tci
 
 $(libobj-y): $(GENERATED_HEADERS)
 
-# HELPER_CFLAGS is used for all the code compiled with static register
+# HELPER_CFLAGS is used for all the legacy code compiled with static register
 # variables
-op_helper.o ldst_helper.o user-exec.o: QEMU_CFLAGS += $(HELPER_CFLAGS)
+ifneq ($(TARGET_BASE_ARCH), sparc)
+op_helper.o: QEMU_CFLAGS += $(HELPER_CFLAGS)
+endif
+user-exec.o: QEMU_CFLAGS += $(HELPER_CFLAGS)
 
 # Note: this is a workaround. The real fix is to avoid compiling
 # cpu_signal_handler() in user-exec.c.
@@ -136,38 +145,12 @@ obj-m68k-y += m68k-sim.o m68k-semi.o
 
 $(obj-y) $(obj-$(TARGET_BASE_ARCH)-y): $(GENERATED_HEADERS)
 
+obj-y += $(addprefix ../, $(universal-obj-y))
 obj-y += $(addprefix ../libuser/, $(user-obj-y))
 obj-y += $(addprefix ../libdis-user/, $(libdis-y))
 obj-y += $(libobj-y)
 
 endif #CONFIG_LINUX_USER
-
-#########################################################
-# Darwin user emulator target
-
-ifdef CONFIG_DARWIN_USER
-
-$(call set-vpath, $(SRC_PATH)/darwin-user)
-
-QEMU_CFLAGS+=-I$(SRC_PATH)/darwin-user -I$(SRC_PATH)/darwin-user/$(TARGET_ARCH)
-
-# Leave some space for the regular program loading zone
-LDFLAGS+=-Wl,-segaddr,__STD_PROG_ZONE,0x1000 -image_base 0x0e000000
-
-LIBS+=-lmx
-
-obj-y = main.o commpage.o machload.o mmap.o signal.o syscall.o thunk.o \
-        gdbstub.o user-exec.o
-
-obj-i386-y += ioport-user.o
-
-$(obj-y) $(obj-$(TARGET_BASE_ARCH)-y): $(GENERATED_HEADERS)
-
-obj-y += $(addprefix ../libuser/, $(user-obj-y))
-obj-y += $(addprefix ../libdis-user/, $(libdis-y))
-obj-y += $(libobj-y)
-
-endif #CONFIG_DARWIN_USER
 
 #########################################################
 # BSD user emulator target
@@ -185,6 +168,7 @@ obj-i386-y += ioport-user.o
 
 $(obj-y) $(obj-$(TARGET_BASE_ARCH)-y): $(GENERATED_HEADERS)
 
+obj-y += $(addprefix ../, $(universal-obj-y))
 obj-y += $(addprefix ../libuser/, $(user-obj-y))
 obj-y += $(addprefix ../libdis-user/, $(libdis-y))
 obj-y += $(libobj-y)
@@ -200,14 +184,14 @@ obj-y = arch_init.o cpus.o monitor.o machine.o gdbstub.o balloon.o ioport.o
 # need to fix this properly
 obj-$(CONFIG_NO_PCI) += pci-stub.o
 obj-$(CONFIG_VIRTIO) += virtio.o virtio-blk.o virtio-balloon.o virtio-net.o virtio-serial-bus.o
-obj-$(CONFIG_VIRTIO_SCSI) += virtio-scsi.o
+obj-$(CONFIG_VIRTIO) += virtio-scsi.o
 obj-y += vhost_net.o
 obj-$(CONFIG_VHOST_NET) += vhost.o
 obj-$(CONFIG_REALLY_VIRTFS) += 9pfs/virtio-9p-device.o
 obj-$(CONFIG_KVM) += kvm.o kvm-all.o
 obj-$(CONFIG_NO_KVM) += kvm-stub.o
 obj-$(CONFIG_VGA) += vga.o
-obj-y += memory.o savevm.o
+obj-y += memory.o savevm.o cputlb.o
 LIBS+=-lz
 
 obj-i386-$(CONFIG_KVM) += hyperv.o
@@ -221,7 +205,7 @@ QEMU_CFLAGS += $(VNC_PNG_CFLAGS)
 obj-$(CONFIG_XEN) += xen-all.o xen_machine_pv.o xen_domainbuild.o xen-mapcache.o
 obj-$(CONFIG_NO_XEN) += xen-stub.o
 
-obj-i386-$(CONFIG_XEN) += xen_platform.o
+obj-i386-$(CONFIG_XEN) += xen_platform.o xen_apic.o
 
 # Inter-VM PCI shared memory
 CONFIG_IVSHMEM =
@@ -346,10 +330,12 @@ endif
 obj-arm-y = integratorcp.o versatilepb.o arm_pic.o arm_timer.o
 obj-arm-y += arm_boot.o pl011.o pl031.o pl050.o pl080.o pl110.o pl181.o pl190.o
 obj-arm-y += versatile_pci.o
+obj-arm-y += versatile_i2c.o
 obj-arm-y += cadence_uart.o
 obj-arm-y += cadence_ttc.o
 obj-arm-y += cadence_gem.o
 obj-arm-y += xilinx_zynq.o zynq_slcr.o
+obj-arm-y += arm_gic.o
 obj-arm-y += realview_gic.o realview.o arm_sysctl.o arm11mpcore.o a9mpcore.o
 obj-arm-y += exynos4210_gic.o exynos4210_combiner.o exynos4210.o
 obj-arm-y += exynos4_boards.o exynos4210_uart.o exynos4210_pwm.o
@@ -370,7 +356,7 @@ obj-arm-y += omap1.o omap_lcdc.o omap_dma.o omap_clk.o omap_mmc.o omap_i2c.o \
 obj-arm-y += omap2.o omap_dss.o soc_dma.o omap_gptimer.o omap_synctimer.o \
 		omap_gpmc.o omap_sdrc.o omap_spi.o omap_tap.o omap_l4.o
 obj-arm-y += omap_sx1.o palm.o tsc210x.o
-obj-arm-y += nseries.o blizzard.o onenand.o cbus.o tusb6010.o usb-musb.o
+obj-arm-y += nseries.o blizzard.o onenand.o cbus.o tusb6010.o usb/hcd-musb.o
 obj-arm-y += mst_fpga.o mainstone.o
 obj-arm-y += z2.o
 obj-arm-y += musicpal.o bitbang_i2c.o marvell_88w8618_audio.o
@@ -398,6 +384,7 @@ obj-xtensa-y += xtensa_sim.o
 obj-xtensa-y += xtensa_lx60.o
 obj-xtensa-y += xtensa-semi.o
 obj-xtensa-y += core-dc232b.o
+obj-xtensa-y += core-dc233c.o
 obj-xtensa-y += core-fsf.o
 
 main.o: QEMU_CFLAGS+=$(GPROF_CFLAGS)
@@ -406,6 +393,7 @@ monitor.o: hmp-commands.h qmp-commands-old.h
 
 $(obj-y) $(obj-$(TARGET_BASE_ARCH)-y): $(GENERATED_HEADERS)
 
+obj-y += $(addprefix ../, $(universal-obj-y))
 obj-y += $(addprefix ../, $(common-obj-y))
 obj-y += $(addprefix ../libdis/, $(libdis-y))
 obj-y += $(libobj-y)
@@ -460,8 +448,8 @@ ifneq ($(STRIP),)
 endif
 endif
 ifdef CONFIG_TRACE_SYSTEMTAP
-	$(INSTALL_DIR) "$(DESTDIR)$(datadir)/../systemtap/tapset"
-	$(INSTALL_DATA) $(QEMU_PROG).stp "$(DESTDIR)$(datadir)/../systemtap/tapset"
+	$(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/../systemtap/tapset"
+	$(INSTALL_DATA) $(QEMU_PROG).stp "$(DESTDIR)$(qemu_datadir)/../systemtap/tapset"
 endif
 
 # Include automatically generated dependency files

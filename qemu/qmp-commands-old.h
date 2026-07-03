@@ -79,10 +79,7 @@
 {
 .name       = "device_del",
 .args_type  = "id:s",
-.params     = "device",
-.help       = "remove device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_device_del,
+.mhandler.cmd_new = qmp_marshal_input_device_del,
 },
 
 
@@ -115,16 +112,16 @@
 
 
 {
+.name       = "xen-save-devices-state",
+.args_type  = "filename:F",
+.mhandler.cmd_new = qmp_marshal_input_xen_save_devices_state,
+},
+
+
+{
 .name       = "migrate",
 .args_type  = "detach:-d,blk:-b,inc:-i,uri:s",
-.params     = "[-d] [-b] [-i] uri",
-.help       = "migrate to URI (using -d to not wait for completion)"
-"\n\t\t\t -b for migration without shared storage with"
-" full copy of disk\n\t\t\t -i for migration without "
-"shared storage with incremental copy of disk "
-"(base image shared between src and destination)",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_migrate,
+.mhandler.cmd_new = qmp_marshal_input_migrate,
 },
 
 
@@ -188,33 +185,32 @@
 
 
 {
-.name       = "block_stream",
-.args_type  = "device:B,base:s?",
+.name       = "block-stream",
+.args_type  = "device:B,base:s?,speed:o?",
 .mhandler.cmd_new = qmp_marshal_input_block_stream,
 },
 
 {
-.name       = "block_job_set_speed",
-.args_type  = "device:B,value:o",
+.name       = "block-job-set-speed",
+.args_type  = "device:B,speed:o",
 .mhandler.cmd_new = qmp_marshal_input_block_job_set_speed,
 },
 
 {
-.name       = "block_job_cancel",
+.name       = "block-job-cancel",
 .args_type  = "device:B",
 .mhandler.cmd_new = qmp_marshal_input_block_job_cancel,
 },
 {
-.name       = "blockdev-group-snapshot-sync",
-.args_type  = "devlist:O",
-.params  = "device:B,snapshot-file:s,format:s?",
-.mhandler.cmd_new = qmp_marshal_input_blockdev_group_snapshot_sync,
+.name       = "transaction",
+.args_type  = "actions:q",
+.mhandler.cmd_new = qmp_marshal_input_transaction,
 },
 
 
 {
 .name       = "blockdev-snapshot-sync",
-.args_type  = "device:B,snapshot-file:s,format:s?",
+.args_type  = "device:B,snapshot-file:s,format:s?,mode:s?",
 .mhandler.cmd_new = qmp_marshal_input_blockdev_snapshot_sync,
 },
 
@@ -435,7 +431,7 @@
 
 {
 .name       = "qom-set",
-.args_type  = "path:s,property:s,opts:O",
+.args_type  = "path:s,property:s,value:q",
 .mhandler.cmd_new = qmp_qom_set,
 },
 

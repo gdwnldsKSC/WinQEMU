@@ -83,7 +83,7 @@ typedef struct Exynos4210Irq {
 } Exynos4210Irq;
 
 typedef struct Exynos4210State {
-    CPUState * env[EXYNOS4210_NCPUS];
+    CPUARMState * env[EXYNOS4210_NCPUS];
     Exynos4210Irq irqs;
     qemu_irq *irq_table;
 
@@ -96,6 +96,9 @@ typedef struct Exynos4210State {
     MemoryRegion boot_secondary;
     MemoryRegion bootreg_mem;
 } Exynos4210State;
+
+void exynos4210_write_secondary(CPUARMState *env,
+        const struct arm_boot_info *info);
 
 Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
         unsigned long ram_size);

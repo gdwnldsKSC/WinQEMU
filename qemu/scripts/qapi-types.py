@@ -9,7 +9,10 @@
 # This work is licensed under the terms of the GNU GPLv2.
 # See the COPYING.LIB file in the top-level directory.
 
-from ordereddict import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from qapi import *
 import sys
 import os
@@ -100,7 +103,7 @@ typedef enum %(name)s
     %(abbrev)s_%(value)s = %(i)d,
 ''',
                      abbrev=de_camel_case(name).upper(),
-                     value=c_var(value).upper(),
+                     value=c_fun(value).upper(),
                      i=i)
         i += 1
 
@@ -117,6 +120,7 @@ struct %(name)s
 {
     %(name)sKind kind;
     union {
+        void *data;
 ''',
                 name=name)
 
@@ -125,7 +129,7 @@ struct %(name)s
         %(c_type)s %(c_name)s;
 ''',
                      c_type=c_type(typeinfo[key]),
-                     c_name=c_var(key))
+                     c_name=c_fun(key))
 
     ret += mcgen('''
     };
@@ -165,8 +169,8 @@ void qapi_free_%(type)s(%(c_type)s obj)
 try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "chp:o:",
                                    ["source", "header", "prefix=", "output-dir="])
-except getopt.GetoptError, err:
-    print str(err)
+except getopt.GetoptError as err:
+    print(str(err))
     sys.exit(1)
 
 output_dir = ""
@@ -196,7 +200,7 @@ h_file = output_dir + prefix + h_file
 
 try:
     os.makedirs(output_dir)
-except os.error, e:
+except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
@@ -204,8 +208,8 @@ def maybe_open(really, name, opt):
     if really:
         return open(name, opt)
     else:
-        import StringIO
-        return StringIO.StringIO()
+        from io import StringIO
+        return StringIO()
 
 fdef = maybe_open(do_c, c_file, 'w')
 fdecl = maybe_open(do_h, h_file, 'w')
@@ -257,32 +261,37 @@ fdecl.write(mcgen('''
                   guard=guardname(h_file)))
 
 exprs = parse_schema(sys.stdin)
-exprs = filter(lambda expr: not expr.has_key('gen'), exprs)
+exprs = [expr for expr in exprs if 'gen' not in expr]
 
 for expr in exprs:
     ret = "\n"
-    if expr.has_key('type'):
+    if 'type' in expr:
         ret += generate_fwd_struct(expr['type'], expr['data'])
-    elif expr.has_key('enum'):
+    elif 'enum' in expr:
         ret += generate_enum(expr['enum'], expr['data'])
         fdef.write(generate_enum_lookup(expr['enum'], expr['data']))
-    elif expr.has_key('union'):
+    elif 'union' in expr:
         ret += generate_fwd_struct(expr['union'], expr['data']) + "\n"
-        ret += generate_enum('%sKind' % expr['union'], expr['data'].keys())
+        ret += generate_enum('%sKind' % expr['union'], list(expr['data'].keys()))
+        fdef.write(generate_enum_lookup('%sKind' % expr['union'], list(expr['data'].keys())))
     else:
         continue
     fdecl.write(ret)
 
 for expr in exprs:
     ret = "\n"
-    if expr.has_key('type'):
+    if 'type' in expr:
         ret += generate_struct(expr['type'], "", expr['data']) + "\n"
         ret += generate_type_cleanup_decl(expr['type'] + "List")
         fdef.write(generate_type_cleanup(expr['type'] + "List") + "\n")
         ret += generate_type_cleanup_decl(expr['type'])
         fdef.write(generate_type_cleanup(expr['type']) + "\n")
-    elif expr.has_key('union'):
+    elif 'union' in expr:
         ret += generate_union(expr['union'], expr['data'])
+        ret += generate_type_cleanup_decl(expr['union'] + "List")
+        fdef.write(generate_type_cleanup(expr['union'] + "List") + "\n")
+        ret += generate_type_cleanup_decl(expr['union'])
+        fdef.write(generate_type_cleanup(expr['union']) + "\n")
     else:
         continue
     fdecl.write(ret)

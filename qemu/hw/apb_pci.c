@@ -66,6 +66,8 @@ do { printf("APB: " fmt , ## __VA_ARGS__); } while (0)
 #define RESET_WCMASK 0x98000000
 #define RESET_WMASK  0x60000000
 
+#define MAX_IVEC 0x30
+
 typedef struct APBState {
     SysBusDevice busdev;
     PCIBus      *bus;
@@ -77,17 +79,21 @@ typedef struct APBState {
     uint32_t pci_control[16];
     uint32_t pci_irq_map[8];
     uint32_t obio_irq_map[32];
-    qemu_irq pci_irqs[32];
+    qemu_irq *pbm_irqs;
+    qemu_irq *ivec_irqs;
     uint32_t reset_control;
     unsigned int nr_resets;
 } APBState;
+
+static void pci_apb_set_irq(void *opaque, int irq_num, int level);
 
 static void apb_config_writel (void *opaque, target_phys_addr_t addr,
                                uint64_t val, unsigned size)
 {
     APBState *s = opaque;
 
-    APB_DPRINTF("%s: addr " TARGET_FMT_lx " val %x\n", __func__, addr, val);
+    APB_DPRINTF("%s: addr " TARGET_FMT_lx " val %" PRIx64 "\n", __func__, addr, val);
+
 #ifndef _MSC_VER
     switch (addr & 0xffff) {
     case 0x30 ... 0x4f: /* DMA error registers */
@@ -102,6 +108,22 @@ static void apb_config_writel (void *opaque, target_phys_addr_t addr,
         if (addr & 4) {
             s->pci_irq_map[(addr & 0x3f) >> 3] &= PBM_PCI_IMR_MASK;
             s->pci_irq_map[(addr & 0x3f) >> 3] |= val & ~PBM_PCI_IMR_MASK;
+        }
+        break;
+    case 0x1000 ... 0x1080: /* OBIO interrupt control */
+        if (addr & 4) {
+            s->obio_irq_map[(addr & 0xff) >> 3] &= PBM_PCI_IMR_MASK;
+            s->obio_irq_map[(addr & 0xff) >> 3] |= val & ~PBM_PCI_IMR_MASK;
+        }
+        break;
+    case 0x1400 ... 0x143f: /* PCI interrupt clear */
+        if (addr & 4) {
+            pci_apb_set_irq(s, (addr & 0x3f) >> 3, 0);
+        }
+        break;
+    case 0x1800 ... 0x1860: /* OBIO interrupt clear */
+        if (addr & 4) {
+            pci_apb_set_irq(s, 0x20 | ((addr & 0xff) >> 3), 0);
         }
         break;
     case 0x2000 ... 0x202f: /* PCI control */
@@ -129,21 +151,38 @@ static void apb_config_writel (void *opaque, target_phys_addr_t addr,
         break;
     }
 #else
+    /* MSVC modification: no GCC case-range syntax, unwound into an if tree */
     uint32_t addr_temp = addr & 0xffff;
     if (addr_temp >= 0x30 && addr_temp <= 0x4f) { /* DMA error registers */
         /* XXX: not implemented yet */
-}
+    }
     else if (addr_temp >= 0x200 && addr_temp <= 0x20b) { /* IOMMU */
         s->iommu[(addr & 0xf) >> 2] = val;
-}
+    }
     else if (addr_temp >= 0x20c && addr_temp <= 0x3ff) { /* IOMMU flush */
-}
+    }
     else if (addr_temp >= 0xc00 && addr_temp <= 0xc3f) { /* PCI interrupt control */
         if (addr & 4) {
             s->pci_irq_map[(addr & 0x3f) >> 3] &= PBM_PCI_IMR_MASK;
             s->pci_irq_map[(addr & 0x3f) >> 3] |= val & ~PBM_PCI_IMR_MASK;
-}
-}
+        }
+    }
+    else if (addr_temp >= 0x1000 && addr_temp <= 0x1080) { /* OBIO interrupt control */
+        if (addr & 4) {
+            s->obio_irq_map[(addr & 0xff) >> 3] &= PBM_PCI_IMR_MASK;
+            s->obio_irq_map[(addr & 0xff) >> 3] |= val & ~PBM_PCI_IMR_MASK;
+        }
+    }
+    else if (addr_temp >= 0x1400 && addr_temp <= 0x143f) { /* PCI interrupt clear */
+        if (addr & 4) {
+            pci_apb_set_irq(s, (addr & 0x3f) >> 3, 0);
+        }
+    }
+    else if (addr_temp >= 0x1800 && addr_temp <= 0x1860) { /* OBIO interrupt clear */
+        if (addr & 4) {
+            pci_apb_set_irq(s, 0x20 | ((addr & 0xff) >> 3), 0);
+        }
+    }
     else if (addr_temp >= 0x2000 && addr_temp <= 0x202f) { /* PCI control */
         s->pci_control[(addr & 0x3f) >> 2] = val;
     }
@@ -155,21 +194,20 @@ static void apb_config_writel (void *opaque, target_phys_addr_t addr,
             if (val & SOFT_POR) {
                 s->nr_resets = 0;
                 qemu_system_reset_request();
-            }
-            else if (val & SOFT_XIR) {
+            } else if (val & SOFT_XIR) {
                 qemu_system_reset_request();
             }
         }
     }
     else if ((addr_temp >= 0x5000 && addr_temp <= 0x51cf) || /* PIO/DMA diagnostics */
-        (addr_temp >= 0xa400 && addr_temp <= 0xa67f) || /* IOMMU diagnostics */
-        (addr_temp >= 0xa800 && addr_temp <= 0xa80f) || /* Interrupt diagnostics */
-        (addr_temp >= 0xf000 && addr_temp <= 0xf01f)) { /* FFB config, memory control */
-        /* We don't care */
-}
+             (addr_temp >= 0xa400 && addr_temp <= 0xa67f) || /* IOMMU diagnostics */
+             (addr_temp >= 0xa800 && addr_temp <= 0xa80f) || /* Interrupt diagnostics */
+             (addr_temp >= 0xf000 && addr_temp <= 0xf01f)) { /* FFB config, memory control */
+        /* we don't care */
+    }
     else {
-        /* Do nothing */
-}
+        /* do nothing */
+    }
 #endif
 }
 
@@ -178,6 +216,7 @@ static uint64_t apb_config_readl (void *opaque,
 {
     APBState *s = opaque;
     uint32_t val;
+
 #ifndef _MSC_VER
     switch (addr & 0xffff) {
     case 0x30 ... 0x4f: /* DMA error registers */
@@ -193,6 +232,13 @@ static uint64_t apb_config_readl (void *opaque,
     case 0xc00 ... 0xc3f: /* PCI interrupt control */
         if (addr & 4) {
             val = s->pci_irq_map[(addr & 0x3f) >> 3];
+        } else {
+            val = 0;
+        }
+        break;
+    case 0x1000 ... 0x1080: /* OBIO interrupt control */
+        if (addr & 4) {
+            val = s->obio_irq_map[(addr & 0xff) >> 3];
         } else {
             val = 0;
         }
@@ -217,6 +263,7 @@ static uint64_t apb_config_readl (void *opaque,
         break;
     }
 #else
+    /* MSVC modification: no GCC case-range syntax, unwound into an if tree */
     uint32_t addr_temp = addr & 0xffff;
     if (addr_temp >= 0x30 && addr_temp <= 0x4f) { /* DMA error registers */
         val = 0;
@@ -231,8 +278,14 @@ static uint64_t apb_config_readl (void *opaque,
     else if (addr_temp >= 0xc00 && addr_temp <= 0xc3f) { /* PCI interrupt control */
         if (addr & 4) {
             val = s->pci_irq_map[(addr & 0x3f) >> 3];
+        } else {
+            val = 0;
         }
-        else {
+    }
+    else if (addr_temp >= 0x1000 && addr_temp <= 0x1080) { /* OBIO interrupt control */
+        if (addr & 4) {
+            val = s->obio_irq_map[(addr & 0xff) >> 3];
+        } else {
             val = 0;
         }
     }
@@ -242,16 +295,15 @@ static uint64_t apb_config_readl (void *opaque,
     else if (addr_temp >= 0xf020 && addr_temp <= 0xf027) { /* Reset control */
         if (addr & 4) {
             val = s->reset_control;
-        }
-        else {
+        } else {
             val = 0;
         }
     }
     else if ((addr_temp >= 0x5000 && addr_temp <= 0x51cf) || /* PIO/DMA diagnostics */
-        (addr_temp >= 0xa400 && addr_temp <= 0xa67f) || /* IOMMU diagnostics */
-        (addr_temp >= 0xa800 && addr_temp <= 0xa80f) || /* Interrupt diagnostics */
-        (addr_temp >= 0xf000 && addr_temp <= 0xf01f)) { /* FFB config, memory control */
-        /* We don't care */
+             (addr_temp >= 0xa400 && addr_temp <= 0xa67f) || /* IOMMU diagnostics */
+             (addr_temp >= 0xa800 && addr_temp <= 0xa80f) || /* Interrupt diagnostics */
+             (addr_temp >= 0xf000 && addr_temp <= 0xf01f)) { /* FFB config, memory control */
+        /* we don't care */
         val = 0;
     }
     else {
@@ -275,7 +327,7 @@ static void apb_pci_config_write(void *opaque, target_phys_addr_t addr,
     APBState *s = opaque;
 
     val = qemu_bswap_len(val, size);
-    APB_DPRINTF("%s: addr " TARGET_FMT_lx " val %x\n", __func__, addr, val);
+    APB_DPRINTF("%s: addr " TARGET_FMT_lx " val %" PRIx64 "\n", __func__, addr, val);
     pci_data_write(s->bus, addr, val, size);
 }
 
@@ -365,10 +417,19 @@ static void pci_apb_set_irq(void *opaque, int irq_num, int level)
     if (irq_num < 32) {
         if (s->pci_irq_map[irq_num >> 2] & PBM_PCI_IMR_ENABLED) {
             APB_DPRINTF("%s: set irq %d level %d\n", __func__, irq_num, level);
-            qemu_set_irq(s->pci_irqs[irq_num], level);
+            qemu_set_irq(s->ivec_irqs[irq_num], level);
         } else {
             APB_DPRINTF("%s: not enabled: lower irq %d\n", __func__, irq_num);
-            qemu_irq_lower(s->pci_irqs[irq_num]);
+            qemu_irq_lower(s->ivec_irqs[irq_num]);
+        }
+    } else {
+        /* OBIO IRQ map onto the next 16 INO.  */
+        if (s->obio_irq_map[irq_num - 32] & PBM_PCI_IMR_ENABLED) {
+            APB_DPRINTF("%s: set irq %d level %d\n", __func__, irq_num, level);
+            qemu_set_irq(s->ivec_irqs[irq_num], level);
+        } else {
+            APB_DPRINTF("%s: not enabled: lower irq %d\n", __func__, irq_num);
+            qemu_irq_lower(s->ivec_irqs[irq_num]);
         }
     }
 }
@@ -401,12 +462,12 @@ static int apb_pci_bridge_initfn(PCIDevice *dev)
 
 PCIBus *pci_apb_init(target_phys_addr_t special_base,
                      target_phys_addr_t mem_base,
-                     qemu_irq *pic, PCIBus **bus2, PCIBus **bus3)
+                     qemu_irq *ivec_irqs, PCIBus **bus2, PCIBus **bus3,
+                     qemu_irq **pbm_irqs)
 {
     DeviceState *dev;
     SysBusDevice *s;
     APBState *d;
-    unsigned int i;
     PCIDevice *pci_dev;
     PCIBridge *br;
 
@@ -431,9 +492,8 @@ PCIBus *pci_apb_init(target_phys_addr_t special_base,
                               get_system_io(),
                               0, 32);
 
-    for (i = 0; i < 32; i++) {
-        sysbus_connect_irq(s, i, pic[i]);
-    }
+    *pbm_irqs = d->pbm_irqs;
+    d->ivec_irqs = ivec_irqs;
 
     pci_create_simple(d->bus, 0, "pbm-pci");
 
@@ -465,6 +525,9 @@ static void pci_pbm_reset(DeviceState *d)
     for (i = 0; i < 8; i++) {
         s->pci_irq_map[i] &= PBM_PCI_IMR_MASK;
     }
+    for (i = 0; i < 32; i++) {
+        s->obio_irq_map[i] &= PBM_PCI_IMR_MASK;
+    }
 
     if (s->nr_resets++ == 0) {
         /* Power on reset */
@@ -488,8 +551,9 @@ static int pci_pbm_init_device(SysBusDevice *dev)
         s->pci_irq_map[i] = (0x1f << 6) | (i << 2);
     }
     for (i = 0; i < 32; i++) {
-        sysbus_init_irq(dev, &s->pci_irqs[i]);
+        s->obio_irq_map[i] = ((0x1f << 6) | 0x20) + i;
     }
+    s->pbm_irqs = qemu_allocate_irqs(pci_apb_set_irq, s, MAX_IVEC);
 
     /* apb_config */
     memory_region_init_io(&s->apb_config, &apb_config_ops, s, "apb-config",
@@ -529,7 +593,6 @@ static void pbm_pci_host_class_init(ObjectClass *klass, void *data)
     k->vendor_id = PCI_VENDOR_ID_SUN;
     k->device_id = PCI_DEVICE_ID_SUN_SABRE;
     k->class_id = PCI_CLASS_BRIDGE_HOST;
-    k->is_bridge = 1;
 }
 
 static TypeInfo pbm_pci_host_info = {

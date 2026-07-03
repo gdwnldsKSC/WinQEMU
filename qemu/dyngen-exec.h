@@ -62,14 +62,17 @@
 
 #if defined(AREG0)
 #ifdef _MSC_VER
-extern CPUX86State* cpu_single_env;
+/* MSVC - (asm(AREG0) is compiled out via config.h's empty asm() macro),
+   the cpu_single_env global as the implicit CPU context.  This matches
+   !AREG0 / !CONFIG_TCG_PASS_AREG0 path by softmmu helpers in cputlb.c. */
+extern CPUArchState *cpu_single_env;
 #define env cpu_single_env
+#else
+register CPUArchState *env asm(AREG0);
 #endif
-#elif defined(AREG0)
-register CPUState *env asm(AREG0);
 #else
 /* TODO: Try env = cpu_single_env. */
-extern CPUState *env;
+extern CPUArchState *env;
 #endif
 
 #endif /* !defined(__DYNGEN_EXEC_H__) */

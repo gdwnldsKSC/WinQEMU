@@ -30,7 +30,6 @@
 #include "isa.h"
 #include "pci.h"
 #include "pci_host.h"
-#include "usb-ohci.h"
 #include "ppc.h"
 #include "boards.h"
 #include "qemu-log.h"
@@ -38,6 +37,7 @@
 #include "loader.h"
 #include "mc146818rtc.h"
 #include "blockdev.h"
+#include "arch_init.h"
 #include "exec-memory.h"
 
 //#define HARD_DEBUG_PPC_IO
@@ -85,38 +85,6 @@ static int ne2000_irq[NE2000_NB_MAX] = { 9, 10, 11, 3, 4, 5 };
 
 /* ISA IO ports bridge */
 #define PPC_IO_BASE 0x80000000
-
-/* PCI intack register */
-/* Read-only register (?) */
-static void PPC_intack_write (void *opaque, target_phys_addr_t addr,
-                              uint64_t value, unsigned size)
-{
-#if 0
-    printf("%s: 0x" TARGET_FMT_plx " => 0x%08" PRIx64 "\n", __func__, addr,
-           value);
-#endif
-}
-
-static uint64_t PPC_intack_read(void *opaque, target_phys_addr_t addr,
-                                unsigned size)
-{
-    uint32_t retval = 0;
-
-    if ((addr & 0xf) == 0)
-        retval = pic_read_irq(isa_pic);
-#if 0
-    printf("%s: 0x" TARGET_FMT_plx " <= %08" PRIx32 "\n", __func__, addr,
-           retval);
-#endif
-
-    return retval;
-}
-
-static const MemoryRegionOps PPC_intack_ops = {
-    .read = PPC_intack_read,
-    .write = PPC_intack_write,
-    .endianness = DEVICE_LITTLE_ENDIAN,
-};
 
 /* PowerPC control and status registers */
 #if 0 // Not used
@@ -464,11 +432,18 @@ static const MemoryRegionOps PPC_prep_io_ops = {
 
 static void cpu_request_exit(void *opaque, int irq, int level)
 {
-    CPUState *env = cpu_single_env;
+    CPUPPCState *env = cpu_single_env;
 
     if (env && level) {
         cpu_exit(env);
     }
+}
+
+static void ppc_prep_reset(void *opaque)
+{
+    CPUPPCState *env = opaque;
+
+    cpu_state_reset(env);
 }
 
 /* PowerPC PREP hardware initialisation */
@@ -480,12 +455,11 @@ static void ppc_prep_init (ram_addr_t ram_size,
                            const char *cpu_model)
 {
     MemoryRegion *sysmem = get_system_memory();
-    CPUState *env = NULL;
+    CPUPPCState *env = NULL;
     char *filename;
     nvram_t nvram;
     M48t59State *m48t59;
     MemoryRegion *PPC_io_memory = g_new(MemoryRegion, 1);
-    MemoryRegion *intack = g_new(MemoryRegion, 1);
 #if 0
     MemoryRegion *xcsr = g_new(MemoryRegion, 1);
 #endif
@@ -525,7 +499,7 @@ static void ppc_prep_init (ram_addr_t ram_size,
             /* Set time-base frequency to 100 Mhz */
             cpu_ppc_tb_init(env, 100UL * 1000UL * 1000UL);
         }
-        qemu_register_reset((QEMUResetHandler*)&cpu_reset, env);
+        qemu_register_reset(ppc_prep_reset, env);
     }
 
     /* allocate RAM */
@@ -609,8 +583,8 @@ static void ppc_prep_init (ram_addr_t ram_size,
     sys = sysbus_from_qdev(dev);
     pcihost = DO_UPCAST(PCIHostState, busdev, sys);
     pcihost->address_space = get_system_memory();
+    object_property_add_child(qdev_get_machine(), "raven", OBJECT(dev), NULL);
     qdev_init_nofail(dev);
-    object_property_add_child(object_get_root(), "raven", OBJECT(dev), NULL);
     pci_bus = (PCIBus *)qdev_get_child_bus(dev, "pci.0");
     if (pci_bus == NULL) {
         fprintf(stderr, "Couldn't create PCI host controller.\n");
@@ -678,9 +652,6 @@ static void ppc_prep_init (ram_addr_t ram_size,
     register_ioport_write(0x0092, 0x01, 1, &PREP_io_800_writeb, sysctrl);
     register_ioport_read(0x0800, 0x52, 1, &PREP_io_800_readb, sysctrl);
     register_ioport_write(0x0800, 0x52, 1, &PREP_io_800_writeb, sysctrl);
-    /* PCI intack location */
-    memory_region_init_io(intack, &PPC_intack_ops, NULL, "ppc-intack", 4);
-    memory_region_add_subregion(sysmem, 0xBFFFFFF0, intack);
     /* PowerPC control and status register group */
 #if 0
     memory_region_init_io(xcsr, &PPC_XCSR_ops, NULL, "ppc-xcsr", 0x1000);
@@ -688,7 +659,7 @@ static void ppc_prep_init (ram_addr_t ram_size,
 #endif
 
     if (usb_enabled) {
-        usb_ohci_init_pci(pci_bus, -1);
+        pci_create_simple(pci_bus, -1, "pci-ohci");
     }
 
     m48t59 = m48t59_init_isa(isa_bus, 0x0074, NVRAM_SIZE, 59);
@@ -710,6 +681,9 @@ static void ppc_prep_init (ram_addr_t ram_size,
 
     /* Special port to get debug messages from Open-Firmware */
     register_ioport_write(0x0F00, 4, 1, &PPC_debug_write, NULL);
+
+    /* Initialize audio subsystem */
+    audio_init(isa_bus, pci_bus);
 }
 
 static QEMUMachine prep_machine = {

@@ -89,15 +89,8 @@ const float64 float64_default_nan = const_float64(LIT64( 0xFFF8000000000000 ));
 #define floatx80_default_nan_low  LIT64( 0xC000000000000000 )
 #endif
 
-#ifndef _MSC_VER
-const floatx80 floatx80_default_nan = make_floatx80(floatx80_default_nan_high,
-                                                    floatx80_default_nan_low);
-#else
-const floatx80 floatx80_default_nan = {
-    floatx80_default_nan_low,   /* low  */
-    floatx80_default_nan_high   /* high */
-};
-#endif
+const floatx80 floatx80_default_nan
+    = make_floatx80_init(floatx80_default_nan_high, floatx80_default_nan_low);
 
 /*----------------------------------------------------------------------------
 | The pattern for a default generated quadruple-precision NaN.  The `high' and
@@ -111,15 +104,8 @@ const floatx80 floatx80_default_nan = {
 #define float128_default_nan_low  LIT64( 0x0000000000000000 )
 #endif
 
-#ifndef _MSC_VER
-const float128 float128_default_nan = make_float128(float128_default_nan_high,
-                                                    float128_default_nan_low);
-#else
-const float128 float128_default_nan = {
-    float128_default_nan_low,   /* low  */
-    float128_default_nan_high   /* high */
-};
-#endif
+const float128 float128_default_nan
+    = make_float128_init(float128_default_nan_high, float128_default_nan_low);
 
 /*----------------------------------------------------------------------------
 | Raises the exceptions specified by `flags'.  Floating-point traps can be

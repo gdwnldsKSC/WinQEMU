@@ -136,11 +136,7 @@ typedef struct TCGLabel {
 typedef struct TCGPool {
     struct TCGPool *next;
     int size;
-#ifndef _MSC_VER
     uint8_t data[0] __attribute__ ((aligned));
-#else
-	__declspec(align(16)) uint8_t data[0];
-#endif
 } TCGPool;
 
 #define TCG_POOL_CHUNK_SIZE 32768
@@ -336,7 +332,7 @@ typedef struct TCGContext TCGContext;
 
 struct TCGContext {
     uint8_t *pool_cur, *pool_end;
-    TCGPool *pool_first, *pool_current;
+    TCGPool *pool_first, *pool_current, *pool_first_large;
     TCGLabel *labels;
     int nb_labels;
     TCGTemp *temps; /* globals first, temps after */
@@ -588,5 +584,7 @@ extern uint8_t code_gen_prologue[];
 /* TCG targets may use a different definition of tcg_qemu_tb_exec. */
 #if !defined(tcg_qemu_tb_exec)
 # define tcg_qemu_tb_exec(env, tb_ptr) \
-    ((long (*)(void *, void *))code_gen_prologue)(env, tb_ptr)
+    ((tcg_target_ulong (*)(void *, void *))code_gen_prologue)(env, tb_ptr)
 #endif
+
+void tcg_register_jit(void *buf, size_t buf_size);

@@ -19,6 +19,7 @@
 #include <spice-experimental.h>
 
 #include <netdb.h>
+#include "sysemu.h"
 
 #include "qemu-common.h"
 #include "qemu-spice.h"
@@ -461,6 +462,13 @@ SpiceInfo *qmp_query_spice(Error **errp)
         info->tls_port = tls_port;
     }
 
+#if SPICE_SERVER_VERSION >= 0x000a03 /* 0.10.3 */
+    info->mouse_mode = spice_server_is_server_mouse(spice_server) ?
+                       SPICE_QUERY_MOUSE_MODE_SERVER :
+                       SPICE_QUERY_MOUSE_MODE_CLIENT;
+#else
+    info->mouse_mode = SPICE_QUERY_MOUSE_MODE_UNKNOWN;
+#endif
     /* for compatibility with the original command */
     info->has_channels = true;
     info->channels = qmp_query_spice_channels();
@@ -553,7 +561,7 @@ void qemu_spice_init(void)
 
     qemu_thread_get_self(&me);
 
-   if (!opts) {
+    if (!opts) {
         return;
     }
     port = qemu_opt_get_number(opts, "port", 0);
@@ -688,6 +696,11 @@ void qemu_spice_init(void)
 
     qemu_opt_foreach(opts, add_channel, &tls_port, 0);
 
+#if SPICE_SERVER_VERSION >= 0x000a02 /* 0.10.2 */
+    spice_server_set_name(spice_server, qemu_name);
+    spice_server_set_uuid(spice_server, qemu_uuid);
+#endif
+
     if (0 != spice_server_init(spice_server, &core_interface)) {
         error_report("failed to initialize spice server");
         exit(1);
@@ -781,10 +794,3 @@ static void spice_register_config(void)
     qemu_add_opts(&qemu_spice_opts);
 }
 machine_init(spice_register_config);
-
-static void spice_register_types(void)
-{
-    qemu_spice_init();
-}
-
-type_init(spice_register_types)

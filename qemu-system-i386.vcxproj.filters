@@ -106,6 +106,9 @@
     <Filter Include="qemu\qom\inc">
       <UniqueIdentifier>{010b27c1-ee1d-439a-befc-fe7448fce710}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\hw\usb">
+      <UniqueIdentifier>{f4f3c4b0-15ee-4a2b-aa54-12bceebdbbde}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -172,9 +175,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\i386-dis.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\kqemu.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\kvm-all.c">
@@ -255,15 +255,6 @@
     <ClCompile Include="qemu\translate-all.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\usb-bsd.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\usb-linux.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\usb-stub.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\vl.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -325,9 +316,6 @@
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ads7846.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\alpha_palcode.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\an5206.c">
@@ -705,9 +693,6 @@
     <ClCompile Include="qemu\hw\ppc405_uc.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\ppc440.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\ppc440_bamboo.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -909,39 +894,6 @@
     <ClCompile Include="qemu\hw\unin_pci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\usb-bt.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-hid.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-hub.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-msd.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-musb.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-net.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-ohci.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-serial.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-uhci.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-wacom.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\versatile_pci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1070,9 +1022,6 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\smbios.c">
       <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\qemu-thread.c">
-      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\watchdog.c">
       <Filter>qemu\hw\src</Filter>
@@ -1230,9 +1179,6 @@
     <ClCompile Include="qemu\hw\ne2000-isa.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\usb-bus.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\vga-pci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1252,15 +1198,6 @@
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\tcg-runtime.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qdict.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qint.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qstring.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\qlist.c">
@@ -1380,20 +1317,8 @@
     <ClCompile Include="qemu\cpus.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\target-i386\cpuid.c">
-      <Filter>qemu\target-i386</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\block\blkdebug.c">
       <Filter>qemu\block\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qfloat.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qjson.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\check-qlist.c">
-      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\cmd.c">
       <Filter>qemu\src</Filter>
@@ -1502,33 +1427,6 @@
     </ClCompile>
     <ClCompile Include="qemu\block\sheepdog.c">
       <Filter>qemu\block\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_fb.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_interrupt.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_keyboard.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_pointer.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_rtc.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_serial.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_timer.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\syborg_virtio.c">
-      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\applesmc.c">
       <Filter>qemu\hw\src</Filter>
@@ -1692,9 +1590,6 @@
     <ClCompile Include="qemu\hw\pci-stub.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\usb-desc.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\leon3.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1797,14 +1692,8 @@
     <ClCompile Include="qemu\xen-mapcache.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\xen-mapcache-stub.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\xen-stub.c">
       <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-ehci.c">
-      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\error.c">
       <Filter>qemu\src</Filter>
@@ -1842,15 +1731,6 @@
     <ClCompile Include="qemu\qemu-ga.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\test-qmp-commands.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\test-visitor.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\usb-redir.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\qga\guest-agent-commands.c">
       <Filter>qemu\qga</Filter>
     </ClCompile>
@@ -1877,9 +1757,6 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\hid.c">
       <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-libhw.c">
-      <Filter>qemu\hw\inc</Filter>
     </ClCompile>
     <ClCompile Include="qemu\slirp\arp_table.c">
       <Filter>qemu\slirp</Filter>
@@ -1956,12 +1833,6 @@
     <ClCompile Include="qemu\hw\ioapic_common.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\usb-audio.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\hw\usb-xhci.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\qdev-monitor.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -1991,6 +1862,93 @@
     </ClCompile>
     <ClCompile Include="qemu\hw\kvmvapic.c">
       <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\pci_bridge_dev.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\bus.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\core.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\desc.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-audio.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-bluetooth.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-hid.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-hub.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-network.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-serial.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-smartcard-reader.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-storage.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-wacom.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\hcd-ehci.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\hcd-musb.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\hcd-ohci.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\hcd-uhci.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\hcd-xhci.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\host-bsd.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\host-linux.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\host-stub.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\libhw.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\redirect.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\cputlb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\shpc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\slotid_cap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qom\cpu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qtest.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\cpu.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2103,9 +2061,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\osdep.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\posix-aio-compat.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-aio.h">
@@ -2273,9 +2228,6 @@
     <ClInclude Include="qemu\hw\mac_dbdma.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\mainstone.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\mcf.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -2321,16 +2273,10 @@
     <ClInclude Include="qemu\hw\ppc405.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\ppc440.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\ppc4xx.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\ppc_mac.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\ppce500.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\primecell.h">
@@ -2397,9 +2343,6 @@
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\virtio-blk.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\virtio-console.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\virtio-net.h">
@@ -2480,9 +2423,6 @@
     <ClInclude Include="qemu\target-i386\cpu.h">
       <Filter>qemu\target-i386</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\target-i386\exec.h">
-      <Filter>qemu\target-i386</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\target-i386\helper.h">
       <Filter>qemu\target-i386</Filter>
     </ClInclude>
@@ -2532,9 +2472,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\targphys.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\poison.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-option.h">
@@ -2642,18 +2579,6 @@
     <ClInclude Include="qemu\hw\apb_pci.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\prep_pci.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\sh_pci.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\usb-ohci.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\usb-uhci.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\vmware_vga.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -2756,9 +2681,6 @@
     <ClInclude Include="qemu\hw\qdev.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\syborg.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\qemu-barrier.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2828,9 +2750,6 @@
     <ClInclude Include="qemu\compatfd.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\target-i386\kvm_x86.h">
-      <Filter>qemu\target-i386</Filter>
-    </ClInclude>
     <ClInclude Include="sigcompat.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -2882,13 +2801,7 @@
     <ClInclude Include="qemu\block\qed.h">
       <Filter>qemu\block\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\block\rbd_types.h">
-      <Filter>qemu\block\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\qxl.h">
-      <Filter>qemu\hw\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\usb-desc.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\grlib.h">
@@ -3097,6 +3010,9 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\virtio-scsi.h">
       <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\usb\desc.h">
+      <Filter>qemu\hw\usb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

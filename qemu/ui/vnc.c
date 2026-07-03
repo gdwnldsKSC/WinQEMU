@@ -1068,7 +1068,10 @@ static void vnc_disconnect_finish(VncState *vs)
 
 #ifdef CONFIG_VNC_THREAD
     qemu_mutex_destroy(&vs->output_mutex);
+    qemu_bh_delete(vs->bh);
+    buffer_free(&vs->jobs_buffer);
 #endif
+
     for (i = 0; i < VNC_STAT_ROWS; ++i) {
         g_free(vs->lossy_rect[i]);
     }
@@ -1283,6 +1286,14 @@ static long vnc_client_read_plain(VncState *vs)
     return ret;
 }
 
+#ifdef CONFIG_VNC_THREAD
+static void vnc_jobs_bh(void *opaque)
+{
+    VncState *vs = opaque;
+
+    vnc_jobs_consume_buffer(vs);
+}
+#endif
 
 /*
  * First function called whenever there is more data to be read from
@@ -2589,6 +2600,9 @@ static int vnc_refresh_server_surface(VncDisplay *vd)
      * Update server dirty map.
      */
     cmp_bytes = 16 * ds_get_bytes_per_pixel(vd->ds);
+    if (cmp_bytes > vd->ds->surface->linesize) {
+        cmp_bytes = vd->ds->surface->linesize;
+    }
     guest_row  = vd->guest.ds->data;
     server_row = vd->server->data;
     for (y = 0; y < vd->guest.ds->height; y++) {
@@ -2725,6 +2739,7 @@ static void vnc_connect(VncDisplay *vd, int csock, int skipauth)
 
 #ifdef CONFIG_VNC_THREAD
     qemu_mutex_init(&vs->output_mutex);
+    vs->bh = qemu_bh_new(vnc_jobs_bh, vs);
 #endif
 
     QTAILQ_INSERT_HEAD(&vd->clients, vs, next);
@@ -3091,7 +3106,7 @@ int vnc_display_open(DisplayState *ds, const char *display)
         if (strncmp(display, "unix:", 5) == 0)
             vs->lsock = unix_connect(display+5);
         else
-            vs->lsock = inet_connect(display, SOCK_STREAM);
+            vs->lsock = inet_connect(display, true, NULL);
         if (-1 == vs->lsock) {
             g_free(vs->display);
             vs->display = NULL;
@@ -3111,7 +3126,8 @@ int vnc_display_open(DisplayState *ds, const char *display)
             pstrcpy(dpy, 256, "unix:");
             vs->lsock = unix_listen(display+5, dpy+5, 256-5);
         } else {
-            vs->lsock = inet_listen(display, dpy, 256, SOCK_STREAM, 5900);
+            vs->lsock = inet_listen(display, dpy, 256,
+                                    SOCK_STREAM, 5900, NULL);
         }
         if (-1 == vs->lsock) {
             g_free(dpy);

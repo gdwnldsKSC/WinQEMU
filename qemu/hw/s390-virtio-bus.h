@@ -17,6 +17,7 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "virtio-blk.h"
 #include "virtio-net.h"
 #include "virtio-serial.h"
 #include "virtio-scsi.h"
@@ -34,6 +35,8 @@
 #define VIRTIO_VQCONFIG_LEN		24
 
 #define VIRTIO_RING_LEN			(TARGET_PAGE_SIZE * 3)
+#define VIRTIO_VRING_AVAIL_IDX_OFFS 2
+#define VIRTIO_VRING_USED_IDX_OFFS 2
 #define S390_DEVICE_PAGES		512
 
 #define VIRTIO_PARAM_MASK               0xff
@@ -62,8 +65,7 @@ struct VirtIOS390Device {
     ram_addr_t feat_offs;
     uint8_t feat_len;
     VirtIODevice *vdev;
-    BlockConf block;
-    char *block_serial;
+    VirtIOBlkConf blk;
     NICConf nic;
     uint32_t host_features;
     virtio_serial_conf serial;
@@ -90,3 +92,5 @@ VirtIOS390Device *s390_virtio_bus_find_vring(VirtIOS390Bus *bus,
                                              ram_addr_t mem, int *vq_num);
 VirtIOS390Device *s390_virtio_bus_find_mem(VirtIOS390Bus *bus, ram_addr_t mem);
 void s390_virtio_device_sync(VirtIOS390Device *dev);
+void s390_virtio_reset_idx(VirtIOS390Device *dev);
+

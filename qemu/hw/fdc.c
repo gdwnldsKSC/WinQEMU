@@ -438,6 +438,9 @@ typedef struct FDCtrlSysBus {
 
 typedef struct FDCtrlISABus {
     ISADevice busdev;
+    uint32_t iobase;
+    uint32_t irq;
+    uint32_t dma;
     struct FDCtrl state;
     int32_t bootindexA;
     int32_t bootindexB;
@@ -702,6 +705,15 @@ static void fdctrl_raise_irq(FDCtrl *fdctrl, uint8_t status0)
         qemu_set_irq(fdctrl->irq, 1);
         fdctrl->sra |= FD_SRA_INTPEND;
     }
+    if (status0 & FD_SR0_SEEK) {
+        FDrive *cur_drv;
+        /* A seek clears the disk change line (if a disk is inserted) */
+        cur_drv = get_cur_drv(fdctrl);
+        if (cur_drv->max_track) {
+            cur_drv->media_changed = 0;
+        }
+    }
+
     fdctrl->reset_sensei = 0;
     fdctrl->status0 = status0;
     FLOPPY_DPRINTF("Set interrupt status to 0x%02x\n", fdctrl->status0);
@@ -933,23 +945,7 @@ static void fdctrl_write_ccr(FDCtrl *fdctrl, uint32_t value)
 
 static int fdctrl_media_changed(FDrive *drv)
 {
-    int ret;
-
-    if (!drv->bs)
-        return 0;
-    if (drv->media_changed) {
-        drv->media_changed = 0;
-        ret = 1;
-    } else {
-        ret = bdrv_media_changed(drv->bs);
-        if (ret < 0) {
-            ret = 0;            /* we don't know, assume no */
-        }
-    }
-    if (ret) {
-        fd_revalidate(drv);
-    }
-    return ret;
+    return drv->media_changed;
 }
 
 /* Digital input register : 0x07 (read-only) */
@@ -1853,6 +1849,7 @@ static void fdctrl_change_cb(void *opaque, bool load)
     FDrive *drive = opaque;
 
     drive->media_changed = 1;
+    fd_revalidate(drive);
 }
 
 static const BlockDevOps fdctrl_block_ops = {
@@ -1883,7 +1880,6 @@ static int fdctrl_connect_drives(FDCtrl *fdctrl)
         fd_init(drive);
         fd_revalidate(drive);
         if (drive->bs) {
-            drive->media_changed = 1;
             bdrv_set_dev_ops(drive->bs, &fdctrl_block_ops, drive);
         }
     }
@@ -1971,17 +1967,14 @@ static int isabus_fdc_init1(ISADevice *dev)
 {
     FDCtrlISABus *isa = DO_UPCAST(FDCtrlISABus, busdev, dev);
     FDCtrl *fdctrl = &isa->state;
-    int iobase = 0x3f0;
-    int isairq = 6;
-    int dma_chann = 2;
     int ret;
 
-    isa_register_portio_list(dev, iobase, fdc_portio_list, fdctrl, "fdc");
+    isa_register_portio_list(dev, isa->iobase, fdc_portio_list, fdctrl, "fdc");
 
-    isa_init_irq(&isa->busdev, &fdctrl->irq, isairq);
-    fdctrl->dma_chann = dma_chann;
+    isa_init_irq(&isa->busdev, &fdctrl->irq, isa->irq);
+    fdctrl->dma_chann = isa->dma;
 
-    qdev_set_legacy_instance_id(&dev->qdev, iobase, 2);
+    qdev_set_legacy_instance_id(&dev->qdev, isa->iobase, 2);
     ret = fdctrl_init_common(fdctrl);
 
     add_boot_device_path(isa->bootindexA, &dev->qdev, "/floppy@0");
@@ -2046,6 +2039,9 @@ static const VMStateDescription vmstate_isa_fdc ={
 };
 
 static Property isa_fdc_properties[] = {
+    DEFINE_PROP_HEX32("iobase", FDCtrlISABus, iobase, 0x3f0),
+    DEFINE_PROP_UINT32("irq", FDCtrlISABus, irq, 6),
+    DEFINE_PROP_UINT32("dma", FDCtrlISABus, dma, 2),
     DEFINE_PROP_DRIVE("driveA", FDCtrlISABus, state.drives[0].bs),
     DEFINE_PROP_DRIVE("driveB", FDCtrlISABus, state.drives[1].bs),
     DEFINE_PROP_INT32("bootindexA", FDCtrlISABus, bootindexA, -1),

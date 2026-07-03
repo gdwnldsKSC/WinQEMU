@@ -31,6 +31,7 @@ const char *RunState_lookup[] = {
     "running",
     "save-vm",
     "shutdown",
+    "suspended",
     "watchdog",
     NULL,
 };
@@ -39,6 +40,24 @@ const char *BlockDeviceIoStatus_lookup[] = {
     "ok",
     "failed",
     "nospace",
+    NULL,
+};
+
+const char *SpiceQueryMouseMode_lookup[] = {
+    "client",
+    "server",
+    "unknown",
+    NULL,
+};
+
+const char *NewImageMode_lookup[] = {
+    "existing",
+    "absolute-paths",
+    NULL,
+};
+
+const char *BlockdevActionKind_lookup[] = {
+    "blockdev-snapshot-sync",
     NULL,
 };
 
@@ -822,7 +841,7 @@ void qapi_free_BlockJobInfo(BlockJobInfo * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
-void qapi_free_SnapshotDevList(SnapshotDevList * obj)
+void qapi_free_BlockdevSnapshotList(BlockdevSnapshotList * obj)
 {
     QapiDeallocVisitor *md;
     Visitor *v;
@@ -833,11 +852,11 @@ void qapi_free_SnapshotDevList(SnapshotDevList * obj)
 
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
-    visit_type_SnapshotDevList(v, &obj, NULL, NULL);
+    visit_type_BlockdevSnapshotList(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
-void qapi_free_SnapshotDev(SnapshotDev * obj)
+void qapi_free_BlockdevSnapshot(BlockdevSnapshot * obj)
 {
     QapiDeallocVisitor *md;
     Visitor *v;
@@ -848,7 +867,37 @@ void qapi_free_SnapshotDev(SnapshotDev * obj)
 
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
-    visit_type_SnapshotDev(v, &obj, NULL, NULL);
+    visit_type_BlockdevSnapshot(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_BlockdevActionList(BlockdevActionList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockdevActionList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_BlockdevAction(BlockdevAction * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockdevAction(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 

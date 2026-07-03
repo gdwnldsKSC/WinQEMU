@@ -56,12 +56,11 @@
    NULL, it means that the function was called in C code (i.e. not
    from generated code or from helper.c) */
 /* XXX: fix it to restore all registers */
-void tlb_fill(CPUState *env1, target_ulong addr, int is_write, int mmu_idx,
-              void *retaddr)
+void tlb_fill(CPUS390XState *env1, target_ulong addr, int is_write, int mmu_idx,
+              uintptr_t retaddr)
 {
     TranslationBlock *tb;
-    CPUState *saved_env;
-    unsigned long pc;
+    CPUS390XState *saved_env;
     int ret;
 
     saved_env = env;
@@ -70,12 +69,11 @@ void tlb_fill(CPUState *env1, target_ulong addr, int is_write, int mmu_idx,
     if (unlikely(ret != 0)) {
         if (likely(retaddr)) {
             /* now we have a real cpu fault */
-            pc = (unsigned long)retaddr;
-            tb = tb_find_pc(pc);
+            tb = tb_find_pc(retaddr);
             if (likely(tb)) {
                 /* the PC is inside the translated code. It means that we have
                    a virtual CPU fault */
-                cpu_restore_state(tb, env, pc);
+                cpu_restore_state(tb, env, retaddr);
             }
         }
         cpu_loop_exit(env);
@@ -101,7 +99,7 @@ void HELPER(exception)(uint32_t excp)
 }
 
 #ifndef CONFIG_USER_ONLY
-static void mvc_fast_memset(CPUState *env, uint32_t l, uint64_t dest,
+static void mvc_fast_memset(CPUS390XState *env, uint32_t l, uint64_t dest,
                             uint8_t byte)
 {
     target_phys_addr_t dest_phys;
@@ -123,7 +121,7 @@ static void mvc_fast_memset(CPUState *env, uint32_t l, uint64_t dest,
     cpu_physical_memory_unmap(dest_p, 1, len, len);
 }
 
-static void mvc_fast_memmove(CPUState *env, uint32_t l, uint64_t dest,
+static void mvc_fast_memmove(CPUS390XState *env, uint32_t l, uint64_t dest,
                              uint64_t src)
 {
     target_phys_addr_t dest_phys;
@@ -1790,7 +1788,7 @@ void HELPER(cksm)(uint32_t r1, uint32_t r2)
                     ((uint32_t)cksm + (cksm >> 32));
 }
 
-static inline uint32_t cc_calc_ltgt_32(CPUState *env, int32_t src,
+static inline uint32_t cc_calc_ltgt_32(CPUS390XState *env, int32_t src,
                                        int32_t dst)
 {
     if (src == dst) {
@@ -1802,12 +1800,12 @@ static inline uint32_t cc_calc_ltgt_32(CPUState *env, int32_t src,
     }
 }
 
-static inline uint32_t cc_calc_ltgt0_32(CPUState *env, int32_t dst)
+static inline uint32_t cc_calc_ltgt0_32(CPUS390XState *env, int32_t dst)
 {
     return cc_calc_ltgt_32(env, dst, 0);
 }
 
-static inline uint32_t cc_calc_ltgt_64(CPUState *env, int64_t src,
+static inline uint32_t cc_calc_ltgt_64(CPUS390XState *env, int64_t src,
                                        int64_t dst)
 {
     if (src == dst) {
@@ -1819,12 +1817,12 @@ static inline uint32_t cc_calc_ltgt_64(CPUState *env, int64_t src,
     }
 }
 
-static inline uint32_t cc_calc_ltgt0_64(CPUState *env, int64_t dst)
+static inline uint32_t cc_calc_ltgt0_64(CPUS390XState *env, int64_t dst)
 {
     return cc_calc_ltgt_64(env, dst, 0);
 }
 
-static inline uint32_t cc_calc_ltugtu_32(CPUState *env, uint32_t src,
+static inline uint32_t cc_calc_ltugtu_32(CPUS390XState *env, uint32_t src,
                                          uint32_t dst)
 {
     if (src == dst) {
@@ -1836,7 +1834,7 @@ static inline uint32_t cc_calc_ltugtu_32(CPUState *env, uint32_t src,
     }
 }
 
-static inline uint32_t cc_calc_ltugtu_64(CPUState *env, uint64_t src,
+static inline uint32_t cc_calc_ltugtu_64(CPUS390XState *env, uint64_t src,
                                          uint64_t dst)
 {
     if (src == dst) {
@@ -1848,7 +1846,7 @@ static inline uint32_t cc_calc_ltugtu_64(CPUState *env, uint64_t src,
     }
 }
 
-static inline uint32_t cc_calc_tm_32(CPUState *env, uint32_t val, uint32_t mask)
+static inline uint32_t cc_calc_tm_32(CPUS390XState *env, uint32_t val, uint32_t mask)
 {
     HELPER_LOG("%s: val 0x%x mask 0x%x\n", __FUNCTION__, val, mask);
     uint16_t r = val & mask;
@@ -1862,7 +1860,7 @@ static inline uint32_t cc_calc_tm_32(CPUState *env, uint32_t val, uint32_t mask)
 }
 
 /* set condition code for test under mask */
-static inline uint32_t cc_calc_tm_64(CPUState *env, uint64_t val, uint32_t mask)
+static inline uint32_t cc_calc_tm_64(CPUS390XState *env, uint64_t val, uint32_t mask)
 {
     uint16_t r = val & mask;
     HELPER_LOG("%s: val 0x%lx mask 0x%x r 0x%x\n", __FUNCTION__, val, mask, r);
@@ -1883,12 +1881,12 @@ static inline uint32_t cc_calc_tm_64(CPUState *env, uint64_t val, uint32_t mask)
     }
 }
 
-static inline uint32_t cc_calc_nz(CPUState *env, uint64_t dst)
+static inline uint32_t cc_calc_nz(CPUS390XState *env, uint64_t dst)
 {
     return !!dst;
 }
 
-static inline uint32_t cc_calc_add_64(CPUState *env, int64_t a1, int64_t a2,
+static inline uint32_t cc_calc_add_64(CPUS390XState *env, int64_t a1, int64_t a2,
                                       int64_t ar)
 {
     if ((a1 > 0 && a2 > 0 && ar < 0) || (a1 < 0 && a2 < 0 && ar > 0)) {
@@ -1904,7 +1902,7 @@ static inline uint32_t cc_calc_add_64(CPUState *env, int64_t a1, int64_t a2,
     }
 }
 
-static inline uint32_t cc_calc_addu_64(CPUState *env, uint64_t a1, uint64_t a2,
+static inline uint32_t cc_calc_addu_64(CPUS390XState *env, uint64_t a1, uint64_t a2,
                                        uint64_t ar)
 {
     if (ar == 0) {
@@ -1922,7 +1920,7 @@ static inline uint32_t cc_calc_addu_64(CPUState *env, uint64_t a1, uint64_t a2,
     }
 }
 
-static inline uint32_t cc_calc_sub_64(CPUState *env, int64_t a1, int64_t a2,
+static inline uint32_t cc_calc_sub_64(CPUS390XState *env, int64_t a1, int64_t a2,
                                       int64_t ar)
 {
     if ((a1 > 0 && a2 < 0 && ar < 0) || (a1 < 0 && a2 > 0 && ar > 0)) {
@@ -1938,7 +1936,7 @@ static inline uint32_t cc_calc_sub_64(CPUState *env, int64_t a1, int64_t a2,
     }
 }
 
-static inline uint32_t cc_calc_subu_64(CPUState *env, uint64_t a1, uint64_t a2,
+static inline uint32_t cc_calc_subu_64(CPUS390XState *env, uint64_t a1, uint64_t a2,
                                        uint64_t ar)
 {
     if (ar == 0) {
@@ -1952,7 +1950,7 @@ static inline uint32_t cc_calc_subu_64(CPUState *env, uint64_t a1, uint64_t a2,
     }
 }
 
-static inline uint32_t cc_calc_abs_64(CPUState *env, int64_t dst)
+static inline uint32_t cc_calc_abs_64(CPUS390XState *env, int64_t dst)
 {
     if ((uint64_t)dst == 0x8000000000000000ULL) {
         return 3;
@@ -1963,12 +1961,12 @@ static inline uint32_t cc_calc_abs_64(CPUState *env, int64_t dst)
     }
 }
 
-static inline uint32_t cc_calc_nabs_64(CPUState *env, int64_t dst)
+static inline uint32_t cc_calc_nabs_64(CPUS390XState *env, int64_t dst)
 {
     return !!dst;
 }
 
-static inline uint32_t cc_calc_comp_64(CPUState *env, int64_t dst)
+static inline uint32_t cc_calc_comp_64(CPUS390XState *env, int64_t dst)
 {
     if ((uint64_t)dst == 0x8000000000000000ULL) {
         return 3;
@@ -1982,7 +1980,7 @@ static inline uint32_t cc_calc_comp_64(CPUState *env, int64_t dst)
 }
 
 
-static inline uint32_t cc_calc_add_32(CPUState *env, int32_t a1, int32_t a2,
+static inline uint32_t cc_calc_add_32(CPUS390XState *env, int32_t a1, int32_t a2,
                                       int32_t ar)
 {
     if ((a1 > 0 && a2 > 0 && ar < 0) || (a1 < 0 && a2 < 0 && ar > 0)) {
@@ -1998,7 +1996,7 @@ static inline uint32_t cc_calc_add_32(CPUState *env, int32_t a1, int32_t a2,
     }
 }
 
-static inline uint32_t cc_calc_addu_32(CPUState *env, uint32_t a1, uint32_t a2,
+static inline uint32_t cc_calc_addu_32(CPUS390XState *env, uint32_t a1, uint32_t a2,
                                        uint32_t ar)
 {
     if (ar == 0) {
@@ -2016,7 +2014,7 @@ static inline uint32_t cc_calc_addu_32(CPUState *env, uint32_t a1, uint32_t a2,
     }
 }
 
-static inline uint32_t cc_calc_sub_32(CPUState *env, int32_t a1, int32_t a2,
+static inline uint32_t cc_calc_sub_32(CPUS390XState *env, int32_t a1, int32_t a2,
                                       int32_t ar)
 {
     if ((a1 > 0 && a2 < 0 && ar < 0) || (a1 < 0 && a2 > 0 && ar > 0)) {
@@ -2032,7 +2030,7 @@ static inline uint32_t cc_calc_sub_32(CPUState *env, int32_t a1, int32_t a2,
     }
 }
 
-static inline uint32_t cc_calc_subu_32(CPUState *env, uint32_t a1, uint32_t a2,
+static inline uint32_t cc_calc_subu_32(CPUS390XState *env, uint32_t a1, uint32_t a2,
                                        uint32_t ar)
 {
     if (ar == 0) {
@@ -2046,7 +2044,7 @@ static inline uint32_t cc_calc_subu_32(CPUState *env, uint32_t a1, uint32_t a2,
     }
 }
 
-static inline uint32_t cc_calc_abs_32(CPUState *env, int32_t dst)
+static inline uint32_t cc_calc_abs_32(CPUS390XState *env, int32_t dst)
 {
     if ((uint32_t)dst == 0x80000000UL) {
         return 3;
@@ -2057,12 +2055,12 @@ static inline uint32_t cc_calc_abs_32(CPUState *env, int32_t dst)
     }
 }
 
-static inline uint32_t cc_calc_nabs_32(CPUState *env, int32_t dst)
+static inline uint32_t cc_calc_nabs_32(CPUS390XState *env, int32_t dst)
 {
     return !!dst;
 }
 
-static inline uint32_t cc_calc_comp_32(CPUState *env, int32_t dst)
+static inline uint32_t cc_calc_comp_32(CPUS390XState *env, int32_t dst)
 {
     if ((uint32_t)dst == 0x80000000UL) {
         return 3;
@@ -2076,7 +2074,7 @@ static inline uint32_t cc_calc_comp_32(CPUState *env, int32_t dst)
 }
 
 /* calculate condition code for insert character under mask insn */
-static inline uint32_t cc_calc_icm_32(CPUState *env, uint32_t mask, uint32_t val)
+static inline uint32_t cc_calc_icm_32(CPUS390XState *env, uint32_t mask, uint32_t val)
 {
     HELPER_LOG("%s: mask 0x%x val %d\n", __FUNCTION__, mask, val);
     uint32_t cc;
@@ -2107,7 +2105,7 @@ static inline uint32_t cc_calc_icm_32(CPUState *env, uint32_t mask, uint32_t val
     return cc;
 }
 
-static inline uint32_t cc_calc_slag(CPUState *env, uint64_t src, uint64_t shift)
+static inline uint32_t cc_calc_slag(CPUS390XState *env, uint64_t src, uint64_t shift)
 {
     uint64_t mask = ((1ULL << shift) - 1ULL) << (64 - shift);
     uint64_t match, r;
@@ -2136,7 +2134,7 @@ static inline uint32_t cc_calc_slag(CPUState *env, uint64_t src, uint64_t shift)
 }
 
 
-static inline uint32_t do_calc_cc(CPUState *env, uint32_t cc_op, uint64_t src,
+static inline uint32_t do_calc_cc(CPUS390XState *env, uint32_t cc_op, uint64_t src,
                                   uint64_t dst, uint64_t vr)
 {
     uint32_t r = 0;
@@ -2249,7 +2247,7 @@ static inline uint32_t do_calc_cc(CPUState *env, uint32_t cc_op, uint64_t src,
     return r;
 }
 
-uint32_t calc_cc(CPUState *env, uint32_t cc_op, uint64_t src, uint64_t dst,
+uint32_t calc_cc(CPUS390XState *env, uint32_t cc_op, uint64_t src, uint64_t dst,
                  uint64_t vr)
 {
     return do_calc_cc(env, cc_op, src, dst, vr);
@@ -2346,7 +2344,7 @@ void HELPER(load_psw)(uint64_t mask, uint64_t addr)
     cpu_loop_exit(env);
 }
 
-static void program_interrupt(CPUState *env, uint32_t code, int ilc)
+static void program_interrupt(CPUS390XState *env, uint32_t code, int ilc)
 {
     qemu_log("program interrupt at %#" PRIx64 "\n", env->psw.addr);
 
@@ -2362,13 +2360,13 @@ static void program_interrupt(CPUState *env, uint32_t code, int ilc)
     }
 }
 
-static void ext_interrupt(CPUState *env, int type, uint32_t param,
+static void ext_interrupt(CPUS390XState *env, int type, uint32_t param,
                           uint64_t param64)
 {
     cpu_inject_ext(env, type, param, param64);
 }
 
-int sclp_service_call(CPUState *env, uint32_t sccb, uint64_t code)
+int sclp_service_call(CPUS390XState *env, uint32_t sccb, uint64_t code)
 {
     int r = 0;
     int shift = 0;
@@ -2481,7 +2479,7 @@ uint32_t HELPER(sck)(uint64_t a1)
     return 0;
 }
 
-static inline uint64_t clock_value(CPUState *env)
+static inline uint64_t clock_value(CPUS390XState *env)
 {
     uint64_t time;
 

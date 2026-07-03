@@ -386,13 +386,6 @@ static void memory_region_iorange_read(IORange *iorange,
         = container_of(iorange, MemoryRegionIORange, iorange);
     MemoryRegion *mr = mrio->mr;
 
-#if 0 /* TEMPORARILY DISABLED: this fires on every guest port read and each
-         line costs ~4ms via NtWriteFile with the unbuffered debug CRT,
-         throttling the guest to ~260 port reads/sec */
-    fprintf(stderr, "IORANGE read: as_offset=0x%llx width=%u\n",
-        (unsigned long long)(offset + mrio->offset), width);
-#endif
-
     offset += mrio->offset;
     if (mr->ops->old_portio) {
         const MemoryRegionPortio *mrp = find_portio(mr, offset - mrio->offset,
@@ -433,7 +426,7 @@ static void memory_region_iorange_write(IORange *iorange,
         if (mrp) {
             mrp->write(mr->opaque, offset, data);
         } else if (width == 2) {
-            mrp = find_portio(mr, offset - mrio->offset, 1, true);
+            mrp = find_portio(mr, offset - mrio->offset, 1, false);
             assert(mrp);
             mrp->write(mr->opaque, offset, data & 0xff);
             mrp->write(mr->opaque, offset + 1, data >> 8);
@@ -1451,6 +1444,11 @@ static void listener_add_address_space(MemoryListener *listener,
 {
     FlatRange *fr;
 
+    if (listener->address_space_filter
+        && listener->address_space_filter != as->root) {
+        return;
+    }
+
     if (global_dirty_log) {
         listener->log_global_start(listener);
     }
@@ -1628,6 +1626,13 @@ void mtree_info(fprintf_function mon_printf, void *f)
     mon_printf(f, "memory\n");
     mtree_print_mr(mon_printf, f, address_space_memory.root, 0, 0, &ml_head);
 
+    if (address_space_io.root &&
+        !QTAILQ_EMPTY(&address_space_io.root->subregions)) {
+        mon_printf(f, "I/O\n");
+        mtree_print_mr(mon_printf, f, address_space_io.root, 0, 0, &ml_head);
+    }
+
+    mon_printf(f, "aliases\n");
     /* print aliased regions */
     QTAILQ_FOREACH(ml, &ml_head, queue) {
         if (!ml->printed) {
@@ -1638,12 +1643,5 @@ void mtree_info(fprintf_function mon_printf, void *f)
 
     QTAILQ_FOREACH_SAFE(ml, &ml_head, queue, ml2) {
         g_free(ml);
-    }
-
-    if (address_space_io.root &&
-        !QTAILQ_EMPTY(&address_space_io.root->subregions)) {
-        QTAILQ_INIT(&ml_head);
-        mon_printf(f, "I/O\n");
-        mtree_print_mr(mon_printf, f, address_space_io.root, 0, 0, &ml_head);
     }
 }

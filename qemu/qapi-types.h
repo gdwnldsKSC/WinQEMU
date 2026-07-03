@@ -57,8 +57,9 @@ typedef enum RunState
     RUN_STATE_RUNNING = 9,
     RUN_STATE_SAVE_VM = 10,
     RUN_STATE_SHUTDOWN = 11,
-    RUN_STATE_WATCHDOG = 12,
-    RUN_STATE_MAX = 13,
+    RUN_STATE_SUSPENDED = 12,
+    RUN_STATE_WATCHDOG = 13,
+    RUN_STATE_MAX = 14,
 } RunState;
 
 typedef struct StatusInfo StatusInfo;
@@ -190,6 +191,15 @@ typedef struct SpiceChannelList
     struct SpiceChannelList *next;
 } SpiceChannelList;
 
+extern const char *SpiceQueryMouseMode_lookup[];
+typedef enum SpiceQueryMouseMode
+{
+    SPICE_QUERY_MOUSE_MODE_CLIENT = 0,
+    SPICE_QUERY_MOUSE_MODE_SERVER = 1,
+    SPICE_QUERY_MOUSE_MODE_UNKNOWN = 2,
+    SPICE_QUERY_MOUSE_MODE_MAX = 3,
+} SpiceQueryMouseMode;
+
 typedef struct SpiceInfo SpiceInfo;
 
 typedef struct SpiceInfoList
@@ -254,13 +264,36 @@ typedef struct BlockJobInfoList
     struct BlockJobInfoList *next;
 } BlockJobInfoList;
 
-typedef struct SnapshotDev SnapshotDev;
-
-typedef struct SnapshotDevList
+extern const char *NewImageMode_lookup[];
+typedef enum NewImageMode
 {
-    SnapshotDev *value;
-    struct SnapshotDevList *next;
-} SnapshotDevList;
+    NEW_IMAGE_MODE_EXISTING = 0,
+    NEW_IMAGE_MODE_ABSOLUTE_PATHS = 1,
+    NEW_IMAGE_MODE_MAX = 2,
+} NewImageMode;
+
+typedef struct BlockdevSnapshot BlockdevSnapshot;
+
+typedef struct BlockdevSnapshotList
+{
+    BlockdevSnapshot *value;
+    struct BlockdevSnapshotList *next;
+} BlockdevSnapshotList;
+
+typedef struct BlockdevAction BlockdevAction;
+
+typedef struct BlockdevActionList
+{
+    BlockdevAction *value;
+    struct BlockdevActionList *next;
+} BlockdevActionList;
+
+extern const char *BlockdevActionKind_lookup[];
+typedef enum BlockdevActionKind
+{
+    BLOCKDEV_ACTION_KIND_BLOCKDEV_SNAPSHOT_SYNC = 0,
+    BLOCKDEV_ACTION_KIND_MAX = 1,
+} BlockdevActionKind;
 
 typedef struct ObjectPropertyInfo ObjectPropertyInfo;
 
@@ -521,6 +554,7 @@ struct SpiceInfo
     char * auth;
     bool has_compiled_version;
     char * compiled_version;
+    SpiceQueryMouseMode mouse_mode;
     bool has_channels;
     SpiceChannelList * channels;
 };
@@ -638,16 +672,29 @@ struct BlockJobInfo
 void qapi_free_BlockJobInfoList(BlockJobInfoList * obj);
 void qapi_free_BlockJobInfo(BlockJobInfo * obj);
 
-struct SnapshotDev
+struct BlockdevSnapshot
 {
     char * device;
     char * snapshot_file;
     bool has_format;
     char * format;
+    bool has_mode;
+    NewImageMode mode;
 };
 
-void qapi_free_SnapshotDevList(SnapshotDevList * obj);
-void qapi_free_SnapshotDev(SnapshotDev * obj);
+void qapi_free_BlockdevSnapshotList(BlockdevSnapshotList * obj);
+void qapi_free_BlockdevSnapshot(BlockdevSnapshot * obj);
+
+struct BlockdevAction
+{
+    BlockdevActionKind kind;
+    union {
+        void *data;
+        BlockdevSnapshot * blockdev_snapshot_sync;
+    };
+};
+void qapi_free_BlockdevActionList(BlockdevActionList * obj);
+void qapi_free_BlockdevAction(BlockdevAction * obj);
 
 struct ObjectPropertyInfo
 {

@@ -193,6 +193,14 @@ static const QErrorStringTable qerror_table[] = {
         .desc      = "Using KVM without %(capability), %(feature) unavailable",
     },
     {
+        .error_fmt = QERR_MIGRATION_ACTIVE,
+        .desc      = "There's a migration process in progress",
+    },
+    {
+        .error_fmt = QERR_MIGRATION_NOT_SUPPORTED,
+        .desc      = "State blocked by non-migratable device '%(device)'",
+    },
+    {
         .error_fmt = QERR_MIGRATION_EXPECTED,
         .desc      = "An incoming migration is expected before this command can be executed",
     },
@@ -233,9 +241,14 @@ static const QErrorStringTable qerror_table[] = {
         .desc      = "Property '%(device).%(property)' can't find value '%(value)'",
     },
     {
+        .error_fmt = QERR_PROPERTY_VALUE_NOT_POWER_OF_2,
+        .desc      = "Property '%(device).%(property)' doesn't take "
+                     "value '%(value)', it's not a power of 2",
+    },
+    {
         .error_fmt = QERR_PROPERTY_VALUE_OUT_OF_RANGE,
         .desc      = "Property '%(device).%(property)' doesn't take "
-                     "value %(value) (minimum: %(min), maximum: %(max)'",
+                     "value %(value) (minimum: %(min), maximum: %(max))",
     },
     {
         .error_fmt = QERR_QGA_COMMAND_FAILED,
@@ -290,6 +303,26 @@ static const QErrorStringTable qerror_table[] = {
     {
         .error_fmt = QERR_VNC_SERVER_FAILED,
         .desc      = "Could not start VNC server on %(target)",
+    },
+    {
+        .error_fmt = QERR_SOCKET_CONNECT_IN_PROGRESS,
+        .desc      = "Connection can not be completed immediately",
+    },
+    {
+        .error_fmt = QERR_SOCKET_CONNECT_FAILED,
+        .desc      = "Failed to connect to socket",
+    },
+    {
+        .error_fmt = QERR_SOCKET_LISTEN_FAILED,
+        .desc      = "Failed to set socket to listening mode",
+    },
+    {
+        .error_fmt = QERR_SOCKET_BIND_FAILED,
+        .desc      = "Failed to bind socket",
+    },
+    {
+        .error_fmt = QERR_SOCKET_CREATE_FAILED,
+        .desc      = "Failed to create socket",
     },
     {}
 };

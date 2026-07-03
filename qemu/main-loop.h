@@ -25,11 +25,7 @@
 #ifndef QEMU_MAIN_LOOP_H
 #define QEMU_MAIN_LOOP_H 1
 
-#ifdef SIGRTMIN
-#define SIG_IPI (SIGRTMIN+4)
-#else
 #define SIG_IPI SIGUSR1
-#endif
 
 /**
  * qemu_init_main_loop: Set up the process so that it can run the main loop.
@@ -359,11 +355,12 @@ void qemu_mutex_unlock_iothread(void);
 
 /* internal interfaces */
 
+void qemu_fd_register(int fd);
 void qemu_iohandler_fill(int *pnfds, fd_set *readfds, fd_set *writefds, fd_set *xfds);
 void qemu_iohandler_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds, int rc);
 
 void qemu_bh_schedule_idle(QEMUBH *bh);
 int qemu_bh_poll(void);
-void qemu_bh_update_timeout(int *timeout);
+void qemu_bh_update_timeout(uint32_t *timeout);
 
 #endif
