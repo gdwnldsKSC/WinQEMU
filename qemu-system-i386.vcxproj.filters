@@ -2048,9 +2048,6 @@
     <ClInclude Include="qemu\mathex.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\mathimf.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\migration.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>

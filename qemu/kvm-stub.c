@@ -135,6 +135,8 @@ int kvm_on_sigbus(int code, void *addr)
    KVM-only symbols those branches reference. */
 #include "hw/isa.h"
 
+KVMState *kvm_state;
+
 uint32_t kvm_arch_get_supported_cpuid(KVMState *env, uint32_t function,
                                       uint32_t index, int reg)
 {

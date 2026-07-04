@@ -26,8 +26,8 @@
 #ifndef QEMU_OS_WIN32_H
 #define QEMU_OS_WIN32_H
 
-#include <WinSock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #include "main-loop.h"
 
 /* Workaround for older versions of MinGW. */

@@ -1769,7 +1769,7 @@ static inline void trace_escc_sunmouse_event(int dx, int dy, int buttons_state)
 {
 }
 
-static inline void trace_iscsi_aio_write10_cb(void * iscsi, int status, void * acb, int canceled)
+static inline void trace_iscsi_aio_write16_cb(void * iscsi, int status, void * acb, int canceled)
 {
 }
 
@@ -1777,7 +1777,7 @@ static inline void trace_iscsi_aio_writev(void * iscsi, int64_t sector_num, int 
 {
 }
 
-static inline void trace_iscsi_aio_read10_cb(void * iscsi, int status, void * acb, int canceled)
+static inline void trace_iscsi_aio_read16_cb(void * iscsi, int status, void * acb, int canceled)
 {
 }
 
@@ -2915,9 +2915,9 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_ESCC_SUNKBD_EVENT_OUT_ENABLED 1
 #define TRACE_ESCC_KBD_COMMAND_ENABLED 1
 #define TRACE_ESCC_SUNMOUSE_EVENT_ENABLED 1
-#define TRACE_ISCSI_AIO_WRITE10_CB_ENABLED 1
+#define TRACE_ISCSI_AIO_WRITE16_CB_ENABLED 1
 #define TRACE_ISCSI_AIO_WRITEV_ENABLED 1
-#define TRACE_ISCSI_AIO_READ10_CB_ENABLED 1
+#define TRACE_ISCSI_AIO_READ16_CB_ENABLED 1
 #define TRACE_ISCSI_AIO_READV_ENABLED 1
 #define TRACE_ESP_RAISE_IRQ_ENABLED 1
 #define TRACE_ESP_LOWER_IRQ_ENABLED 1
