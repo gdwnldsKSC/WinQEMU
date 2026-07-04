@@ -1166,9 +1166,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="qemu\mathex.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="qemu\migration-exec.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -2563,7 +2560,6 @@
     <ClInclude Include="qemu\hpet.h" />
     <ClInclude Include="qemu\kvm.h" />
     <ClInclude Include="qemu\libfdt_env.h" />
-    <ClInclude Include="qemu\mathex.h" />
     <ClInclude Include="qemu\migration.h" />
     <ClInclude Include="qemu\nbd.h" />
     <ClInclude Include="qemu\net.h" />

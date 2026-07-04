@@ -186,9 +186,6 @@
     <ClCompile Include="qemu\m68k-semi.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\mathex.cpp">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\migration-exec.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -2043,9 +2040,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\libfdt_env.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\mathex.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\migration.h">
