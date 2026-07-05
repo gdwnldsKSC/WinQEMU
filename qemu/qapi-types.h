@@ -16,7 +16,21 @@
 #ifndef QAPI_TYPES_H
 #define QAPI_TYPES_H
 
-#include "qapi/qapi-types-core.h"
+#include "qemu-common.h"
+
+
+extern const char *ErrorClass_lookup[];
+typedef enum ErrorClass
+{
+    ERROR_CLASS_GENERIC_ERROR = 0,
+    ERROR_CLASS_COMMAND_NOT_FOUND = 1,
+    ERROR_CLASS_DEVICE_ENCRYPTED = 2,
+    ERROR_CLASS_DEVICE_NOT_ACTIVE = 3,
+    ERROR_CLASS_DEVICE_NOT_FOUND = 4,
+    ERROR_CLASS_K_V_M_MISSING_CAP = 5,
+    ERROR_CLASS_MIGRATION_EXPECTED = 6,
+    ERROR_CLASS_MAX = 7,
+} ErrorClass;
 
 typedef struct NameInfo NameInfo;
 
@@ -94,6 +108,14 @@ typedef struct CommandInfoList
     struct CommandInfoList *next;
 } CommandInfoList;
 
+typedef struct EventInfo EventInfo;
+
+typedef struct EventInfoList
+{
+    EventInfo *value;
+    struct EventInfoList *next;
+} EventInfoList;
+
 typedef struct MigrationStats MigrationStats;
 
 typedef struct MigrationStatsList
@@ -102,6 +124,14 @@ typedef struct MigrationStatsList
     struct MigrationStatsList *next;
 } MigrationStatsList;
 
+typedef struct XBZRLECacheStats XBZRLECacheStats;
+
+typedef struct XBZRLECacheStatsList
+{
+    XBZRLECacheStats *value;
+    struct XBZRLECacheStatsList *next;
+} XBZRLECacheStatsList;
+
 typedef struct MigrationInfo MigrationInfo;
 
 typedef struct MigrationInfoList
@@ -109,6 +139,21 @@ typedef struct MigrationInfoList
     MigrationInfo *value;
     struct MigrationInfoList *next;
 } MigrationInfoList;
+
+extern const char *MigrationCapability_lookup[];
+typedef enum MigrationCapability
+{
+    MIGRATION_CAPABILITY_XBZRLE = 0,
+    MIGRATION_CAPABILITY_MAX = 1,
+} MigrationCapability;
+
+typedef struct MigrationCapabilityStatus MigrationCapabilityStatus;
+
+typedef struct MigrationCapabilityStatusList
+{
+    MigrationCapabilityStatus *value;
+    struct MigrationCapabilityStatusList *next;
+} MigrationCapabilityStatusList;
 
 typedef struct MouseInfo MouseInfo;
 
@@ -311,6 +356,212 @@ typedef struct ObjectTypeInfoList
     struct ObjectTypeInfoList *next;
 } ObjectTypeInfoList;
 
+typedef struct DevicePropertyInfo DevicePropertyInfo;
+
+typedef struct DevicePropertyInfoList
+{
+    DevicePropertyInfo *value;
+    struct DevicePropertyInfoList *next;
+} DevicePropertyInfoList;
+
+typedef struct NetdevNoneOptions NetdevNoneOptions;
+
+typedef struct NetdevNoneOptionsList
+{
+    NetdevNoneOptions *value;
+    struct NetdevNoneOptionsList *next;
+} NetdevNoneOptionsList;
+
+typedef struct NetLegacyNicOptions NetLegacyNicOptions;
+
+typedef struct NetLegacyNicOptionsList
+{
+    NetLegacyNicOptions *value;
+    struct NetLegacyNicOptionsList *next;
+} NetLegacyNicOptionsList;
+
+typedef struct String String;
+
+typedef struct StringList
+{
+    String *value;
+    struct StringList *next;
+} StringList;
+
+typedef struct NetdevUserOptions NetdevUserOptions;
+
+typedef struct NetdevUserOptionsList
+{
+    NetdevUserOptions *value;
+    struct NetdevUserOptionsList *next;
+} NetdevUserOptionsList;
+
+typedef struct NetdevTapOptions NetdevTapOptions;
+
+typedef struct NetdevTapOptionsList
+{
+    NetdevTapOptions *value;
+    struct NetdevTapOptionsList *next;
+} NetdevTapOptionsList;
+
+typedef struct NetdevSocketOptions NetdevSocketOptions;
+
+typedef struct NetdevSocketOptionsList
+{
+    NetdevSocketOptions *value;
+    struct NetdevSocketOptionsList *next;
+} NetdevSocketOptionsList;
+
+typedef struct NetdevVdeOptions NetdevVdeOptions;
+
+typedef struct NetdevVdeOptionsList
+{
+    NetdevVdeOptions *value;
+    struct NetdevVdeOptionsList *next;
+} NetdevVdeOptionsList;
+
+typedef struct NetdevDumpOptions NetdevDumpOptions;
+
+typedef struct NetdevDumpOptionsList
+{
+    NetdevDumpOptions *value;
+    struct NetdevDumpOptionsList *next;
+} NetdevDumpOptionsList;
+
+typedef struct NetdevBridgeOptions NetdevBridgeOptions;
+
+typedef struct NetdevBridgeOptionsList
+{
+    NetdevBridgeOptions *value;
+    struct NetdevBridgeOptionsList *next;
+} NetdevBridgeOptionsList;
+
+typedef struct NetdevHubPortOptions NetdevHubPortOptions;
+
+typedef struct NetdevHubPortOptionsList
+{
+    NetdevHubPortOptions *value;
+    struct NetdevHubPortOptionsList *next;
+} NetdevHubPortOptionsList;
+
+typedef struct NetClientOptions NetClientOptions;
+
+typedef struct NetClientOptionsList
+{
+    NetClientOptions *value;
+    struct NetClientOptionsList *next;
+} NetClientOptionsList;
+
+extern const char *NetClientOptionsKind_lookup[];
+typedef enum NetClientOptionsKind
+{
+    NET_CLIENT_OPTIONS_KIND_NONE = 0,
+    NET_CLIENT_OPTIONS_KIND_NIC = 1,
+    NET_CLIENT_OPTIONS_KIND_USER = 2,
+    NET_CLIENT_OPTIONS_KIND_TAP = 3,
+    NET_CLIENT_OPTIONS_KIND_SOCKET = 4,
+    NET_CLIENT_OPTIONS_KIND_VDE = 5,
+    NET_CLIENT_OPTIONS_KIND_DUMP = 6,
+    NET_CLIENT_OPTIONS_KIND_BRIDGE = 7,
+    NET_CLIENT_OPTIONS_KIND_HUBPORT = 8,
+    NET_CLIENT_OPTIONS_KIND_MAX = 9,
+} NetClientOptionsKind;
+
+typedef struct NetLegacy NetLegacy;
+
+typedef struct NetLegacyList
+{
+    NetLegacy *value;
+    struct NetLegacyList *next;
+} NetLegacyList;
+
+typedef struct Netdev Netdev;
+
+typedef struct NetdevList
+{
+    Netdev *value;
+    struct NetdevList *next;
+} NetdevList;
+
+typedef struct MachineInfo MachineInfo;
+
+typedef struct MachineInfoList
+{
+    MachineInfo *value;
+    struct MachineInfoList *next;
+} MachineInfoList;
+
+typedef struct CpuDefinitionInfo CpuDefinitionInfo;
+
+typedef struct CpuDefinitionInfoList
+{
+    CpuDefinitionInfo *value;
+    struct CpuDefinitionInfoList *next;
+} CpuDefinitionInfoList;
+
+typedef struct AddfdInfo AddfdInfo;
+
+typedef struct AddfdInfoList
+{
+    AddfdInfo *value;
+    struct AddfdInfoList *next;
+} AddfdInfoList;
+
+typedef struct FdsetFdInfo FdsetFdInfo;
+
+typedef struct FdsetFdInfoList
+{
+    FdsetFdInfo *value;
+    struct FdsetFdInfoList *next;
+} FdsetFdInfoList;
+
+typedef struct FdsetInfo FdsetInfo;
+
+typedef struct FdsetInfoList
+{
+    FdsetInfo *value;
+    struct FdsetInfoList *next;
+} FdsetInfoList;
+
+extern const char *TargetType_lookup[];
+typedef enum TargetType
+{
+    TARGET_TYPE_ALPHA = 0,
+    TARGET_TYPE_ARM = 1,
+    TARGET_TYPE_CRIS = 2,
+    TARGET_TYPE_I386 = 3,
+    TARGET_TYPE_LM32 = 4,
+    TARGET_TYPE_M68K = 5,
+    TARGET_TYPE_MICROBLAZEEL = 6,
+    TARGET_TYPE_MICROBLAZE = 7,
+    TARGET_TYPE_MIPS64EL = 8,
+    TARGET_TYPE_MIPS64 = 9,
+    TARGET_TYPE_MIPSEL = 10,
+    TARGET_TYPE_MIPS = 11,
+    TARGET_TYPE_OR32 = 12,
+    TARGET_TYPE_PPC64 = 13,
+    TARGET_TYPE_PPCEMB = 14,
+    TARGET_TYPE_PPC = 15,
+    TARGET_TYPE_S390X = 16,
+    TARGET_TYPE_SH4EB = 17,
+    TARGET_TYPE_SH4 = 18,
+    TARGET_TYPE_SPARC64 = 19,
+    TARGET_TYPE_SPARC = 20,
+    TARGET_TYPE_UNICORE32 = 21,
+    TARGET_TYPE_X86_64 = 22,
+    TARGET_TYPE_XTENSAEB = 23,
+    TARGET_TYPE_XTENSA = 24,
+    TARGET_TYPE_MAX = 25,
+} TargetType;
+
+typedef struct TargetInfo TargetInfo;
+
+typedef struct TargetInfoList
+{
+    TargetInfo *value;
+    struct TargetInfoList *next;
+} TargetInfoList;
+
 struct NameInfo
 {
     bool has_name;
@@ -378,15 +629,38 @@ struct CommandInfo
 void qapi_free_CommandInfoList(CommandInfoList * obj);
 void qapi_free_CommandInfo(CommandInfo * obj);
 
+struct EventInfo
+{
+    char * name;
+};
+
+void qapi_free_EventInfoList(EventInfoList * obj);
+void qapi_free_EventInfo(EventInfo * obj);
+
 struct MigrationStats
 {
     int64_t transferred;
     int64_t remaining;
     int64_t total;
+    int64_t duplicate;
+    int64_t normal;
+    int64_t normal_bytes;
 };
 
 void qapi_free_MigrationStatsList(MigrationStatsList * obj);
 void qapi_free_MigrationStats(MigrationStats * obj);
+
+struct XBZRLECacheStats
+{
+    int64_t cache_size;
+    int64_t bytes;
+    int64_t pages;
+    int64_t cache_miss;
+    int64_t overflow;
+};
+
+void qapi_free_XBZRLECacheStatsList(XBZRLECacheStatsList * obj);
+void qapi_free_XBZRLECacheStats(XBZRLECacheStats * obj);
 
 struct MigrationInfo
 {
@@ -396,10 +670,23 @@ struct MigrationInfo
     MigrationStats * ram;
     bool has_disk;
     MigrationStats * disk;
+    bool has_xbzrle_cache;
+    XBZRLECacheStats * xbzrle_cache;
+    bool has_total_time;
+    int64_t total_time;
 };
 
 void qapi_free_MigrationInfoList(MigrationInfoList * obj);
 void qapi_free_MigrationInfo(MigrationInfo * obj);
+
+struct MigrationCapabilityStatus
+{
+    MigrationCapability capability;
+    bool state;
+};
+
+void qapi_free_MigrationCapabilityStatusList(MigrationCapabilityStatusList * obj);
+void qapi_free_MigrationCapabilityStatus(MigrationCapabilityStatus * obj);
 
 struct MouseInfo
 {
@@ -438,7 +725,9 @@ struct BlockDeviceInfo
     char * drv;
     bool has_backing_file;
     char * backing_file;
+    int64_t backing_file_depth;
     bool encrypted;
+    bool encryption_key_missing;
     int64_t bps;
     int64_t bps_rd;
     int64_t bps_wr;
@@ -712,5 +1001,269 @@ struct ObjectTypeInfo
 
 void qapi_free_ObjectTypeInfoList(ObjectTypeInfoList * obj);
 void qapi_free_ObjectTypeInfo(ObjectTypeInfo * obj);
+
+struct DevicePropertyInfo
+{
+    char * name;
+    char * type;
+};
+
+void qapi_free_DevicePropertyInfoList(DevicePropertyInfoList * obj);
+void qapi_free_DevicePropertyInfo(DevicePropertyInfo * obj);
+
+struct NetdevNoneOptions
+{
+    char qapi_dummy_for_empty_struct;
+};
+
+void qapi_free_NetdevNoneOptionsList(NetdevNoneOptionsList * obj);
+void qapi_free_NetdevNoneOptions(NetdevNoneOptions * obj);
+
+struct NetLegacyNicOptions
+{
+    bool has_netdev;
+    char * netdev;
+    bool has_macaddr;
+    char * macaddr;
+    bool has_model;
+    char * model;
+    bool has_addr;
+    char * addr;
+    bool has_vectors;
+    uint32_t vectors;
+};
+
+void qapi_free_NetLegacyNicOptionsList(NetLegacyNicOptionsList * obj);
+void qapi_free_NetLegacyNicOptions(NetLegacyNicOptions * obj);
+
+struct String
+{
+    char * str;
+};
+
+void qapi_free_StringList(StringList * obj);
+void qapi_free_String(String * obj);
+
+struct NetdevUserOptions
+{
+    bool has_hostname;
+    char * hostname;
+    bool has_q_restrict;
+    bool q_restrict;
+    bool has_ip;
+    char * ip;
+    bool has_net;
+    char * net;
+    bool has_host;
+    char * host;
+    bool has_tftp;
+    char * tftp;
+    bool has_bootfile;
+    char * bootfile;
+    bool has_dhcpstart;
+    char * dhcpstart;
+    bool has_dns;
+    char * dns;
+    bool has_smb;
+    char * smb;
+    bool has_smbserver;
+    char * smbserver;
+    bool has_hostfwd;
+    StringList * hostfwd;
+    bool has_guestfwd;
+    StringList * guestfwd;
+};
+
+void qapi_free_NetdevUserOptionsList(NetdevUserOptionsList * obj);
+void qapi_free_NetdevUserOptions(NetdevUserOptions * obj);
+
+struct NetdevTapOptions
+{
+    bool has_ifname;
+    char * ifname;
+    bool has_fd;
+    char * fd;
+    bool has_script;
+    char * script;
+    bool has_downscript;
+    char * downscript;
+    bool has_helper;
+    char * helper;
+    bool has_sndbuf;
+    uint64_t sndbuf;
+    bool has_vnet_hdr;
+    bool vnet_hdr;
+    bool has_vhost;
+    bool vhost;
+    bool has_vhostfd;
+    char * vhostfd;
+    bool has_vhostforce;
+    bool vhostforce;
+};
+
+void qapi_free_NetdevTapOptionsList(NetdevTapOptionsList * obj);
+void qapi_free_NetdevTapOptions(NetdevTapOptions * obj);
+
+struct NetdevSocketOptions
+{
+    bool has_fd;
+    char * fd;
+    bool has_listen;
+    char * listen;
+    bool has_connect;
+    char * connect;
+    bool has_mcast;
+    char * mcast;
+    bool has_localaddr;
+    char * localaddr;
+    bool has_udp;
+    char * udp;
+};
+
+void qapi_free_NetdevSocketOptionsList(NetdevSocketOptionsList * obj);
+void qapi_free_NetdevSocketOptions(NetdevSocketOptions * obj);
+
+struct NetdevVdeOptions
+{
+    bool has_sock;
+    char * sock;
+    bool has_port;
+    uint16_t port;
+    bool has_group;
+    char * group;
+    bool has_mode;
+    uint16_t mode;
+};
+
+void qapi_free_NetdevVdeOptionsList(NetdevVdeOptionsList * obj);
+void qapi_free_NetdevVdeOptions(NetdevVdeOptions * obj);
+
+struct NetdevDumpOptions
+{
+    bool has_len;
+    uint64_t len;
+    bool has_file;
+    char * file;
+};
+
+void qapi_free_NetdevDumpOptionsList(NetdevDumpOptionsList * obj);
+void qapi_free_NetdevDumpOptions(NetdevDumpOptions * obj);
+
+struct NetdevBridgeOptions
+{
+    bool has_br;
+    char * br;
+    bool has_helper;
+    char * helper;
+};
+
+void qapi_free_NetdevBridgeOptionsList(NetdevBridgeOptionsList * obj);
+void qapi_free_NetdevBridgeOptions(NetdevBridgeOptions * obj);
+
+struct NetdevHubPortOptions
+{
+    int32_t hubid;
+};
+
+void qapi_free_NetdevHubPortOptionsList(NetdevHubPortOptionsList * obj);
+void qapi_free_NetdevHubPortOptions(NetdevHubPortOptions * obj);
+
+struct NetClientOptions
+{
+    NetClientOptionsKind kind;
+    union {
+        void *data;
+        NetdevNoneOptions * none;
+        NetLegacyNicOptions * nic;
+        NetdevUserOptions * user;
+        NetdevTapOptions * tap;
+        NetdevSocketOptions * socket;
+        NetdevVdeOptions * vde;
+        NetdevDumpOptions * dump;
+        NetdevBridgeOptions * bridge;
+        NetdevHubPortOptions * hubport;
+    };
+};
+void qapi_free_NetClientOptionsList(NetClientOptionsList * obj);
+void qapi_free_NetClientOptions(NetClientOptions * obj);
+
+struct NetLegacy
+{
+    bool has_vlan;
+    int32_t vlan;
+    bool has_id;
+    char * id;
+    bool has_name;
+    char * name;
+    NetClientOptions * opts;
+};
+
+void qapi_free_NetLegacyList(NetLegacyList * obj);
+void qapi_free_NetLegacy(NetLegacy * obj);
+
+struct Netdev
+{
+    char * id;
+    NetClientOptions * opts;
+};
+
+void qapi_free_NetdevList(NetdevList * obj);
+void qapi_free_Netdev(Netdev * obj);
+
+struct MachineInfo
+{
+    char * name;
+    bool has_alias;
+    char * alias;
+    bool has_is_default;
+    bool is_default;
+};
+
+void qapi_free_MachineInfoList(MachineInfoList * obj);
+void qapi_free_MachineInfo(MachineInfo * obj);
+
+struct CpuDefinitionInfo
+{
+    char * name;
+};
+
+void qapi_free_CpuDefinitionInfoList(CpuDefinitionInfoList * obj);
+void qapi_free_CpuDefinitionInfo(CpuDefinitionInfo * obj);
+
+struct AddfdInfo
+{
+    int64_t fdset_id;
+    int64_t fd;
+};
+
+void qapi_free_AddfdInfoList(AddfdInfoList * obj);
+void qapi_free_AddfdInfo(AddfdInfo * obj);
+
+struct FdsetFdInfo
+{
+    int64_t fd;
+    bool has_opaque;
+    char * opaque;
+};
+
+void qapi_free_FdsetFdInfoList(FdsetFdInfoList * obj);
+void qapi_free_FdsetFdInfo(FdsetFdInfo * obj);
+
+struct FdsetInfo
+{
+    int64_t fdset_id;
+    FdsetFdInfoList * fds;
+};
+
+void qapi_free_FdsetInfoList(FdsetInfoList * obj);
+void qapi_free_FdsetInfo(FdsetInfo * obj);
+
+struct TargetInfo
+{
+    TargetType arch;
+};
+
+void qapi_free_TargetInfoList(TargetInfoList * obj);
+void qapi_free_TargetInfo(TargetInfo * obj);
 
 #endif

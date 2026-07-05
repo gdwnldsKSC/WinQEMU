@@ -35,17 +35,14 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 
-#include <xs.h>
-#include <xenctrl.h>
-#include <xen/io/xenbus.h>
-#include <xen/io/netif.h>
-
 #include "hw.h"
 #include "net.h"
 #include "net/checksum.h"
 #include "net/util.h"
 #include "qemu-char.h"
 #include "xen_backend.h"
+
+#include <xen/io/netif.h>
 
 /* ------------------------------------------------------------- */
 
@@ -236,7 +233,7 @@ static void net_rx_response(struct XenNetDev *netdev,
 
 #define NET_IP_ALIGN 2
 
-static int net_rx_ok(VLANClientState *nc)
+static int net_rx_ok(NetClientState *nc)
 {
     struct XenNetDev *netdev = DO_UPCAST(NICState, nc, nc)->opaque;
     RING_IDX rc, rp;
@@ -257,7 +254,7 @@ static int net_rx_ok(VLANClientState *nc)
     return 1;
 }
 
-static ssize_t net_rx_packet(VLANClientState *nc, const uint8_t *buf, size_t size)
+static ssize_t net_rx_packet(NetClientState *nc, const uint8_t *buf, size_t size)
 {
     struct XenNetDev *netdev = DO_UPCAST(NICState, nc, nc)->opaque;
     netif_rx_request_t rxreq;
@@ -304,7 +301,7 @@ static ssize_t net_rx_packet(VLANClientState *nc, const uint8_t *buf, size_t siz
 /* ------------------------------------------------------------- */
 
 static NetClientInfo net_xen_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = net_rx_ok,
     .receive = net_rx_packet,
@@ -328,7 +325,6 @@ static int net_init(struct XenDevice *xendev)
         return -1;
     }
 
-    netdev->conf.vlan = qemu_find_vlan(netdev->xendev.dev, 1);
     netdev->conf.peer = NULL;
 
     netdev->nic = qemu_new_nic(&net_xen_info, &netdev->conf,
@@ -410,7 +406,7 @@ static void net_disconnect(struct XenDevice *xendev)
         netdev->rxs = NULL;
     }
     if (netdev->nic) {
-        qemu_del_vlan_client(&netdev->nic->nc);
+        qemu_del_net_client(&netdev->nic->nc);
         netdev->nic = NULL;
     }
 }

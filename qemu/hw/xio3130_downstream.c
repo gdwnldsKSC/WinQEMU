@@ -41,14 +41,13 @@ static void xio3130_downstream_write_config(PCIDevice *d, uint32_t address,
     pci_bridge_write_config(d, address, val, len);
     pcie_cap_flr_write_config(d, address, val, len);
     pcie_cap_slot_write_config(d, address, val, len);
-    msi_write_config(d, address, val, len);
     pcie_aer_write_config(d, address, val, len);
 }
 
 static void xio3130_downstream_reset(DeviceState *qdev)
 {
     PCIDevice *d = PCI_DEVICE(qdev);
-    msi_reset(d);
+
     pcie_cap_deverr_reset(d);
     pcie_cap_slot_reset(d);
     pcie_cap_ari_reset(d);
@@ -61,7 +60,6 @@ static int xio3130_downstream_initfn(PCIDevice *d)
     PCIEPort *p = DO_UPCAST(PCIEPort, br, br);
     PCIESlot *s = DO_UPCAST(PCIESlot, port, p);
     int rc;
-    int tmp;
 
     rc = pci_bridge_initfn(d);
     if (rc < 0) {
@@ -109,12 +107,11 @@ err_pcie_cap:
 err_msi:
     msi_uninit(d);
 err_bridge:
-    tmp = pci_bridge_exitfn(d);
-    assert(!tmp);
+    pci_bridge_exitfn(d);
     return rc;
 }
 
-static int xio3130_downstream_exitfn(PCIDevice *d)
+static void xio3130_downstream_exitfn(PCIDevice *d)
 {
     PCIBridge* br = DO_UPCAST(PCIBridge, dev, d);
     PCIEPort *p = DO_UPCAST(PCIEPort, br, br);
@@ -124,7 +121,7 @@ static int xio3130_downstream_exitfn(PCIDevice *d)
     pcie_chassis_del_slot(s);
     pcie_cap_exit(d);
     msi_uninit(d);
-    return pci_bridge_exitfn(d);
+    pci_bridge_exitfn(d);
 }
 
 PCIESlot *xio3130_downstream_init(PCIBus *bus, int devfn, bool multifunction,

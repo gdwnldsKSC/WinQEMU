@@ -16,35 +16,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, see <http://www.gnu.org/licenses/>
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
+#include "qemu-thread.h"
 #include "apic_internal.h"
 #include "apic.h"
 #include "ioapic.h"
+#include "msi.h"
 #include "host-utils.h"
 #include "trace.h"
 #include "pc.h"
+#include "apic-msidef.h"
 
 #define MAX_APIC_WORDS 8
-
-/* Intel APIC constants: from include/asm/msidef.h */
-#define MSI_DATA_VECTOR_SHIFT		0
-#define MSI_DATA_VECTOR_MASK		0x000000ff
-#define MSI_DATA_DELIVERY_MODE_SHIFT	8
-#define MSI_DATA_TRIGGER_SHIFT		15
-#define MSI_DATA_LEVEL_SHIFT		14
-#define MSI_ADDR_DEST_MODE_SHIFT	2
-#define MSI_ADDR_DEST_ID_SHIFT		12
-#define	MSI_ADDR_DEST_ID_MASK		0x00ffff0
 
 #define SYNC_FROM_VAPIC                 0x1
 #define SYNC_TO_VAPIC                   0x2
@@ -380,11 +362,10 @@ static void apic_update_irq(APICCommonState *s)
     if (!(s->spurious_vec & APIC_SV_ENABLE)) {
         return;
     }
-    if (apic_irq_pending(s) > 0) {
+    if (!qemu_cpu_is_self(s->cpu_env)) {
+        cpu_interrupt(s->cpu_env, CPU_INTERRUPT_POLL);
+    } else if (apic_irq_pending(s) > 0) {
         cpu_interrupt(s->cpu_env, CPU_INTERRUPT_HARD);
-    } else if (apic_accept_pic_intr(&s->busdev.qdev) &&
-               pic_get_output(isa_pic)) {
-        apic_deliver_pic_intr(&s->busdev.qdev, 1);
     }
 }
 
@@ -554,6 +535,15 @@ static void apic_deliver(DeviceState *d, uint8_t dest, uint8_t dest_mode,
     apic_bus_deliver(deliver_bitmask, delivery_mode, vector_num, trigger_mode);
 }
 
+static bool apic_check_pic(APICCommonState *s)
+{
+    if (!apic_accept_pic_intr(&s->busdev.qdev) || !pic_get_output(isa_pic)) {
+        return false;
+    }
+    apic_deliver_pic_intr(&s->busdev.qdev, 1);
+    return true;
+}
+
 int apic_get_interrupt(DeviceState *d)
 {
     APICCommonState *s = DO_UPCAST(APICCommonState, busdev.qdev, d);
@@ -579,7 +569,12 @@ int apic_get_interrupt(DeviceState *d)
     reset_bit(s->irr, intno);
     set_bit(s->isr, intno);
     apic_sync_vapic(s, SYNC_TO_VAPIC);
+
+    /* re-inject if there is still a pending PIC interrupt */
+    apic_check_pic(s);
+
     apic_update_irq(s);
+
     return intno;
 }
 
@@ -897,8 +892,11 @@ static void apic_mem_writel(void *opaque, target_phys_addr_t addr, uint32_t val)
         {
             int n = index - 0x32;
             s->lvt[n] = val;
-            if (n == APIC_LVT_TIMER)
+            if (n == APIC_LVT_TIMER) {
                 apic_timer_update(s, qemu_get_clock_ns(vm_clock));
+            } else if (n == APIC_LVT_LINT0 && apic_check_pic(s)) {
+                apic_update_irq(s);
+            }
         }
         break;
     case 0x38:
@@ -951,6 +949,8 @@ static void apic_init(APICCommonState *s)
 
     s->timer = qemu_new_timer_ns(vm_clock, apic_timer, s);
     local_apics[s->idx] = s;
+
+    msi_supported = true;
 }
 
 static void apic_class_init(ObjectClass *klass, void *data)

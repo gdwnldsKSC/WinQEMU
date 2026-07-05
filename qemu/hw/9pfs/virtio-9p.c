@@ -983,11 +983,16 @@ static void v9fs_attach(void *opaque)
     err += offset;
     trace_v9fs_attach_return(pdu->tag, pdu->id,
                              qid.type, qid.version, qid.path);
-    s->root_fid = fid;
-    /* disable migration */
-    error_set(&s->migration_blocker, QERR_VIRTFS_FEATURE_BLOCKS_MIGRATION,
-              s->ctx.fs_root ? s->ctx.fs_root : "NULL", s->tag);
-    migrate_add_blocker(s->migration_blocker);
+    /*
+     * disable migration if we haven't done already.
+     * attach could get called multiple times for the same export.
+     */
+    if (!s->migration_blocker) {
+        s->root_fid = fid;
+        error_set(&s->migration_blocker, QERR_VIRTFS_FEATURE_BLOCKS_MIGRATION,
+                  s->ctx.fs_root ? s->ctx.fs_root : "NULL", s->tag);
+        migrate_add_blocker(s->migration_blocker);
+    }
 out:
     put_fid(pdu, fidp);
 out_nofid:
@@ -1648,7 +1653,7 @@ out:
  * with qemu_iovec_destroy().
  */
 static void v9fs_init_qiov_from_pdu(QEMUIOVector *qiov, V9fsPDU *pdu,
-                                    uint64_t skip, size_t size,
+                                    size_t skip, size_t size,
                                     bool is_write)
 {
     QEMUIOVector elem;
@@ -1665,7 +1670,7 @@ static void v9fs_init_qiov_from_pdu(QEMUIOVector *qiov, V9fsPDU *pdu,
 
     qemu_iovec_init_external(&elem, iov, niov);
     qemu_iovec_init(qiov, niov);
-    qemu_iovec_copy(qiov, &elem, skip, size);
+    qemu_iovec_concat(qiov, &elem, skip, size);
 }
 
 static void v9fs_read(void *opaque)
@@ -1715,7 +1720,7 @@ static void v9fs_read(void *opaque)
         qemu_iovec_init(&qiov, qiov_full.niov);
         do {
             qemu_iovec_reset(&qiov);
-            qemu_iovec_copy(&qiov, &qiov_full, count, qiov_full.size - count);
+            qemu_iovec_concat(&qiov, &qiov_full, count, qiov_full.size - count);
             if (0) {
                 print_sg(qiov.iov, qiov.niov);
             }
@@ -1970,7 +1975,7 @@ static void v9fs_write(void *opaque)
     qemu_iovec_init(&qiov, qiov_full.niov);
     do {
         qemu_iovec_reset(&qiov);
-        qemu_iovec_copy(&qiov, &qiov_full, total, qiov_full.size - total);
+        qemu_iovec_concat(&qiov, &qiov_full, total, qiov_full.size - total);
         if (0) {
             print_sg(qiov.iov, qiov.niov);
         }

@@ -131,6 +131,18 @@
 .mhandler.cmd_new = qmp_marshal_input_migrate_cancel,
 },
 
+{
+.name       = "migrate-set-cache-size",
+.args_type  = "value:o",
+.mhandler.cmd_new = qmp_marshal_input_migrate_set_cache_size,
+},
+
+{
+.name       = "query-migrate-cache-size",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_migrate_cache_size,
+},
+
 
 {
 .name       = "migrate_set_speed",
@@ -158,22 +170,26 @@
 
 
 {
+.name       = "dump-guest-memory",
+.args_type  = "paging:b,protocol:s,begin:i?,end:i?",
+.params     = "-p protocol [begin] [length]",
+.help       = "dump guest memory to file",
+.user_print = monitor_user_noop,
+.mhandler.cmd_new = qmp_marshal_input_dump_guest_memory,
+},
+
+
+{
 .name       = "netdev_add",
 .args_type  = "netdev:O",
-.params     = "[user|tap|socket],id=str[,prop=value][,...]",
-.help       = "add host network device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_netdev_add,
+.mhandler.cmd_new = qmp_netdev_add,
 },
 
 
 {
 .name       = "netdev_del",
 .args_type  = "id:s",
-.params     = "id",
-.help       = "remove host network device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_netdev_del,
+.mhandler.cmd_new = qmp_marshal_input_netdev_del,
 },
 
 
@@ -234,8 +250,7 @@
 .args_type  = "fdname:s",
 .params     = "getfd name",
 .help       = "receive a file descriptor via SCM rights and assign it a name",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_getfd,
+.mhandler.cmd_new = qmp_marshal_input_getfd,
 },
 
 
@@ -244,8 +259,33 @@
 .args_type  = "fdname:s",
 .params     = "closefd name",
 .help       = "close a file descriptor previously passed via SCM rights",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_closefd,
+.mhandler.cmd_new = qmp_marshal_input_closefd,
+},
+
+
+{
+.name       = "add-fd",
+.args_type  = "fdset-id:i?,opaque:s?",
+.params     = "add-fd fdset-id opaque",
+.help       = "Add a file descriptor, that was passed via SCM rights, to an fd set",
+.mhandler.cmd_new = qmp_marshal_input_add_fd,
+},
+
+
+{
+.name       = "remove-fd",
+.args_type  = "fdset-id:i,fd:i?",
+.params     = "remove-fd fdset-id fd",
+.help       = "Remove a file descriptor from an fd set",
+.mhandler.cmd_new = qmp_marshal_input_remove_fd,
+},
+
+
+{
+.name       = "query-fdsets",
+.args_type  = "",
+.help       = "Return information describing all fd sets",
+.mhandler.cmd_new = qmp_marshal_input_query_fdsets,
 },
 
 
@@ -315,6 +355,13 @@
 .name       = "query-commands",
 .args_type  = "",
 .mhandler.cmd_new = qmp_marshal_input_query_commands,
+},
+
+
+{
+.name       = "query-events",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_events,
 },
 
 
@@ -412,6 +459,20 @@
 
 
 {
+.name       = "migrate-set-capabilities",
+.args_type  = "capabilities:O",
+.params     = "capability:s,state:b",
+.mhandler.cmd_new = qmp_marshal_input_migrate_set_capabilities,
+},
+
+{
+.name       = "query-migrate-capabilities",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_migrate_capabilities,
+},
+
+
+{
 .name       = "query-balloon",
 .args_type  = "",
 .mhandler.cmd_new = qmp_marshal_input_query_balloon,
@@ -450,4 +511,28 @@
 .name       = "qom-list-types",
 .args_type  = "implements:s?,abstract:b?",
 .mhandler.cmd_new = qmp_marshal_input_qom_list_types,
+},
+
+{
+.name       = "device-list-properties",
+.args_type  = "typename:s",
+.mhandler.cmd_new = qmp_marshal_input_device_list_properties,
+},
+
+{
+.name       = "query-machines",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_machines,
+},
+
+{
+.name       = "query-cpu-definitions",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_cpu_definitions,
+},
+
+{
+.name       = "query-target",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_query_target,
 },

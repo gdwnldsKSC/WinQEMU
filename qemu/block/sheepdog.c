@@ -259,8 +259,7 @@ typedef struct AIOReq {
     uint8_t flags;
     uint32_t id;
 
-    QLIST_ENTRY(AIOReq) outstanding_aio_siblings;
-    QLIST_ENTRY(AIOReq) aioreq_siblings;
+    QLIST_ENTRY(AIOReq) aio_siblings;
 } AIOReq;
 
 enum AIOCBState {
@@ -283,8 +282,7 @@ struct SheepdogAIOCB {
     void (*aio_done_func)(SheepdogAIOCB *);
 
     int canceled;
-
-    QLIST_HEAD(aioreq_head, AIOReq) aioreq_head;
+    int nr_pending;
 };
 
 typedef struct BDRVSheepdogState {
@@ -307,7 +305,8 @@ typedef struct BDRVSheepdogState {
     Coroutine *co_recv;
 
     uint32_t aioreq_seq_num;
-    QLIST_HEAD(outstanding_aio_head, AIOReq) outstanding_aio_head;
+    QLIST_HEAD(inflight_aio_head, AIOReq) inflight_aio_head;
+    QLIST_HEAD(pending_aio_head, AIOReq) pending_aio_head;
 } BDRVSheepdogState;
 
 static const char * sd_strerror(int err)
@@ -358,7 +357,7 @@ static const char * sd_strerror(int err)
  * Sheepdog I/O handling:
  *
  * 1. In sd_co_rw_vector, we send the I/O requests to the server and
- *    link the requests to the outstanding_list in the
+ *    link the requests to the inflight_list in the
  *    BDRVSheepdogState.  The function exits without waiting for
  *    receiving the response.
  *
@@ -386,21 +385,18 @@ static inline AIOReq *alloc_aio_req(BDRVSheepdogState *s, SheepdogAIOCB *acb,
     aio_req->flags = flags;
     aio_req->id = s->aioreq_seq_num++;
 
-    QLIST_INSERT_HEAD(&s->outstanding_aio_head, aio_req,
-                      outstanding_aio_siblings);
-    QLIST_INSERT_HEAD(&acb->aioreq_head, aio_req, aioreq_siblings);
-
+    acb->nr_pending++;
     return aio_req;
 }
 
-static inline int free_aio_req(BDRVSheepdogState *s, AIOReq *aio_req)
+static inline void free_aio_req(BDRVSheepdogState *s, AIOReq *aio_req)
 {
     SheepdogAIOCB *acb = aio_req->aiocb;
-    QLIST_REMOVE(aio_req, outstanding_aio_siblings);
-    QLIST_REMOVE(aio_req, aioreq_siblings);
+
+    QLIST_REMOVE(aio_req, aio_siblings);
     g_free(aio_req);
 
-    return !QLIST_EMPTY(&acb->aioreq_head);
+    acb->nr_pending--;
 }
 
 static void coroutine_fn sd_finish_aiocb(SheepdogAIOCB *acb)
@@ -446,7 +442,7 @@ static SheepdogAIOCB *sd_aio_setup(BlockDriverState *bs, QEMUIOVector *qiov,
     acb->canceled = 0;
     acb->coroutine = qemu_coroutine_self();
     acb->ret = 0;
-    QLIST_INIT(&acb->aioreq_head);
+    acb->nr_pending = 0;
     return acb;
 }
 
@@ -468,7 +464,7 @@ static int connect_to_sdog(const char *addr, const char *port)
     if (ret) {
         error_report("unable to get address info %s, %s",
                      addr, strerror(errno));
-        return -1;
+        return -errno;
     }
 
     for (res = res0; res; res = res->ai_next) {
@@ -489,40 +485,22 @@ static int connect_to_sdog(const char *addr, const char *port)
             if (errno == EINTR) {
                 goto reconnect;
             }
+            close(fd);
             break;
         }
 
         dprintf("connected to %s:%s\n", addr, port);
         goto success;
     }
-    fd = -1;
+    fd = -errno;
     error_report("failed connect to %s:%s", addr, port);
 success:
     freeaddrinfo(res0);
     return fd;
 }
 
-static int send_req(int sockfd, SheepdogReq *hdr, void *data,
-                    unsigned int *wlen)
-{
-    int ret;
-
-    ret = qemu_send_full(sockfd, hdr, sizeof(*hdr), 0);
-    if (ret < sizeof(*hdr)) {
-        error_report("failed to send a req, %s", strerror(errno));
-        return ret;
-    }
-
-    ret = qemu_send_full(sockfd, data, *wlen, 0);
-    if (ret < *wlen) {
-        error_report("failed to send a req, %s", strerror(errno));
-    }
-
-    return ret;
-}
-
-static int send_co_req(int sockfd, SheepdogReq *hdr, void *data,
-                       unsigned int *wlen)
+static coroutine_fn int send_co_req(int sockfd, SheepdogReq *hdr, void *data,
+                                    unsigned int *wlen)
 {
     int ret;
 
@@ -539,44 +517,37 @@ static int send_co_req(int sockfd, SheepdogReq *hdr, void *data,
 
     return ret;
 }
-static int do_req(int sockfd, SheepdogReq *hdr, void *data,
-                  unsigned int *wlen, unsigned int *rlen)
+
+static void restart_co_req(void *opaque)
 {
-    int ret;
+    Coroutine *co = opaque;
 
-    socket_set_block(sockfd);
-    ret = send_req(sockfd, hdr, data, wlen);
-    if (ret < 0) {
-        goto out;
-    }
-
-    ret = qemu_recv_full(sockfd, hdr, sizeof(*hdr), 0);
-    if (ret < sizeof(*hdr)) {
-        error_report("failed to get a rsp, %s", strerror(errno));
-        goto out;
-    }
-
-    if (*rlen > hdr->data_length) {
-        *rlen = hdr->data_length;
-    }
-
-    if (*rlen) {
-        ret = qemu_recv_full(sockfd, data, *rlen, 0);
-        if (ret < *rlen) {
-            error_report("failed to get the data, %s", strerror(errno));
-            goto out;
-        }
-    }
-    ret = 0;
-out:
-    socket_set_nonblock(sockfd);
-    return ret;
+    qemu_coroutine_enter(co, NULL);
 }
 
-static int do_co_req(int sockfd, SheepdogReq *hdr, void *data,
-                     unsigned int *wlen, unsigned int *rlen)
+typedef struct SheepdogReqCo {
+    int sockfd;
+    SheepdogReq *hdr;
+    void *data;
+    unsigned int *wlen;
+    unsigned int *rlen;
+    int ret;
+    bool finished;
+} SheepdogReqCo;
+
+static coroutine_fn void do_co_req(void *opaque)
 {
     int ret;
+    Coroutine *co;
+    SheepdogReqCo *srco = opaque;
+    int sockfd = srco->sockfd;
+    SheepdogReq *hdr = srco->hdr;
+    void *data = srco->data;
+    unsigned int *wlen = srco->wlen;
+    unsigned int *rlen = srco->rlen;
+
+    co = qemu_coroutine_self();
+    qemu_aio_set_fd_handler(sockfd, NULL, restart_co_req, NULL, co);
 
     socket_set_block(sockfd);
     ret = send_co_req(sockfd, hdr, data, wlen);
@@ -584,9 +555,12 @@ static int do_co_req(int sockfd, SheepdogReq *hdr, void *data,
         goto out;
     }
 
+    qemu_aio_set_fd_handler(sockfd, restart_co_req, NULL, NULL, co);
+
     ret = qemu_co_recv(sockfd, hdr, sizeof(*hdr));
     if (ret < sizeof(*hdr)) {
         error_report("failed to get a rsp, %s", strerror(errno));
+        ret = -errno;
         goto out;
     }
 
@@ -598,45 +572,85 @@ static int do_co_req(int sockfd, SheepdogReq *hdr, void *data,
         ret = qemu_co_recv(sockfd, data, *rlen);
         if (ret < *rlen) {
             error_report("failed to get the data, %s", strerror(errno));
+            ret = -errno;
             goto out;
         }
     }
     ret = 0;
 out:
+    qemu_aio_set_fd_handler(sockfd, NULL, NULL, NULL, NULL);
     socket_set_nonblock(sockfd);
-    return ret;
+
+    srco->ret = ret;
+    srco->finished = true;
+}
+
+static int do_req(int sockfd, SheepdogReq *hdr, void *data,
+                  unsigned int *wlen, unsigned int *rlen)
+{
+    Coroutine *co;
+    SheepdogReqCo srco = {
+        .sockfd = sockfd,
+        .hdr = hdr,
+        .data = data,
+        .wlen = wlen,
+        .rlen = rlen,
+        .ret = 0,
+        .finished = false,
+    };
+
+    if (qemu_in_coroutine()) {
+        do_co_req(&srco);
+    } else {
+        co = qemu_coroutine_create(do_co_req);
+        qemu_coroutine_enter(co, &srco);
+        while (!srco.finished) {
+            qemu_aio_wait();
+        }
+    }
+
+    return srco.ret;
 }
 
 static int coroutine_fn add_aio_request(BDRVSheepdogState *s, AIOReq *aio_req,
                            struct iovec *iov, int niov, int create,
                            enum AIOCBState aiocb_type);
 
+
+static AIOReq *find_pending_req(BDRVSheepdogState *s, uint64_t oid)
+{
+    AIOReq *aio_req;
+
+    QLIST_FOREACH(aio_req, &s->pending_aio_head, aio_siblings) {
+        if (aio_req->oid == oid) {
+            return aio_req;
+        }
+    }
+
+    return NULL;
+}
+
 /*
  * This function searchs pending requests to the object `oid', and
  * sends them.
  */
-static void coroutine_fn send_pending_req(BDRVSheepdogState *s, uint64_t oid, uint32_t id)
+static void coroutine_fn send_pending_req(BDRVSheepdogState *s, uint64_t oid)
 {
-    AIOReq *aio_req, *next;
+    AIOReq *aio_req;
     SheepdogAIOCB *acb;
     int ret;
 
-    QLIST_FOREACH_SAFE(aio_req, &s->outstanding_aio_head,
-                       outstanding_aio_siblings, next) {
-        if (id == aio_req->id) {
-            continue;
-        }
-        if (aio_req->oid != oid) {
-            continue;
-        }
-
+    while ((aio_req = find_pending_req(s, oid)) != NULL) {
         acb = aio_req->aiocb;
+        /* move aio_req from pending list to inflight one */
+        QLIST_REMOVE(aio_req, aio_siblings);
+        QLIST_INSERT_HEAD(&s->inflight_aio_head, aio_req, aio_siblings);
         ret = add_aio_request(s, aio_req, acb->qiov->iov,
                               acb->qiov->niov, 0, acb->aiocb_type);
         if (ret < 0) {
             error_report("add_aio_request is failed");
             free_aio_req(s, aio_req);
-            if (QLIST_EMPTY(&acb->aioreq_head)) {
+            if (!acb->nr_pending) {
                 sd_finish_aiocb(acb);
             }
         }
@@ -657,10 +671,9 @@ static void coroutine_fn aio_read_response(void *opaque)
     int ret;
     AIOReq *aio_req = NULL;
     SheepdogAIOCB *acb;
-    int rest;
     unsigned long idx;
 
-    if (QLIST_EMPTY(&s->outstanding_aio_head)) {
+    if (QLIST_EMPTY(&s->inflight_aio_head)) {
         goto out;
     }
 
@@ -671,8 +684,8 @@ static void coroutine_fn aio_read_response(void *opaque)
         goto out;
     }
 
-    /* find the right aio_req from the outstanding_aio list */
-    QLIST_FOREACH(aio_req, &s->outstanding_aio_head, outstanding_aio_siblings) {
+    /* find the right aio_req from the inflight aio list */
+    QLIST_FOREACH(aio_req, &s->inflight_aio_head, aio_siblings) {
         if (aio_req->id == rsp.id) {
             break;
         }
@@ -710,12 +723,12 @@ static void coroutine_fn aio_read_response(void *opaque)
              * create requests are not allowed, so we search the
              * pending requests here.
              */
-            send_pending_req(s, vid_to_data_oid(s->inode.vdi_id, idx), rsp.id);
+            send_pending_req(s, vid_to_data_oid(s->inode.vdi_id, idx));
         }
         break;
     case AIOCB_READ_UDATA:
-        ret = qemu_co_recvv(fd, acb->qiov->iov, rsp.data_length,
-                            aio_req->iov_offset);
+        ret = qemu_co_recvv(fd, acb->qiov->iov, acb->qiov->niov,
+                            aio_req->iov_offset, rsp.data_length);
         if (ret < 0) {
             error_report("failed to get the data, %s", strerror(errno));
             goto out;
@@ -728,8 +741,8 @@ static void coroutine_fn aio_read_response(void *opaque)
         error_report("%s", sd_strerror(rsp.result));
     }
 
-    rest = free_aio_req(s, aio_req);
-    if (!rest) {
+    free_aio_req(s, aio_req);
+    if (!acb->nr_pending) {
         /*
          * We've finished all requests which belong to the AIOCB, so
          * we can switch back to sd_co_readv/writev now.
@@ -762,7 +775,8 @@ static int aio_flush_request(void *opaque)
 {
     BDRVSheepdogState *s = opaque;
 
-    return !QLIST_EMPTY(&s->outstanding_aio_head);
+    return !QLIST_EMPTY(&s->inflight_aio_head) ||
+        !QLIST_EMPTY(&s->pending_aio_head);
 }
 
 static int set_nodelay(int fd)
@@ -787,7 +801,7 @@ static int get_sheep_fd(BDRVSheepdogState *s)
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
         error_report("%s", strerror(errno));
-        return -1;
+        return fd;
     }
 
     socket_set_nonblock(fd);
@@ -796,7 +810,7 @@ static int get_sheep_fd(BDRVSheepdogState *s)
     if (ret) {
         error_report("%s", strerror(errno));
         closesocket(fd);
-        return -1;
+        return -errno;
     }
 
     qemu_aio_set_fd_handler(fd, co_read_response, NULL, aio_flush_request, s);
@@ -883,7 +897,7 @@ static int find_vdi_name(BDRVSheepdogState *s, char *filename, uint32_t snapid,
 
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
-        return -1;
+        return fd;
     }
 
     memset(buf, 0, sizeof(buf));
@@ -904,14 +918,17 @@ static int find_vdi_name(BDRVSheepdogState *s, char *filename, uint32_t snapid,
 
     ret = do_req(fd, (SheepdogReq *)&hdr, buf, &wlen, &rlen);
     if (ret) {
-        ret = -1;
         goto out;
     }
 
     if (rsp->result != SD_RES_SUCCESS) {
         error_report("cannot get vdi info, %s, %s %d %s",
                      sd_strerror(rsp->result), filename, snapid, tag);
-        ret = -1;
+        if (rsp->result == SD_RES_NO_VDI) {
+            ret = -ENOENT;
+        } else {
+            ret = -EIO;
+        }
         goto out;
     }
     *vid = rsp->vdi_id;
@@ -980,15 +997,15 @@ static int coroutine_fn add_aio_request(BDRVSheepdogState *s, AIOReq *aio_req,
     if (ret < 0) {
         qemu_co_mutex_unlock(&s->lock);
         error_report("failed to send a req, %s", strerror(errno));
-        return -EIO;
+        return -errno;
     }
 
     if (wlen) {
-        ret = qemu_co_sendv(s->fd, iov, wlen, aio_req->iov_offset);
+        ret = qemu_co_sendv(s->fd, iov, niov, aio_req->iov_offset, wlen);
         if (ret < 0) {
             qemu_co_mutex_unlock(&s->lock);
             error_report("failed to send a data, %s", strerror(errno));
-            return -EIO;
+            return -errno;
         }
     }
 
@@ -1038,7 +1055,7 @@ static int read_write_object(int fd, char *buf, uint64_t oid, int copies,
     ret = do_req(fd, (SheepdogReq *)&hdr, buf, &wlen, &rlen);
     if (ret) {
         error_report("failed to send a request to the sheep");
-        return -1;
+        return ret;
     }
 
     switch (rsp->result) {
@@ -1046,7 +1063,7 @@ static int read_write_object(int fd, char *buf, uint64_t oid, int copies,
         return 0;
     default:
         error_report("%s", sd_strerror(rsp->result));
-        return -1;
+        return -EIO;
     }
 }
 
@@ -1076,16 +1093,19 @@ static int sd_open(BlockDriverState *bs, const char *filename, int flags)
 
     strstart(filename, "sheepdog:", (const char **)&filename);
 
-    QLIST_INIT(&s->outstanding_aio_head);
+    QLIST_INIT(&s->inflight_aio_head);
+    QLIST_INIT(&s->pending_aio_head);
     s->fd = -1;
 
     memset(vdi, 0, sizeof(vdi));
     memset(tag, 0, sizeof(tag));
     if (parse_vdiname(s, filename, vdi, &snapid, tag) < 0) {
+        ret = -EINVAL;
         goto out;
     }
     s->fd = get_sheep_fd(s);
     if (s->fd < 0) {
+        ret = s->fd;
         goto out;
     }
 
@@ -1099,11 +1119,12 @@ static int sd_open(BlockDriverState *bs, const char *filename, int flags)
         s->flush_fd = connect_to_sdog(s->addr, s->port);
         if (s->flush_fd < 0) {
             error_report("failed to connect");
+            ret = s->flush_fd;
             goto out;
         }
     }
 
-    if (snapid) {
+    if (snapid || tag[0] != '\0') {
         dprintf("%" PRIx32 " snapshot inode was open.\n", vid);
         s->is_snapshot = 1;
     }
@@ -1111,6 +1132,7 @@ static int sd_open(BlockDriverState *bs, const char *filename, int flags)
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
         error_report("failed to connect");
+        ret = fd;
         goto out;
     }
 
@@ -1139,7 +1161,7 @@ out:
         closesocket(s->fd);
     }
     g_free(buf);
-    return -1;
+    return ret;
 }
 
 static int do_sd_create(char *filename, int64_t vdi_size,
@@ -1154,7 +1176,7 @@ static int do_sd_create(char *filename, int64_t vdi_size,
 
     fd = connect_to_sdog(addr, port);
     if (fd < 0) {
-        return -EIO;
+        return fd;
     }
 
     memset(buf, 0, sizeof(buf));
@@ -1177,7 +1199,7 @@ static int do_sd_create(char *filename, int64_t vdi_size,
     closesocket(fd);
 
     if (ret) {
-        return -EIO;
+        return ret;
     }
 
     if (rsp->result != SD_RES_SUCCESS) {
@@ -1237,24 +1259,26 @@ out:
 
 static int sd_create(const char *filename, QEMUOptionParameter *options)
 {
-    int ret;
+    int ret = 0;
     uint32_t vid = 0, base_vid = 0;
     int64_t vdi_size = 0;
     char *backing_file = NULL;
-    BDRVSheepdogState s;
+    BDRVSheepdogState *s;
     char vdi[SD_MAX_VDI_LEN], tag[SD_MAX_VDI_TAG_LEN];
     uint32_t snapid;
     int prealloc = 0;
     const char *vdiname;
 
+    s = g_malloc0(sizeof(BDRVSheepdogState));
+
     strstart(filename, "sheepdog:", &vdiname);
 
-    memset(&s, 0, sizeof(s));
     memset(vdi, 0, sizeof(vdi));
     memset(tag, 0, sizeof(tag));
-    if (parse_vdiname(&s, vdiname, vdi, &snapid, tag) < 0) {
+    if (parse_vdiname(s, vdiname, vdi, &snapid, tag) < 0) {
         error_report("invalid filename");
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     while (options && options->name) {
@@ -1270,7 +1294,8 @@ static int sd_create(const char *filename, QEMUOptionParameter *options)
             } else {
                 error_report("Invalid preallocation mode: '%s'",
                              options->value.s);
-                return -EINVAL;
+                ret = -EINVAL;
+                goto out;
             }
         }
         options++;
@@ -1278,7 +1303,8 @@ static int sd_create(const char *filename, QEMUOptionParameter *options)
 
     if (vdi_size > SD_MAX_VDI_SIZE) {
         error_report("too big image size");
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     if (backing_file) {
@@ -1290,31 +1316,37 @@ static int sd_create(const char *filename, QEMUOptionParameter *options)
         drv = bdrv_find_protocol(backing_file);
         if (!drv || strcmp(drv->protocol_name, "sheepdog") != 0) {
             error_report("backing_file must be a sheepdog image");
-            return -EINVAL;
+            ret = -EINVAL;
+            goto out;
         }
 
         ret = bdrv_file_open(&bs, backing_file, 0);
-        if (ret < 0)
-            return -EIO;
+        if (ret < 0) {
+            goto out;
+        }
 
         s = bs->opaque;
 
         if (!is_snapshot(&s->inode)) {
             error_report("cannot clone from a non snapshot vdi");
             bdrv_delete(bs);
-            return -EINVAL;
+            ret = -EINVAL;
+            goto out;
         }
 
         base_vid = s->inode.vdi_id;
         bdrv_delete(bs);
     }
 
-    ret = do_sd_create(vdi, vdi_size, base_vid, &vid, 0, s.addr, s.port);
+    ret = do_sd_create(vdi, vdi_size, base_vid, &vid, 0, s->addr, s->port);
     if (!prealloc || ret) {
-        return ret;
+        goto out;
     }
 
-    return sd_prealloc(filename);
+    ret = sd_prealloc(filename);
+out:
+    g_free(s);
+    return ret;
 }
 
 static void sd_close(BlockDriverState *bs)
@@ -1379,7 +1411,7 @@ static int sd_truncate(BlockDriverState *bs, int64_t offset)
 
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
-        return -EIO;
+        return fd;
     }
 
     /* we don't need to update entire object */
@@ -1391,10 +1423,9 @@ static int sd_truncate(BlockDriverState *bs, int64_t offset)
 
     if (ret < 0) {
         error_report("failed to update an inode.");
-        return -EIO;
     }
 
-    return 0;
+    return ret;
 }
 
 /*
@@ -1425,6 +1456,7 @@ static void coroutine_fn sd_write_done(SheepdogAIOCB *acb)
         iov.iov_len = sizeof(s->inode);
         aio_req = alloc_aio_req(s, acb, vid_to_vdi_oid(s->inode.vdi_id),
                                 data_len, offset, 0, 0, offset);
+        QLIST_INSERT_HEAD(&s->inflight_aio_head, aio_req, aio_siblings);
         ret = add_aio_request(s, aio_req, &iov, 1, 0, AIOCB_WRITE_UDATA);
         if (ret) {
             free_aio_req(s, aio_req);
@@ -1464,6 +1496,7 @@ static int sd_create_branch(BDRVSheepdogState *s)
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
         error_report("failed to connect");
+        ret = fd;
         goto out;
     }
 
@@ -1492,7 +1525,7 @@ out:
  * Send I/O requests to the server.
  *
  * This function sends requests to the server, links the requests to
- * the outstanding_list in BDRVSheepdogState, and exits without
+ * the inflight_list in BDRVSheepdogState, and exits without
  * waiting the response.  The responses are received in the
  * `aio_read_response' function which is called from the main loop as
  * a fd handler.
@@ -1524,6 +1557,12 @@ static int coroutine_fn sd_co_rw_vector(void *p)
         }
     }
 
+    /*
+     * Make sure we don't free the aiocb before we are done with all requests.
+     * This additional reference is dropped at the end of this function.
+     */
+    acb->nr_pending++;
+
     while (done != total) {
         uint8_t flags = 0;
         uint64_t old_oid = 0;
@@ -1533,37 +1572,40 @@ static int coroutine_fn sd_co_rw_vector(void *p)
 
         len = MIN(total - done, SD_DATA_OBJ_SIZE - offset);
 
-        if (!inode->data_vdi_id[idx]) {
-            if (acb->aiocb_type == AIOCB_READ_UDATA) {
+        switch (acb->aiocb_type) {
+        case AIOCB_READ_UDATA:
+            if (!inode->data_vdi_id[idx]) {
+                qemu_iovec_memset(acb->qiov, done, 0, len);
                 goto done;
             }
-
-            create = 1;
-        } else if (acb->aiocb_type == AIOCB_WRITE_UDATA
-                   && !is_data_obj_writable(inode, idx)) {
-            /* Copy-On-Write */
-            create = 1;
-            old_oid = oid;
-            flags = SD_FLAG_CMD_COW;
+            break;
+        case AIOCB_WRITE_UDATA:
+            if (!inode->data_vdi_id[idx]) {
+                create = 1;
+            } else if (!is_data_obj_writable(inode, idx)) {
+                /* Copy-On-Write */
+                create = 1;
+                old_oid = oid;
+                flags = SD_FLAG_CMD_COW;
+            }
+            break;
+        default:
+            break;
         }
 
         if (create) {
-            dprintf("update ino (%" PRIu32") %" PRIu64 " %" PRIu64
-                    " %" PRIu64 "\n", inode->vdi_id, oid,
+            dprintf("update ino (%" PRIu32 ") %" PRIu64 " %" PRIu64 " %ld\n",
+                    inode->vdi_id, oid,
                     vid_to_data_oid(inode->data_vdi_id[idx], idx), idx);
             oid = vid_to_data_oid(inode->vdi_id, idx);
-            dprintf("new oid %lx\n", oid);
+            dprintf("new oid %" PRIx64 "\n", oid);
         }
 
         aio_req = alloc_aio_req(s, acb, oid, len, offset, flags, old_oid, done);
 
         if (create) {
             AIOReq *areq;
-            QLIST_FOREACH(areq, &s->outstanding_aio_head,
-                          outstanding_aio_siblings) {
-                if (areq == aio_req) {
-                    continue;
-                }
+            QLIST_FOREACH(areq, &s->inflight_aio_head, aio_siblings) {
                 if (areq->oid == oid) {
                     /*
                      * Sheepdog cannot handle simultaneous create
@@ -1573,11 +1615,14 @@ static int coroutine_fn sd_co_rw_vector(void *p)
                      */
                     aio_req->flags = 0;
                     aio_req->base_oid = 0;
+                    QLIST_INSERT_HEAD(&s->pending_aio_head, aio_req,
+                                      aio_siblings);
                     goto done;
                 }
             }
         }
 
+        QLIST_INSERT_HEAD(&s->inflight_aio_head, aio_req, aio_siblings);
         ret = add_aio_request(s, aio_req, acb->qiov->iov, acb->qiov->niov,
                               create, acb->aiocb_type);
         if (ret < 0) {
@@ -1592,7 +1637,7 @@ static int coroutine_fn sd_co_rw_vector(void *p)
         done += len;
     }
 out:
-    if (QLIST_EMPTY(&acb->aioreq_head)) {
+    if (!--acb->nr_pending) {
         return acb->ret;
     }
     return 1;
@@ -1605,9 +1650,9 @@ static coroutine_fn int sd_co_writev(BlockDriverState *bs, int64_t sector_num,
     int ret;
 
     if (bs->growable && sector_num + nb_sectors > bs->total_sectors) {
-        /* TODO: shouldn't block here */
-        if (sd_truncate(bs, (sector_num + nb_sectors) * SECTOR_SIZE) < 0) {
-            return -EIO;
+        ret = sd_truncate(bs, (sector_num + nb_sectors) * SECTOR_SIZE);
+        if (ret < 0) {
+            return ret;
         }
         bs->total_sectors = sector_num + nb_sectors;
     }
@@ -1631,19 +1676,11 @@ static coroutine_fn int sd_co_readv(BlockDriverState *bs, int64_t sector_num,
                        int nb_sectors, QEMUIOVector *qiov)
 {
     SheepdogAIOCB *acb;
-    int i, ret;
+    int ret;
 
     acb = sd_aio_setup(bs, qiov, sector_num, nb_sectors, NULL, NULL);
     acb->aiocb_type = AIOCB_READ_UDATA;
     acb->aio_done_func = sd_finish_aiocb;
-
-    /*
-     * TODO: we can do better; we don't need to initialize
-     * blindly.
-     */
-    for (i = 0; i < qiov->niov; i++) {
-        memset(qiov->iov[i].iov_base, 0, qiov->iov[i].iov_len);
-    }
 
     ret = sd_co_rw_vector(acb);
     if (ret <= 0) {
@@ -1672,7 +1709,7 @@ static int coroutine_fn sd_co_flush_to_disk(BlockDriverState *bs)
     hdr.opcode = SD_OP_FLUSH_VDI;
     hdr.oid = vid_to_vdi_oid(inode->vdi_id);
 
-    ret = do_co_req(s->flush_fd, (SheepdogReq *)&hdr, NULL, &wlen, &rlen);
+    ret = do_req(s->flush_fd, (SheepdogReq *)&hdr, NULL, &wlen, &rlen);
     if (ret) {
         error_report("failed to send a request to the sheep");
         return ret;
@@ -1702,7 +1739,7 @@ static int sd_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
     SheepdogInode *inode;
     unsigned int datalen;
 
-    dprintf("sn_info: name %s id_str %s s: name %s vm_state_size %d "
+    dprintf("sn_info: name %s id_str %s s: name %s vm_state_size %" PRId64 " "
             "is_snapshot %d\n", sn_info->name, sn_info->id_str,
             s->name, sn_info->vm_state_size, s->is_snapshot);
 
@@ -1724,7 +1761,7 @@ static int sd_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
     /* refresh inode. */
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
-        ret = -EIO;
+        ret = fd;
         goto cleanup;
     }
 
@@ -1732,7 +1769,6 @@ static int sd_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
                        s->inode.nr_copies, datalen, 0, 0, s->cache_enabled);
     if (ret < 0) {
         error_report("failed to write snapshot's inode.");
-        ret = -EIO;
         goto cleanup;
     }
 
@@ -1741,7 +1777,6 @@ static int sd_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
     if (ret < 0) {
         error_report("failed to create inode for snapshot. %s",
                      strerror(errno));
-        ret = -EIO;
         goto cleanup;
     }
 
@@ -1752,7 +1787,6 @@ static int sd_snapshot_create(BlockDriverState *bs, QEMUSnapshotInfo *sn_info)
 
     if (ret < 0) {
         error_report("failed to read new inode info. %s", strerror(errno));
-        ret = -EIO;
         goto cleanup;
     }
 
@@ -1773,7 +1807,7 @@ static int sd_snapshot_goto(BlockDriverState *bs, const char *snapshot_id)
     char *buf = NULL;
     uint32_t vid;
     uint32_t snapid = 0;
-    int ret = -ENOENT, fd;
+    int ret = 0, fd;
 
     old_s = g_malloc(sizeof(BDRVSheepdogState));
 
@@ -1791,13 +1825,13 @@ static int sd_snapshot_goto(BlockDriverState *bs, const char *snapshot_id)
     ret = find_vdi_name(s, vdi, snapid, tag, &vid, 1);
     if (ret) {
         error_report("Failed to find_vdi_name");
-        ret = -ENOENT;
         goto out;
     }
 
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
         error_report("failed to connect");
+        ret = fd;
         goto out;
     }
 
@@ -1808,7 +1842,6 @@ static int sd_snapshot_goto(BlockDriverState *bs, const char *snapshot_id)
     closesocket(fd);
 
     if (ret) {
-        ret = -ENOENT;
         goto out;
     }
 
@@ -1861,6 +1894,7 @@ static int sd_snapshot_list(BlockDriverState *bs, QEMUSnapshotInfo **psn_tab)
 
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
+        ret = fd;
         goto out;
     }
 
@@ -1888,6 +1922,7 @@ static int sd_snapshot_list(BlockDriverState *bs, QEMUSnapshotInfo **psn_tab)
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
         error_report("failed to connect");
+        ret = fd;
         goto out;
     }
 
@@ -1925,6 +1960,10 @@ out:
 
     g_free(vdi_inuse);
 
+    if (ret < 0) {
+        return ret;
+    }
+
     return found;
 }
 
@@ -1932,7 +1971,7 @@ static int do_load_save_vmstate(BDRVSheepdogState *s, uint8_t *data,
                                 int64_t pos, int size, int load)
 {
     int fd, create;
-    int ret = 0;
+    int ret = 0, remaining = size;
     unsigned int data_len;
     uint64_t vmstate_oid;
     uint32_t vdi_index;
@@ -1940,15 +1979,14 @@ static int do_load_save_vmstate(BDRVSheepdogState *s, uint8_t *data,
 
     fd = connect_to_sdog(s->addr, s->port);
     if (fd < 0) {
-        ret = -EIO;
-        goto cleanup;
+        return fd;
     }
 
-    while (size) {
+    while (remaining) {
         vdi_index = pos / SD_DATA_OBJ_SIZE;
         offset = pos % SD_DATA_OBJ_SIZE;
 
-        data_len = MIN(size, SD_DATA_OBJ_SIZE);
+        data_len = MIN(remaining, SD_DATA_OBJ_SIZE);
 
         vmstate_oid = vid_to_vmstate_oid(s->inode.vdi_id, vdi_index);
 
@@ -1965,14 +2003,13 @@ static int do_load_save_vmstate(BDRVSheepdogState *s, uint8_t *data,
 
         if (ret < 0) {
             error_report("failed to save vmstate %s", strerror(errno));
-            ret = -EIO;
             goto cleanup;
         }
 
         pos += data_len;
-        size -= data_len;
-        ret += data_len;
+        remaining -= data_len;
     }
+    ret = size;
 cleanup:
     closesocket(fd);
     return ret;

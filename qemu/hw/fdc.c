@@ -36,6 +36,7 @@
 #include "qdev-addr.h"
 #include "blockdev.h"
 #include "sysemu.h"
+#include "qemu-log.h"
 
 /********************************************************/
 /* debug Floppy devices */
@@ -48,11 +49,115 @@
 #define FLOPPY_DPRINTF(fmt, ...)
 #endif
 
-#define FLOPPY_ERROR(fmt, ...)                                          \
-    do { printf("FLOPPY ERROR: %s: " fmt, __func__ , ## __VA_ARGS__); } while (0)
-
 /********************************************************/
 /* Floppy drive emulation                               */
+
+typedef enum FDriveRate {
+    FDRIVE_RATE_500K = 0x00,  /* 500 Kbps */
+    FDRIVE_RATE_300K = 0x01,  /* 300 Kbps */
+    FDRIVE_RATE_250K = 0x02,  /* 250 Kbps */
+    FDRIVE_RATE_1M   = 0x03,  /*   1 Mbps */
+} FDriveRate;
+
+typedef struct FDFormat {
+    FDriveType drive;
+    uint8_t last_sect;
+    uint8_t max_track;
+    uint8_t max_head;
+    FDriveRate rate;
+} FDFormat;
+
+static const FDFormat fd_formats[] = {
+    /* First entry is default format */
+    /* 1.44 MB 3"1/2 floppy disks */
+    { FDRIVE_DRV_144, 18, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 20, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 21, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 21, 82, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 21, 83, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 22, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 23, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_144, 24, 80, 1, FDRIVE_RATE_500K, },
+    /* 2.88 MB 3"1/2 floppy disks */
+    { FDRIVE_DRV_288, 36, 80, 1, FDRIVE_RATE_1M, },
+    { FDRIVE_DRV_288, 39, 80, 1, FDRIVE_RATE_1M, },
+    { FDRIVE_DRV_288, 40, 80, 1, FDRIVE_RATE_1M, },
+    { FDRIVE_DRV_288, 44, 80, 1, FDRIVE_RATE_1M, },
+    { FDRIVE_DRV_288, 48, 80, 1, FDRIVE_RATE_1M, },
+    /* 720 kB 3"1/2 floppy disks */
+    { FDRIVE_DRV_144,  9, 80, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_144, 10, 80, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_144, 10, 82, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_144, 10, 83, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_144, 13, 80, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_144, 14, 80, 1, FDRIVE_RATE_250K, },
+    /* 1.2 MB 5"1/4 floppy disks */
+    { FDRIVE_DRV_120, 15, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_120, 18, 80, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_120, 18, 82, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_120, 18, 83, 1, FDRIVE_RATE_500K, },
+    { FDRIVE_DRV_120, 20, 80, 1, FDRIVE_RATE_500K, },
+    /* 720 kB 5"1/4 floppy disks */
+    { FDRIVE_DRV_120,  9, 80, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_120, 11, 80, 1, FDRIVE_RATE_250K, },
+    /* 360 kB 5"1/4 floppy disks */
+    { FDRIVE_DRV_120,  9, 40, 1, FDRIVE_RATE_300K, },
+    { FDRIVE_DRV_120,  9, 40, 0, FDRIVE_RATE_300K, },
+    { FDRIVE_DRV_120, 10, 41, 1, FDRIVE_RATE_300K, },
+    { FDRIVE_DRV_120, 10, 42, 1, FDRIVE_RATE_300K, },
+    /* 320 kB 5"1/4 floppy disks */
+    { FDRIVE_DRV_120,  8, 40, 1, FDRIVE_RATE_250K, },
+    { FDRIVE_DRV_120,  8, 40, 0, FDRIVE_RATE_250K, },
+    /* 360 kB must match 5"1/4 better than 3"1/2... */
+    { FDRIVE_DRV_144,  9, 80, 0, FDRIVE_RATE_250K, },
+    /* end */
+    { FDRIVE_DRV_NONE, -1, -1, 0, 0, },
+};
+
+static void pick_geometry(BlockDriverState *bs, int *nb_heads,
+                          int *max_track, int *last_sect,
+                          FDriveType drive_in, FDriveType *drive,
+                          FDriveRate *rate)
+{
+    const FDFormat *parse;
+    uint64_t nb_sectors, size;
+    int i, first_match, match;
+
+    bdrv_get_geometry(bs, &nb_sectors);
+    match = -1;
+    first_match = -1;
+    for (i = 0; ; i++) {
+        parse = &fd_formats[i];
+        if (parse->drive == FDRIVE_DRV_NONE) {
+            break;
+        }
+        if (drive_in == parse->drive ||
+            drive_in == FDRIVE_DRV_NONE) {
+            size = (parse->max_head + 1) * parse->max_track *
+                parse->last_sect;
+            if (nb_sectors == size) {
+                match = i;
+                break;
+            }
+            if (first_match == -1) {
+                first_match = i;
+            }
+        }
+    }
+    if (match == -1) {
+        if (first_match == -1) {
+            match = 1;
+        } else {
+            match = first_match;
+        }
+        parse = &fd_formats[match];
+    }
+    *nb_heads = parse->max_head + 1;
+    *max_track = parse->max_track;
+    *last_sect = parse->last_sect;
+    *drive = parse->drive;
+    *rate = parse->rate;
+}
 
 #define GET_CUR_DRV(fdctrl) ((fdctrl)->cur_drv)
 #define SET_CUR_DRV(fdctrl, drive) ((fdctrl)->cur_drv = (drive))
@@ -147,16 +252,26 @@ static int fd_seek(FDrive *drv, uint8_t head, uint8_t track, uint8_t sect,
     if (sector != fd_sector(drv)) {
 #if 0
         if (!enable_seek) {
-            FLOPPY_ERROR("no implicit seek %d %02x %02x (max=%d %02x %02x)\n",
-                         head, track, sect, 1, drv->max_track, drv->last_sect);
+            FLOPPY_DPRINTF("error: no implicit seek %d %02x %02x"
+                           " (max=%d %02x %02x)\n",
+                           head, track, sect, 1, drv->max_track,
+                           drv->last_sect);
             return 4;
         }
 #endif
         drv->head = head;
-        if (drv->track != track)
+        if (drv->track != track) {
+            if (drv->bs != NULL && bdrv_is_inserted(drv->bs)) {
+                drv->media_changed = 0;
+            }
             ret = 1;
+        }
         drv->track = track;
         drv->sect = sect;
+    }
+
+    if (drv->bs == NULL || !bdrv_is_inserted(drv->bs)) {
+        ret = 2;
     }
 
     return ret;
@@ -166,9 +281,7 @@ static int fd_seek(FDrive *drv, uint8_t head, uint8_t track, uint8_t sect,
 static void fd_recalibrate(FDrive *drv)
 {
     FLOPPY_DPRINTF("recalibrate\n");
-    drv->head = 0;
-    drv->track = 0;
-    drv->sect = 1;
+    fd_seek(drv, 0, 0, 1, 1);
 }
 
 /* Revalidate a disk drive after a disk change */
@@ -181,13 +294,10 @@ static void fd_revalidate(FDrive *drv)
     FLOPPY_DPRINTF("revalidate\n");
     if (drv->bs != NULL) {
         ro = bdrv_is_read_only(drv->bs);
-        bdrv_get_floppy_geometry_hint(drv->bs, &nb_heads, &max_track,
-                                      &last_sect, drv->drive, &drive, &rate);
+        pick_geometry(drv->bs, &nb_heads, &max_track,
+                      &last_sect, drv->drive, &drive, &rate);
         if (!bdrv_is_inserted(drv->bs)) {
             FLOPPY_DPRINTF("No disk in drive\n");
-        } else if (nb_heads != 0 && max_track != 0 && last_sect != 0) {
-            FLOPPY_DPRINTF("User defined disk (%d %d %d)\n",
-                           nb_heads - 1, max_track, last_sect);
         } else {
             FLOPPY_DPRINTF("Floppy disk (%d h %d t %d s) %s\n", nb_heads,
                            max_track, last_sect, ro ? "ro" : "rw");
@@ -301,6 +411,9 @@ enum {
 };
 
 enum {
+    FD_SR0_DS0      = 0x01,
+    FD_SR0_DS1      = 0x02,
+    FD_SR0_HEAD     = 0x04,
     FD_SR0_EQPMT    = 0x10,
     FD_SR0_SEEK     = 0x20,
     FD_SR0_ABNTERM  = 0x40,
@@ -707,14 +820,6 @@ static void fdctrl_raise_irq(FDCtrl *fdctrl, uint8_t status0)
         qemu_set_irq(fdctrl->irq, 1);
         fdctrl->sra |= FD_SRA_INTPEND;
     }
-    if (status0 & FD_SR0_SEEK) {
-        FDrive *cur_drv;
-        /* A seek clears the disk change line (if a disk is inserted) */
-        cur_drv = get_cur_drv(fdctrl);
-        if (cur_drv->bs != NULL && bdrv_is_inserted(cur_drv->bs)) {
-            cur_drv->media_changed = 0;
-        }
-    }
 
     fdctrl->reset_sensei = 0;
     fdctrl->status0 = status0;
@@ -974,25 +1079,30 @@ static void fdctrl_reset_fifo(FDCtrl *fdctrl)
 }
 
 /* Set FIFO status for the host to read */
-static void fdctrl_set_fifo(FDCtrl *fdctrl, int fifo_len, int do_irq)
+static void fdctrl_set_fifo(FDCtrl *fdctrl, int fifo_len, uint8_t status0)
 {
     fdctrl->data_dir = FD_DIR_READ;
     fdctrl->data_len = fifo_len;
     fdctrl->data_pos = 0;
     fdctrl->msr |= FD_MSR_CMDBUSY | FD_MSR_RQM | FD_MSR_DIO;
-    if (do_irq)
-        fdctrl_raise_irq(fdctrl, 0x00);
+    if (status0) {
+        fdctrl_raise_irq(fdctrl, status0);
+    }
 }
 
 /* Set an error: unimplemented/unknown command */
 static void fdctrl_unimplemented(FDCtrl *fdctrl, int direction)
 {
-    FLOPPY_ERROR("unimplemented command 0x%02x\n", fdctrl->fifo[0]);
+    qemu_log_mask(LOG_UNIMP, "fdc: unimplemented command 0x%02x\n",
+                  fdctrl->fifo[0]);
     fdctrl->fifo[0] = FD_SR0_INVCMD;
     fdctrl_set_fifo(fdctrl, 1, 0);
 }
 
-/* Seek to next sector */
+/* Seek to next sector
+ * returns 0 when end of track reached (for DBL_SIDES on head 1)
+ * otherwise returns 1
+ */
 static int fdctrl_seek_to_next_sect(FDCtrl *fdctrl, FDrive *cur_drv)
 {
     FLOPPY_DPRINTF("seek to next sector (%d %02x %02x => %d)\n",
@@ -1000,30 +1110,39 @@ static int fdctrl_seek_to_next_sect(FDCtrl *fdctrl, FDrive *cur_drv)
                    fd_sector(cur_drv));
     /* XXX: cur_drv->sect >= cur_drv->last_sect should be an
        error in fact */
-    if (cur_drv->sect >= cur_drv->last_sect ||
-        cur_drv->sect == fdctrl->eot) {
-        cur_drv->sect = 1;
+    uint8_t new_head = cur_drv->head;
+    uint8_t new_track = cur_drv->track;
+    uint8_t new_sect = cur_drv->sect;
+
+    int ret = 1;
+
+    if (new_sect >= cur_drv->last_sect ||
+        new_sect == fdctrl->eot) {
+        new_sect = 1;
         if (FD_MULTI_TRACK(fdctrl->data_state)) {
-            if (cur_drv->head == 0 &&
+            if (new_head == 0 &&
                 (cur_drv->flags & FDISK_DBL_SIDES) != 0) {
-                cur_drv->head = 1;
+                new_head = 1;
             } else {
-                cur_drv->head = 0;
-                cur_drv->track++;
-                if ((cur_drv->flags & FDISK_DBL_SIDES) == 0)
-                    return 0;
+                new_head = 0;
+                new_track++;
+                if ((cur_drv->flags & FDISK_DBL_SIDES) == 0) {
+                    ret = 0;
+                }
             }
         } else {
-            cur_drv->track++;
-            return 0;
+            new_track++;
+            ret = 0;
         }
-        FLOPPY_DPRINTF("seek to next track (%d %02x %02x => %d)\n",
-                       cur_drv->head, cur_drv->track,
-                       cur_drv->sect, fd_sector(cur_drv));
+        if (ret == 1) {
+            FLOPPY_DPRINTF("seek to next track (%d %02x %02x => %d)\n",
+                    new_head, new_track, new_sect, fd_sector(cur_drv));
+        }
     } else {
-        cur_drv->sect++;
+        new_sect++;
     }
-    return 1;
+    fd_seek(cur_drv, new_head, new_track, new_sect, 1);
+    return ret;
 }
 
 /* Callback for transfer end (stop or abort) */
@@ -1033,10 +1152,12 @@ static void fdctrl_stop_transfer(FDCtrl *fdctrl, uint8_t status0,
     FDrive *cur_drv;
 
     cur_drv = get_cur_drv(fdctrl);
+    fdctrl->status0 = status0 | FD_SR0_SEEK | (cur_drv->head << 2) |
+                      GET_CUR_DRV(fdctrl);
+
     FLOPPY_DPRINTF("transfer status: %02x %02x %02x (%02x)\n",
-                   status0, status1, status2,
-                   status0 | (cur_drv->head << 2) | GET_CUR_DRV(fdctrl));
-    fdctrl->fifo[0] = status0 | (cur_drv->head << 2) | GET_CUR_DRV(fdctrl);
+                   status0, status1, status2, fdctrl->status0);
+    fdctrl->fifo[0] = fdctrl->status0;
     fdctrl->fifo[1] = status1;
     fdctrl->fifo[2] = status2;
     fdctrl->fifo[3] = cur_drv->track;
@@ -1049,7 +1170,7 @@ static void fdctrl_stop_transfer(FDCtrl *fdctrl, uint8_t status0,
     }
     fdctrl->msr |= FD_MSR_RQM | FD_MSR_DIO;
     fdctrl->msr &= ~FD_MSR_NONDMA;
-    fdctrl_set_fifo(fdctrl, 7, 1);
+    fdctrl_set_fifo(fdctrl, 7, fdctrl->status0);
 }
 
 /* Prepare a data transfer (either DMA or FIFO) */
@@ -1155,7 +1276,8 @@ static void fdctrl_start_transfer(FDCtrl *fdctrl, int direction)
             DMA_schedule(fdctrl->dma_chann);
             return;
         } else {
-            FLOPPY_ERROR("dma_mode=%d direction=%d\n", dma_mode, direction);
+            FLOPPY_DPRINTF("bad dma_mode=%d direction=%d\n", dma_mode,
+                           direction);
         }
     }
     FLOPPY_DPRINTF("start non-DMA transfer\n");
@@ -1163,7 +1285,7 @@ static void fdctrl_start_transfer(FDCtrl *fdctrl, int direction)
     if (direction != FD_DIR_WRITE)
         fdctrl->msr |= FD_MSR_DIO;
     /* IO based transfer: calculate len */
-    fdctrl_raise_irq(fdctrl, 0x00);
+    fdctrl_raise_irq(fdctrl, FD_SR0_SEEK);
 
     return;
 }
@@ -1171,7 +1293,7 @@ static void fdctrl_start_transfer(FDCtrl *fdctrl, int direction)
 /* Prepare a transfer of deleted data */
 static void fdctrl_start_transfer_del(FDCtrl *fdctrl, int direction)
 {
-    FLOPPY_ERROR("fdctrl_start_transfer_del() unimplemented\n");
+    qemu_log_mask(LOG_UNIMP, "fdctrl_start_transfer_del() unimplemented\n");
 
     /* We don't handle deleted data,
      * so we don't return *ANYTHING*
@@ -1250,7 +1372,8 @@ static int fdctrl_transfer_handler (void *opaque, int nchan,
                              fdctrl->data_pos, len);
             if (bdrv_write(cur_drv->bs, fd_sector(cur_drv),
                            fdctrl->fifo, 1) < 0) {
-                FLOPPY_ERROR("writing sector %d\n", fd_sector(cur_drv));
+                FLOPPY_DPRINTF("error writing sector %d\n",
+                               fd_sector(cur_drv));
                 fdctrl_stop_transfer(fdctrl, FD_SR0_ABNTERM | FD_SR0_SEEK, 0x00, 0x00);
                 goto transfer_error;
             }
@@ -1309,7 +1432,7 @@ static uint32_t fdctrl_read_data(FDCtrl *fdctrl)
     cur_drv = get_cur_drv(fdctrl);
     fdctrl->dsr &= ~FD_DSR_PWRDOWN;
     if (!(fdctrl->msr & FD_MSR_RQM) || !(fdctrl->msr & FD_MSR_DIO)) {
-        FLOPPY_ERROR("controller not ready for reading\n");
+        FLOPPY_DPRINTF("error: controller not ready for reading\n");
         return 0;
     }
     pos = fdctrl->data_pos;
@@ -1393,7 +1516,7 @@ static void fdctrl_format_sector(FDCtrl *fdctrl)
     memset(fdctrl->fifo, 0, FD_SECTOR_LEN);
     if (cur_drv->bs == NULL ||
         bdrv_write(cur_drv->bs, fd_sector(cur_drv), fdctrl->fifo, 1) < 0) {
-        FLOPPY_ERROR("formatting sector %d\n", fd_sector(cur_drv));
+        FLOPPY_DPRINTF("error formatting sector %d\n", fd_sector(cur_drv));
         fdctrl_stop_transfer(fdctrl, FD_SR0_ABNTERM | FD_SR0_SEEK, 0x00, 0x00);
     } else {
         if (cur_drv->sect == cur_drv->last_sect) {
@@ -1591,16 +1714,18 @@ static void fdctrl_handle_sense_interrupt_status(FDCtrl *fdctrl, int direction)
 {
     FDrive *cur_drv = get_cur_drv(fdctrl);
 
-    if(fdctrl->reset_sensei > 0) {
+    if (fdctrl->reset_sensei > 0) {
         fdctrl->fifo[0] =
             FD_SR0_RDYCHG + FD_RESET_SENSEI_COUNT - fdctrl->reset_sensei;
         fdctrl->reset_sensei--;
+    } else if (!(fdctrl->sra & FD_SRA_INTPEND)) {
+        fdctrl->fifo[0] = FD_SR0_INVCMD;
+        fdctrl_set_fifo(fdctrl, 1, 0);
+        return;
     } else {
-        /* XXX: status0 handling is broken for read/write
-           commands, so we do this hack. It should be suppressed
-           ASAP */
         fdctrl->fifo[0] =
-            FD_SR0_SEEK | (cur_drv->head << 2) | GET_CUR_DRV(fdctrl);
+                (fdctrl->status0 & ~(FD_SR0_HEAD | FD_SR0_DS1 | FD_SR0_DS0))
+                | GET_CUR_DRV(fdctrl);
     }
 
     fdctrl->fifo[1] = cur_drv->track;
@@ -1619,11 +1744,7 @@ static void fdctrl_handle_seek(FDCtrl *fdctrl, int direction)
     /* The seek command just sends step pulses to the drive and doesn't care if
      * there is a medium inserted of if it's banging the head against the drive.
      */
-    if (fdctrl->fifo[2] > cur_drv->max_track) {
-        cur_drv->track = cur_drv->max_track;
-    } else {
-        cur_drv->track = fdctrl->fifo[2];
-    }
+    fd_seek(cur_drv, cur_drv->head, fdctrl->fifo[2], cur_drv->sect, 1);
     /* Raise Interrupt */
     fdctrl_raise_irq(fdctrl, FD_SR0_SEEK);
 }
@@ -1681,32 +1802,35 @@ static void fdctrl_handle_drive_specification_command(FDCtrl *fdctrl, int direct
     }
 }
 
-static void fdctrl_handle_relative_seek_out(FDCtrl *fdctrl, int direction)
-{
-    FDrive *cur_drv;
-
-    SET_CUR_DRV(fdctrl, fdctrl->fifo[1] & FD_DOR_SELMASK);
-    cur_drv = get_cur_drv(fdctrl);
-    if (fdctrl->fifo[2] + cur_drv->track >= cur_drv->max_track) {
-        cur_drv->track = cur_drv->max_track - 1;
-    } else {
-        cur_drv->track += fdctrl->fifo[2];
-    }
-    fdctrl_reset_fifo(fdctrl);
-    /* Raise Interrupt */
-    fdctrl_raise_irq(fdctrl, FD_SR0_SEEK);
-}
-
 static void fdctrl_handle_relative_seek_in(FDCtrl *fdctrl, int direction)
 {
     FDrive *cur_drv;
 
     SET_CUR_DRV(fdctrl, fdctrl->fifo[1] & FD_DOR_SELMASK);
     cur_drv = get_cur_drv(fdctrl);
-    if (fdctrl->fifo[2] > cur_drv->track) {
-        cur_drv->track = 0;
+    if (fdctrl->fifo[2] + cur_drv->track >= cur_drv->max_track) {
+        fd_seek(cur_drv, cur_drv->head, cur_drv->max_track - 1,
+                cur_drv->sect, 1);
     } else {
-        cur_drv->track -= fdctrl->fifo[2];
+        fd_seek(cur_drv, cur_drv->head,
+                cur_drv->track + fdctrl->fifo[2], cur_drv->sect, 1);
+    }
+    fdctrl_reset_fifo(fdctrl);
+    /* Raise Interrupt */
+    fdctrl_raise_irq(fdctrl, FD_SR0_SEEK);
+}
+
+static void fdctrl_handle_relative_seek_out(FDCtrl *fdctrl, int direction)
+{
+    FDrive *cur_drv;
+
+    SET_CUR_DRV(fdctrl, fdctrl->fifo[1] & FD_DOR_SELMASK);
+    cur_drv = get_cur_drv(fdctrl);
+    if (fdctrl->fifo[2] > cur_drv->track) {
+        fd_seek(cur_drv, cur_drv->head, 0, cur_drv->sect, 1);
+    } else {
+        fd_seek(cur_drv, cur_drv->head,
+                cur_drv->track - fdctrl->fifo[2], cur_drv->sect, 1);
     }
     fdctrl_reset_fifo(fdctrl);
     /* Raise Interrupt */
@@ -1768,7 +1892,7 @@ static void fdctrl_write_data(FDCtrl *fdctrl, uint32_t value)
         return;
     }
     if (!(fdctrl->msr & FD_MSR_RQM) || (fdctrl->msr & FD_MSR_DIO)) {
-        FLOPPY_ERROR("controller not ready for writing\n");
+        FLOPPY_DPRINTF("error: controller not ready for writing\n");
         return;
     }
     fdctrl->dsr &= ~FD_DSR_PWRDOWN;
@@ -1782,7 +1906,8 @@ static void fdctrl_write_data(FDCtrl *fdctrl, uint32_t value)
             fdctrl->data_pos == fdctrl->data_len) {
             cur_drv = get_cur_drv(fdctrl);
             if (bdrv_write(cur_drv->bs, fd_sector(cur_drv), fdctrl->fifo, 1) < 0) {
-                FLOPPY_ERROR("writing sector %d\n", fd_sector(cur_drv));
+                FLOPPY_DPRINTF("error writing sector %d\n",
+                               fd_sector(cur_drv));
                 return;
             }
             if (!fdctrl_seek_to_next_sect(fdctrl, cur_drv)) {
@@ -1886,6 +2011,26 @@ static int fdctrl_connect_drives(FDCtrl *fdctrl)
         }
     }
     return 0;
+}
+
+ISADevice *fdctrl_init_isa(ISABus *bus, DriveInfo **fds)
+{
+    ISADevice *dev;
+
+    dev = isa_try_create(bus, "isa-fdc");
+    if (!dev) {
+        return NULL;
+    }
+
+    if (fds[0]) {
+        qdev_prop_set_drive_nofail(&dev->qdev, "driveA", fds[0]->bdrv);
+    }
+    if (fds[1]) {
+        qdev_prop_set_drive_nofail(&dev->qdev, "driveB", fds[1]->bdrv);
+    }
+    qdev_init_nofail(&dev->qdev);
+
+    return dev;
 }
 
 void fdctrl_init_sysbus(qemu_irq irq, int dma_chann,
@@ -2018,17 +2163,12 @@ static int sun4m_fdc_init1(SysBusDevice *dev)
     return fdctrl_init_common(fdctrl);
 }
 
-void fdc_get_bs(BlockDriverState *bs[], ISADevice *dev)
+FDriveType isa_fdc_get_drive_type(ISADevice *fdc, int i)
 {
-    FDCtrlISABus *isa = DO_UPCAST(FDCtrlISABus, busdev, dev);
-    FDCtrl *fdctrl = &isa->state;
-    int i;
+    FDCtrlISABus *isa = DO_UPCAST(FDCtrlISABus, busdev, fdc);
 
-    for (i = 0; i < MAX_FD; i++) {
-        bs[i] = fdctrl->drives[i].bs;
-    }
+    return isa->state.drives[i].drive;
 }
-
 
 static const VMStateDescription vmstate_isa_fdc ={
     .name = "fdc",

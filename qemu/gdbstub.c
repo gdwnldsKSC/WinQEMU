@@ -1155,6 +1155,68 @@ static int cpu_gdb_write_register(CPUMIPSState *env, uint8_t *mem_buf, int n)
 
     return sizeof(target_ulong);
 }
+#elif defined(TARGET_OPENRISC)
+
+#define NUM_CORE_REGS (32 + 3)
+
+static int cpu_gdb_read_register(CPUOpenRISCState *env, uint8_t *mem_buf, int n)
+{
+    if (n < 32) {
+        GET_REG32(env->gpr[n]);
+    } else {
+        switch (n) {
+        case 32:    /* PPC */
+            GET_REG32(env->ppc);
+            break;
+
+        case 33:    /* NPC */
+            GET_REG32(env->npc);
+            break;
+
+        case 34:    /* SR */
+            GET_REG32(env->sr);
+            break;
+
+        default:
+            break;
+        }
+    }
+    return 0;
+}
+
+static int cpu_gdb_write_register(CPUOpenRISCState *env,
+                                  uint8_t *mem_buf, int n)
+{
+    uint32_t tmp;
+
+    if (n > NUM_CORE_REGS) {
+        return 0;
+    }
+
+    tmp = ldl_p(mem_buf);
+
+    if (n < 32) {
+        env->gpr[n] = tmp;
+    } else {
+        switch (n) {
+        case 32: /* PPC */
+            env->ppc = tmp;
+            break;
+
+        case 33: /* NPC */
+            env->npc = tmp;
+            break;
+
+        case 34: /* SR */
+            env->sr = tmp;
+            break;
+
+        default:
+            break;
+        }
+    }
+    return 4;
+}
 #elif defined (TARGET_SH4)
 
 /* Hint: Use "set architecture sh4" in GDB to see fpu registers */
@@ -1924,6 +1986,8 @@ static void gdb_set_cpu_pc(GDBState *s, target_ulong pc)
     }
 #elif defined (TARGET_MICROBLAZE)
     s->c_cpu->sregs[SR_PC] = pc;
+#elif defined(TARGET_OPENRISC)
+    s->c_cpu->pc = pc;
 #elif defined (TARGET_CRIS)
     s->c_cpu->pc = pc;
 #elif defined (TARGET_ALPHA)
@@ -1937,21 +2001,12 @@ static void gdb_set_cpu_pc(GDBState *s, target_ulong pc)
 #endif
 }
 
-static inline int gdb_id(CPUArchState *env)
-{
-#if defined(CONFIG_USER_ONLY) && defined(CONFIG_USE_NPTL)
-    return env->host_tid;
-#else
-    return env->cpu_index + 1;
-#endif
-}
-
 static CPUArchState *find_cpu(uint32_t thread_id)
 {
     CPUArchState *env;
 
     for (env = first_cpu; env != NULL; env = env->next_cpu) {
-        if (gdb_id(env) == thread_id) {
+        if (cpu_index(env) == thread_id) {
             return env;
         }
     }
@@ -1979,7 +2034,7 @@ static int gdb_handle_packet(GDBState *s, const char *line_buf)
     case '?':
         /* TODO: Make this return the correct value for user-mode.  */
         snprintf(buf, sizeof(buf), "T%02xthread:%02x;", GDB_SIGNAL_TRAP,
-                 gdb_id(s->c_cpu));
+                 cpu_index(s->c_cpu));
         put_packet(s, buf);
         /* Remove all the breakpoints when this query is issued,
          * because gdb is doing and initial connect and the state
@@ -2274,7 +2329,7 @@ static int gdb_handle_packet(GDBState *s, const char *line_buf)
         } else if (strcmp(p,"sThreadInfo") == 0) {
         report_cpuinfo:
             if (s->query_cpu) {
-                snprintf(buf, sizeof(buf), "m%x", gdb_id(s->query_cpu));
+                snprintf(buf, sizeof(buf), "m%x", cpu_index(s->query_cpu));
                 put_packet(s, buf);
                 s->query_cpu = s->query_cpu->next_cpu;
             } else
@@ -2422,7 +2477,7 @@ static void gdb_vm_state_change(void *opaque, int running, RunState state)
             }
             snprintf(buf, sizeof(buf),
                      "T%02xthread:%02x;%swatch:" TARGET_FMT_lx ";",
-                     GDB_SIGNAL_TRAP, gdb_id(env), type,
+                     GDB_SIGNAL_TRAP, cpu_index(env), type,
                      env->watchpoint_hit->vaddr);
             env->watchpoint_hit = NULL;
             goto send_packet;
@@ -2455,7 +2510,7 @@ static void gdb_vm_state_change(void *opaque, int running, RunState state)
         ret = GDB_SIGNAL_UNKNOWN;
         break;
     }
-    snprintf(buf, sizeof(buf), "T%02xthread:%02x;", ret, gdb_id(env));
+    snprintf(buf, sizeof(buf), "T%02xthread:%02x;", ret, cpu_index(env));
 
 send_packet:
     put_packet(s, buf);

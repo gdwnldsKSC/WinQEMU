@@ -3,9 +3,7 @@
 
 /* CPU interfaces that are target independent.  */
 
-#ifdef TARGET_PHYS_ADDR_BITS
 #include "targphys.h"
-#endif
 
 #ifndef NEED_CPU_H
 #include "poison.h"
@@ -70,6 +68,8 @@ void cpu_physical_memory_unmap(void *buffer, target_phys_addr_t len,
                                int is_write, target_phys_addr_t access_len);
 void *cpu_register_map_client(void *opaque, void (*callback)(void *opaque));
 void cpu_unregister_map_client(void *cookie);
+
+bool cpu_physical_memory_is_io(target_phys_addr_t phys_addr);
 
 /* Coalesced MMIO regions are areas where write operations can be reordered.
  * This usually implies that write operations are side-effect free.  This allows

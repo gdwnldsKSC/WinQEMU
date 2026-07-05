@@ -33,7 +33,7 @@ typedef struct TypeInfo TypeInfo;
 typedef struct InterfaceClass InterfaceClass;
 typedef struct InterfaceInfo InterfaceInfo;
 
-#define TYPE_OBJECT NULL
+#define TYPE_OBJECT "object"
 
 /**
  * SECTION:object.h
@@ -239,6 +239,7 @@ struct ObjectClass
 {
     /*< private >*/
     Type type;
+    GSList *interfaces;
 };
 
 /**
@@ -260,7 +261,6 @@ struct Object
 {
     /*< private >*/
     ObjectClass *class;
-    GSList *interfaces;
     QTAILQ_HEAD(, ObjectProperty) properties;
     uint32_t ref;
     Object *parent;
@@ -291,10 +291,15 @@ struct Object
  *   has occurred to allow a class to set its default virtual method pointers.
  *   This is also the function to use to override virtual methods from a parent
  *   class.
+ * @class_base_init: This function is called for all base classes after all
+ *   parent class initialization has occurred, but before the class itself
+ *   is initialized.  This is the function to use to undo the effects of
+ *   memcpy from the parent class to the descendents.
  * @class_finalize: This function is called during class destruction and is
  *   meant to release and dynamic parameters allocated by @class_init.
- * @class_data: Data to pass to the @class_init and @class_finalize functions.
- *   This can be useful when building dynamic classes.
+ * @class_data: Data to pass to the @class_init, @class_base_init and
+ *   @class_finalize functions.  This can be useful when building dynamic
+ *   classes.
  * @interfaces: The list of interfaces associated with this type.  This
  *   should point to a static array that's terminated with a zero filled
  *   element.
@@ -312,6 +317,7 @@ struct TypeInfo
     size_t class_size;
 
     void (*class_init)(ObjectClass *klass, void *data);
+    void (*class_base_init)(ObjectClass *klass, void *data);
     void (*class_finalize)(ObjectClass *klass, void *data);
     void *class_data;
 
@@ -381,6 +387,16 @@ struct TypeInfo
     OBJECT_CLASS_CHECK(class, object_get_class(OBJECT(obj)), name)
 
 /**
+ * InterfaceInfo:
+ * @type: The name of the interface.
+ *
+ * The information associated with an interface.
+ */
+struct InterfaceInfo {
+    const char *type;
+};
+
+/**
  * InterfaceClass:
  * @parent_class: the base class
  *
@@ -390,26 +406,30 @@ struct TypeInfo
 struct InterfaceClass
 {
     ObjectClass parent_class;
-};
-
-/**
- * InterfaceInfo:
- * @type: The name of the interface.
- * @interface_initfn: This method is called during class initialization and is
- *   used to initialize an interface associated with a class.  This function
- *   should initialize any default virtual functions for a class and/or override
- *   virtual functions in a parent class.
- *
- * The information associated with an interface.
- */
-struct InterfaceInfo
-{
-    const char *type;
-
-    void (*interface_initfn)(ObjectClass *class, void *data);
+    /*< private >*/
+    ObjectClass *concrete_class;
 };
 
 #define TYPE_INTERFACE "interface"
+
+/**
+ * INTERFACE_CLASS:
+ * @klass: class to cast from
+ * Returns: An #InterfaceClass or raise an error if cast is invalid
+ */
+#define INTERFACE_CLASS(klass) \
+    OBJECT_CLASS_CHECK(InterfaceClass, klass, TYPE_INTERFACE)
+
+/**
+ * INTERFACE_CHECK:
+ * @interface: the type to return
+ * @obj: the object to convert to an interface
+ * @name: the interface type name
+ *
+ * Returns: @obj casted to @interface if cast is valid, otherwise raise error.
+ */
+#define INTERFACE_CHECK(interface, obj, name) \
+    ((interface *)object_dynamic_cast_assert(OBJECT((obj)), (name)))
 
 /**
  * object_new:
@@ -521,8 +541,6 @@ const char *object_get_typename(Object *obj);
  */
 Type type_register_static(const TypeInfo *info);
 
-#define type_register_static_alias(info, name) do { } while (0)
-
 /**
  * type_register:
  * @info: The #TypeInfo of the new type
@@ -546,6 +564,14 @@ ObjectClass *object_class_dynamic_cast_assert(ObjectClass *klass,
 
 ObjectClass *object_class_dynamic_cast(ObjectClass *klass,
                                        const char *typename);
+
+/**
+ * object_class_get_parent:
+ * @klass: The class to obtain the parent for.
+ *
+ * Returns: The parent for @klass or %NULL if none.
+ */
+ObjectClass *object_class_get_parent(ObjectClass *klass);
 
 /**
  * object_class_get_name:
@@ -622,6 +648,17 @@ void object_property_add(Object *obj, const char *name, const char *type,
                          void *opaque, struct Error **errp);
 
 void object_property_del(Object *obj, const char *name, struct Error **errp);
+
+/**
+ * object_property_find:
+ * @obj: the object
+ * @name: the name of the property
+ * @errp: returns an error if this function fails
+ *
+ * Look up a property for an object and return its #ObjectProperty if found.
+ */
+ObjectProperty *object_property_find(Object *obj, const char *name,
+                                     struct Error **errp);
 
 void object_unparent(Object *obj);
 
@@ -908,6 +945,20 @@ void object_property_add_str(Object *obj, const char *name,
                              char *(*get)(Object *, struct Error **),
                              void (*set)(Object *, const char *, struct Error **),
                              struct Error **errp);
+
+/**
+ * object_child_foreach:
+ * @obj: the object whose children will be navigated
+ * @fn: the iterator function to be called
+ * @opaque: an opaque value that will be passed to the iterator
+ *
+ * Call @fn passing each child of @obj and @opaque to it, until @fn returns
+ * non-zero.
+ *
+ * Returns: The last value returned by @fn, or 0 if there is no child.
+ */
+int object_child_foreach(Object *obj, int (*fn)(Object *child, void *opaque),
+                         void *opaque);
 
 /**
  * container_get:

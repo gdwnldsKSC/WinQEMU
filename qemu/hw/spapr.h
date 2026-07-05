@@ -1,6 +1,7 @@
 #if !defined(__HW_SPAPR_H__)
 #define __HW_SPAPR_H__
 
+#include "dma.h"
 #include "hw/xics.h"
 
 struct VIOsPAPRBus;
@@ -22,6 +23,7 @@ typedef struct sPAPREnvironment {
     int next_irq;
     int rtc_offset;
     char *cpu_model;
+    bool has_graphics;
 } sPAPREnvironment;
 
 #define H_SUCCESS         0
@@ -264,7 +266,8 @@ typedef struct sPAPREnvironment {
  */
 #define KVMPPC_HCALL_BASE       0xf000
 #define KVMPPC_H_RTAS           (KVMPPC_HCALL_BASE + 0x0)
-#define KVMPPC_HCALL_MAX        KVMPPC_H_RTAS
+#define KVMPPC_H_LOGICAL_MEMOP  (KVMPPC_HCALL_BASE + 0x1)
+#define KVMPPC_HCALL_MAX        KVMPPC_H_LOGICAL_MEMOP
 
 extern sPAPREnvironment *spapr;
 
@@ -286,17 +289,17 @@ void spapr_register_hypercall(target_ulong opcode, spapr_hcall_fn fn);
 target_ulong spapr_hypercall(CPUPPCState *env, target_ulong opcode,
                              target_ulong *args);
 
-qemu_irq spapr_allocate_irq(uint32_t hint, uint32_t *irq_num,
-                            enum xics_irq_type type);
+int spapr_allocate_irq(int hint, enum xics_irq_type type);
+int spapr_allocate_irq_block(int num, enum xics_irq_type type);
 
-static inline qemu_irq spapr_allocate_msi(uint32_t hint, uint32_t *irq_num)
+static inline int spapr_allocate_msi(int hint)
 {
-    return spapr_allocate_irq(hint, irq_num, XICS_MSI);
+    return spapr_allocate_irq(hint, XICS_MSI);
 }
 
-static inline qemu_irq spapr_allocate_lsi(uint32_t hint, uint32_t *irq_num)
+static inline int spapr_allocate_lsi(int hint)
 {
-    return spapr_allocate_irq(hint, irq_num, XICS_LSI);
+    return spapr_allocate_irq(hint, XICS_LSI);
 }
 
 static inline uint32_t rtas_ld(target_ulong phys, int n)
@@ -318,5 +321,24 @@ target_ulong spapr_rtas_call(sPAPREnvironment *spapr,
                              uint32_t nret, target_ulong rets);
 int spapr_rtas_device_tree_setup(void *fdt, target_phys_addr_t rtas_addr,
                                  target_phys_addr_t rtas_size);
+
+#define SPAPR_TCE_PAGE_SHIFT   12
+#define SPAPR_TCE_PAGE_SIZE    (1ULL << SPAPR_TCE_PAGE_SHIFT)
+#define SPAPR_TCE_PAGE_MASK    (SPAPR_TCE_PAGE_SIZE - 1)
+
+typedef struct sPAPRTCE {
+    uint64_t tce;
+} sPAPRTCE;
+
+#define SPAPR_VIO_BASE_LIOBN    0x00000000
+#define SPAPR_PCI_BASE_LIOBN    0x80000000
+
+void spapr_iommu_init(void);
+DMAContext *spapr_tce_new_dma_context(uint32_t liobn, size_t window_size);
+void spapr_tce_free(DMAContext *dma);
+int spapr_dma_dt(void *fdt, int node_off, const char *propname,
+                 uint32_t liobn, uint64_t window, uint32_t size);
+int spapr_tcet_dma_dt(void *fdt, int node_off, const char *propname,
+                      DMAContext *dma);
 
 #endif /* !defined (__HW_SPAPR_H__) */

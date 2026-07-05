@@ -345,6 +345,7 @@ def gen_command_decl_prologue(header, guard, prefix=""):
 #define %(guard)s
 
 #include "%(prefix)sqapi-types.h"
+#include "qdict.h"
 #include "error.h"
 
 ''',
@@ -437,8 +438,8 @@ except OSError as e:
         raise
 
 exprs = parse_schema(sys.stdin)
-commands = [expr for expr in exprs if 'command' in expr]
-commands = [expr for expr in commands if 'gen' not in expr]
+commands = list(filter(lambda expr: 'command' in expr, exprs))
+commands = list(filter(lambda expr: not 'gen' in expr, commands))
 
 if dispatch_type == "sync":
     fdecl = maybe_open(do_h, h_file, 'w')

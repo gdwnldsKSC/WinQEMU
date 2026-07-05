@@ -781,7 +781,14 @@ static inline dma_addr_t rtl8139_addr64(uint32_t low, uint32_t high)
 #endif
 }
 
-static int rtl8139_can_receive(VLANClientState *nc)
+/* Workaround for buggy guest driver such as linux who allocates rx
+ * rings after the receiver were enabled. */
+static bool rtl8139_cp_rx_valid(RTL8139State *s)
+{
+    return !(s->RxRingAddrLO == 0 && s->RxRingAddrHI == 0);
+}
+
+static int rtl8139_can_receive(NetClientState *nc)
 {
     RTL8139State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     int avail;
@@ -791,22 +798,19 @@ static int rtl8139_can_receive(VLANClientState *nc)
       return 1;
     if (!rtl8139_receiver_enabled(s))
       return 1;
-    /* network/host communication happens only in normal mode */
-    if ((s->Cfg9346 & Chip9346_op_mask) != Cfg9346_Normal)
-	return 0;
 
-    if (rtl8139_cp_receiver_enabled(s)) {
+    if (rtl8139_cp_receiver_enabled(s) && rtl8139_cp_rx_valid(s)) {
         /* ??? Flow control not implemented in c+ mode.
            This is a hack to work around slirp deficiencies anyway.  */
         return 1;
     } else {
         avail = MOD2(s->RxBufferSize + s->RxBufPtr - s->RxBufAddr,
                      s->RxBufferSize);
-        return (avail == 0 || avail >= 1514);
+        return (avail == 0 || avail >= 1514 || (s->IntrMask & RxOverflow));
     }
 }
 
-static ssize_t rtl8139_do_receive(VLANClientState *nc, const uint8_t *buf, size_t size_, int do_interrupt)
+static ssize_t rtl8139_do_receive(NetClientState *nc, const uint8_t *buf, size_t size_, int do_interrupt)
 {
     RTL8139State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     /* size is the length of the buffer passed to the driver */
@@ -833,12 +837,6 @@ static ssize_t rtl8139_do_receive(VLANClientState *nc, const uint8_t *buf, size_
     if (!rtl8139_receiver_enabled(s))
     {
         DPRINTF("receiver disabled ================\n");
-        return -1;
-    }
-
-    /* check whether we are in normal mode */
-    if ((s->Cfg9346 & Chip9346_op_mask) != Cfg9346_Normal) {
-        DPRINTF("not in normal op mode\n");
         return -1;
     }
 
@@ -946,6 +944,10 @@ static ssize_t rtl8139_do_receive(VLANClientState *nc, const uint8_t *buf, size_
 
     if (rtl8139_cp_receiver_enabled(s))
     {
+        if (!rtl8139_cp_rx_valid(s)) {
+            return size;
+        }
+
         DPRINTF("in C+ Rx mode ================\n");
 
         /* begin C+ receiver mode */
@@ -1185,7 +1187,7 @@ static ssize_t rtl8139_do_receive(VLANClientState *nc, const uint8_t *buf, size_
     return size_;
 }
 
-static ssize_t rtl8139_receive(VLANClientState *nc, const uint8_t *buf, size_t size)
+static ssize_t rtl8139_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
     return rtl8139_do_receive(nc, buf, size, 1);
 }
@@ -1783,7 +1785,7 @@ static void rtl8139_transfer_frame(RTL8139State *s, uint8_t *buf, int size,
         if (iov) {
             buf2_size = iov_size(iov, 3);
             buf2 = g_malloc(buf2_size);
-            iov_to_buf(iov, 3, buf2, 0, buf2_size);
+            iov_to_buf(iov, 3, 0, buf2, buf2_size);
             buf = buf2;
         }
 
@@ -3601,14 +3603,14 @@ static void rtl8139_timer(void *opaque)
     rtl8139_set_next_tctr_time(s, qemu_get_clock_ns(vm_clock));
 }
 
-static void rtl8139_cleanup(VLANClientState *nc)
+static void rtl8139_cleanup(NetClientState *nc)
 {
     RTL8139State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
     s->nic = NULL;
 }
 
-static int pci_rtl8139_uninit(PCIDevice *dev)
+static void pci_rtl8139_uninit(PCIDevice *dev)
 {
     RTL8139State *s = DO_UPCAST(RTL8139State, dev, dev);
 
@@ -3620,12 +3622,11 @@ static int pci_rtl8139_uninit(PCIDevice *dev)
     }
     qemu_del_timer(s->timer);
     qemu_free_timer(s->timer);
-    qemu_del_vlan_client(&s->nic->nc);
-    return 0;
+    qemu_del_net_client(&s->nic->nc);
 }
 
 static NetClientInfo net_rtl8139_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = rtl8139_can_receive,
     .receive = rtl8139_receive,

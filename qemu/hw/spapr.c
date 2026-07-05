@@ -41,12 +41,15 @@
 #include "hw/spapr_vio.h"
 #include "hw/spapr_pci.h"
 #include "hw/xics.h"
+#include "hw/msi.h"
 
 #include "kvm.h"
 #include "kvm_ppc.h"
 #include "pci.h"
+#include "vga-pci.h"
 
 #include "exec-memory.h"
+#include "hw/usb.h"
 
 #include <libfdt.h>
 
@@ -78,16 +81,15 @@
 #define SPAPR_PCI_MEM_WIN_ADDR  (0x10000000000ULL + 0xA0000000)
 #define SPAPR_PCI_MEM_WIN_SIZE  0x20000000
 #define SPAPR_PCI_IO_WIN_ADDR   (0x10000000000ULL + 0x80000000)
+#define SPAPR_PCI_MSI_WIN_ADDR  (0x10000000000ULL + 0x90000000)
 
 #define PHANDLE_XICP            0x00001111
 
 sPAPREnvironment *spapr;
 
-qemu_irq spapr_allocate_irq(uint32_t hint, uint32_t *irq_num,
-                            enum xics_irq_type type)
+int spapr_allocate_irq(int hint, enum xics_irq_type type)
 {
-    uint32_t irq;
-    qemu_irq qirq;
+    int irq;
 
     if (hint) {
         irq = hint;
@@ -96,16 +98,40 @@ qemu_irq spapr_allocate_irq(uint32_t hint, uint32_t *irq_num,
         irq = spapr->next_irq++;
     }
 
-    qirq = xics_assign_irq(spapr->icp, irq, type);
-    if (!qirq) {
-        return NULL;
+    /* Configure irq type */
+    if (!xics_get_qirq(spapr->icp, irq)) {
+        return 0;
     }
 
-    if (irq_num) {
-        *irq_num = irq;
+    xics_set_irq_type(spapr->icp, irq, type);
+
+    return irq;
+}
+
+/* Allocate block of consequtive IRQs, returns a number of the first */
+int spapr_allocate_irq_block(int num, enum xics_irq_type type)
+{
+    int first = -1;
+    int i;
+
+    for (i = 0; i < num; ++i) {
+        int irq;
+
+        irq = spapr_allocate_irq(0, type);
+        if (!irq) {
+            return -1;
+        }
+
+        if (0 == i) {
+            first = irq;
+        }
+
+        /* If the above doesn't create a consecutive block then that's
+         * an internal bug */
+        assert(irq == (first + i));
     }
 
-    return qirq;
+    return first;
 }
 
 static int spapr_set_associativity(void *fdt, sPAPREnvironment *spapr)
@@ -146,6 +172,40 @@ static int spapr_set_associativity(void *fdt, sPAPREnvironment *spapr)
     return ret;
 }
 
+
+static size_t create_page_sizes_prop(CPUPPCState *env, uint32_t *prop,
+                                     size_t maxsize)
+{
+    size_t maxcells = maxsize / sizeof(uint32_t);
+    int i, j, count;
+    uint32_t *p = prop;
+
+    for (i = 0; i < PPC_PAGE_SIZES_MAX_SZ; i++) {
+        struct ppc_one_seg_page_size *sps = &env->sps.sps[i];
+
+        if (!sps->page_shift) {
+            break;
+        }
+        for (count = 0; count < PPC_PAGE_SIZES_MAX_SZ; count++) {
+            if (sps->enc[count].page_shift == 0) {
+                break;
+            }
+        }
+        if ((p - prop) >= (maxcells - 3 - count * 2)) {
+            break;
+        }
+        *(p++) = cpu_to_be32(sps->page_shift);
+        *(p++) = cpu_to_be32(sps->slb_enc);
+        *(p++) = cpu_to_be32(count);
+        for (j = 0; j < count; j++) {
+            *(p++) = cpu_to_be32(sps->enc[j].page_shift);
+            *(p++) = cpu_to_be32(sps->enc[j].pte_enc);
+        }
+    }
+
+    return (p - prop) * sizeof(uint32_t);
+}
+
 static void *spapr_create_fdt_skel(const char *cpu_model,
                                    target_phys_addr_t rma_size,
                                    target_phys_addr_t initrd_base,
@@ -163,6 +223,7 @@ static void *spapr_create_fdt_skel(const char *cpu_model,
     uint32_t pft_size_prop[] = {0, cpu_to_be32(hash_shift)};
     char hypertas_prop[] = "hcall-pft\0hcall-term\0hcall-dabr\0hcall-interrupt"
         "\0hcall-tce\0hcall-vio\0hcall-splpar\0hcall-bulk";
+    char qemu_hypertas_prop[] = "hcall-memop1";
     uint32_t interrupt_server_ranges_prop[] = {0, cpu_to_be32(smp_cpus)};
     int i;
     char *modelname;
@@ -222,6 +283,9 @@ static void *spapr_create_fdt_skel(const char *cpu_model,
         _FDT((fdt_property(fdt, "qemu,boot-kernel", &kprop, sizeof(kprop))));
     }
     _FDT((fdt_property_string(fdt, "qemu,boot-device", boot_device)));
+    _FDT((fdt_property_cell(fdt, "qemu,graphic-width", graphic_width)));
+    _FDT((fdt_property_cell(fdt, "qemu,graphic-height", graphic_height)));
+    _FDT((fdt_property_cell(fdt, "qemu,graphic-depth", graphic_depth)));
 
     _FDT((fdt_end_node(fdt)));
 
@@ -298,6 +362,8 @@ static void *spapr_create_fdt_skel(const char *cpu_model,
                            0xffffffff, 0xffffffff};
         uint32_t tbfreq = kvm_enabled() ? kvmppc_get_tbfreq() : TIMEBASE_FREQ;
         uint32_t cpufreq = kvm_enabled() ? kvmppc_get_clockfreq() : 1000000000;
+        uint32_t page_sizes_prop[64];
+        size_t page_sizes_prop_size;
 
         if ((index % smt) != 0) {
             continue;
@@ -362,6 +428,13 @@ static void *spapr_create_fdt_skel(const char *cpu_model,
             _FDT((fdt_property_cell(fdt, "ibm,dfp", 1)));
         }
 
+        page_sizes_prop_size = create_page_sizes_prop(env, page_sizes_prop,
+                                                      sizeof(page_sizes_prop));
+        if (page_sizes_prop_size) {
+            _FDT((fdt_property(fdt, "ibm,segment-page-sizes",
+                               page_sizes_prop, page_sizes_prop_size)));
+        }
+
         _FDT((fdt_end_node(fdt)));
     }
 
@@ -374,6 +447,8 @@ static void *spapr_create_fdt_skel(const char *cpu_model,
 
     _FDT((fdt_property(fdt, "ibm,hypertas-functions", hypertas_prop,
                        sizeof(hypertas_prop))));
+    _FDT((fdt_property(fdt, "qemu,hypertas-functions", qemu_hypertas_prop,
+                       sizeof(qemu_hypertas_prop))));
 
     _FDT((fdt_property(fdt, "ibm,associativity-reference-points",
         refpoints, sizeof(refpoints))));
@@ -435,7 +510,7 @@ static void spapr_finalize_fdt(sPAPREnvironment *spapr,
     }
 
     QLIST_FOREACH(phb, &spapr->phbs, list) {
-        ret = spapr_populate_pci_devices(phb, PHANDLE_XICP, fdt);
+        ret = spapr_populate_pci_dt(phb, PHANDLE_XICP, fdt);
     }
 
     if (ret < 0) {
@@ -457,7 +532,9 @@ static void spapr_finalize_fdt(sPAPREnvironment *spapr,
         }
     }
 
-    spapr_populate_chosen_stdout(fdt, spapr->vio_bus);
+    if (!spapr->has_graphics) {
+        spapr_populate_chosen_stdout(fdt, spapr->vio_bus);
+    }
 
     _FDT((fdt_pack(fdt)));
 
@@ -486,8 +563,6 @@ static void spapr_reset(void *opaque)
 {
     sPAPREnvironment *spapr = (sPAPREnvironment *)opaque;
 
-    fprintf(stderr, "sPAPR reset\n");
-
     /* flush out the hash table */
     memset(spapr->htab, 0, spapr->htab_size);
 
@@ -505,9 +580,26 @@ static void spapr_reset(void *opaque)
 
 static void spapr_cpu_reset(void *opaque)
 {
-    CPUPPCState *env = opaque;
+    PowerPCCPU *cpu = opaque;
 
-    cpu_state_reset(env);
+    cpu_reset(CPU(cpu));
+}
+
+/* Returns whether we want to use VGA or not */
+static int spapr_vga_init(PCIBus *pci_bus)
+{
+    switch (vga_interface_type) {
+    case VGA_STD:
+        pci_vga_init(pci_bus);
+        return 1;
+    case VGA_NONE:
+        return 0;
+    default:
+        fprintf(stderr, "This vga model is not supported,"
+                "currently it only supports -vga std\n");
+        exit(0);
+        break;
+    }
 }
 
 /* pSeries LPAR / sPAPR hardware init */
@@ -518,7 +610,9 @@ static void ppc_spapr_init(ram_addr_t ram_size,
                            const char *initrd_filename,
                            const char *cpu_model)
 {
+    PowerPCCPU *cpu;
     CPUPPCState *env;
+    PCIHostState *phb;
     int i;
     MemoryRegion *sysmem = get_system_memory();
     MemoryRegion *ram = g_new(MemoryRegion, 1);
@@ -528,6 +622,8 @@ static void ppc_spapr_init(ram_addr_t ram_size,
     long load_limit, rtas_limit, fw_size;
     long pteg_shift = 17;
     char *filename;
+
+    msi_supported = true;
 
     spapr = g_malloc0(sizeof(*spapr));
     QLIST_INIT(&spapr->phbs);
@@ -560,15 +656,16 @@ static void ppc_spapr_init(ram_addr_t ram_size,
         cpu_model = kvm_enabled() ? "host" : "POWER7";
     }
     for (i = 0; i < smp_cpus; i++) {
-        env = cpu_init(cpu_model);
-
-        if (!env) {
+        cpu = cpu_ppc_init(cpu_model);
+        if (cpu == NULL) {
             fprintf(stderr, "Unable to find PowerPC CPU definition\n");
             exit(1);
         }
+        env = &cpu->env;
+
         /* Set time-base frequency to 512 MHz */
         cpu_ppc_tb_init(env, TIMEBASE_FREQ);
-        qemu_register_reset(spapr_cpu_reset, env);
+        qemu_register_reset(spapr_cpu_reset, cpu);
 
         env->hreset_vector = 0x60;
         env->hreset_excp_prefix = 0;
@@ -626,6 +723,9 @@ static void ppc_spapr_init(ram_addr_t ram_size,
     spapr->icp = xics_system_init(XICS_IRQS);
     spapr->next_irq = 16;
 
+    /* Set up IOMMU */
+    spapr_iommu_init();
+
     /* Set up VIO bus */
     spapr->vio_bus = spapr_vio_bus_init();
 
@@ -636,10 +736,14 @@ static void ppc_spapr_init(ram_addr_t ram_size,
     }
 
     /* Set up PCI */
+    spapr_pci_rtas_init();
+
     spapr_create_phb(spapr, "pci", SPAPR_PCI_BUID,
                      SPAPR_PCI_MEM_WIN_ADDR,
                      SPAPR_PCI_MEM_WIN_SIZE,
-                     SPAPR_PCI_IO_WIN_ADDR);
+                     SPAPR_PCI_IO_WIN_ADDR,
+                     SPAPR_PCI_MSI_WIN_ADDR);
+    phb = PCI_HOST_BRIDGE(QLIST_FIRST(&spapr->phbs));
 
     for (i = 0; i < nb_nics; i++) {
         NICInfo *nd = &nd_table[i];
@@ -659,19 +763,24 @@ static void ppc_spapr_init(ram_addr_t ram_size,
         spapr_vscsi_create(spapr->vio_bus);
     }
 
+    /* Graphics */
+    if (spapr_vga_init(phb->bus)) {
+        spapr->has_graphics = true;
+    }
+
+    if (usb_enabled) {
+        pci_create_simple(phb->bus, -1, "pci-ohci");
+        if (spapr->has_graphics) {
+            usbdevice_create("keyboard");
+            usbdevice_create("mouse");
+        }
+    }
+
     if (rma_size < (MIN_RMA_SLOF << 20)) {
         fprintf(stderr, "qemu: pSeries SLOF firmware requires >= "
                 "%ldM guest RMA (Real Mode Area memory)\n", MIN_RMA_SLOF);
         exit(1);
     }
-
-    fprintf(stderr, "sPAPR memory map:\n");
-    fprintf(stderr, "RTAS                 : 0x%08lx..%08lx\n",
-            (unsigned long)spapr->rtas_addr,
-            (unsigned long)(spapr->rtas_addr + spapr->rtas_size - 1));
-    fprintf(stderr, "FDT                  : 0x%08lx..%08lx\n",
-            (unsigned long)spapr->fdt_addr,
-            (unsigned long)(spapr->fdt_addr + FDT_MAX_SIZE - 1));
 
     if (kernel_filename) {
         uint64_t lowaddr = 0;
@@ -688,8 +797,6 @@ static void ppc_spapr_init(ram_addr_t ram_size,
                     kernel_filename);
             exit(1);
         }
-        fprintf(stderr, "Kernel               : 0x%08x..%08lx\n",
-                KERNEL_LOAD_ADDR, KERNEL_LOAD_ADDR + kernel_size - 1);
 
         /* load initrd */
         if (initrd_filename) {
@@ -704,8 +811,6 @@ static void ppc_spapr_init(ram_addr_t ram_size,
                         initrd_filename);
                 exit(1);
             }
-            fprintf(stderr, "Ramdisk              : 0x%08lx..%08lx\n",
-                    (long)initrd_base, (long)(initrd_base + initrd_size - 1));
         } else {
             initrd_base = 0;
             initrd_size = 0;
@@ -719,10 +824,6 @@ static void ppc_spapr_init(ram_addr_t ram_size,
         exit(1);
     }
     g_free(filename);
-    fprintf(stderr, "Firmware load        : 0x%08x..%08lx\n",
-            0, fw_size);
-    fprintf(stderr, "Firmware runtime     : 0x%08lx..%08lx\n",
-            load_limit, (unsigned long)spapr->fdt_addr);
 
     spapr->entry_point = 0x100;
 

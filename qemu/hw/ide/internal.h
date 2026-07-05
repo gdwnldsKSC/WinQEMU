@@ -11,6 +11,7 @@
 #include "iorange.h"
 #include "dma.h"
 #include "sysemu.h"
+#include "hw/block-common.h"
 #include "hw/scsi-defs.h"
 
 /* debug IDE devices */
@@ -24,6 +25,9 @@ typedef struct IDEDevice IDEDevice;
 typedef struct IDEState IDEState;
 typedef struct IDEDMA IDEDMA;
 typedef struct IDEDMAOps IDEDMAOps;
+
+#define TYPE_IDE_BUS "IDE"
+#define IDE_BUS(obj) OBJECT_CHECK(IDEBus, (obj), TYPE_IDE_BUS)
 
 /* Bits of HD_STATUS */
 #define ERR_STAT		0x01
@@ -341,7 +345,7 @@ struct IDEState {
     uint8_t unit;
     /* ide config */
     IDEDriveKind drive_kind;
-    int cylinders, heads, sectors;
+    int cylinders, heads, sectors, chs_trans;
     int64_t nb_sectors;
     int mult_sectors;
     int identify_set;
@@ -389,6 +393,7 @@ struct IDEState {
     struct iovec iov;
     QEMUIOVector qiov;
     /* ATA DMA state */
+    int io_buffer_offset;
     int io_buffer_size;
     QEMUSGList sg;
     /* PIO transfer handling */
@@ -471,6 +476,7 @@ struct IDEDevice {
     DeviceState qdev;
     uint32_t unit;
     BlockConf conf;
+    int chs_trans;
     char *version;
     char *serial;
     char *model;
@@ -542,7 +548,9 @@ uint32_t ide_data_readl(void *opaque, uint32_t addr);
 
 int ide_init_drive(IDEState *s, BlockDriverState *bs, IDEDriveKind kind,
                    const char *version, const char *serial, const char *model,
-                   uint64_t wwn);
+                   uint64_t wwn,
+                   uint32_t cylinders, uint32_t heads, uint32_t secs,
+                   int chs_trans);
 void ide_init2(IDEBus *bus, qemu_irq irq);
 void ide_init2_with_non_qdev_drives(IDEBus *bus, DriveInfo *hd0,
                                     DriveInfo *hd1, qemu_irq irq);

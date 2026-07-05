@@ -56,6 +56,17 @@
 #define GCC_FMT_ATTR(n, m)
 #endif
 
+#if defined(_WIN32) && !defined(_MSC_VER)
+#define GCC_WEAK __attribute__((weak))
+#define GCC_WEAK_DECL GCC_WEAK
+#elseif !defined(_MSC_VER)
+#define GCC_WEAK __attribute__((weak))
+#define GCC_WEAK_DECL
+#else
+#define GCC_WEAK
+#define GCC_WEAK_DECL
+#endif
+
 #ifdef _MSC_VER
 # define MSC_PACKED_BEGIN_1 __pragma(pack(push, 1))
 # define MSC_PACKED_BEGIN_4 __pragma(pack(push, 4))

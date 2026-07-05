@@ -367,11 +367,12 @@ typedef struct BDRVVVFATState {
  * if the position is outside the specified geometry, fill maximum value for CHS
  * and return 1 to signal overflow.
  */
-static int sector2CHS(BlockDriverState* bs, mbr_chs_t * chs, int spos){
+static int sector2CHS(mbr_chs_t *chs, int spos, int cyls, int heads, int secs)
+{
     int head,sector;
-    sector   = spos % (bs->secs);  spos/= bs->secs;
-    head     = spos % (bs->heads); spos/= bs->heads;
-    if(spos >= bs->cyls){
+    sector   = spos % secs;  spos /= secs;
+    head     = spos % heads; spos /= heads;
+    if (spos >= cyls) {
         /* Overflow,
         it happens if 32bit sector positions are used, while CHS is only 24bit.
         Windows/Dos is said to take 1023/255/63 as nonrepresentable CHS */
@@ -386,7 +387,7 @@ static int sector2CHS(BlockDriverState* bs, mbr_chs_t * chs, int spos){
     return 0;
 }
 
-static void init_mbr(BDRVVVFATState* s)
+static void init_mbr(BDRVVVFATState *s, int cyls, int heads, int secs)
 {
     /* TODO: if the files mbr.img and bootsect.img exist, use them */
     mbr_t* real_mbr=(mbr_t*)s->first_sectors;
@@ -401,12 +402,15 @@ static void init_mbr(BDRVVVFATState* s)
     partition->attributes=0x80; /* bootable */
 
     /* LBA is used when partition is outside the CHS geometry */
-    lba = sector2CHS(s->bs, &partition->start_CHS, s->first_sectors_number-1);
-    lba|= sector2CHS(s->bs, &partition->end_CHS,   s->sector_count);
+    lba  = sector2CHS(&partition->start_CHS, s->first_sectors_number - 1,
+                     cyls, heads, secs);
+    lba |= sector2CHS(&partition->end_CHS,   s->bs->total_sectors - 1,
+                     cyls, heads, secs);
 
     /*LBA partitions are identified only by start/length_sector_long not by CHS*/
-    partition->start_sector_long =cpu_to_le32(s->first_sectors_number-1);
-    partition->length_sector_long=cpu_to_le32(s->sector_count - s->first_sectors_number+1);
+    partition->start_sector_long  = cpu_to_le32(s->first_sectors_number - 1);
+    partition->length_sector_long = cpu_to_le32(s->bs->total_sectors
+                                                - s->first_sectors_number + 1);
 
     /* FAT12/FAT16/FAT32 */
     /* DOS uses different types when partition is LBA,
@@ -838,7 +842,7 @@ static inline off_t cluster2sector(BDRVVVFATState* s, uint32_t cluster_num)
 }
 
 static int init_directories(BDRVVVFATState* s,
-	const char* dirname)
+                            const char *dirname, int heads, int secs)
 {
     bootsector_t* bootsector;
     mapping_t* mapping;
@@ -965,8 +969,8 @@ static int init_directories(BDRVVVFATState* s,
     bootsector->media_type=(s->first_sectors_number>1?0xf8:0xf0); /* media descriptor (f8=hd, f0=3.5 fd)*/
     s->fat.pointer[0] = bootsector->media_type;
     bootsector->sectors_per_fat=cpu_to_le16(s->sectors_per_fat);
-    bootsector->sectors_per_track=cpu_to_le16(s->bs->secs);
-    bootsector->number_of_heads=cpu_to_le16(s->bs->heads);
+    bootsector->sectors_per_track = cpu_to_le16(secs);
+    bootsector->number_of_heads = cpu_to_le16(heads);
     bootsector->hidden_sectors=cpu_to_le32(s->first_sectors_number==1?0:0x3f);
     bootsector->total_sectors=cpu_to_le32(s->sector_count>0xffff?s->sector_count:0);
 
@@ -999,7 +1003,7 @@ static void vvfat_rebind(BlockDriverState *bs)
 static int vvfat_open(BlockDriverState *bs, const char* dirname, int flags)
 {
     BDRVVVFATState *s = bs->opaque;
-    int i;
+    int i, cyls, heads, secs;
 
 #ifdef DEBUG
     vvv = s;
@@ -1041,24 +1045,28 @@ DLOG(if (stderr == NULL) {
 	/* 1.44MB or 2.88MB floppy.  2.88MB can be FAT12 (default) or FAT16. */
 	if (!s->fat_type) {
 	    s->fat_type = 12;
-	    bs->secs = 36;
+            secs = 36;
 	    s->sectors_per_cluster=2;
 	} else {
-	    bs->secs=(s->fat_type == 12 ? 18 : 36);
+            secs = s->fat_type == 12 ? 18 : 36;
 	    s->sectors_per_cluster=1;
 	}
 	s->first_sectors_number = 1;
-	bs->cyls=80; bs->heads=2;
+        cyls = 80;
+        heads = 2;
     } else {
 	/* 32MB or 504MB disk*/
 	if (!s->fat_type) {
 	    s->fat_type = 16;
 	}
-	bs->cyls=(s->fat_type == 12 ? 64 : 1024);
-	bs->heads=16; bs->secs=63;
+        cyls = s->fat_type == 12 ? 64 : 1024;
+        heads = 16;
+        secs = 63;
     }
+    fprintf(stderr, "vvfat %s chs %d,%d,%d\n",
+            dirname, cyls, heads, secs);
 
-    s->sector_count=bs->cyls*bs->heads*bs->secs-(s->first_sectors_number-1);
+    s->sector_count = cyls * heads * secs - (s->first_sectors_number - 1);
 
     if (strstr(dirname, ":rw:")) {
 	if (enable_write_target(s))
@@ -1074,18 +1082,16 @@ DLOG(if (stderr == NULL) {
     else
 	dirname += i+1;
 
-    bs->total_sectors=bs->cyls*bs->heads*bs->secs;
+    bs->total_sectors = cyls * heads * secs;
 
-    if(init_directories(s, dirname))
+    if (init_directories(s, dirname, heads, secs)) {
 	return -1;
+    }
 
     s->sector_count = s->faked_sectors + s->sectors_per_cluster*s->cluster_count;
 
-    if(s->first_sectors_number==0x40)
-	init_mbr(s);
-    else {
-        /* MS-DOS does not like to know about CHS (?). */
-	bs->heads = bs->cyls = bs->secs = 0;
+    if (s->first_sectors_number == 0x40) {
+        init_mbr(s, cyls, heads, secs);
     }
 
     //    assert(is_consistent(s));
@@ -1107,7 +1113,7 @@ static inline void vvfat_close_current_file(BDRVVVFATState *s)
     if(s->current_mapping) {
 	s->current_mapping = NULL;
 	if (s->current_fd) {
-		close(s->current_fd);
+		qemu_close(s->current_fd);
 		s->current_fd = 0;
 	}
     }
@@ -1164,7 +1170,7 @@ static int open_file(BDRVVVFATState* s,mapping_t* mapping)
     if(!s->current_mapping ||
 	    strcmp(s->current_mapping->path,mapping->path)) {
 	/* open file */
-	int fd = open(mapping->path, O_RDONLY | O_BINARY | O_LARGEFILE);
+	int fd = qemu_open(mapping->path, O_RDONLY | O_BINARY | O_LARGEFILE);
 	if(fd<0)
 	    return -1;
 	vvfat_close_current_file(s);
@@ -2223,7 +2229,7 @@ static int commit_one_file(BDRVVVFATState* s,
     for (i = s->cluster_size; i < offset; i += s->cluster_size)
 	c = modified_fat_get(s, c);
 
-    fd = open(mapping->path, O_RDWR | O_CREAT | O_BINARY, 0666);
+    fd = qemu_open(mapping->path, O_RDWR | O_CREAT | O_BINARY, 0666);
     if (fd < 0) {
 	fprintf(stderr, "Could not open %s... (%s, %d)\n", mapping->path,
 		strerror(errno), errno);
@@ -2232,7 +2238,7 @@ static int commit_one_file(BDRVVVFATState* s,
     }
     if (offset > 0) {
         if (lseek(fd, offset, SEEK_SET) != offset) {
-            close(fd);
+            qemu_close(fd);
             g_free(cluster);
             return -3;
         }
@@ -2253,13 +2259,13 @@ static int commit_one_file(BDRVVVFATState* s,
 	    (uint8_t*)cluster, (rest_size + 0x1ff) / 0x200);
 
         if (ret < 0) {
-            close(fd);
+            qemu_close(fd);
             g_free(cluster);
             return ret;
         }
 
         if (write(fd, cluster, rest_size) < 0) {
-            close(fd);
+            qemu_close(fd);
             g_free(cluster);
             return -2;
         }
@@ -2270,11 +2276,11 @@ static int commit_one_file(BDRVVVFATState* s,
 
     if (ftruncate(fd, size)) {
         perror("ftruncate()");
-        close(fd);
+        qemu_close(fd);
         g_free(cluster);
         return -4;
     }
-    close(fd);
+    qemu_close(fd);
     g_free(cluster);
 
     return commit_mappings(s, first_cluster, dir_index);

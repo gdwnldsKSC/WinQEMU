@@ -17,6 +17,7 @@
 #define QMP_COMMANDS_H
 
 #include "qapi-types.h"
+#include "qdict.h"
 #include "error.h"
 
 NameInfo * qmp_query_name(Error **errp);
@@ -33,8 +34,14 @@ ChardevInfoList * qmp_query_chardev(Error **errp);
 int qmp_marshal_input_query_chardev(Monitor *mon, const QDict *qdict, QObject **ret);
 CommandInfoList * qmp_query_commands(Error **errp);
 int qmp_marshal_input_query_commands(Monitor *mon, const QDict *qdict, QObject **ret);
+EventInfoList * qmp_query_events(Error **errp);
+int qmp_marshal_input_query_events(Monitor *mon, const QDict *qdict, QObject **ret);
 MigrationInfo * qmp_query_migrate(Error **errp);
 int qmp_marshal_input_query_migrate(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_migrate_set_capabilities(MigrationCapabilityStatusList * capabilities, Error **errp);
+int qmp_marshal_input_migrate_set_capabilities(Monitor *mon, const QDict *qdict, QObject **ret);
+MigrationCapabilityStatusList * qmp_query_migrate_capabilities(Error **errp);
+int qmp_marshal_input_query_migrate_capabilities(Monitor *mon, const QDict *qdict, QObject **ret);
 MouseInfoList * qmp_query_mice(Error **errp);
 int qmp_marshal_input_query_mice(Monitor *mon, const QDict *qdict, QObject **ret);
 CpuInfoList * qmp_query_cpus(Error **errp);
@@ -93,6 +100,10 @@ void qmp_migrate_set_downtime(double value, Error **errp);
 int qmp_marshal_input_migrate_set_downtime(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_migrate_set_speed(int64_t value, Error **errp);
 int qmp_marshal_input_migrate_set_speed(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_migrate_set_cache_size(int64_t value, Error **errp);
+int qmp_marshal_input_migrate_set_cache_size(Monitor *mon, const QDict *qdict, QObject **ret);
+int64_t qmp_query_migrate_cache_size(Error **errp);
+int qmp_marshal_input_query_migrate_cache_size(Monitor *mon, const QDict *qdict, QObject **ret);
 ObjectPropertyInfoList * qmp_qom_list(const char * path, Error **errp);
 int qmp_marshal_input_qom_list(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_set_password(const char * protocol, const char * password, bool has_connected, const char * connected, Error **errp);
@@ -115,11 +126,33 @@ void qmp_block_job_cancel(const char * device, Error **errp);
 int qmp_marshal_input_block_job_cancel(Monitor *mon, const QDict *qdict, QObject **ret);
 ObjectTypeInfoList * qmp_qom_list_types(bool has_implements, const char * implements, bool has_abstract, bool abstract, Error **errp);
 int qmp_marshal_input_qom_list_types(Monitor *mon, const QDict *qdict, QObject **ret);
+DevicePropertyInfoList * qmp_device_list_properties(const char * typename, Error **errp);
+int qmp_marshal_input_device_list_properties(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_migrate(const char * uri, bool has_blk, bool blk, bool has_inc, bool inc, bool has_detach, bool detach, Error **errp);
 int qmp_marshal_input_migrate(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_xen_save_devices_state(const char * filename, Error **errp);
 int qmp_marshal_input_xen_save_devices_state(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_device_del(const char * id, Error **errp);
 int qmp_marshal_input_device_del(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_dump_guest_memory(bool paging, const char * protocol, bool has_begin, int64_t begin, bool has_length, int64_t length, Error **errp);
+int qmp_marshal_input_dump_guest_memory(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_netdev_del(const char * id, Error **errp);
+int qmp_marshal_input_netdev_del(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_getfd(const char * fdname, Error **errp);
+int qmp_marshal_input_getfd(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_closefd(const char * fdname, Error **errp);
+int qmp_marshal_input_closefd(Monitor *mon, const QDict *qdict, QObject **ret);
+MachineInfoList * qmp_query_machines(Error **errp);
+int qmp_marshal_input_query_machines(Monitor *mon, const QDict *qdict, QObject **ret);
+CpuDefinitionInfoList * qmp_query_cpu_definitions(Error **errp);
+int qmp_marshal_input_query_cpu_definitions(Monitor *mon, const QDict *qdict, QObject **ret);
+AddfdInfo * qmp_add_fd(bool has_fdset_id, int64_t fdset_id, bool has_opaque, const char * opaque, Error **errp);
+int qmp_marshal_input_add_fd(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_remove_fd(int64_t fdset_id, bool has_fd, int64_t fd, Error **errp);
+int qmp_marshal_input_remove_fd(Monitor *mon, const QDict *qdict, QObject **ret);
+FdsetInfoList * qmp_query_fdsets(Error **errp);
+int qmp_marshal_input_query_fdsets(Monitor *mon, const QDict *qdict, QObject **ret);
+TargetInfo * qmp_query_target(Error **errp);
+int qmp_marshal_input_query_target(Monitor *mon, const QDict *qdict, QObject **ret);
 
 #endif

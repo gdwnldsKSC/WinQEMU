@@ -341,6 +341,14 @@ static inline void trace_ecc_diag_mem_readb(uint64_t addr, uint32_t ret)
 {
 }
 
+static inline void trace_hd_geometry_lchs_guess(void * bs, int cyls, int heads, int secs)
+{
+}
+
+static inline void trace_hd_geometry_guess(void * bs, uint32_t cyls, uint32_t heads, uint32_t secs, int trans)
+{
+}
+
 static inline void trace_jazz_led_read(uint64_t addr, uint8_t val)
 {
 }
@@ -701,11 +709,11 @@ static inline void trace_usb_ehci_sitd(uint32_t addr, uint32_t nxt, uint32_t act
 {
 }
 
-static inline void trace_usb_ehci_port_attach(uint32_t port, const char * device)
+static inline void trace_usb_ehci_port_attach(uint32_t port, const char * owner, const char * device)
 {
 }
 
-static inline void trace_usb_ehci_port_detach(uint32_t port)
+static inline void trace_usb_ehci_port_detach(uint32_t port, const char * owner)
 {
 }
 
@@ -718,6 +726,14 @@ static inline void trace_usb_ehci_data(int rw, uint32_t cpage, uint32_t offset, 
 }
 
 static inline void trace_usb_ehci_queue_action(void * q, const char * action)
+{
+}
+
+static inline void trace_usb_ehci_packet_action(void * q, void * p, const char * action)
+{
+}
+
+static inline void trace_usb_ehci_irq(uint32_t level, uint32_t frindex, uint32_t sts, uint32_t mask)
 {
 }
 
@@ -737,11 +753,11 @@ static inline void trace_usb_uhci_frame_start(uint32_t num)
 {
 }
 
-static inline void trace_usb_uhci_frame_loop_stop_idle(void)
+static inline void trace_usb_uhci_frame_stop_bandwidth(void)
 {
 }
 
-static inline void trace_usb_uhci_frame_loop_stop_bandwidth(void)
+static inline void trace_usb_uhci_frame_loop_stop_idle(void)
 {
 }
 
@@ -837,6 +853,138 @@ static inline void trace_usb_uhci_td_complete(uint32_t qh, uint32_t td)
 {
 }
 
+static inline void trace_usb_xhci_reset(void)
+{
+}
+
+static inline void trace_usb_xhci_run(void)
+{
+}
+
+static inline void trace_usb_xhci_stop(void)
+{
+}
+
+static inline void trace_usb_xhci_cap_read(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_oper_read(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_port_read(uint32_t port, uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_runtime_read(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_doorbell_read(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_oper_write(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_port_write(uint32_t port, uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_runtime_write(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_doorbell_write(uint32_t off, uint32_t val)
+{
+}
+
+static inline void trace_usb_xhci_irq_intx(uint32_t level)
+{
+}
+
+static inline void trace_usb_xhci_irq_msi(uint32_t nr)
+{
+}
+
+static inline void trace_usb_xhci_queue_event(uint32_t idx, const char * name, uint64_t param, uint32_t status, uint32_t control)
+{
+}
+
+static inline void trace_usb_xhci_fetch_trb(uint64_t addr, const char * name, uint64_t param, uint32_t status, uint32_t control)
+{
+}
+
+static inline void trace_usb_xhci_slot_enable(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_slot_disable(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_slot_address(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_slot_configure(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_slot_evaluate(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_slot_reset(uint32_t slotid)
+{
+}
+
+static inline void trace_usb_xhci_ep_enable(uint32_t slotid, uint32_t epid)
+{
+}
+
+static inline void trace_usb_xhci_ep_disable(uint32_t slotid, uint32_t epid)
+{
+}
+
+static inline void trace_usb_xhci_ep_kick(uint32_t slotid, uint32_t epid)
+{
+}
+
+static inline void trace_usb_xhci_ep_stop(uint32_t slotid, uint32_t epid)
+{
+}
+
+static inline void trace_usb_xhci_ep_reset(uint32_t slotid, uint32_t epid)
+{
+}
+
+static inline void trace_usb_xhci_xfer_start(void * xfer, uint32_t slotid, uint32_t epid, uint32_t length)
+{
+}
+
+static inline void trace_usb_xhci_xfer_async(void * xfer)
+{
+}
+
+static inline void trace_usb_xhci_xfer_nak(void * xfer)
+{
+}
+
+static inline void trace_usb_xhci_xfer_retry(void * xfer)
+{
+}
+
+static inline void trace_usb_xhci_xfer_success(void * xfer, uint32_t bytes)
+{
+}
+
+static inline void trace_usb_xhci_xfer_error(void * xfer, uint32_t ret)
+{
+}
+
 static inline void trace_usb_desc_device(int addr, int len, int ret)
 {
 }
@@ -902,6 +1050,54 @@ static inline void trace_usb_hub_attach(int addr, int nr)
 }
 
 static inline void trace_usb_hub_detach(int addr, int nr)
+{
+}
+
+static inline void trace_usb_uas_reset(int addr)
+{
+}
+
+static inline void trace_usb_uas_command(int addr, uint16_t tag, int lun, uint32_t lun64_1, uint32_t lun64_2)
+{
+}
+
+static inline void trace_usb_uas_response(int addr, uint16_t tag, uint8_t code)
+{
+}
+
+static inline void trace_usb_uas_sense(int addr, uint16_t tag, uint8_t status)
+{
+}
+
+static inline void trace_usb_uas_read_ready(int addr, uint16_t tag)
+{
+}
+
+static inline void trace_usb_uas_write_ready(int addr, uint16_t tag)
+{
+}
+
+static inline void trace_usb_uas_xfer_data(int addr, uint16_t tag, uint32_t copy, uint32_t uoff, uint32_t usize, uint32_t soff, uint32_t ssize)
+{
+}
+
+static inline void trace_usb_uas_scsi_data(int addr, uint16_t tag, uint32_t bytes)
+{
+}
+
+static inline void trace_usb_uas_scsi_complete(int addr, uint16_t tag, uint32_t status, uint32_t resid)
+{
+}
+
+static inline void trace_usb_uas_tmf_abort_task(int addr, uint16_t tag, uint16_t task_tag)
+{
+}
+
+static inline void trace_usb_uas_tmf_logical_unit_reset(int addr, uint16_t tag, int lun)
+{
+}
+
+static inline void trace_usb_uas_tmf_unsupported(int addr, uint16_t tag, uint32_t function)
 {
 }
 
@@ -985,11 +1181,19 @@ static inline void trace_usb_host_ep_clear_halt(int bus, int addr, int ep)
 {
 }
 
-static inline void trace_usb_host_ep_start_iso(int bus, int addr, int ep)
+static inline void trace_usb_host_iso_start(int bus, int addr, int ep)
 {
 }
 
-static inline void trace_usb_host_ep_stop_iso(int bus, int addr, int ep)
+static inline void trace_usb_host_iso_stop(int bus, int addr, int ep)
+{
+}
+
+static inline void trace_usb_host_iso_out_of_bufs(int bus, int addr, int ep)
+{
+}
+
+static inline void trace_usb_host_iso_many_urbs(int bus, int addr, int count)
 {
 }
 
@@ -1037,6 +1241,10 @@ static inline void trace_scsi_req_alloc(int target, int lun, int tag)
 {
 }
 
+static inline void trace_scsi_req_cancel(int target, int lun, int tag)
+{
+}
+
 static inline void trace_scsi_req_data(int target, int lun, int tag, int len)
 {
 }
@@ -1066,6 +1274,10 @@ static inline void trace_scsi_req_parse_bad(int target, int lun, int tag, int cm
 }
 
 static inline void trace_scsi_req_build_sense(int target, int lun, int tag, int key, int asc, int ascq)
+{
+}
+
+static inline void trace_scsi_device_set_ua(int target, int lun, int key, int asc, int ascq)
 {
 }
 
@@ -1406,6 +1618,314 @@ static inline void trace_lm32_uart_irq_state(int level)
 }
 
 static inline void trace_lm32_sys_memory_write(uint32_t addr, uint32_t value)
+{
+}
+
+static inline void trace_megasas_init_firmware(uint64_t pa)
+{
+}
+
+static inline void trace_megasas_init_queue(uint64_t queue_pa, int queue_len, uint64_t head, uint64_t tail, uint32_t flags)
+{
+}
+
+static inline void trace_megasas_initq_map_failed(int frame)
+{
+}
+
+static inline void trace_megasas_initq_mismatch(int queue_len, int fw_cmds)
+{
+}
+
+static inline void trace_megasas_qf_found(unsigned int index, uint64_t pa)
+{
+}
+
+static inline void trace_megasas_qf_new(unsigned int index, void * cmd)
+{
+}
+
+static inline void trace_megasas_qf_failed(unsigned long pa)
+{
+}
+
+static inline void trace_megasas_qf_enqueue(unsigned int index, unsigned int count, uint64_t context, unsigned int tail, int busy)
+{
+}
+
+static inline void trace_megasas_qf_update(unsigned int head, unsigned int busy)
+{
+}
+
+static inline void trace_megasas_qf_dequeue(unsigned int index)
+{
+}
+
+static inline void trace_megasas_qf_map_failed(int cmd, unsigned long frame)
+{
+}
+
+static inline void trace_megasas_qf_complete_noirq(uint64_t context)
+{
+}
+
+static inline void trace_megasas_qf_complete(uint64_t context, unsigned int tail, unsigned int offset, int busy, unsigned int doorbell)
+{
+}
+
+static inline void trace_megasas_handle_frame(const char * cmd, uint64_t addr, uint64_t context, uint32_t count)
+{
+}
+
+static inline void trace_megasas_frame_busy(uint64_t addr)
+{
+}
+
+static inline void trace_megasas_unhandled_frame_cmd(int cmd, uint8_t frame_cmd)
+{
+}
+
+static inline void trace_megasas_handle_scsi(const char * frame, int bus, int dev, int lun, void * sdev, unsigned long size)
+{
+}
+
+static inline void trace_megasas_scsi_target_not_present(const char * frame, int bus, int dev, int lun)
+{
+}
+
+static inline void trace_megasas_scsi_invalid_cdb_len(const char * frame, int bus, int dev, int lun, int len)
+{
+}
+
+static inline void trace_megasas_iov_read_overflow(int cmd, int bytes, int len)
+{
+}
+
+static inline void trace_megasas_iov_write_overflow(int cmd, int bytes, int len)
+{
+}
+
+static inline void trace_megasas_iov_read_underflow(int cmd, int bytes, int len)
+{
+}
+
+static inline void trace_megasas_iov_write_underflow(int cmd, int bytes, int len)
+{
+}
+
+static inline void trace_megasas_scsi_req_alloc_failed(const char * frame, int dev, int lun)
+{
+}
+
+static inline void trace_megasas_scsi_read_start(int cmd, int len)
+{
+}
+
+static inline void trace_megasas_scsi_write_start(int cmd, int len)
+{
+}
+
+static inline void trace_megasas_scsi_nodata(int cmd)
+{
+}
+
+static inline void trace_megasas_scsi_complete(int cmd, uint32_t status, int len, int xfer)
+{
+}
+
+static inline void trace_megasas_command_complete(int cmd, uint32_t status, uint32_t resid)
+{
+}
+
+static inline void trace_megasas_handle_io(int cmd, const char * frame, int dev, int lun, unsigned long lba, unsigned long count)
+{
+}
+
+static inline void trace_megasas_io_target_not_present(int cmd, const char * frame, int dev, int lun)
+{
+}
+
+static inline void trace_megasas_io_read_start(int cmd, unsigned long lba, unsigned long count, unsigned long len)
+{
+}
+
+static inline void trace_megasas_io_write_start(int cmd, unsigned long lba, unsigned long count, unsigned long len)
+{
+}
+
+static inline void trace_megasas_io_complete(int cmd, uint32_t len)
+{
+}
+
+static inline void trace_megasas_io_read(int cmd, int bytes, int len, unsigned long offset)
+{
+}
+
+static inline void trace_megasas_io_write(int cmd, int bytes, int len, unsigned long offset)
+{
+}
+
+static inline void trace_megasas_io_continue(int cmd, int bytes)
+{
+}
+
+static inline void trace_megasas_iovec_map_failed(int cmd, int index, unsigned long iov_size)
+{
+}
+
+static inline void trace_megasas_iovec_sgl_overflow(int cmd, int index, int limit)
+{
+}
+
+static inline void trace_megasas_iovec_sgl_underflow(int cmd, int index)
+{
+}
+
+static inline void trace_megasas_iovec_sgl_invalid(int cmd, int index, uint64_t pa, uint32_t len)
+{
+}
+
+static inline void trace_megasas_iovec_overflow(int cmd, int len, int limit)
+{
+}
+
+static inline void trace_megasas_iovec_underflow(int cmd, int len, int limit)
+{
+}
+
+static inline void trace_megasas_handle_dcmd(int cmd, int opcode)
+{
+}
+
+static inline void trace_megasas_finish_dcmd(int cmd, int size)
+{
+}
+
+static inline void trace_megasas_dcmd_req_alloc_failed(int cmd, const char * desc)
+{
+}
+
+static inline void trace_megasas_dcmd_internal_submit(int cmd, const char * desc, int dev)
+{
+}
+
+static inline void trace_megasas_dcmd_internal_finish(int cmd, int opcode, int lun)
+{
+}
+
+static inline void trace_megasas_dcmd_internal_invalid(int cmd, int opcode)
+{
+}
+
+static inline void trace_megasas_dcmd_unhandled(int cmd, int opcode, int len)
+{
+}
+
+static inline void trace_megasas_dcmd_zero_sge(int cmd)
+{
+}
+
+static inline void trace_megasas_dcmd_invalid_sge(int cmd, int count)
+{
+}
+
+static inline void trace_megasas_dcmd_map_failed(int cmd)
+{
+}
+
+static inline void trace_megasas_dcmd_invalid_xfer_len(int cmd, unsigned long size, unsigned long max)
+{
+}
+
+static inline void trace_megasas_dcmd_enter(int cmd, const char * dcmd, int len)
+{
+}
+
+static inline void trace_megasas_dcmd_dummy(int cmd, unsigned long size)
+{
+}
+
+static inline void trace_megasas_dcmd_set_fw_time(int cmd, unsigned long time)
+{
+}
+
+static inline void trace_megasas_dcmd_pd_get_list(int cmd, int num, int max, int offset)
+{
+}
+
+static inline void trace_megasas_dcmd_ld_get_list(int cmd, int num, int max)
+{
+}
+
+static inline void trace_megasas_dcmd_ld_get_info(int cmd, int ld_id)
+{
+}
+
+static inline void trace_megasas_dcmd_pd_get_info(int cmd, int pd_id)
+{
+}
+
+static inline void trace_megasas_dcmd_pd_list_query(int cmd, int flags)
+{
+}
+
+static inline void trace_megasas_dcmd_unsupported(int cmd, unsigned long size)
+{
+}
+
+static inline void trace_megasas_abort_frame(int cmd, int abort_cmd)
+{
+}
+
+static inline void trace_megasas_abort_no_cmd(int cmd, uint64_t context)
+{
+}
+
+static inline void trace_megasas_abort_invalid_context(int cmd, uint64_t context, int abort_cmd)
+{
+}
+
+static inline void trace_megasas_reset(void)
+{
+}
+
+static inline void trace_megasas_init(int sges, int cmds, const char * intr, const char * mode)
+{
+}
+
+static inline void trace_megasas_msix_raise(int vector)
+{
+}
+
+static inline void trace_megasas_irq_lower(void)
+{
+}
+
+static inline void trace_megasas_irq_raise(void)
+{
+}
+
+static inline void trace_megasas_intr_enabled(void)
+{
+}
+
+static inline void trace_megasas_intr_disabled(void)
+{
+}
+
+static inline void trace_megasas_mmio_readl(unsigned long addr, uint32_t val)
+{
+}
+
+static inline void trace_megasas_mmio_invalid_readl(unsigned long addr)
+{
+}
+
+static inline void trace_megasas_mmio_writel(uint32_t addr, uint32_t val)
+{
+}
+
+static inline void trace_megasas_mmio_invalid_writel(uint32_t addr, uint32_t val)
 {
 }
 
@@ -1785,6 +2305,18 @@ static inline void trace_iscsi_aio_readv(void * iscsi, int64_t sector_num, int n
 {
 }
 
+static inline void trace_esp_error_fifo_overrun(void)
+{
+}
+
+static inline void trace_esp_error_unhandled_command(uint32_t val)
+{
+}
+
+static inline void trace_esp_error_invalid_write(uint32_t val, uint32_t addr)
+{
+}
+
 static inline void trace_esp_raise_irq(void)
 {
 }
@@ -1885,6 +2417,10 @@ static inline void trace_esp_mem_writeb_cmd_satn(uint32_t val)
 {
 }
 
+static inline void trace_esp_mem_writeb_cmd_rstatn(uint32_t val)
+{
+}
+
 static inline void trace_esp_mem_writeb_cmd_sel(uint32_t val)
 {
 }
@@ -1901,11 +2437,83 @@ static inline void trace_esp_mem_writeb_cmd_ensel(uint32_t val)
 {
 }
 
+static inline void trace_esp_mem_writeb_cmd_dissel(uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_error_invalid_dma_direction(void)
+{
+}
+
+static inline void trace_esp_pci_error_invalid_read(uint32_t reg)
+{
+}
+
+static inline void trace_esp_pci_error_invalid_write(uint32_t reg)
+{
+}
+
+static inline void trace_esp_pci_error_invalid_write_dma(uint32_t val, uint32_t addr)
+{
+}
+
+static inline void trace_esp_pci_dma_read(uint32_t saddr, uint32_t reg)
+{
+}
+
+static inline void trace_esp_pci_dma_write(uint32_t saddr, uint32_t reg, uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_dma_idle(uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_dma_blast(uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_dma_abort(uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_dma_start(uint32_t val)
+{
+}
+
+static inline void trace_esp_pci_sbac_read(uint32_t reg)
+{
+}
+
+static inline void trace_esp_pci_sbac_write(uint32_t reg, uint32_t val)
+{
+}
+
 static inline void trace_handle_qmp_command(void * mon, const char * cmd_name)
 {
 }
 
 static inline void trace_monitor_protocol_emitter(void * mon)
+{
+}
+
+static inline void trace_monitor_protocol_event(uint32_t event, const char * evname, void * data)
+{
+}
+
+static inline void trace_monitor_protocol_event_handler(uint32_t event, void * data, uint64_t last, uint64_t now)
+{
+}
+
+static inline void trace_monitor_protocol_event_emit(uint32_t event, void * data)
+{
+}
+
+static inline void trace_monitor_protocol_event_queue(uint32_t event, void * data, uint64_t rate, uint64_t last, uint64_t now)
+{
+}
+
+static inline void trace_monitor_protocol_event_throttle(uint32_t event, uint64_t rate)
 {
 }
 
@@ -2241,6 +2849,14 @@ static inline void trace_ppm_save(const char * filename, void * display_surface)
 {
 }
 
+static inline void trace_savevm_section_start(void)
+{
+}
+
+static inline void trace_savevm_section_end(unsigned int section_id)
+{
+}
+
 static inline void trace_qxl_create_guest_primary(int qid, uint32_t width, uint32_t height, uint64_t mem, uint32_t format, uint32_t position)
 {
 }
@@ -2476,6 +3092,30 @@ static inline void trace_qxl_render_guest_primary_resized(int32_t width, int32_t
 static inline void trace_qxl_render_update_area_done(void * cookie)
 {
 }
+
+static inline void trace_spapr_pci_msi(const char * msg, uint32_t n, uint32_t ca)
+{
+}
+
+static inline void trace_spapr_pci_msi_setup(const char * name, unsigned vector, uint64_t addr)
+{
+}
+
+static inline void trace_spapr_pci_rtas_ibm_change_msi(unsigned func, unsigned req)
+{
+}
+
+static inline void trace_spapr_pci_rtas_ibm_query_interrupt_source_number(unsigned ioa, unsigned intr)
+{
+}
+
+static inline void trace_spapr_pci_msi_write(uint64_t addr, uint64_t data, uint32_t dt_irq)
+{
+}
+
+static inline void trace_spapr_pci_lsi_set(const char * busname, int pin, uint32_t irq)
+{
+}
 #define TRACE_G_MALLOC_ENABLED 1
 #define TRACE_G_REALLOC_ENABLED 1
 #define TRACE_G_FREE_ENABLED 1
@@ -2558,6 +3198,8 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_ECC_MEM_READL_ECR1_ENABLED 1
 #define TRACE_ECC_DIAG_MEM_WRITEB_ENABLED 1
 #define TRACE_ECC_DIAG_MEM_READB_ENABLED 1
+#define TRACE_HD_GEOMETRY_LCHS_GUESS_ENABLED 1
+#define TRACE_HD_GEOMETRY_GUESS_ENABLED 1
 #define TRACE_JAZZ_LED_READ_ENABLED 1
 #define TRACE_JAZZ_LED_WRITE_ENABLED 1
 #define TRACE_LANCE_MEM_READW_ENABLED 1
@@ -2653,12 +3295,14 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_USB_EHCI_PORT_RESET_ENABLED 1
 #define TRACE_USB_EHCI_DATA_ENABLED 1
 #define TRACE_USB_EHCI_QUEUE_ACTION_ENABLED 1
+#define TRACE_USB_EHCI_PACKET_ACTION_ENABLED 1
+#define TRACE_USB_EHCI_IRQ_ENABLED 1
 #define TRACE_USB_UHCI_RESET_ENABLED 1
 #define TRACE_USB_UHCI_SCHEDULE_START_ENABLED 1
 #define TRACE_USB_UHCI_SCHEDULE_STOP_ENABLED 1
 #define TRACE_USB_UHCI_FRAME_START_ENABLED 1
+#define TRACE_USB_UHCI_FRAME_STOP_BANDWIDTH_ENABLED 1
 #define TRACE_USB_UHCI_FRAME_LOOP_STOP_IDLE_ENABLED 1
-#define TRACE_USB_UHCI_FRAME_LOOP_STOP_BANDWIDTH_ENABLED 1
 #define TRACE_USB_UHCI_FRAME_LOOP_CONTINUE_ENABLED 1
 #define TRACE_USB_UHCI_MMIO_READW_ENABLED 1
 #define TRACE_USB_UHCI_MMIO_WRITEW_ENABLED 1
@@ -2682,6 +3326,39 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_USB_UHCI_TD_NEXTQH_ENABLED 1
 #define TRACE_USB_UHCI_TD_ASYNC_ENABLED 1
 #define TRACE_USB_UHCI_TD_COMPLETE_ENABLED 1
+#define TRACE_USB_XHCI_RESET_ENABLED 1
+#define TRACE_USB_XHCI_RUN_ENABLED 1
+#define TRACE_USB_XHCI_STOP_ENABLED 1
+#define TRACE_USB_XHCI_CAP_READ_ENABLED 1
+#define TRACE_USB_XHCI_OPER_READ_ENABLED 1
+#define TRACE_USB_XHCI_PORT_READ_ENABLED 1
+#define TRACE_USB_XHCI_RUNTIME_READ_ENABLED 1
+#define TRACE_USB_XHCI_DOORBELL_READ_ENABLED 1
+#define TRACE_USB_XHCI_OPER_WRITE_ENABLED 1
+#define TRACE_USB_XHCI_PORT_WRITE_ENABLED 1
+#define TRACE_USB_XHCI_RUNTIME_WRITE_ENABLED 1
+#define TRACE_USB_XHCI_DOORBELL_WRITE_ENABLED 1
+#define TRACE_USB_XHCI_IRQ_INTX_ENABLED 1
+#define TRACE_USB_XHCI_IRQ_MSI_ENABLED 1
+#define TRACE_USB_XHCI_QUEUE_EVENT_ENABLED 1
+#define TRACE_USB_XHCI_FETCH_TRB_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_ENABLE_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_DISABLE_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_ADDRESS_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_CONFIGURE_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_EVALUATE_ENABLED 1
+#define TRACE_USB_XHCI_SLOT_RESET_ENABLED 1
+#define TRACE_USB_XHCI_EP_ENABLE_ENABLED 1
+#define TRACE_USB_XHCI_EP_DISABLE_ENABLED 1
+#define TRACE_USB_XHCI_EP_KICK_ENABLED 1
+#define TRACE_USB_XHCI_EP_STOP_ENABLED 1
+#define TRACE_USB_XHCI_EP_RESET_ENABLED 1
+#define TRACE_USB_XHCI_XFER_START_ENABLED 1
+#define TRACE_USB_XHCI_XFER_ASYNC_ENABLED 1
+#define TRACE_USB_XHCI_XFER_NAK_ENABLED 1
+#define TRACE_USB_XHCI_XFER_RETRY_ENABLED 1
+#define TRACE_USB_XHCI_XFER_SUCCESS_ENABLED 1
+#define TRACE_USB_XHCI_XFER_ERROR_ENABLED 1
 #define TRACE_USB_DESC_DEVICE_ENABLED 1
 #define TRACE_USB_DESC_DEVICE_QUALIFIER_ENABLED 1
 #define TRACE_USB_DESC_CONFIG_ENABLED 1
@@ -2699,6 +3376,18 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_USB_HUB_CLEAR_PORT_FEATURE_ENABLED 1
 #define TRACE_USB_HUB_ATTACH_ENABLED 1
 #define TRACE_USB_HUB_DETACH_ENABLED 1
+#define TRACE_USB_UAS_RESET_ENABLED 1
+#define TRACE_USB_UAS_COMMAND_ENABLED 1
+#define TRACE_USB_UAS_RESPONSE_ENABLED 1
+#define TRACE_USB_UAS_SENSE_ENABLED 1
+#define TRACE_USB_UAS_READ_READY_ENABLED 1
+#define TRACE_USB_UAS_WRITE_READY_ENABLED 1
+#define TRACE_USB_UAS_XFER_DATA_ENABLED 1
+#define TRACE_USB_UAS_SCSI_DATA_ENABLED 1
+#define TRACE_USB_UAS_SCSI_COMPLETE_ENABLED 1
+#define TRACE_USB_UAS_TMF_ABORT_TASK_ENABLED 1
+#define TRACE_USB_UAS_TMF_LOGICAL_UNIT_RESET_ENABLED 1
+#define TRACE_USB_UAS_TMF_UNSUPPORTED_ENABLED 1
 #define TRACE_USB_HOST_OPEN_STARTED_ENABLED 1
 #define TRACE_USB_HOST_OPEN_SUCCESS_ENABLED 1
 #define TRACE_USB_HOST_OPEN_FAILURE_ENABLED 1
@@ -2719,8 +3408,10 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_USB_HOST_URB_CANCELED_ENABLED 1
 #define TRACE_USB_HOST_EP_SET_HALT_ENABLED 1
 #define TRACE_USB_HOST_EP_CLEAR_HALT_ENABLED 1
-#define TRACE_USB_HOST_EP_START_ISO_ENABLED 1
-#define TRACE_USB_HOST_EP_STOP_ISO_ENABLED 1
+#define TRACE_USB_HOST_ISO_START_ENABLED 1
+#define TRACE_USB_HOST_ISO_STOP_ENABLED 1
+#define TRACE_USB_HOST_ISO_OUT_OF_BUFS_ENABLED 1
+#define TRACE_USB_HOST_ISO_MANY_URBS_ENABLED 1
 #define TRACE_USB_HOST_RESET_ENABLED 1
 #define TRACE_USB_HOST_AUTO_SCAN_ENABLED_ENABLED 1
 #define TRACE_USB_HOST_AUTO_SCAN_DISABLED_ENABLED 1
@@ -2732,6 +3423,7 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_USB_HOST_PARSE_UNKNOWN_ENABLED 1
 #define TRACE_USB_HOST_PARSE_ERROR_ENABLED 1
 #define TRACE_SCSI_REQ_ALLOC_ENABLED 1
+#define TRACE_SCSI_REQ_CANCEL_ENABLED 1
 #define TRACE_SCSI_REQ_DATA_ENABLED 1
 #define TRACE_SCSI_REQ_DATA_CANCELED_ENABLED 1
 #define TRACE_SCSI_REQ_DEQUEUE_ENABLED 1
@@ -2740,6 +3432,7 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_SCSI_REQ_PARSED_LBA_ENABLED 1
 #define TRACE_SCSI_REQ_PARSE_BAD_ENABLED 1
 #define TRACE_SCSI_REQ_BUILD_SENSE_ENABLED 1
+#define TRACE_SCSI_DEVICE_SET_UA_ENABLED 1
 #define TRACE_SCSI_REPORT_LUNS_ENABLED 1
 #define TRACE_SCSI_INQUIRY_ENABLED 1
 #define TRACE_SCSI_TEST_UNIT_READY_ENABLED 1
@@ -2825,6 +3518,83 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_LM32_UART_MEMORY_READ_ENABLED 1
 #define TRACE_LM32_UART_IRQ_STATE_ENABLED 1
 #define TRACE_LM32_SYS_MEMORY_WRITE_ENABLED 1
+#define TRACE_MEGASAS_INIT_FIRMWARE_ENABLED 1
+#define TRACE_MEGASAS_INIT_QUEUE_ENABLED 1
+#define TRACE_MEGASAS_INITQ_MAP_FAILED_ENABLED 1
+#define TRACE_MEGASAS_INITQ_MISMATCH_ENABLED 1
+#define TRACE_MEGASAS_QF_FOUND_ENABLED 1
+#define TRACE_MEGASAS_QF_NEW_ENABLED 1
+#define TRACE_MEGASAS_QF_FAILED_ENABLED 1
+#define TRACE_MEGASAS_QF_ENQUEUE_ENABLED 1
+#define TRACE_MEGASAS_QF_UPDATE_ENABLED 1
+#define TRACE_MEGASAS_QF_DEQUEUE_ENABLED 1
+#define TRACE_MEGASAS_QF_MAP_FAILED_ENABLED 1
+#define TRACE_MEGASAS_QF_COMPLETE_NOIRQ_ENABLED 1
+#define TRACE_MEGASAS_QF_COMPLETE_ENABLED 1
+#define TRACE_MEGASAS_HANDLE_FRAME_ENABLED 1
+#define TRACE_MEGASAS_FRAME_BUSY_ENABLED 1
+#define TRACE_MEGASAS_UNHANDLED_FRAME_CMD_ENABLED 1
+#define TRACE_MEGASAS_HANDLE_SCSI_ENABLED 1
+#define TRACE_MEGASAS_SCSI_TARGET_NOT_PRESENT_ENABLED 1
+#define TRACE_MEGASAS_SCSI_INVALID_CDB_LEN_ENABLED 1
+#define TRACE_MEGASAS_IOV_READ_OVERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOV_WRITE_OVERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOV_READ_UNDERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOV_WRITE_UNDERFLOW_ENABLED 1
+#define TRACE_MEGASAS_SCSI_REQ_ALLOC_FAILED_ENABLED 1
+#define TRACE_MEGASAS_SCSI_READ_START_ENABLED 1
+#define TRACE_MEGASAS_SCSI_WRITE_START_ENABLED 1
+#define TRACE_MEGASAS_SCSI_NODATA_ENABLED 1
+#define TRACE_MEGASAS_SCSI_COMPLETE_ENABLED 1
+#define TRACE_MEGASAS_COMMAND_COMPLETE_ENABLED 1
+#define TRACE_MEGASAS_HANDLE_IO_ENABLED 1
+#define TRACE_MEGASAS_IO_TARGET_NOT_PRESENT_ENABLED 1
+#define TRACE_MEGASAS_IO_READ_START_ENABLED 1
+#define TRACE_MEGASAS_IO_WRITE_START_ENABLED 1
+#define TRACE_MEGASAS_IO_COMPLETE_ENABLED 1
+#define TRACE_MEGASAS_IO_READ_ENABLED 1
+#define TRACE_MEGASAS_IO_WRITE_ENABLED 1
+#define TRACE_MEGASAS_IO_CONTINUE_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_MAP_FAILED_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_SGL_OVERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_SGL_UNDERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_SGL_INVALID_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_OVERFLOW_ENABLED 1
+#define TRACE_MEGASAS_IOVEC_UNDERFLOW_ENABLED 1
+#define TRACE_MEGASAS_HANDLE_DCMD_ENABLED 1
+#define TRACE_MEGASAS_FINISH_DCMD_ENABLED 1
+#define TRACE_MEGASAS_DCMD_REQ_ALLOC_FAILED_ENABLED 1
+#define TRACE_MEGASAS_DCMD_INTERNAL_SUBMIT_ENABLED 1
+#define TRACE_MEGASAS_DCMD_INTERNAL_FINISH_ENABLED 1
+#define TRACE_MEGASAS_DCMD_INTERNAL_INVALID_ENABLED 1
+#define TRACE_MEGASAS_DCMD_UNHANDLED_ENABLED 1
+#define TRACE_MEGASAS_DCMD_ZERO_SGE_ENABLED 1
+#define TRACE_MEGASAS_DCMD_INVALID_SGE_ENABLED 1
+#define TRACE_MEGASAS_DCMD_MAP_FAILED_ENABLED 1
+#define TRACE_MEGASAS_DCMD_INVALID_XFER_LEN_ENABLED 1
+#define TRACE_MEGASAS_DCMD_ENTER_ENABLED 1
+#define TRACE_MEGASAS_DCMD_DUMMY_ENABLED 1
+#define TRACE_MEGASAS_DCMD_SET_FW_TIME_ENABLED 1
+#define TRACE_MEGASAS_DCMD_PD_GET_LIST_ENABLED 1
+#define TRACE_MEGASAS_DCMD_LD_GET_LIST_ENABLED 1
+#define TRACE_MEGASAS_DCMD_LD_GET_INFO_ENABLED 1
+#define TRACE_MEGASAS_DCMD_PD_GET_INFO_ENABLED 1
+#define TRACE_MEGASAS_DCMD_PD_LIST_QUERY_ENABLED 1
+#define TRACE_MEGASAS_DCMD_UNSUPPORTED_ENABLED 1
+#define TRACE_MEGASAS_ABORT_FRAME_ENABLED 1
+#define TRACE_MEGASAS_ABORT_NO_CMD_ENABLED 1
+#define TRACE_MEGASAS_ABORT_INVALID_CONTEXT_ENABLED 1
+#define TRACE_MEGASAS_RESET_ENABLED 1
+#define TRACE_MEGASAS_INIT_ENABLED 1
+#define TRACE_MEGASAS_MSIX_RAISE_ENABLED 1
+#define TRACE_MEGASAS_IRQ_LOWER_ENABLED 1
+#define TRACE_MEGASAS_IRQ_RAISE_ENABLED 1
+#define TRACE_MEGASAS_INTR_ENABLED_ENABLED 1
+#define TRACE_MEGASAS_INTR_DISABLED_ENABLED 1
+#define TRACE_MEGASAS_MMIO_READL_ENABLED 1
+#define TRACE_MEGASAS_MMIO_INVALID_READL_ENABLED 1
+#define TRACE_MEGASAS_MMIO_WRITEL_ENABLED 1
+#define TRACE_MEGASAS_MMIO_INVALID_WRITEL_ENABLED 1
 #define TRACE_MILKYMIST_AC97_MEMORY_READ_ENABLED 1
 #define TRACE_MILKYMIST_AC97_MEMORY_WRITE_ENABLED 1
 #define TRACE_MILKYMIST_AC97_PULSE_IRQ_CRREQUEST_ENABLED 1
@@ -2919,6 +3689,9 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_ISCSI_AIO_WRITEV_ENABLED 1
 #define TRACE_ISCSI_AIO_READ16_CB_ENABLED 1
 #define TRACE_ISCSI_AIO_READV_ENABLED 1
+#define TRACE_ESP_ERROR_FIFO_OVERRUN_ENABLED 1
+#define TRACE_ESP_ERROR_UNHANDLED_COMMAND_ENABLED 1
+#define TRACE_ESP_ERROR_INVALID_WRITE_ENABLED 1
 #define TRACE_ESP_RAISE_IRQ_ENABLED 1
 #define TRACE_ESP_LOWER_IRQ_ENABLED 1
 #define TRACE_ESP_DMA_ENABLE_ENABLED 1
@@ -2944,12 +3717,31 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_ESP_MEM_WRITEB_CMD_MSGACC_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_PAD_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_SATN_ENABLED 1
+#define TRACE_ESP_MEM_WRITEB_CMD_RSTATN_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_SEL_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_SELATN_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_SELATNS_ENABLED 1
 #define TRACE_ESP_MEM_WRITEB_CMD_ENSEL_ENABLED 1
+#define TRACE_ESP_MEM_WRITEB_CMD_DISSEL_ENABLED 1
+#define TRACE_ESP_PCI_ERROR_INVALID_DMA_DIRECTION_ENABLED 1
+#define TRACE_ESP_PCI_ERROR_INVALID_READ_ENABLED 1
+#define TRACE_ESP_PCI_ERROR_INVALID_WRITE_ENABLED 1
+#define TRACE_ESP_PCI_ERROR_INVALID_WRITE_DMA_ENABLED 1
+#define TRACE_ESP_PCI_DMA_READ_ENABLED 1
+#define TRACE_ESP_PCI_DMA_WRITE_ENABLED 1
+#define TRACE_ESP_PCI_DMA_IDLE_ENABLED 1
+#define TRACE_ESP_PCI_DMA_BLAST_ENABLED 1
+#define TRACE_ESP_PCI_DMA_ABORT_ENABLED 1
+#define TRACE_ESP_PCI_DMA_START_ENABLED 1
+#define TRACE_ESP_PCI_SBAC_READ_ENABLED 1
+#define TRACE_ESP_PCI_SBAC_WRITE_ENABLED 1
 #define TRACE_HANDLE_QMP_COMMAND_ENABLED 1
 #define TRACE_MONITOR_PROTOCOL_EMITTER_ENABLED 1
+#define TRACE_MONITOR_PROTOCOL_EVENT_ENABLED 1
+#define TRACE_MONITOR_PROTOCOL_EVENT_HANDLER_ENABLED 1
+#define TRACE_MONITOR_PROTOCOL_EVENT_EMIT_ENABLED 1
+#define TRACE_MONITOR_PROTOCOL_EVENT_QUEUE_ENABLED 1
+#define TRACE_MONITOR_PROTOCOL_EVENT_THROTTLE_ENABLED 1
 #define TRACE_OPEN_ETH_MII_WRITE_ENABLED 1
 #define TRACE_OPEN_ETH_MII_READ_ENABLED 1
 #define TRACE_OPEN_ETH_UPDATE_IRQ_ENABLED 1
@@ -3033,6 +3825,8 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_DISPLAYSURFACE_FREE_ENABLED 1
 #define TRACE_DISPLAYSURFACE_RESIZE_ENABLED 1
 #define TRACE_PPM_SAVE_ENABLED 1
+#define TRACE_SAVEVM_SECTION_START_ENABLED 1
+#define TRACE_SAVEVM_SECTION_END_ENABLED 1
 #define TRACE_QXL_INTERFACE_SET_MM_TIME_ENABLED 0
 #define TRACE_QXL_IO_WRITE_VGA_ENABLED 0
 #define TRACE_QXL_CREATE_GUEST_PRIMARY_ENABLED 1
@@ -3094,5 +3888,11 @@ static inline void trace_qxl_render_update_area_done(void * cookie)
 #define TRACE_QXL_RENDER_BLIT_ENABLED 1
 #define TRACE_QXL_RENDER_GUEST_PRIMARY_RESIZED_ENABLED 1
 #define TRACE_QXL_RENDER_UPDATE_AREA_DONE_ENABLED 1
+#define TRACE_SPAPR_PCI_MSI_ENABLED 1
+#define TRACE_SPAPR_PCI_MSI_SETUP_ENABLED 1
+#define TRACE_SPAPR_PCI_RTAS_IBM_CHANGE_MSI_ENABLED 1
+#define TRACE_SPAPR_PCI_RTAS_IBM_QUERY_INTERRUPT_SOURCE_NUMBER_ENABLED 1
+#define TRACE_SPAPR_PCI_MSI_WRITE_ENABLED 1
+#define TRACE_SPAPR_PCI_LSI_SET_ENABLED 1
 
 #endif /* TRACE_H */

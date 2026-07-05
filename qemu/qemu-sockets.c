@@ -11,6 +11,9 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
+ *
+ * Contributions after 2012-01-13 are licensed under the terms of the
+ * GNU GPL, version 2 or (at your option) any later version.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,7 +209,7 @@ listen:
     return slisten;
 }
 
-int inet_connect_opts(QemuOpts *opts, Error **errp)
+int inet_connect_opts(QemuOpts *opts, bool *in_progress, Error **errp)
 {
     struct addrinfo ai,*res,*e;
     const char *addr;
@@ -220,6 +223,10 @@ int inet_connect_opts(QemuOpts *opts, Error **errp)
     ai.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;
     ai.ai_family = PF_UNSPEC;
     ai.ai_socktype = SOCK_STREAM;
+
+    if (in_progress) {
+        *in_progress = false;
+    }
 
     addr = qemu_opt_get(opts, "host");
     port = qemu_opt_get(opts, "port");
@@ -274,14 +281,15 @@ int inet_connect_opts(QemuOpts *opts, Error **errp)
   #else
         if (!block && (rc == -EINPROGRESS)) {
   #endif
-            error_set(errp, QERR_SOCKET_CONNECT_IN_PROGRESS);
+            if (in_progress) {
+                *in_progress = true;
+            }
         } else if (rc < 0) {
             if (NULL == e->ai_next)
                 fprintf(stderr, "%s: connect(%s,%s,%s,%s): %s\n", __FUNCTION__,
                         inet_strfamily(e->ai_family),
                         e->ai_canonname, uaddr, uport, strerror(errno));
             closesocket(sock);
-            sock = -1;
             continue;
         }
         freeaddrinfo(res);
@@ -461,7 +469,7 @@ int inet_listen(const char *str, char *ostr, int olen,
     char *optstr;
     int sock = -1;
 
-    opts = qemu_opts_create(&dummy_opts, NULL, 0);
+    opts = qemu_opts_create(&dummy_opts, NULL, 0, NULL);
     if (inet_parse(opts, str) == 0) {
         sock = inet_listen_opts(opts, port_offset, errp);
         if (sock != -1 && ostr) {
@@ -485,17 +493,17 @@ int inet_listen(const char *str, char *ostr, int olen,
     return sock;
 }
 
-int inet_connect(const char *str, bool block, Error **errp)
+int inet_connect(const char *str, bool block, bool *in_progress, Error **errp)
 {
     QemuOpts *opts;
     int sock = -1;
 
-    opts = qemu_opts_create(&dummy_opts, NULL, 0);
+    opts = qemu_opts_create(&dummy_opts, NULL, 0, NULL);
     if (inet_parse(opts, str) == 0) {
         if (block) {
             qemu_opt_set(opts, "block", "on");
         }
-        sock = inet_connect_opts(opts, errp);
+        sock = inet_connect_opts(opts, in_progress, errp);
     } else {
         error_set(errp, QERR_SOCKET_CREATE_FAILED);
     }
@@ -589,7 +597,7 @@ int unix_listen(const char *str, char *ostr, int olen)
     char *path, *optstr;
     int sock, len;
 
-    opts = qemu_opts_create(&dummy_opts, NULL, 0);
+    opts = qemu_opts_create(&dummy_opts, NULL, 0, NULL);
 
     optstr = strchr(str, ',');
     if (optstr) {
@@ -617,7 +625,7 @@ int unix_connect(const char *path)
     QemuOpts *opts;
     int sock;
 
-    opts = qemu_opts_create(&dummy_opts, NULL, 0);
+    opts = qemu_opts_create(&dummy_opts, NULL, 0, NULL);
     qemu_opt_set(opts, "path", path);
     sock = unix_connect_opts(opts);
     qemu_opts_del(opts);

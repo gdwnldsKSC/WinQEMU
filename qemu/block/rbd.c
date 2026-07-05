@@ -476,6 +476,25 @@ static int qemu_rbd_open(BlockDriverState *bs, const char *filename, int flags)
         s->snap = g_strdup(snap_buf);
     }
 
+    /*
+     * Fallback to more conservative semantics if setting cache
+     * options fails. Ignore errors from setting rbd_cache because the
+     * only possible error is that the option does not exist, and
+     * librbd defaults to no caching. If write through caching cannot
+     * be set up, fall back to no caching.
+     */
+    if (flags & BDRV_O_NOCACHE) {
+        rados_conf_set(s->cluster, "rbd_cache", "false");
+    } else {
+        rados_conf_set(s->cluster, "rbd_cache", "true");
+        if (!(flags & BDRV_O_CACHE_WB)) {
+            r = rados_conf_set(s->cluster, "rbd_cache_max_dirty", "0");
+            if (r < 0) {
+                rados_conf_set(s->cluster, "rbd_cache", "false");
+            }
+        }
+    }
+
     if (strstr(conf, "conf=") == NULL) {
         /* try default location, but ignore failure */
         rados_conf_read_file(s->cluster, NULL);
@@ -620,7 +639,7 @@ static void rbd_aio_bh_cb(void *opaque)
     RBDAIOCB *acb = opaque;
 
     if (acb->cmd == RBD_AIO_READ) {
-        qemu_iovec_from_buffer(acb->qiov, acb->bounce, acb->qiov->size);
+        qemu_iovec_from_buf(acb->qiov, 0, acb->bounce, acb->qiov->size);
     }
     qemu_vfree(acb->bounce);
     acb->common.cb(acb->common.opaque, (acb->ret > 0 ? 0 : acb->ret));
@@ -674,7 +693,7 @@ static BlockDriverAIOCB *rbd_start_aio(BlockDriverState *bs,
     acb->bh = NULL;
 
     if (cmd == RBD_AIO_WRITE) {
-        qemu_iovec_to_buffer(acb->qiov, acb->bounce);
+        qemu_iovec_to_buf(acb->qiov, 0, acb->bounce, qiov->size);
     }
 
     buf = acb->bounce;

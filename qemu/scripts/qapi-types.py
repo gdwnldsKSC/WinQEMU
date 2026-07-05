@@ -54,6 +54,13 @@ struct %(name)s
 ''',
                      c_type=c_type(argentry), c_name=c_var(argname))
 
+    if len(members) == 0:
+        # MSVC modification: empty structs are not valid C (GCC extension),
+        # emit a dummy member for schema types with no fields
+        ret += mcgen('''
+    char qapi_dummy_for_empty_struct;
+''')
+
     if len(fieldname):
         fieldname = " " + fieldname
     ret += mcgen('''
@@ -73,7 +80,7 @@ const char *%(name)s_lookup[] = {
         ret += mcgen('''
     "%(value)s",
 ''',
-                     value=value.lower())
+                     value=value)
 
     ret += mcgen('''
     NULL,
@@ -81,6 +88,16 @@ const char *%(name)s_lookup[] = {
 
 ''')
     return ret
+
+def generate_enum_name(name):
+    if name.isupper():
+        return c_fun(name)
+    new_name = ''
+    for c in c_fun(name):
+        if c.isupper():
+            new_name += '_'
+        new_name += c
+    return new_name.lstrip('_').upper()
 
 def generate_enum(name, values):
     lookup_decl = mcgen('''
@@ -103,7 +120,7 @@ typedef enum %(name)s
     %(abbrev)s_%(value)s = %(i)d,
 ''',
                      abbrev=de_camel_case(name).upper(),
-                     value=c_fun(value).upper(),
+                     value=generate_enum_name(value),
                      i=i)
         i += 1
 
@@ -256,12 +273,13 @@ fdecl.write(mcgen('''
 #ifndef %(guard)s
 #define %(guard)s
 
-#include "qapi/qapi-types-core.h"
+#include "qemu-common.h"
+
 ''',
                   guard=guardname(h_file)))
 
 exprs = parse_schema(sys.stdin)
-exprs = [expr for expr in exprs if 'gen' not in expr]
+exprs = list(filter(lambda expr: not 'gen' in expr, exprs))
 
 for expr in exprs:
     ret = "\n"

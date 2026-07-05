@@ -19,6 +19,8 @@
 #include "qapi/qapi-visit-core.h"
 #include "qapi-types.h"
 
+void visit_type_ErrorClass(Visitor *m, ErrorClass * obj, const char *name, Error **errp);
+
 void visit_type_NameInfo(Visitor *m, NameInfo ** obj, const char *name, Error **errp);
 void visit_type_NameInfoList(Visitor *m, NameInfoList ** obj, const char *name, Error **errp);
 
@@ -42,11 +44,22 @@ void visit_type_ChardevInfoList(Visitor *m, ChardevInfoList ** obj, const char *
 void visit_type_CommandInfo(Visitor *m, CommandInfo ** obj, const char *name, Error **errp);
 void visit_type_CommandInfoList(Visitor *m, CommandInfoList ** obj, const char *name, Error **errp);
 
+void visit_type_EventInfo(Visitor *m, EventInfo ** obj, const char *name, Error **errp);
+void visit_type_EventInfoList(Visitor *m, EventInfoList ** obj, const char *name, Error **errp);
+
 void visit_type_MigrationStats(Visitor *m, MigrationStats ** obj, const char *name, Error **errp);
 void visit_type_MigrationStatsList(Visitor *m, MigrationStatsList ** obj, const char *name, Error **errp);
 
+void visit_type_XBZRLECacheStats(Visitor *m, XBZRLECacheStats ** obj, const char *name, Error **errp);
+void visit_type_XBZRLECacheStatsList(Visitor *m, XBZRLECacheStatsList ** obj, const char *name, Error **errp);
+
 void visit_type_MigrationInfo(Visitor *m, MigrationInfo ** obj, const char *name, Error **errp);
 void visit_type_MigrationInfoList(Visitor *m, MigrationInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_MigrationCapability(Visitor *m, MigrationCapability * obj, const char *name, Error **errp);
+
+void visit_type_MigrationCapabilityStatus(Visitor *m, MigrationCapabilityStatus ** obj, const char *name, Error **errp);
+void visit_type_MigrationCapabilityStatusList(Visitor *m, MigrationCapabilityStatusList ** obj, const char *name, Error **errp);
 
 void visit_type_MouseInfo(Visitor *m, MouseInfo ** obj, const char *name, Error **errp);
 void visit_type_MouseInfoList(Visitor *m, MouseInfoList ** obj, const char *name, Error **errp);
@@ -118,5 +131,69 @@ void visit_type_ObjectPropertyInfoList(Visitor *m, ObjectPropertyInfoList ** obj
 
 void visit_type_ObjectTypeInfo(Visitor *m, ObjectTypeInfo ** obj, const char *name, Error **errp);
 void visit_type_ObjectTypeInfoList(Visitor *m, ObjectTypeInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_DevicePropertyInfo(Visitor *m, DevicePropertyInfo ** obj, const char *name, Error **errp);
+void visit_type_DevicePropertyInfoList(Visitor *m, DevicePropertyInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevNoneOptions(Visitor *m, NetdevNoneOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevNoneOptionsList(Visitor *m, NetdevNoneOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetLegacyNicOptions(Visitor *m, NetLegacyNicOptions ** obj, const char *name, Error **errp);
+void visit_type_NetLegacyNicOptionsList(Visitor *m, NetLegacyNicOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_String(Visitor *m, String ** obj, const char *name, Error **errp);
+void visit_type_StringList(Visitor *m, StringList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevUserOptions(Visitor *m, NetdevUserOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevUserOptionsList(Visitor *m, NetdevUserOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevTapOptions(Visitor *m, NetdevTapOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevTapOptionsList(Visitor *m, NetdevTapOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevSocketOptions(Visitor *m, NetdevSocketOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevSocketOptionsList(Visitor *m, NetdevSocketOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevVdeOptions(Visitor *m, NetdevVdeOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevVdeOptionsList(Visitor *m, NetdevVdeOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevDumpOptions(Visitor *m, NetdevDumpOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevDumpOptionsList(Visitor *m, NetdevDumpOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevBridgeOptions(Visitor *m, NetdevBridgeOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevBridgeOptionsList(Visitor *m, NetdevBridgeOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetdevHubPortOptions(Visitor *m, NetdevHubPortOptions ** obj, const char *name, Error **errp);
+void visit_type_NetdevHubPortOptionsList(Visitor *m, NetdevHubPortOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetClientOptionsKind(Visitor *m, NetClientOptionsKind * obj, const char *name, Error **errp);
+
+void visit_type_NetClientOptions(Visitor *m, NetClientOptions ** obj, const char *name, Error **errp);
+void visit_type_NetClientOptionsList(Visitor *m, NetClientOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_NetLegacy(Visitor *m, NetLegacy ** obj, const char *name, Error **errp);
+void visit_type_NetLegacyList(Visitor *m, NetLegacyList ** obj, const char *name, Error **errp);
+
+void visit_type_Netdev(Visitor *m, Netdev ** obj, const char *name, Error **errp);
+void visit_type_NetdevList(Visitor *m, NetdevList ** obj, const char *name, Error **errp);
+
+void visit_type_MachineInfo(Visitor *m, MachineInfo ** obj, const char *name, Error **errp);
+void visit_type_MachineInfoList(Visitor *m, MachineInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_CpuDefinitionInfo(Visitor *m, CpuDefinitionInfo ** obj, const char *name, Error **errp);
+void visit_type_CpuDefinitionInfoList(Visitor *m, CpuDefinitionInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_AddfdInfo(Visitor *m, AddfdInfo ** obj, const char *name, Error **errp);
+void visit_type_AddfdInfoList(Visitor *m, AddfdInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_FdsetFdInfo(Visitor *m, FdsetFdInfo ** obj, const char *name, Error **errp);
+void visit_type_FdsetFdInfoList(Visitor *m, FdsetFdInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_FdsetInfo(Visitor *m, FdsetInfo ** obj, const char *name, Error **errp);
+void visit_type_FdsetInfoList(Visitor *m, FdsetInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_TargetType(Visitor *m, TargetType * obj, const char *name, Error **errp);
+
+void visit_type_TargetInfo(Visitor *m, TargetInfo ** obj, const char *name, Error **errp);
+void visit_type_TargetInfoList(Visitor *m, TargetInfoList ** obj, const char *name, Error **errp);
 
 #endif

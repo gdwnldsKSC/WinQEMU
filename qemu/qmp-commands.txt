@@ -289,8 +289,8 @@ Example:
 -> { "execute": "inject-nmi" }
 <- { "return": {} }
 
-Note: inject-nmi is only supported for x86 guest currently, it will
-      returns "Unsupported" error for non-x86 guest.
+Note: inject-nmi fails when the guest doesn't support injecting.
+      Currently, only x86 guests do.
 
 xen-save-devices-state
 -------
@@ -346,6 +346,34 @@ Example:
 -> { "execute": "migrate_cancel" }
 <- { "return": {} }
 
+migrate-set-cache-size
+---------------------
+
+Set cache size to be used by XBZRLE migration, the cache size will be rounded
+down to the nearest power of 2
+
+Arguments:
+
+- "value": cache size in bytes (json-int)
+
+Example:
+
+-> { "execute": "migrate-set-cache-size", "arguments": { "value": 536870912 } }
+<- { "return": {} }
+
+query-migrate-cache-size
+---------------------
+
+Show cache size to be used by XBZRLE migration
+
+returns a json-object with the following information:
+- "size" : json-int
+
+Example:
+
+-> { "execute": "query-migrate-cache-size" }
+<- { "return": 67108864 }
+
 migrate_set_speed
 -----------------
 
@@ -396,6 +424,30 @@ Example:
                     "hostname": "virt42.lab.kraxel.org",
                     "port": 1234 } }
 <- { "return": {} }
+
+dump
+
+
+Dump guest memory to file. The file can be processed with crash or gdb.
+
+Arguments:
+
+- "paging": do paging to get guest's memory mapping (json-bool)
+- "protocol": destination file(started with "file:") or destination file
+              descriptor (started with "fd:") (json-string)
+- "begin": the starting physical address. It's optional, and should be specified
+           with length together (json-int)
+- "length": the memory size, in bytes. It's optional, and should be specified
+            with begin together (json-int)
+
+Example:
+
+-> { "execute": "dump-guest-memory", "arguments": { "protocol": "fd:dump" } }
+<- { "return": {} }
+
+Notes:
+
+(1) All boolean arguments default to false
 
 netdev_add
 ----------
@@ -560,6 +612,14 @@ Example:
 -> { "execute": "getfd", "arguments": { "fdname": "fd1" } }
 <- { "return": {} }
 
+Notes:
+
+(1) If the name specified by the "fdname" argument already exists,
+    the file descriptor assigned to it will be closed and replaced
+    by the received file descriptor.
+(2) The 'closefd' command can be used to explicitly close the file
+    descriptor when it is no longer needed.
+
 closefd
 -------
 
@@ -573,6 +633,96 @@ Example:
 
 -> { "execute": "closefd", "arguments": { "fdname": "fd1" } }
 <- { "return": {} }
+
+add-fd
+-------
+
+Add a file descriptor, that was passed via SCM rights, to an fd set.
+
+Arguments:
+
+- "fdset-id": The ID of the fd set to add the file descriptor to.
+              (json-int, optional)
+- "opaque": A free-form string that can be used to describe the fd.
+            (json-string, optional)
+
+Return a json-object with the following information:
+
+- "fdset-id": The ID of the fd set that the fd was added to. (json-int)
+- "fd": The file descriptor that was received via SCM rights and added to the
+        fd set. (json-int)
+
+Example:
+
+-> { "execute": "add-fd", "arguments": { "fdset-id": 1 } }
+<- { "return": { "fdset-id": 1, "fd": 3 } }
+
+Notes:
+
+(1) The list of fd sets is shared by all monitor connections.
+(2) If "fdset-id" is not specified, a new fd set will be created.
+
+remove-fd
+---------
+
+Remove a file descriptor from an fd set.
+
+Arguments:
+
+- "fdset-id": The ID of the fd set that the file descriptor belongs to.
+              (json-int)
+- "fd": The file descriptor that is to be removed. (json-int, optional)
+
+Example:
+
+-> { "execute": "remove-fd", "arguments": { "fdset-id": 1, "fd": 3 } }
+<- { "return": {} }
+
+Notes:
+
+(1) The list of fd sets is shared by all monitor connections.
+(2) If "fd" is not specified, all file descriptors in "fdset-id" will be
+    removed.
+
+query-fdsets
+-------------
+
+Return information describing all fd sets.
+
+Arguments: None
+
+Example:
+
+-> { "execute": "query-fdsets" }
+<- { "return": [
+       {
+         "fds": [
+           {
+             "fd": 30,
+             "opaque": "rdonly:/path/to/file"
+           },
+           {
+             "fd": 24,
+             "opaque": "rdwr:/path/to/file"
+           }
+         ],
+         "fdset-id": 1
+       },
+       {
+         "fds": [
+           {
+             "fd": 28
+           },
+           {
+             "fd": 29
+           }
+         ],
+         "fdset-id": 0
+       }
+     ]
+   }
+
+Note: The list of fd sets is shared by all monitor connections.
 
 block_passwd
 ------------
@@ -773,6 +923,34 @@ Example:
 
 Note: This example has been shortened as the real response is too long.
 
+query-events
+--------------
+
+List QMP available events.
+
+Each event is represented by a json-object, the returned value is a json-array
+of all events.
+
+Each json-object contains:
+
+- "name": event's name (json-string)
+
+Example:
+
+-> { "execute": "query-events" }
+<- {
+      "return":[
+         {
+            "name":"SHUTDOWN"
+         },
+         {
+            "name":"RESET"
+         }
+      ]
+   }
+
+Note: This example has been shortened as the real response is too long.
+
 query-chardev
 -------------
 
@@ -829,6 +1007,7 @@ Each json-object contain the following:
                                 "nbd", "parallels", "qcow", "qcow2", "raw",
                                 "tftp", "vdi", "vmdk", "vpc", "vvfat"
          - "backing_file": backing file name (json-string, optional)
+         - "backing_file_depth": number of files in the backing file chain (json-int)
          - "encrypted": true if encrypted, false otherwise (json-bool)
          - "bps": limit total bytes per second (json-int)
          - "bps_rd": limit read bytes per second (json-int)
@@ -857,6 +1036,7 @@ Example:
                "drv":"qcow2",
                "encrypted":false,
                "file":"disks/test.img",
+               "backing_file_depth":0,
                "bps":1000000,
                "bps_rd":0,
                "bps_wr":0,
@@ -1482,17 +1662,29 @@ The main json-object contains the following:
 
 - "status": migration status (json-string)
      - Possible values: "active", "completed", "failed", "cancelled"
+- "total-time": total amount of ms since migration started.  If
+                migration has ended, it returns the total migration
+		 time (json-int)
 - "ram": only present if "status" is "active", it is a json-object with the
   following RAM information (in bytes):
          - "transferred": amount transferred (json-int)
          - "remaining": amount remaining (json-int)
          - "total": total (json-int)
+         - "duplicate": number of duplicated pages (json-int)
+         - "normal" : number of normal pages transferred (json-int)
+         - "normal-bytes" : number of normal bytes transferred (json-int)
 - "disk": only present if "status" is "active" and it is a block migration,
   it is a json-object with the following disk information (in bytes):
          - "transferred": amount transferred (json-int)
          - "remaining": amount remaining (json-int)
          - "total": total (json-int)
-
+- "xbzrle-cache": only present if XBZRLE is active.
+  It is a json-object with the following XBZRLE information:
+         - "cache-size": XBZRLE cache size
+         - "bytes": total XBZRLE bytes transferred
+         - "pages": number of XBZRLE compressed pages
+         - "cache-miss": number of cache misses
+         - "overflow": number of XBZRLE overflows
 Examples:
 
 1. Before the first migration
@@ -1503,7 +1695,19 @@ Examples:
 2. Migration is done and has succeeded
 
 -> { "execute": "query-migrate" }
-<- { "return": { "status": "completed" } }
+<- { "return": {
+        "status": "completed",
+        "ram":{
+          "transferred":123,
+          "remaining":123,
+          "total":246,
+          "total-time":12345,
+          "duplicate":123,
+          "normal":123,
+          "normal-bytes":123456
+        }
+     }
+   }
 
 3. Migration is done and has failed
 
@@ -1519,7 +1723,11 @@ Examples:
          "ram":{
             "transferred":123,
             "remaining":123,
-            "total":246
+            "total":246,
+            "total-time":12345,
+            "duplicate":123,
+            "normal":123,
+            "normal-bytes":123456
          }
       }
    }
@@ -1533,7 +1741,11 @@ Examples:
          "ram":{
             "total":1057024,
             "remaining":1053304,
-            "transferred":3720
+            "transferred":3720,
+            "total-time":12345,
+            "duplicate":123,
+            "normal":123,
+            "normal-bytes":123456
          },
          "disk":{
             "total":20971520,
@@ -1543,6 +1755,63 @@ Examples:
       }
    }
 
+6. Migration is being performed and XBZRLE is active:
+
+-> { "execute": "query-migrate" }
+<- {
+      "return":{
+         "status":"active",
+         "capabilities" : [ { "capability": "xbzrle", "state" : true } ],
+         "ram":{
+            "total":1057024,
+            "remaining":1053304,
+            "transferred":3720,
+            "total-time":12345,
+            "duplicate":10,
+            "normal":3333,
+            "normal-bytes":3412992
+         },
+         "xbzrle-cache":{
+            "cache-size":67108864,
+            "bytes":20971520,
+            "pages":2444343,
+            "cache-miss":2244,
+            "overflow":34434
+         }
+      }
+   }
+
+migrate-set-capabilities
+-------
+
+Enable/Disable migration capabilities
+
+- "xbzrle": xbzrle support
+
+Arguments:
+
+Example:
+
+-> { "execute": "migrate-set-capabilities" , "arguments":
+     { "capabilities": [ { "capability": "xbzrle", "state": true } ] } }
+
+query-migrate-capabilities
+-------
+
+Query current migration capabilities
+
+- "capabilities": migration capabilities state
+         - "xbzrle" : XBZRLE state (json-bool)
+
+Arguments:
+
+Example:
+
+-> { "execute": "query-migrate-capabilities" }
+<- { "return": {
+        "capabilities" :  [ { "capability" : "xbzrle", "state" : false } ]
+     }
+   }
 query-balloon
 -------------
 

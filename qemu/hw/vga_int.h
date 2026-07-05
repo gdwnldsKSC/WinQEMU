@@ -31,8 +31,8 @@
 /* bochs VBE support */
 #define CONFIG_BOCHS_VBE
 
-#define VBE_DISPI_MAX_XRES              1600
-#define VBE_DISPI_MAX_YRES              1200
+#define VBE_DISPI_MAX_XRES              16000
+#define VBE_DISPI_MAX_YRES              12000
 #define VBE_DISPI_MAX_BPP               32
 
 #define VBE_DISPI_INDEX_ID              0x0
@@ -107,6 +107,7 @@ typedef struct VGACommonState {
     MemoryRegion vram;
     MemoryRegion vram_vbe;
     uint32_t vram_size;
+    uint32_t vram_size_mb; /* property */
     uint32_t latch;
     MemoryRegion *chain4_alias;
     uint8_t sr_index;
@@ -155,6 +156,8 @@ typedef struct VGACommonState {
     uint32_t last_scr_width, last_scr_height; /* in pixels */
     uint32_t last_depth; /* in bits */
     uint8_t cursor_start, cursor_end;
+    bool cursor_visible_phase;
+    int64_t cursor_blink_time;
     uint32_t cursor_offset;
     unsigned int (*rgb_to_pixel)(unsigned int r,
                                  unsigned int g, unsigned b);
@@ -184,7 +187,7 @@ static inline int c6_to_8(int v)
     return (v << 2) | (b << 1) | b;
 }
 
-void vga_common_init(VGACommonState *s, int vga_ram_size);
+void vga_common_init(VGACommonState *s);
 void vga_init(VGACommonState *s, MemoryRegion *address_space,
               MemoryRegion *address_space_io, bool init_vga_ports);
 MemoryRegion *vga_init_io(VGACommonState *s,
@@ -209,7 +212,6 @@ void vga_init_vbe(VGACommonState *s, MemoryRegion *address_space);
 extern const uint8_t sr_mask[8];
 extern const uint8_t gr_mask[16];
 
-#define VGA_RAM_SIZE (8192 * 1024)
 #define VGABIOS_FILENAME "vgabios.bin"
 #define VGABIOS_CIRRUS_FILENAME "vgabios-cirrus.bin"
 

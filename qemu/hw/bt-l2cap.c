@@ -1015,7 +1015,8 @@ static void l2cap_iframe_in(struct l2cap_chan_s *ch, uint16_t cid,
             /* TODO: Signal an error? */
             return;
         }
-        return l2cap_sframe_in(ch, le16_to_cpup((void *) hdr->data));
+        l2cap_sframe_in(ch, le16_to_cpup((void *) hdr->data));
+        return;
     }
 
     switch (hdr->data[1] >> 6) {	/* SAR */
@@ -1025,7 +1026,8 @@ static void l2cap_iframe_in(struct l2cap_chan_s *ch, uint16_t cid,
         if (len - 4 > ch->mps)
             goto len_error;
 
-        return ch->params.sdu_in(ch->params.opaque, hdr->data + 2, len - 4);
+        ch->params.sdu_in(ch->params.opaque, hdr->data + 2, len - 4);
+        break;
 
     case L2CAP_SAR_START:
         if (ch->len_total || len < 6)
@@ -1048,7 +1050,8 @@ static void l2cap_iframe_in(struct l2cap_chan_s *ch, uint16_t cid,
             goto len_error;
 
         memcpy(ch->sdu + ch->len_cur, hdr->data + 2, len - 4);
-        return ch->params.sdu_in(ch->params.opaque, ch->sdu, ch->len_total);
+        ch->params.sdu_in(ch->params.opaque, ch->sdu, ch->len_total);
+        break;
 
     case L2CAP_SAR_CONT:
         if (!ch->len_total || ch->len_cur + len - 4 >= ch->len_total)
@@ -1151,7 +1154,7 @@ static void l2cap_bframe_submit(struct bt_l2cap_conn_params_s *parms)
 {
     struct l2cap_chan_s *chan = (struct l2cap_chan_s *) parms;
 
-    return l2cap_pdu_submit(chan->l2cap);
+    l2cap_pdu_submit(chan->l2cap);
 }
 
 #if 0

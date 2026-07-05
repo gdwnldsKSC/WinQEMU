@@ -39,9 +39,8 @@ void visit_start_struct(Visitor *v, void **obj, const char *kind,
 
 void visit_end_struct(Visitor *v, Error **errp)
 {
-    if (!error_is_set(errp)) {
-        v->end_struct(v, errp);
-    }
+    assert(!error_is_set(errp));
+    v->end_struct(v, errp);
 }
 
 void visit_start_list(Visitor *v, const char *name, Error **errp)
@@ -62,9 +61,8 @@ GenericList *visit_next_list(Visitor *v, GenericList **list, Error **errp)
 
 void visit_end_list(Visitor *v, Error **errp)
 {
-    if (!error_is_set(errp)) {
-        v->end_list(v, errp);
-    }
+    assert(!error_is_set(errp));
+    v->end_list(v, errp);
 }
 
 void visit_start_optional(Visitor *v, bool *present, const char *name,
@@ -94,6 +92,152 @@ void visit_type_int(Visitor *v, int64_t *obj, const char *name, Error **errp)
 {
     if (!error_is_set(errp)) {
         v->type_int(v, obj, name, errp);
+    }
+}
+
+void visit_type_uint8(Visitor *v, uint8_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_uint8) {
+            v->type_uint8(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < 0 || value > UINT8_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "uint8_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_uint16(Visitor *v, uint16_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_uint16) {
+            v->type_uint16(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < 0 || value > UINT16_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "uint16_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_uint32(Visitor *v, uint32_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_uint32) {
+            v->type_uint32(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < 0 || value > UINT32_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "uint32_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_uint64(Visitor *v, uint64_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_uint64) {
+            v->type_uint64(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_int8(Visitor *v, int8_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_int8) {
+            v->type_int8(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < INT8_MIN || value > INT8_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "int8_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_int16(Visitor *v, int16_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_int16) {
+            v->type_int16(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < INT16_MIN || value > INT16_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "int16_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_int32(Visitor *v, int32_t *obj, const char *name, Error **errp)
+{
+    int64_t value;
+    if (!error_is_set(errp)) {
+        if (v->type_int32) {
+            v->type_int32(v, obj, name, errp);
+        } else {
+            value = *obj;
+            v->type_int(v, &value, name, errp);
+            if (value < INT32_MIN || value > INT32_MAX) {
+                error_set(errp, QERR_INVALID_PARAMETER_VALUE, name ? name : "null",
+                          "int32_t");
+                return;
+            }
+            *obj = value;
+        }
+    }
+}
+
+void visit_type_int64(Visitor *v, int64_t *obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        if (v->type_int64) {
+            v->type_int64(v, obj, name, errp);
+        } else {
+            v->type_int(v, obj, name, errp);
+        }
+    }
+}
+
+void visit_type_size(Visitor *v, uint64_t *obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        (v->type_size ? v->type_size : v->type_uint64)(v, obj, name, errp);
     }
 }
 
@@ -159,7 +303,7 @@ void input_type_enum(Visitor *v, int *obj, const char *strings[],
     }
 
     if (strings[value] == NULL) {
-        error_set(errp, QERR_INVALID_PARAMETER, name ? name : "null");
+        error_set(errp, QERR_INVALID_PARAMETER, enum_str);
         g_free(enum_str);
         return;
     }

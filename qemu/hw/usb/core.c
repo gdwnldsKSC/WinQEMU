@@ -107,6 +107,7 @@ static int do_token_setup(USBDevice *s, USBPacket *p)
     }
 
     usb_packet_copy(p, s->setup_buf, p->iov.size);
+    p->result = 0;
     s->setup_len   = (s->setup_buf[7] << 8) | s->setup_buf[6];
     s->setup_index = 0;
 
@@ -381,12 +382,23 @@ int usb_handle_packet(USBDevice *dev, USBPacket *p)
     usb_packet_check_state(p, USB_PACKET_SETUP);
     assert(p->ep != NULL);
 
+    /* Submitting a new packet clears halt */
+    if (p->ep->halted) {
+        assert(QTAILQ_EMPTY(&p->ep->queue));
+        p->ep->halted = false;
+    }
+
     if (QTAILQ_EMPTY(&p->ep->queue) || p->ep->pipeline) {
         ret = usb_process_one(p);
         if (ret == USB_RET_ASYNC) {
             usb_packet_set_state(p, USB_PACKET_ASYNC);
             QTAILQ_INSERT_TAIL(&p->ep->queue, p, queue);
         } else {
+            /*
+             * When pipelining is enabled usb-devices must always return async,
+             * otherwise packets can complete out of order!
+             */
+            assert(!p->ep->pipeline);
             p->result = ret;
             usb_packet_set_state(p, USB_PACKET_COMPLETE);
         }
@@ -396,6 +408,20 @@ int usb_handle_packet(USBDevice *dev, USBPacket *p)
         QTAILQ_INSERT_TAIL(&p->ep->queue, p, queue);
     }
     return ret;
+}
+
+static void __usb_packet_complete(USBDevice *dev, USBPacket *p)
+{
+    USBEndpoint *ep = p->ep;
+
+    assert(p->result != USB_RET_ASYNC && p->result != USB_RET_NAK);
+
+    if (p->result < 0) {
+        ep->halted = true;
+    }
+    usb_packet_set_state(p, USB_PACKET_COMPLETE);
+    QTAILQ_REMOVE(&ep->queue, p, queue);
+    dev->port->ops->complete(dev->port, p);
 }
 
 /* Notify the controller that an async packet is complete.  This should only
@@ -408,11 +434,9 @@ void usb_packet_complete(USBDevice *dev, USBPacket *p)
 
     usb_packet_check_state(p, USB_PACKET_ASYNC);
     assert(QTAILQ_FIRST(&ep->queue) == p);
-    usb_packet_set_state(p, USB_PACKET_COMPLETE);
-    QTAILQ_REMOVE(&ep->queue, p, queue);
-    dev->port->ops->complete(dev->port, p);
+    __usb_packet_complete(dev, p);
 
-    while (!QTAILQ_EMPTY(&ep->queue)) {
+    while (!ep->halted && !QTAILQ_EMPTY(&ep->queue)) {
         p = QTAILQ_FIRST(&ep->queue);
         if (p->state == USB_PACKET_ASYNC) {
             break;
@@ -424,9 +448,7 @@ void usb_packet_complete(USBDevice *dev, USBPacket *p)
             break;
         }
         p->result = ret;
-        usb_packet_set_state(p, USB_PACKET_COMPLETE);
-        QTAILQ_REMOVE(&ep->queue, p, queue);
-        dev->port->ops->complete(dev->port, p);
+        __usb_packet_complete(ep->dev, p);
     }
 }
 
@@ -498,10 +520,11 @@ void usb_packet_set_state(USBPacket *p, USBPacketState state)
     p->state = state;
 }
 
-void usb_packet_setup(USBPacket *p, int pid, USBEndpoint *ep)
+void usb_packet_setup(USBPacket *p, int pid, USBEndpoint *ep, uint64_t id)
 {
     assert(!usb_packet_is_inflight(p));
     assert(p->iov.iov != NULL);
+    p->id = id;
     p->pid = pid;
     p->ep = ep;
     p->result = 0;
@@ -522,10 +545,10 @@ void usb_packet_copy(USBPacket *p, void *ptr, size_t bytes)
     switch (p->pid) {
     case USB_TOKEN_SETUP:
     case USB_TOKEN_OUT:
-        iov_to_buf(p->iov.iov, p->iov.niov, ptr, p->result, bytes);
+        iov_to_buf(p->iov.iov, p->iov.niov, p->result, ptr, bytes);
         break;
     case USB_TOKEN_IN:
-        iov_from_buf(p->iov.iov, p->iov.niov, ptr, p->result, bytes);
+        iov_from_buf(p->iov.iov, p->iov.niov, p->result, ptr, bytes);
         break;
     default:
         fprintf(stderr, "%s: invalid pid: %x\n", __func__, p->pid);
@@ -539,7 +562,7 @@ void usb_packet_skip(USBPacket *p, size_t bytes)
     assert(p->result >= 0);
     assert(p->result + bytes <= p->iov.size);
     if (p->pid == USB_TOKEN_IN) {
-        iov_clear(p->iov.iov, p->iov.niov, p->result, bytes);
+        iov_memset(p->iov.iov, p->iov.niov, p->result, 0, bytes);
     }
     p->result += bytes;
 }
@@ -550,7 +573,7 @@ void usb_packet_cleanup(USBPacket *p)
     qemu_iovec_destroy(&p->iov);
 }
 
-void usb_ep_init(USBDevice *dev)
+void usb_ep_reset(USBDevice *dev)
 {
     int ep;
 
@@ -559,7 +582,6 @@ void usb_ep_init(USBDevice *dev)
     dev->ep_ctl.ifnum = 0;
     dev->ep_ctl.dev = dev;
     dev->ep_ctl.pipeline = false;
-    QTAILQ_INIT(&dev->ep_ctl.queue);
     for (ep = 0; ep < USB_MAX_ENDPOINTS; ep++) {
         dev->ep_in[ep].nr = ep + 1;
         dev->ep_out[ep].nr = ep + 1;
@@ -567,12 +589,22 @@ void usb_ep_init(USBDevice *dev)
         dev->ep_out[ep].pid = USB_TOKEN_OUT;
         dev->ep_in[ep].type = USB_ENDPOINT_XFER_INVALID;
         dev->ep_out[ep].type = USB_ENDPOINT_XFER_INVALID;
-        dev->ep_in[ep].ifnum = 0;
-        dev->ep_out[ep].ifnum = 0;
+        dev->ep_in[ep].ifnum = USB_INTERFACE_INVALID;
+        dev->ep_out[ep].ifnum = USB_INTERFACE_INVALID;
         dev->ep_in[ep].dev = dev;
         dev->ep_out[ep].dev = dev;
         dev->ep_in[ep].pipeline = false;
         dev->ep_out[ep].pipeline = false;
+    }
+}
+
+void usb_ep_init(USBDevice *dev)
+{
+    int ep;
+
+    usb_ep_reset(dev);
+    QTAILQ_INIT(&dev->ep_ctl.queue);
+    for (ep = 0; ep < USB_MAX_ENDPOINTS; ep++) {
         QTAILQ_INIT(&dev->ep_in[ep].queue);
         QTAILQ_INIT(&dev->ep_out[ep].queue);
     }

@@ -29,6 +29,7 @@
 #define REQUEST_SENSE         0x03
 #define FORMAT_UNIT           0x04
 #define READ_BLOCK_LIMITS     0x05
+#define INITIALIZE_ELEMENT_STATUS 0x07
 #define REASSIGN_BLOCKS       0x07
 #define READ_6                0x08
 #define WRITE_6               0x0a
@@ -44,6 +45,7 @@
 #define COPY                  0x18
 #define ERASE                 0x19
 #define MODE_SENSE            0x1a
+#define LOAD_UNLOAD           0x1b
 #define START_STOP            0x1b
 #define RECEIVE_DIAGNOSTIC    0x1c
 #define SEND_DIAGNOSTIC       0x1d
@@ -53,6 +55,7 @@
 #define WRITE_10              0x2a
 #define SEEK_10               0x2b
 #define LOCATE_10             0x2b
+#define POSITION_TO_ELEMENT   0x2b
 #define WRITE_VERIFY_10       0x2e
 #define VERIFY_10             0x2f
 #define SEARCH_HIGH           0x30
@@ -63,6 +66,7 @@
 #define READ_POSITION         0x34
 #define SYNCHRONIZE_CACHE     0x35
 #define LOCK_UNLOCK_CACHE     0x36
+#define INITIALIZE_ELEMENT_STATUS_WITH_RANGE 0x37
 #define READ_DEFECT_DATA      0x37
 #define MEDIUM_SCAN           0x38
 #define COMPARE               0x39
@@ -82,6 +86,7 @@
 #define GET_EVENT_STATUS_NOTIFICATION 0x4a
 #define LOG_SELECT            0x4c
 #define LOG_SENSE             0x4d
+#define READ_DISC_INFORMATION 0x51
 #define RESERVE_TRACK         0x53
 #define MODE_SELECT_10        0x55
 #define RESERVE_10            0x56
@@ -95,7 +100,7 @@
 #define READ_REVERSE_16       0x81
 #define ALLOW_OVERWRITE       0x82
 #define EXTENDED_COPY         0x83
-#define ATA_PASSTHROUGH       0x85
+#define ATA_PASSTHROUGH_16    0x85
 #define ACCESS_CONTROL_IN     0x86
 #define ACCESS_CONTROL_OUT    0x87
 #define READ_16               0x88
@@ -112,11 +117,11 @@
 #define SERVICE_ACTION_IN_16  0x9e
 #define WRITE_LONG_16         0x9f
 #define REPORT_LUNS           0xa0
-#define BLANK                 0xa1
+#define ATA_PASSTHROUGH_12    0xa1
 #define MAINTENANCE_IN        0xa3
 #define MAINTENANCE_OUT       0xa4
 #define MOVE_MEDIUM           0xa5
-#define LOAD_UNLOAD           0xa6
+#define EXCHANGE_MEDIUM       0xa6
 #define SET_READ_AHEAD        0xa7
 #define READ_12               0xa8
 #define WRITE_12              0xaa
@@ -140,6 +145,14 @@
  * SERVICE ACTION IN subcodes
  */
 #define SAI_READ_CAPACITY_16  0x10
+
+/*
+ * READ POSITION service action codes
+ */
+#define SHORT_FORM_BLOCK_ID  0x00
+#define SHORT_FORM_VENDOR_SPECIFIC 0x01
+#define LONG_FORM            0x06
+#define EXTENDED_FORM        0x08
 
 /*
  *  SAM Status codes

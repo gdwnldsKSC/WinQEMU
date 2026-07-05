@@ -213,5 +213,8 @@
     <ClCompile Include="qemu\qemu-coroutine-sleep.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\iov.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -160,7 +160,7 @@ static const MemoryRegionOps eth_ops = {
     }
 };
 
-static int eth_can_rx(VLANClientState *nc)
+static int eth_can_rx(NetClientState *nc)
 {
     struct xlx_ethlite *s = DO_UPCAST(NICState, nc, nc)->opaque;
     int r;
@@ -168,7 +168,7 @@ static int eth_can_rx(VLANClientState *nc)
     return r;
 }
 
-static ssize_t eth_rx(VLANClientState *nc, const uint8_t *buf, size_t size)
+static ssize_t eth_rx(NetClientState *nc, const uint8_t *buf, size_t size)
 {
     struct xlx_ethlite *s = DO_UPCAST(NICState, nc, nc)->opaque;
     unsigned int rxbase = s->rxbuf * (0x800 / 4);
@@ -194,7 +194,7 @@ static ssize_t eth_rx(VLANClientState *nc, const uint8_t *buf, size_t size)
     return size;
 }
 
-static void eth_cleanup(VLANClientState *nc)
+static void eth_cleanup(NetClientState *nc)
 {
     struct xlx_ethlite *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -202,7 +202,7 @@ static void eth_cleanup(VLANClientState *nc)
 }
 
 static NetClientInfo net_xilinx_ethlite_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = eth_can_rx,
     .receive = eth_rx,
@@ -216,7 +216,8 @@ static int xilinx_ethlite_init(SysBusDevice *dev)
     sysbus_init_irq(dev, &s->irq);
     s->rxbuf = 0;
 
-    memory_region_init_io(&s->mmio, &eth_ops, s, "xilinx-ethlite", R_MAX * 4);
+    memory_region_init_io(&s->mmio, &eth_ops, s, "xlnx.xps-ethernetlite",
+                                                                    R_MAX * 4);
     sysbus_init_mmio(dev, &s->mmio);
 
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
@@ -227,8 +228,8 @@ static int xilinx_ethlite_init(SysBusDevice *dev)
 }
 
 static Property xilinx_ethlite_properties[] = {
-    DEFINE_PROP_UINT32("txpingpong", struct xlx_ethlite, c_tx_pingpong, 1),
-    DEFINE_PROP_UINT32("rxpingpong", struct xlx_ethlite, c_rx_pingpong, 1),
+    DEFINE_PROP_UINT32("tx-ping-pong", struct xlx_ethlite, c_tx_pingpong, 1),
+    DEFINE_PROP_UINT32("rx-ping-pong", struct xlx_ethlite, c_rx_pingpong, 1),
     DEFINE_NIC_PROPERTIES(struct xlx_ethlite, conf),
     DEFINE_PROP_END_OF_LIST(),
 };
@@ -243,7 +244,7 @@ static void xilinx_ethlite_class_init(ObjectClass *klass, void *data)
 }
 
 static TypeInfo xilinx_ethlite_info = {
-    .name          = "xilinx,ethlite",
+    .name          = "xlnx.xps-ethernetlite",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(struct xlx_ethlite),
     .class_init    = xilinx_ethlite_class_init,

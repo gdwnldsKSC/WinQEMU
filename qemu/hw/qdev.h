@@ -17,7 +17,7 @@ typedef struct CompatProperty CompatProperty;
 
 typedef struct BusState BusState;
 
-typedef struct BusInfo BusInfo;
+typedef struct BusClass BusClass;
 
 enum DevState {
     DEV_STATE_CREATED = 1,
@@ -55,7 +55,7 @@ typedef struct DeviceClass {
     qdev_initfn init;
     qdev_event unplug;
     qdev_event exit;
-    BusInfo *bus_info;
+    const char *bus_type;
 } DeviceClass;
 
 /* This structure should not be accessed directly.  We declare it here
@@ -74,38 +74,51 @@ struct DeviceState {
     qemu_irq *gpio_in;
     QLIST_HEAD(, BusState) child_bus;
     int num_child_bus;
-    QTAILQ_ENTRY(DeviceState) sibling;
     int instance_id_alias;
     int alias_required_for_version;
 };
 
-typedef void (*bus_dev_printfn)(Monitor *mon, DeviceState *dev, int indent);
-typedef char *(*bus_get_dev_path)(DeviceState *dev);
-/*
- * This callback is used to create Open Firmware device path in accordance with
- * OF spec http://forthworks.com/standards/of1275.pdf. Indicidual bus bindings
- * can be found here http://playground.sun.com/1275/bindings/.
- */
-typedef char *(*bus_get_fw_dev_path)(DeviceState *dev);
-typedef int (qbus_resetfn)(BusState *bus);
+#define TYPE_BUS "bus"
+#define BUS(obj) OBJECT_CHECK(BusState, (obj), TYPE_BUS)
+#define BUS_CLASS(klass) OBJECT_CLASS_CHECK(BusClass, (klass), TYPE_BUS)
+#define BUS_GET_CLASS(obj) OBJECT_GET_CLASS(BusClass, (obj), TYPE_BUS)
 
-struct BusInfo {
-    const char *name;
-    size_t size;
-    bus_dev_printfn print_dev;
-    bus_get_dev_path get_dev_path;
-    bus_get_fw_dev_path get_fw_dev_path;
-    qbus_resetfn *reset;
-    Property *props;
+struct BusClass {
+    ObjectClass parent_class;
+
+    /* FIXME first arg should be BusState */
+    void (*print_dev)(Monitor *mon, DeviceState *dev, int indent);
+    char *(*get_dev_path)(DeviceState *dev);
+    /*
+     * This callback is used to create Open Firmware device path in accordance
+     * with OF spec http://forthworks.com/standards/of1275.pdf. Individual bus
+     * bindings can be found at http://playground.sun.com/1275/bindings/.
+     */
+    char *(*get_fw_dev_path)(DeviceState *dev);
+    int (*reset)(BusState *bus);
 };
 
+typedef struct BusChild {
+    DeviceState *child;
+    int index;
+    QTAILQ_ENTRY(BusChild) sibling;
+} BusChild;
+
+/**
+ * BusState:
+ * @qom_allocated: Indicates whether the object was allocated by QOM.
+ * @glib_allocated: Indicates whether the object was initialized in-place
+ * yet is expected to be freed with g_free().
+ */
 struct BusState {
+    Object obj;
     DeviceState *parent;
-    BusInfo *info;
     const char *name;
     int allow_hotplug;
-    int qdev_allocated;
-    QTAILQ_HEAD(ChildrenHead, DeviceState) children;
+    bool qom_allocated;
+    bool glib_allocated;
+    int max_index;
+    QTAILQ_HEAD(ChildrenHead, BusChild) children;
     QLIST_ENTRY(BusState) sibling;
 };
 
@@ -122,8 +135,6 @@ struct PropertyInfo {
     const char *name;
     const char *legacy_name;
     const char **enum_table;
-    int64_t min;
-    int64_t max;
     int (*parse)(DeviceState *dev, Property *prop, const char *str);
     int (*print)(DeviceState *dev, Property *prop, char *dest, size_t len);
     ObjectPropertyAccessor *get;
@@ -177,9 +188,9 @@ DeviceState *qdev_find_recursive(BusState *bus, const char *id);
 typedef int (qbus_walkerfn)(BusState *bus, void *opaque);
 typedef int (qdev_walkerfn)(DeviceState *dev, void *opaque);
 
-void qbus_create_inplace(BusState *bus, BusInfo *info,
+void qbus_create_inplace(BusState *bus, const char *typename,
                          DeviceState *parent, const char *name);
-BusState *qbus_create(BusInfo *info, DeviceState *parent, const char *name);
+BusState *qbus_create(const char *typename, DeviceState *parent, const char *name);
 /* Returns > 0 if either devfn or busfn skip walk somewhere in cursion,
  *         < 0 if either devfn or busfn terminate walk somewhere in cursion,
  *           0 otherwise. */
@@ -220,11 +231,13 @@ extern PropertyInfo qdev_prop_chr;
 extern PropertyInfo qdev_prop_ptr;
 extern PropertyInfo qdev_prop_macaddr;
 extern PropertyInfo qdev_prop_losttickpolicy;
+extern PropertyInfo qdev_prop_bios_chs_trans;
 extern PropertyInfo qdev_prop_drive;
 extern PropertyInfo qdev_prop_netdev;
 extern PropertyInfo qdev_prop_vlan;
 extern PropertyInfo qdev_prop_pci_devfn;
 extern PropertyInfo qdev_prop_blocksize;
+extern PropertyInfo qdev_prop_pci_host_devaddr;
 
 #define DEFINE_PROP(_name, _state, _field, _prop, _type) { \
         .name      = (_name),                                    \
@@ -267,7 +280,7 @@ extern PropertyInfo qdev_prop_blocksize;
 #define DEFINE_PROP_HEX64(_n, _s, _f, _d)                       \
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_hex64, uint64_t)
 #define DEFINE_PROP_PCI_DEVFN(_n, _s, _f, _d)                   \
-    DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_pci_devfn, uint32_t)
+    DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_pci_devfn, int32_t)
 
 #define DEFINE_PROP_PTR(_n, _s, _f)             \
     DEFINE_PROP(_n, _s, _f, qdev_prop_ptr, void*)
@@ -276,9 +289,9 @@ extern PropertyInfo qdev_prop_blocksize;
 #define DEFINE_PROP_STRING(_n, _s, _f)             \
     DEFINE_PROP(_n, _s, _f, qdev_prop_string, char*)
 #define DEFINE_PROP_NETDEV(_n, _s, _f)             \
-    DEFINE_PROP(_n, _s, _f, qdev_prop_netdev, VLANClientState*)
+    DEFINE_PROP(_n, _s, _f, qdev_prop_netdev, NetClientState*)
 #define DEFINE_PROP_VLAN(_n, _s, _f)             \
-    DEFINE_PROP(_n, _s, _f, qdev_prop_vlan, VLANState*)
+    DEFINE_PROP(_n, _s, _f, qdev_prop_vlan, NetClientState*)
 #define DEFINE_PROP_DRIVE(_n, _s, _f) \
     DEFINE_PROP(_n, _s, _f, qdev_prop_drive, BlockDriverState *)
 #define DEFINE_PROP_MACADDR(_n, _s, _f)         \
@@ -286,15 +299,18 @@ extern PropertyInfo qdev_prop_blocksize;
 #define DEFINE_PROP_LOSTTICKPOLICY(_n, _s, _f, _d) \
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_losttickpolicy, \
                         LostTickPolicy)
+#define DEFINE_PROP_BIOS_CHS_TRANS(_n, _s, _f, _d) \
+    DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_bios_chs_trans, int)
 #define DEFINE_PROP_BLOCKSIZE(_n, _s, _f, _d) \
     DEFINE_PROP_DEFAULT(_n, _s, _f, _d, qdev_prop_blocksize, uint16_t)
+#define DEFINE_PROP_PCI_HOST_DEVADDR(_n, _s, _f) \
+    DEFINE_PROP(_n, _s, _f, qdev_prop_pci_host_devaddr, PCIHostDeviceAddress)
 
 #define DEFINE_PROP_END_OF_LIST()               \
     {}
 
 /* Set properties between creation and init.  */
 void *qdev_get_prop_ptr(DeviceState *dev, Property *prop);
-int qdev_prop_exists(DeviceState *dev, const char *name);
 int qdev_prop_parse(DeviceState *dev, const char *name, const char *value);
 void qdev_prop_set_bit(DeviceState *dev, const char *name, bool value);
 void qdev_prop_set_uint8(DeviceState *dev, const char *name, uint8_t value);
@@ -302,17 +318,15 @@ void qdev_prop_set_uint16(DeviceState *dev, const char *name, uint16_t value);
 void qdev_prop_set_uint32(DeviceState *dev, const char *name, uint32_t value);
 void qdev_prop_set_int32(DeviceState *dev, const char *name, int32_t value);
 void qdev_prop_set_uint64(DeviceState *dev, const char *name, uint64_t value);
-void qdev_prop_set_string(DeviceState *dev, const char *name, char *value);
+void qdev_prop_set_string(DeviceState *dev, const char *name, const char *value);
 void qdev_prop_set_chr(DeviceState *dev, const char *name, CharDriverState *value);
-void qdev_prop_set_netdev(DeviceState *dev, const char *name, VLANClientState *value);
-void qdev_prop_set_vlan(DeviceState *dev, const char *name, VLANState *value);
+void qdev_prop_set_netdev(DeviceState *dev, const char *name, NetClientState *value);
 int qdev_prop_set_drive(DeviceState *dev, const char *name, BlockDriverState *value) QEMU_WARN_UNUSED_RESULT;
 void qdev_prop_set_drive_nofail(DeviceState *dev, const char *name, BlockDriverState *value);
 void qdev_prop_set_macaddr(DeviceState *dev, const char *name, uint8_t *value);
 void qdev_prop_set_enum(DeviceState *dev, const char *name, int value);
 /* FIXME: Remove opaque pointer properties.  */
 void qdev_prop_set_ptr(DeviceState *dev, const char *name, void *value);
-void qdev_prop_set_defaults(DeviceState *dev, Property *props);
 
 void qdev_prop_register_global_list(GlobalProperty *props);
 void qdev_prop_set_globals(DeviceState *dev);
@@ -320,9 +334,6 @@ void error_set_from_qdev_prop_error(Error **errp, int ret, DeviceState *dev,
                                     Property *prop, const char *value);
 
 char *qdev_get_fw_dev_path(DeviceState *dev);
-
-/* This is a nasty hack to allow passing a NULL bus to qdev_create.  */
-extern struct BusInfo system_bus_info;
 
 /**
  * @qdev_property_add_static - add a @Property to a device referencing a
@@ -349,15 +360,13 @@ const VMStateDescription *qdev_get_vmsd(DeviceState *dev);
 
 const char *qdev_fw_name(DeviceState *dev);
 
-BusInfo *qdev_get_bus_info(DeviceState *dev);
-
-Property *qdev_get_props(DeviceState *dev);
-
 Object *qdev_get_machine(void);
 
 /* FIXME: make this a link<> */
 void qdev_set_parent_bus(DeviceState *dev, BusState *bus);
 
 extern int qdev_hotplug;
+
+char *qdev_get_dev_path(DeviceState *dev);
 
 #endif

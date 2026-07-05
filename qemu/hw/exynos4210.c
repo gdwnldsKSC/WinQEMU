@@ -33,8 +33,18 @@
 /* PWM */
 #define EXYNOS4210_PWM_BASE_ADDR       0x139D0000
 
+/* RTC */
+#define EXYNOS4210_RTC_BASE_ADDR       0x10070000
+
 /* MCT */
 #define EXYNOS4210_MCT_BASE_ADDR       0x10050000
+
+/* I2C */
+#define EXYNOS4210_I2C_SHIFT           0x00010000
+#define EXYNOS4210_I2C_BASE_ADDR       0x13860000
+/* Interrupt Group of External Interrupt Combiner for I2C */
+#define EXYNOS4210_I2C_INTG            27
+#define EXYNOS4210_HDMI_INTG           16
 
 /* UART's definitions */
 #define EXYNOS4210_UART0_BASE_ADDR     0x13800000
@@ -65,7 +75,7 @@
 static uint8_t chipid_and_omr[] = { 0x11, 0x02, 0x21, 0x43,
                                     0x09, 0x00, 0x00, 0x00 };
 
-void exynos4210_write_secondary(CPUARMState *env,
+void exynos4210_write_secondary(ARMCPU *cpu,
         const struct arm_boot_info *info)
 {
     int n;
@@ -97,23 +107,24 @@ void exynos4210_write_secondary(CPUARMState *env,
 Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
         unsigned long ram_size)
 {
-    qemu_irq cpu_irq[4];
-    int n;
+    qemu_irq cpu_irq[EXYNOS4210_NCPUS];
+    int i, n;
     Exynos4210State *s = g_new(Exynos4210State, 1);
     qemu_irq *irqp;
-    qemu_irq gate_irq[EXYNOS4210_IRQ_GATE_NINPUTS];
+    qemu_irq gate_irq[EXYNOS4210_NCPUS][EXYNOS4210_IRQ_GATE_NINPUTS];
     unsigned long mem_size;
     DeviceState *dev;
     SysBusDevice *busdev;
 
     for (n = 0; n < EXYNOS4210_NCPUS; n++) {
-        s->env[n] = cpu_init("cortex-a9");
-        if (!s->env[n]) {
+        s->cpu[n] = cpu_arm_init("cortex-a9");
+        if (!s->cpu[n]) {
             fprintf(stderr, "Unable to find CPU %d definition\n", n);
             exit(1);
         }
+
         /* Create PIC controller for each processor instance */
-        irqp = arm_pic_init_cpu(s->env[n]);
+        irqp = arm_pic_init_cpu(s->cpu[n]);
 
         /*
          * Get GICs gpio_in cpu_irq to connect a combiner to them later.
@@ -127,16 +138,18 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
     s->irq_table = exynos4210_init_irq(&s->irqs);
 
     /* IRQ Gate */
-    dev = qdev_create(NULL, "exynos4210.irq_gate");
-    qdev_init_nofail(dev);
-    /* Get IRQ Gate input in gate_irq */
-    for (n = 0; n < EXYNOS4210_IRQ_GATE_NINPUTS; n++) {
-        gate_irq[n] = qdev_get_gpio_in(dev, n);
-    }
-    busdev = sysbus_from_qdev(dev);
-    /* Connect IRQ Gate output to cpu_irq */
-    for (n = 0; n < EXYNOS4210_NCPUS; n++) {
-        sysbus_connect_irq(busdev, n, cpu_irq[n]);
+    for (i = 0; i < EXYNOS4210_NCPUS; i++) {
+        dev = qdev_create(NULL, "exynos4210.irq_gate");
+        qdev_prop_set_uint32(dev, "n_in", EXYNOS4210_IRQ_GATE_NINPUTS);
+        qdev_init_nofail(dev);
+        /* Get IRQ Gate input in gate_irq */
+        for (n = 0; n < EXYNOS4210_IRQ_GATE_NINPUTS; n++) {
+            gate_irq[i][n] = qdev_get_gpio_in(dev, n);
+        }
+        busdev = sysbus_from_qdev(dev);
+
+        /* Connect IRQ Gate output to cpu_irq */
+        sysbus_connect_irq(busdev, 0, cpu_irq[i]);
     }
 
     /* Private memory region and Internal GIC */
@@ -146,7 +159,7 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
     busdev = sysbus_from_qdev(dev);
     sysbus_mmio_map(busdev, 0, EXYNOS4210_SMP_PRIVATE_BASE_ADDR);
     for (n = 0; n < EXYNOS4210_NCPUS; n++) {
-        sysbus_connect_irq(busdev, n, gate_irq[n * 2]);
+        sysbus_connect_irq(busdev, n, gate_irq[n][0]);
     }
     for (n = 0; n < EXYNOS4210_INT_GIC_NIRQ; n++) {
         s->irqs.int_gic_irq[n] = qdev_get_gpio_in(dev, n);
@@ -165,7 +178,7 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
     /* Map Distributer interface */
     sysbus_mmio_map(busdev, 1, EXYNOS4210_EXT_GIC_DIST_BASE_ADDR);
     for (n = 0; n < EXYNOS4210_NCPUS; n++) {
-        sysbus_connect_irq(busdev, n, gate_irq[n * 2 + 1]);
+        sysbus_connect_irq(busdev, n, gate_irq[n][1]);
     }
     for (n = 0; n < EXYNOS4210_EXT_GIC_NIRQ; n++) {
         s->irqs.ext_gic_irq[n] = qdev_get_gpio_in(dev, n);
@@ -213,7 +226,7 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
     /* mirror of iROM */
     memory_region_init_alias(&s->irom_alias_mem, "exynos4210.irom_alias",
                              &s->irom_mem,
-                             EXYNOS4210_IROM_BASE_ADDR,
+                             0,
                              EXYNOS4210_IROM_SIZE);
     memory_region_set_readonly(&s->irom_alias_mem, true);
     memory_region_add_subregion(system_mem, EXYNOS4210_IROM_MIRROR_BASE_ADDR,
@@ -255,6 +268,11 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
                           s->irq_table[exynos4210_get_irq(22, 3)],
                           s->irq_table[exynos4210_get_irq(22, 4)],
                           NULL);
+    /* RTC */
+    sysbus_create_varargs("exynos4210.rtc", EXYNOS4210_RTC_BASE_ADDR,
+                          s->irq_table[exynos4210_get_irq(23, 0)],
+                          s->irq_table[exynos4210_get_irq(23, 1)],
+                          NULL);
 
     /* Multi Core Timer */
     dev = qdev_create(NULL, "exynos4210.mct");
@@ -271,6 +289,26 @@ Exynos4210State *exynos4210_init(MemoryRegion *system_mem,
     sysbus_connect_irq(busdev, 5,
             s->irq_table[exynos4210_get_irq(35, 3)]);
     sysbus_mmio_map(busdev, 0, EXYNOS4210_MCT_BASE_ADDR);
+
+    /*** I2C ***/
+    for (n = 0; n < EXYNOS4210_I2C_NUMBER; n++) {
+        uint32_t addr = EXYNOS4210_I2C_BASE_ADDR + EXYNOS4210_I2C_SHIFT * n;
+        qemu_irq i2c_irq;
+
+        if (n < 8) {
+            i2c_irq = s->irq_table[exynos4210_get_irq(EXYNOS4210_I2C_INTG, n)];
+        } else {
+            i2c_irq = s->irq_table[exynos4210_get_irq(EXYNOS4210_HDMI_INTG, 1)];
+        }
+
+        dev = qdev_create(NULL, "exynos4210.i2c");
+        qdev_init_nofail(dev);
+        busdev = sysbus_from_qdev(dev);
+        sysbus_connect_irq(busdev, 0, i2c_irq);
+        sysbus_mmio_map(busdev, 0, addr);
+        s->i2c_if[n] = (i2c_bus *)qdev_get_child_bus(dev, "i2c");
+    }
+
 
     /*** UARTs ***/
     exynos4210_uart_create(EXYNOS4210_UART0_BASE_ADDR,

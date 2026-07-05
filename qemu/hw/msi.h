@@ -24,8 +24,14 @@
 #include "qemu-common.h"
 #include "pci.h"
 
+struct MSIMessage {
+    uint64_t address;
+    uint32_t data;
+};
+
 extern bool msi_supported;
 
+void msi_set_message(PCIDevice *dev, MSIMessage msg);
 bool msi_enabled(const PCIDevice *dev);
 int msi_init(struct PCIDevice *dev, uint8_t offset,
              unsigned int nr_vectors, bool msi64bit, bool msi_per_vector_mask);

@@ -172,6 +172,7 @@
     <ClCompile Include="qemu\cutils.c" />
     <ClCompile Include="qemu\error.c" />
     <ClCompile Include="qemu\iohandler.c" />
+    <ClCompile Include="qemu\iov.c" />
     <ClCompile Include="qemu\json-lexer.c" />
     <ClCompile Include="qemu\json-parser.c" />
     <ClCompile Include="qemu\json-streamer.c" />

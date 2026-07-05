@@ -1600,10 +1600,17 @@ static void eepro100_write(void *opaque, target_phys_addr_t addr,
     EEPRO100State *s = opaque;
 
     switch (size) {
-    case 1: return eepro100_write1(s, addr, data);
-    case 2: return eepro100_write2(s, addr, data);
-    case 4: return eepro100_write4(s, addr, data);
-    default: abort();
+    case 1:
+        eepro100_write1(s, addr, data);
+        break;
+    case 2:
+        eepro100_write2(s, addr, data);
+        break;
+    case 4:
+        eepro100_write4(s, addr, data);
+        break;
+    default:
+        abort();
     }
 }
 
@@ -1613,7 +1620,7 @@ static const MemoryRegionOps eepro100_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
-static int nic_can_receive(VLANClientState *nc)
+static int nic_can_receive(NetClientState *nc)
 {
     EEPRO100State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     TRACE(RXTX, logout("%p\n", s));
@@ -1623,7 +1630,7 @@ static int nic_can_receive(VLANClientState *nc)
 #endif
 }
 
-static ssize_t nic_receive(VLANClientState *nc, const uint8_t * buf, size_t size)
+static ssize_t nic_receive(NetClientState *nc, const uint8_t * buf, size_t size)
 {
     /* TODO:
      * - Magic packets should set bit 30 in power management driver register.
@@ -1828,14 +1835,14 @@ static const VMStateDescription vmstate_eepro100 = {
     }
 };
 
-static void nic_cleanup(VLANClientState *nc)
+static void nic_cleanup(NetClientState *nc)
 {
     EEPRO100State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
     s->nic = NULL;
 }
 
-static int pci_nic_uninit(PCIDevice *pci_dev)
+static void pci_nic_uninit(PCIDevice *pci_dev)
 {
     EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, pci_dev);
 
@@ -1844,12 +1851,11 @@ static int pci_nic_uninit(PCIDevice *pci_dev)
     memory_region_destroy(&s->flash_bar);
     vmstate_unregister(&pci_dev->qdev, s->vmstate, s);
     eeprom93xx_free(&pci_dev->qdev, s->eeprom);
-    qemu_del_vlan_client(&s->nic->nc);
-    return 0;
+    qemu_del_net_client(&s->nic->nc);
 }
 
 static NetClientInfo net_eepro100_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = nic_can_receive,
     .receive = nic_receive,

@@ -1,7 +1,7 @@
 
 
 DEF("check", img_check,
-"check [-f fmt] filename")
+"check [-f fmt] [-r [leaks | all]] filename")
 
 DEF("create", img_create,
 "create [-f fmt] [-o options] filename [size]")

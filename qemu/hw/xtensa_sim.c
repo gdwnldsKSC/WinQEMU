@@ -37,9 +37,11 @@ static uint64_t translate_phys_addr(void *env, uint64_t addr)
     return cpu_get_phys_page_debug(env, addr);
 }
 
-static void sim_reset(void *env)
+static void sim_reset(void *opaque)
 {
-    cpu_state_reset(env);
+    XtensaCPU *cpu = opaque;
+
+    cpu_reset(CPU(cpu));
 }
 
 static void sim_init(ram_addr_t ram_size,
@@ -47,22 +49,25 @@ static void sim_init(ram_addr_t ram_size,
         const char *kernel_filename, const char *kernel_cmdline,
         const char *initrd_filename, const char *cpu_model)
 {
+    XtensaCPU *cpu = NULL;
     CPUXtensaState *env = NULL;
     MemoryRegion *ram, *rom;
     int n;
 
     for (n = 0; n < smp_cpus; n++) {
-        env = cpu_init(cpu_model);
-        if (!env) {
+        cpu = cpu_xtensa_init(cpu_model);
+        if (cpu == NULL) {
             fprintf(stderr, "Unable to find CPU definition\n");
             exit(1);
         }
+        env = &cpu->env;
+
         env->sregs[PRID] = n;
-        qemu_register_reset(sim_reset, env);
+        qemu_register_reset(sim_reset, cpu);
         /* Need MMU initialized prior to ELF loading,
          * so that ELF gets loaded into virtual addresses
          */
-        sim_reset(env);
+        sim_reset(cpu);
     }
 
     ram = g_malloc(sizeof(*ram));
@@ -97,7 +102,7 @@ static void xtensa_sim_init(ram_addr_t ram_size,
                      const char *initrd_filename, const char *cpu_model)
 {
     if (!cpu_model) {
-        cpu_model = "dc232b";
+        cpu_model = XTENSA_DEFAULT_CPU_MODEL;
     }
     sim_init(ram_size, boot_device, kernel_filename, kernel_cmdline,
             initrd_filename, cpu_model);
@@ -105,7 +110,8 @@ static void xtensa_sim_init(ram_addr_t ram_size,
 
 static QEMUMachine xtensa_sim_machine = {
     .name = "sim",
-    .desc = "sim machine (dc232b)",
+    .desc = "sim machine (" XTENSA_DEFAULT_CPU_MODEL ")",
+    .is_default = true,
     .init = xtensa_sim_init,
     .max_cpus = 4,
 };

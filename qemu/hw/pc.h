@@ -106,7 +106,7 @@ void pc_register_ferr_irq(qemu_irq irq);
 void pc_acpi_smi_interrupt(void *opaque, int irq, int level);
 
 void pc_cpus_init(const char *cpu_model);
-void pc_memory_init(MemoryRegion *system_memory,
+void *pc_memory_init(MemoryRegion *system_memory,
                     const char *kernel_filename,
                     const char *kernel_cmdline,
                     const char *initrd_filename,
@@ -142,7 +142,7 @@ int acpi_table_add(const char *table_desc);
 
 i2c_bus *piix4_pm_init(PCIBus *bus, int devfn, uint32_t smb_io_base,
                        qemu_irq sci_irq, qemu_irq smi_irq,
-                       int kvm_enabled);
+                       int kvm_enabled, void *fw_cfg);
 void piix4_smbus_register_device(SMBusDevice *dev, uint8_t addr);
 
 /* hpet.c */
@@ -189,13 +189,9 @@ static inline DeviceState *isa_vga_init(ISABus *bus)
     return &dev->qdev;
 }
 
-DeviceState *pci_vga_init(PCIBus *bus);
 int isa_vga_mm_init(target_phys_addr_t vram_base,
                     target_phys_addr_t ctrl_base, int it_shift,
                     MemoryRegion *address_space);
-
-/* cirrus_vga.c */
-DeviceState *pci_cirrus_vga_init(PCIBus *bus);
 
 /* ne2000.c */
 static inline bool isa_ne2000_init(ISABus *bus, int base, int irq, NICInfo *nd)

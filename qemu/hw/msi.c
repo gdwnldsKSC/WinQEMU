@@ -105,6 +105,23 @@ static inline uint8_t msi_pending_off(const PCIDevice* dev, bool msi64bit)
     return dev->msi_cap + (msi64bit ? PCI_MSI_PENDING_64 : PCI_MSI_PENDING_32);
 }
 
+/*
+ * Special API for POWER to configure the vectors through
+ * a side channel. Should never be used by devices.
+ */
+void msi_set_message(PCIDevice *dev, MSIMessage msg)
+{
+    uint16_t flags = pci_get_word(dev->config + msi_flags_off(dev));
+    bool msi64bit = flags & PCI_MSI_FLAGS_64BIT;
+
+    if (msi64bit) {
+        pci_set_quad(dev->config + msi_address_lo_off(dev), msg.address);
+    } else {
+        pci_set_long(dev->config + msi_address_lo_off(dev), msg.address);
+    }
+    pci_set_word(dev->config + msi_data_off(dev, msi64bit), msg.data);
+}
+
 bool msi_enabled(const PCIDevice *dev)
 {
     return msi_present(dev) &&
@@ -175,7 +192,7 @@ void msi_uninit(struct PCIDevice *dev)
     uint16_t flags;
     uint8_t cap_size;
 
-    if (!(dev->cap_present & QEMU_PCI_CAP_MSI)) {
+    if (!msi_present(dev)) {
         return;
     }
     flags = pci_get_word(dev->config + msi_flags_off(dev));
@@ -190,6 +207,10 @@ void msi_reset(PCIDevice *dev)
 {
     uint16_t flags;
     bool msi64bit;
+
+    if (!msi_present(dev)) {
+        return;
+    }
 
     flags = pci_get_word(dev->config + msi_flags_off(dev));
     flags &= ~(PCI_MSI_FLAGS_QSIZE | PCI_MSI_FLAGS_ENABLE);
@@ -260,7 +281,7 @@ void msi_notify(PCIDevice *dev, unsigned int vector)
     stl_le_phys(address, data);
 }
 
-/* call this function after updating configs by pci_default_write_config(). */
+/* Normally called by pci_default_write_config(). */
 void msi_write_config(PCIDevice *dev, uint32_t addr, uint32_t val, int len)
 {
     uint16_t flags = pci_get_word(dev->config + msi_flags_off(dev));
@@ -272,7 +293,8 @@ void msi_write_config(PCIDevice *dev, uint32_t addr, uint32_t val, int len)
     unsigned int vector;
     uint32_t pending;
 
-    if (!ranges_overlap(addr, len, dev->msi_cap, msi_cap_sizeof(flags))) {
+    if (!msi_present(dev) ||
+        !ranges_overlap(addr, len, dev->msi_cap, msi_cap_sizeof(flags))) {
         return;
     }
 

@@ -13,6 +13,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdbool.h>
 #ifdef __OpenBSD__
 #include <sys/types.h>
 #include <sys/signal.h>
@@ -92,10 +93,12 @@ typedef signed int              int_fast16_t;
 #ifndef always_inline
 #if !((__GNUC__ < 3) || defined(__APPLE__))
 #ifdef __OPTIMIZE__
+#undef inline
 #define inline __attribute__ (( always_inline )) __inline__
 #endif
 #endif
 #else
+#undef inline
 #define inline always_inline
 #endif
 
@@ -122,6 +125,11 @@ void qemu_vfree(void *ptr);
 #else
 #define QEMU_MADV_MERGEABLE QEMU_MADV_INVALID
 #endif
+#ifdef MADV_DONTDUMP
+#define QEMU_MADV_DONTDUMP MADV_DONTDUMP
+#else
+#define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
+#endif
 
 #elif defined(CONFIG_POSIX_MADVISE)
 
@@ -129,6 +137,7 @@ void qemu_vfree(void *ptr);
 #define QEMU_MADV_DONTNEED  POSIX_MADV_DONTNEED
 #define QEMU_MADV_DONTFORK  QEMU_MADV_INVALID
 #define QEMU_MADV_MERGEABLE QEMU_MADV_INVALID
+#define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
 
 #else /* no-op */
 
@@ -136,6 +145,7 @@ void qemu_vfree(void *ptr);
 #define QEMU_MADV_DONTNEED  QEMU_MADV_INVALID
 #define QEMU_MADV_DONTFORK  QEMU_MADV_INVALID
 #define QEMU_MADV_MERGEABLE QEMU_MADV_INVALID
+#define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
 
 #endif
 
@@ -170,5 +180,11 @@ static inline void qemu_timersub(const struct timeval *val1,
 #endif
 
 void qemu_set_cloexec(int fd);
+
+void qemu_set_version(const char *);
+const char *qemu_get_version(void);
+
+void fips_set_state(bool requested);
+bool fips_get_state(void);
 
 #endif

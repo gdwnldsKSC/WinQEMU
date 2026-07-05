@@ -25,9 +25,9 @@
 #define QEMU_NET_DUMP_H
 
 #include "net.h"
-#include "qemu-common.h"
+#include "qapi-types.h"
 
-int net_init_dump(QemuOpts *opts, Monitor *mon,
-                  const char *name, VLANState *vlan);
+int net_init_dump(const NetClientOptions *opts, const char *name,
+                  NetClientState *peer);
 
 #endif /* QEMU_NET_DUMP_H */

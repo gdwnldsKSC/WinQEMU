@@ -59,7 +59,7 @@
 .name       = "block_job_cancel",
 .args_type  = "device:B",
 .params     = "device",
-.help       = "stop an active block streaming operation",
+.help       = "stop an active background block operation",
 .mhandler.cmd = hmp_block_job_cancel,
 },
 
@@ -447,6 +447,20 @@
 
 
 {
+.name       = "migrate_set_cache_size",
+.args_type  = "value:o",
+.params     = "value",
+.help       = "set cache size (in bytes) for XBZRLE migrations,"
+"the cache size will be rounded down to the nearest "
+"power of 2.\n"
+"The cache size affects the number of cache misses."
+"In case of a high cache miss ratio you need to increase"
+" the cache size",
+.mhandler.cmd = hmp_migrate_set_cache_size,
+},
+
+
+{
 .name       = "migrate_set_speed",
 .args_type  = "value:o",
 .params     = "value",
@@ -466,6 +480,15 @@
 
 
 {
+.name       = "migrate_set_capability",
+.args_type  = "capability:s,state:b",
+.params     = "capability state",
+.help       = "Enable/Disable the usage of a capability for migration",
+.mhandler.cmd = hmp_migrate_set_capability,
+},
+
+
+{
 .name       = "client_migrate_info",
 .args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
 .params     = "protocol hostname port tls-port cert-subject",
@@ -475,6 +498,21 @@
 .flags      = MONITOR_CMD_ASYNC,
 },
 
+
+#if defined(CONFIG_HAVE_CORE_DUMP)
+{
+.name       = "dump-guest-memory",
+.args_type  = "paging:-p,protocol:s,begin:i?,length:i?",
+.params     = "[-p] protocol [begin] [length]",
+.help       = "dump guest memory to file"
+"\n\t\t\t begin(optional): the starting physical address"
+"\n\t\t\t length(optional): the memory size, in bytes",
+.user_print = monitor_user_noop,
+.mhandler.cmd = hmp_dump_guest_memory,
+},
+
+
+#endif
 
 {
 .name       = "snapshot_blkdev",
@@ -572,8 +610,7 @@
 .args_type  = "netdev:O",
 .params     = "[user|tap|socket],id=str[,prop=value][,...]",
 .help       = "add host network device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_netdev_add,
+.mhandler.cmd = hmp_netdev_add,
 },
 
 
@@ -582,8 +619,7 @@
 .args_type  = "id:s",
 .params     = "id",
 .help       = "remove host network device",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_netdev_del,
+.mhandler.cmd = hmp_netdev_del,
 },
 
 
@@ -697,8 +733,7 @@
 .args_type  = "fdname:s",
 .params     = "getfd name",
 .help       = "receive a file descriptor via SCM rights and assign it a name",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_getfd,
+.mhandler.cmd = hmp_getfd,
 },
 
 
@@ -707,8 +742,7 @@
 .args_type  = "fdname:s",
 .params     = "closefd name",
 .help       = "close a file descriptor previously passed via SCM rights",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_closefd,
+.mhandler.cmd = hmp_closefd,
 },
 
 

@@ -560,13 +560,15 @@ static void xen_log_global_stop(MemoryListener *listener)
 
 static void xen_eventfd_add(MemoryListener *listener,
                             MemoryRegionSection *section,
-                            bool match_data, uint64_t data, int fd)
+                            bool match_data, uint64_t data,
+                            EventNotifier *e)
 {
 }
 
 static void xen_eventfd_del(MemoryListener *listener,
                             MemoryRegionSection *section,
-                            bool match_data, uint64_t data, int fd)
+                            bool match_data, uint64_t data,
+                            EventNotifier *e)
 {
 }
 
@@ -710,7 +712,8 @@ static void cpu_ioreq_pio(ioreq_t *req)
 
             for (i = 0; i < req->count; i++) {
                 tmp = do_inp(req->addr, req->size);
-                cpu_physical_memory_write(req->data + (sign * i * req->size),
+                cpu_physical_memory_write(
+                        req->data + (sign * i * (int64_t)req->size),
                         (uint8_t *) &tmp, req->size);
             }
         }
@@ -721,7 +724,8 @@ static void cpu_ioreq_pio(ioreq_t *req)
             for (i = 0; i < req->count; i++) {
                 uint32_t tmp = 0;
 
-                cpu_physical_memory_read(req->data + (sign * i * req->size),
+                cpu_physical_memory_read(
+                        req->data + (sign * i * (int64_t)req->size),
                         (uint8_t*) &tmp, req->size);
                 do_outp(req->addr, req->size, tmp);
             }
@@ -738,12 +742,14 @@ static void cpu_ioreq_move(ioreq_t *req)
     if (!req->data_is_ptr) {
         if (req->dir == IOREQ_READ) {
             for (i = 0; i < req->count; i++) {
-                cpu_physical_memory_read(req->addr + (sign * i * req->size),
+                cpu_physical_memory_read(
+                        req->addr + (sign * i * (int64_t)req->size),
                         (uint8_t *) &req->data, req->size);
             }
         } else if (req->dir == IOREQ_WRITE) {
             for (i = 0; i < req->count; i++) {
-                cpu_physical_memory_write(req->addr + (sign * i * req->size),
+                cpu_physical_memory_write(
+                        req->addr + (sign * i * (int64_t)req->size),
                         (uint8_t *) &req->data, req->size);
             }
         }
@@ -752,16 +758,20 @@ static void cpu_ioreq_move(ioreq_t *req)
 
         if (req->dir == IOREQ_READ) {
             for (i = 0; i < req->count; i++) {
-                cpu_physical_memory_read(req->addr + (sign * i * req->size),
+                cpu_physical_memory_read(
+                        req->addr + (sign * i * (int64_t)req->size),
                         (uint8_t*) &tmp, req->size);
-                cpu_physical_memory_write(req->data + (sign * i * req->size),
+                cpu_physical_memory_write(
+                        req->data + (sign * i * (int64_t)req->size),
                         (uint8_t*) &tmp, req->size);
             }
         } else if (req->dir == IOREQ_WRITE) {
             for (i = 0; i < req->count; i++) {
-                cpu_physical_memory_read(req->data + (sign * i * req->size),
+                cpu_physical_memory_read(
+                        req->data + (sign * i * (int64_t)req->size),
                         (uint8_t*) &tmp, req->size);
-                cpu_physical_memory_write(req->addr + (sign * i * req->size),
+                cpu_physical_memory_write(
+                        req->addr + (sign * i * (int64_t)req->size),
                         (uint8_t*) &tmp, req->size);
             }
         }
@@ -1190,4 +1200,16 @@ void destroy_hvm_domain(bool reboot)
 void xen_register_framebuffer(MemoryRegion *mr)
 {
     framebuffer = mr;
+}
+
+void xen_shutdown_fatal_error(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    fprintf(stderr, "Will destroy the domain.\n");
+    /* destroy the domain */
+    qemu_system_shutdown_request();
 }

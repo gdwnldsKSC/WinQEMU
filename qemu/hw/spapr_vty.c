@@ -26,7 +26,7 @@ static void vty_receive(void *opaque, const uint8_t *buf, int size)
 
     if ((dev->in == dev->out) && size) {
         /* toggle line to simulate edge interrupt */
-        qemu_irq_pulse(dev->sdev.qirq);
+        qemu_irq_pulse(spapr_vio_qirq(&dev->sdev));
     }
     for (i = 0; i < size; i++) {
         assert((dev->in - dev->out) < VTERM_BUFSIZE);
@@ -133,7 +133,7 @@ void spapr_vty_create(VIOsPAPRBus *bus, CharDriverState *chardev)
 }
 
 static Property spapr_vty_properties[] = {
-    DEFINE_SPAPR_PROPERTIES(VIOsPAPRVTYDevice, sdev, 0),
+    DEFINE_SPAPR_PROPERTIES(VIOsPAPRVTYDevice, sdev),
     DEFINE_PROP_CHR("chardev", VIOsPAPRVTYDevice, chardev),
     DEFINE_PROP_END_OF_LIST(),
 };
@@ -160,7 +160,7 @@ static TypeInfo spapr_vty_info = {
 VIOsPAPRDevice *spapr_vty_get_default(VIOsPAPRBus *bus)
 {
     VIOsPAPRDevice *sdev, *selected;
-    DeviceState *iter;
+    BusChild *kid;
 
     /*
      * To avoid the console bouncing around we want one VTY to be
@@ -169,7 +169,9 @@ VIOsPAPRDevice *spapr_vty_get_default(VIOsPAPRBus *bus)
      */
 
     selected = NULL;
-    QTAILQ_FOREACH(iter, &bus->bus.children, sibling) {
+    QTAILQ_FOREACH(kid, &bus->bus.children, sibling) {
+        DeviceState *iter = kid->child;
+
         /* Only look at VTY devices */
         if (!object_dynamic_cast(OBJECT(iter), "spapr-vty")) {
             continue;

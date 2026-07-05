@@ -36,7 +36,7 @@ typedef struct ISANE2000State {
     NE2000State ne2000;
 } ISANE2000State;
 
-static void isa_ne2000_cleanup(VLANClientState *nc)
+static void isa_ne2000_cleanup(NetClientState *nc)
 {
     NE2000State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -44,7 +44,7 @@ static void isa_ne2000_cleanup(VLANClientState *nc)
 }
 
 static NetClientInfo net_ne2000_isa_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = ne2000_can_receive,
     .receive = ne2000_receive,

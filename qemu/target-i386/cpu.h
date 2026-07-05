@@ -400,6 +400,7 @@
 #define CPUID_EXT_X2APIC   (1 << 21)
 #define CPUID_EXT_MOVBE    (1 << 22)
 #define CPUID_EXT_POPCNT   (1 << 23)
+#define CPUID_EXT_TSC_DEADLINE_TIMER (1 << 24)
 #define CPUID_EXT_XSAVE    (1 << 26)
 #define CPUID_EXT_OSXSAVE  (1 << 27)
 #define CPUID_EXT_HYPERVISOR  (1 << 31)
@@ -477,6 +478,7 @@
                                  for syscall instruction */
 
 /* i386-specific interrupt pending bits.  */
+#define CPU_INTERRUPT_POLL      CPU_INTERRUPT_TGT_EXT_1
 #define CPU_INTERRUPT_SMI       CPU_INTERRUPT_TGT_EXT_2
 #define CPU_INTERRUPT_NMI       CPU_INTERRUPT_TGT_EXT_3
 #define CPU_INTERRUPT_MCE       CPU_INTERRUPT_TGT_EXT_4
@@ -701,6 +703,7 @@ typedef struct CPUX86State {
     uint64_t system_time_msr;
     uint64_t wall_clock_msr;
     uint64_t async_pf_en_msr;
+    uint64_t pv_eoi_en_msr;
 
     uint64_t tsc;
     uint64_t tsc_deadline;
@@ -791,7 +794,7 @@ typedef struct CPUX86State {
 
 #include "cpu-qom.h"
 
-CPUX86State *cpu_x86_init(const char *cpu_model);
+X86CPU *cpu_x86_init(const char *cpu_model);
 int cpu_x86_exec(CPUX86State *s);
 void x86_cpu_list (FILE *f, fprintf_function cpu_fprintf, const char *optarg);
 void x86_cpudef_setup(void);
@@ -937,6 +940,7 @@ static inline int hw_breakpoint_len(unsigned long dr7, int index)
 void hw_breakpoint_insert(CPUX86State *env, int index);
 void hw_breakpoint_remove(CPUX86State *env, int index);
 int check_hw_breakpoints(CPUX86State *env, int force_dr6_update);
+void breakpoint_handler(CPUX86State *env);
 
 /* will be suppressed */
 void cpu_x86_update_cr0(CPUX86State *env, uint32_t new_cr0);
@@ -964,7 +968,15 @@ uint64_t cpu_get_tsc(CPUX86State *env);
 #define TARGET_VIRT_ADDR_SPACE_BITS 32
 #endif
 
-#define cpu_init cpu_x86_init
+static inline CPUX86State *cpu_init(const char *cpu_model)
+{
+    X86CPU *cpu = cpu_x86_init(cpu_model);
+    if (cpu == NULL) {
+        return NULL;
+    }
+    return &cpu->env;
+}
+
 #define cpu_exec cpu_x86_exec
 #define cpu_gen_code cpu_x86_gen_code
 #define cpu_signal_handler cpu_x86_signal_handler
@@ -1006,6 +1018,16 @@ static inline int cpu_mmu_index (CPUX86State *env)
 #define CC_DST (env->cc_dst)
 #define CC_OP  (env->cc_op)
 
+/* n must be a constant to be efficient */
+static inline target_long lshift(target_long x, int n)
+{
+    if (n >= 0) {
+        return x << n;
+    } else {
+        return x >> (-n);
+    }
+}
+
 /* float macros */
 #define FT0    (env->ft0)
 #define ST0    (env->fpregs[env->fpstt].d)
@@ -1033,7 +1055,8 @@ static inline void cpu_clone_regs(CPUX86State *env, target_ulong newsp)
 
 static inline bool cpu_has_work(CPUX86State *env)
 {
-    return ((env->interrupt_request & CPU_INTERRUPT_HARD) &&
+    return ((env->interrupt_request & (CPU_INTERRUPT_HARD |
+                                       CPU_INTERRUPT_POLL)) &&
             (env->eflags & IF_MASK)) ||
            (env->interrupt_request & (CPU_INTERRUPT_NMI |
                                       CPU_INTERRUPT_INIT |
@@ -1057,8 +1080,8 @@ static inline void cpu_get_tb_cpu_state(CPUX86State *env, target_ulong *pc,
         (env->eflags & (IOPL_MASK | TF_MASK | RF_MASK | VM_MASK));
 }
 
-void do_cpu_init(CPUX86State *env);
-void do_cpu_sipi(CPUX86State *env);
+void do_cpu_init(X86CPU *cpu);
+void do_cpu_sipi(X86CPU *cpu);
 
 #define MCE_INJECT_BROADCAST    1
 #define MCE_INJECT_UNCOND_AO    2
@@ -1067,18 +1090,56 @@ void cpu_x86_inject_mce(Monitor *mon, CPUX86State *cenv, int bank,
                         uint64_t status, uint64_t mcg_status, uint64_t addr,
                         uint64_t misc, int flags);
 
+/* excp_helper.c */
+void QEMU_NORETURN raise_exception(CPUX86State *env, int exception_index);
+void QEMU_NORETURN raise_exception_err(CPUX86State *env, int exception_index,
+                                       int error_code);
+void QEMU_NORETURN raise_interrupt(CPUX86State *nenv, int intno, int is_int,
+                                   int error_code, int next_eip_addend);
+
+/* cc_helper.c */
+extern const uint8_t parity_table[256];
+uint32_t cpu_cc_compute_all(CPUX86State *env1, int op);
+
+static inline uint32_t cpu_compute_eflags(CPUX86State *env)
+{
+    return env->eflags | cpu_cc_compute_all(env, CC_OP) | (DF & DF_MASK);
+}
+
+/* NOTE: CC_OP must be modified manually to CC_OP_EFLAGS */
+static inline void cpu_load_eflags(CPUX86State *env, int eflags,
+                                   int update_mask)
+{
+    CC_SRC = eflags & (CC_O | CC_S | CC_Z | CC_A | CC_P | CC_C);
+    DF = 1 - (2 * ((eflags >> 10) & 1));
+    env->eflags = (env->eflags & ~update_mask) |
+        (eflags & update_mask) | 0x2;
+}
+
+/* load efer and update the corresponding hflags. XXX: do consistency
+   checks with cpuid bits? */
+static inline void cpu_load_efer(CPUX86State *env, uint64_t val)
+{
+    env->efer = val;
+    env->hflags &= ~(HF_LMA_MASK | HF_SVME_MASK);
+    if (env->efer & MSR_EFER_LMA) {
+        env->hflags |= HF_LMA_MASK;
+    }
+    if (env->efer & MSR_EFER_SVME) {
+        env->hflags |= HF_SVME_MASK;
+    }
+}
+
+/* svm_helper.c */
+void cpu_svm_check_intercept_param(CPUX86State *env1, uint32_t type,
+                                   uint64_t param);
+void cpu_vmexit(CPUX86State *nenv, uint32_t exit_code, uint64_t exit_info_1);
+
 /* op_helper.c */
 void do_interrupt(CPUX86State *env);
 void do_interrupt_x86_hardirq(CPUX86State *env, int intno, int is_hw);
-void QEMU_NORETURN raise_exception_env(int exception_index, CPUX86State *nenv);
-void QEMU_NORETURN raise_exception_err_env(CPUX86State *nenv, int exception_index,
-                                           int error_code);
 
 void do_smm_enter(CPUX86State *env1);
-
-void svm_check_intercept(CPUX86State *env1, uint32_t type);
-
-uint32_t cpu_cc_compute_all(CPUX86State *env1, int op);
 
 void cpu_report_tpr_access(CPUX86State *env, TPRAccess access);
 

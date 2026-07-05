@@ -26,12 +26,6 @@
 
 //#define DEBUG_MMU
 
-/* NOTE: must be called outside the CPU execute loop */
-void cpu_state_reset(CPUX86State *env)
-{
-    cpu_reset(ENV_GET_CPU(env));
-}
-
 static void cpu_x86_version(CPUX86State *env, int *family, int *model)
 {
     int cpuver = env->cpuid_version;
@@ -947,9 +941,7 @@ int check_hw_breakpoints(CPUX86State *env, int force_dr6_update)
     return hit_enabled;
 }
 
-static CPUDebugExcpHandler *prev_debug_excp_handler;
-
-static void breakpoint_handler(CPUX86State *env)
+void breakpoint_handler(CPUX86State *env)
 {
     CPUBreakpoint *bp;
 
@@ -957,7 +949,7 @@ static void breakpoint_handler(CPUX86State *env)
         if (env->watchpoint_hit->flags & BP_CPU) {
             env->watchpoint_hit = NULL;
             if (check_hw_breakpoints(env, 0))
-                raise_exception_env(EXCP01_DB, env);
+                raise_exception(env, EXCP01_DB);
             else
                 cpu_resume_from_signal(env, NULL);
         }
@@ -966,13 +958,11 @@ static void breakpoint_handler(CPUX86State *env)
             if (bp->pc == env->eip) {
                 if (bp->flags & BP_CPU) {
                     check_hw_breakpoints(env, 1);
-                    raise_exception_env(EXCP01_DB, env);
+                    raise_exception(env, EXCP01_DB);
                 }
                 break;
             }
     }
-    if (prev_debug_excp_handler)
-        prev_debug_excp_handler(env);
 }
 
 typedef struct MCEInjectionParams {
@@ -1157,25 +1147,15 @@ int cpu_x86_get_descr_debug(CPUX86State *env, unsigned int selector,
     return 1;
 }
 
-CPUX86State *cpu_x86_init(const char *cpu_model)
+X86CPU *cpu_x86_init(const char *cpu_model)
 {
     X86CPU *cpu;
     CPUX86State *env;
-    static int inited;
 
     cpu = X86_CPU(object_new(TYPE_X86_CPU));
     env = &cpu->env;
     env->cpu_model_str = cpu_model;
 
-    /* init various static tables used in TCG mode */
-    if (tcg_enabled() && !inited) {
-        inited = 1;
-        optimize_flags_init();
-#ifndef CONFIG_USER_ONLY
-        prev_debug_excp_handler =
-            cpu_set_debug_excp_handler(breakpoint_handler);
-#endif
-    }
     if (cpu_x86_register(cpu, cpu_model) < 0) {
         object_delete(OBJECT(cpu));
         return NULL;
@@ -1183,31 +1163,33 @@ CPUX86State *cpu_x86_init(const char *cpu_model)
 
     x86_cpu_realize(OBJECT(cpu), NULL);
 
-    return env;
+    return cpu;
 }
 
 #if !defined(CONFIG_USER_ONLY)
-void do_cpu_init(CPUX86State *env)
+void do_cpu_init(X86CPU *cpu)
 {
+    CPUX86State *env = &cpu->env;
     int sipi = env->interrupt_request & CPU_INTERRUPT_SIPI;
     uint64_t pat = env->pat;
 
-    cpu_state_reset(env);
+    cpu_reset(CPU(cpu));
     env->interrupt_request = sipi;
     env->pat = pat;
     apic_init_reset(env->apic_state);
-    env->halted = !cpu_is_bsp(env);
 }
 
-void do_cpu_sipi(CPUX86State *env)
+void do_cpu_sipi(X86CPU *cpu)
 {
+    CPUX86State *env = &cpu->env;
+
     apic_sipi(env->apic_state);
 }
 #else
-void do_cpu_init(CPUX86State *env)
+void do_cpu_init(X86CPU *cpu)
 {
 }
-void do_cpu_sipi(CPUX86State *env)
+void do_cpu_sipi(X86CPU *cpu)
 {
 }
 #endif

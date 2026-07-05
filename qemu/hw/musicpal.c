@@ -182,12 +182,12 @@ static void eth_rx_desc_get(uint32_t addr, mv88w8618_rx_desc *desc)
     le32_to_cpus(&desc->next);
 }
 
-static int eth_can_receive(VLANClientState *nc)
+static int eth_can_receive(NetClientState *nc)
 {
     return 1;
 }
 
-static ssize_t eth_receive(VLANClientState *nc, const uint8_t *buf, size_t size)
+static ssize_t eth_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
     mv88w8618_eth_state *s = DO_UPCAST(NICState, nc, nc)->opaque;
     uint32_t desc_addr;
@@ -366,7 +366,7 @@ static const MemoryRegionOps mv88w8618_eth_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
-static void eth_cleanup(VLANClientState *nc)
+static void eth_cleanup(NetClientState *nc)
 {
     mv88w8618_eth_state *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -374,7 +374,7 @@ static void eth_cleanup(VLANClientState *nc)
 }
 
 static NetClientInfo net_mv88w8618_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = eth_can_receive,
     .receive = eth_receive,
@@ -1513,7 +1513,7 @@ static void musicpal_init(ram_addr_t ram_size,
                const char *kernel_filename, const char *kernel_cmdline,
                const char *initrd_filename, const char *cpu_model)
 {
-    CPUARMState *env;
+    ARMCPU *cpu;
     qemu_irq *cpu_pic;
     qemu_irq pic[32];
     DeviceState *dev;
@@ -1533,12 +1533,12 @@ static void musicpal_init(ram_addr_t ram_size,
     if (!cpu_model) {
         cpu_model = "arm926";
     }
-    env = cpu_init(cpu_model);
-    if (!env) {
+    cpu = cpu_arm_init(cpu_model);
+    if (!cpu) {
         fprintf(stderr, "Unable to find CPU definition\n");
         exit(1);
     }
-    cpu_pic = arm_pic_init_cpu(env);
+    cpu_pic = arm_pic_init_cpu(cpu);
 
     /* For now we use a fixed - the original - RAM size */
     memory_region_init_ram(ram, "musicpal.ram", MP_RAM_DEFAULT_SIZE);
@@ -1651,7 +1651,7 @@ static void musicpal_init(ram_addr_t ram_size,
     musicpal_binfo.kernel_filename = kernel_filename;
     musicpal_binfo.kernel_cmdline = kernel_cmdline;
     musicpal_binfo.initrd_filename = initrd_filename;
-    arm_load_kernel(env, &musicpal_binfo);
+    arm_load_kernel(cpu, &musicpal_binfo);
 }
 
 static QEMUMachine musicpal_machine = {

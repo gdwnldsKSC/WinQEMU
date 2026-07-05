@@ -111,6 +111,7 @@ typedef struct USBHostDevice {
     uint32_t  iso_urb_count;
     uint32_t  options;
     Notifier  exit;
+    QEMUBH    *bh;
 
     struct endp_data ep_in[USB_MAX_ENDPOINTS];
     struct endp_data ep_out[USB_MAX_ENDPOINTS];
@@ -212,7 +213,7 @@ static int is_iso_started(USBHostDevice *s, int pid, int ep)
 
 static void clear_iso_started(USBHostDevice *s, int pid, int ep)
 {
-    trace_usb_host_ep_stop_iso(s->bus_num, s->addr, ep);
+    trace_usb_host_iso_stop(s->bus_num, s->addr, ep);
     get_endp(s, pid, ep)->iso_started = 0;
 }
 
@@ -220,7 +221,7 @@ static void set_iso_started(USBHostDevice *s, int pid, int ep)
 {
     struct endp_data *e = get_endp(s, pid, ep);
 
-    trace_usb_host_ep_start_iso(s->bus_num, s->addr, ep);
+    trace_usb_host_iso_start(s->bus_num, s->addr, ep);
     if (!e->iso_started) {
         e->iso_started = 1;
         e->inflight = 0;
@@ -318,7 +319,8 @@ static void async_complete(void *opaque)
         if (r < 0) {
             if (errno == EAGAIN) {
                 if (urbs > 2) {
-                    fprintf(stderr, "husb: %d iso urbs finished at once\n", urbs);
+                    /* indicates possible latency issues */
+                    trace_usb_host_iso_many_urbs(s->bus_num, s->addr, urbs);
                 }
                 return;
             }
@@ -351,7 +353,8 @@ static void async_complete(void *opaque)
             urbs++;
             inflight = change_iso_inflight(s, pid, ep, -1);
             if (inflight == 0 && is_iso_started(s, pid, ep)) {
-                fprintf(stderr, "husb: out of buffers for iso stream\n");
+                /* can be latency issues, or simply end of stream */
+                trace_usb_host_iso_out_of_bufs(s->bus_num, s->addr, ep);
             }
             continue;
         }
@@ -1042,6 +1045,7 @@ static int usb_host_handle_control(USBDevice *dev, USBPacket *p,
 
     /* Note request is (bRequestType << 8) | bRequest */
     trace_usb_host_req_control(s->bus_num, s->addr, p, request, value, index);
+    assert(p->result == 0);
 
     switch (request) {
     case DeviceOutRequest | USB_REQ_SET_ADDRESS:
@@ -1135,7 +1139,7 @@ static int usb_linux_update_endp_table(USBHostDevice *s)
     USBDescriptor *d;
     bool active = false;
 
-    usb_ep_init(&s->dev);
+    usb_ep_reset(&s->dev);
 
     for (i = 0;; i += d->bLength) {
         if (i+2 >= s->descr_len) {
@@ -1238,7 +1242,7 @@ static int usb_linux_update_endp_table(USBHostDevice *s)
     return 0;
 
 error:
-    usb_ep_init(&s->dev);
+    usb_ep_reset(&s->dev);
     return 1;
 }
 
@@ -1325,6 +1329,7 @@ static int usb_host_open(USBHostDevice *dev, int bus_num,
         goto fail;
     }
 
+    usb_ep_init(&dev->dev);
     ret = usb_linux_update_endp_table(dev);
     if (ret) {
         goto fail;
@@ -1421,6 +1426,43 @@ static void usb_host_exit_notifier(struct Notifier *n, void *data)
     }
 }
 
+/*
+ * This is *NOT* about restoring state.  We have absolutely no idea
+ * what state the host device is in at the moment and whenever it is
+ * still present in the first place.  Attemping to contine where we
+ * left off is impossible.
+ *
+ * What we are going to to to here is emulate a surprise removal of
+ * the usb device passed through, then kick host scan so the device
+ * will get re-attached (and re-initialized by the guest) in case it
+ * is still present.
+ *
+ * As the device removal will change the state of other devices (usb
+ * host controller, most likely interrupt controller too) we have to
+ * wait with it until *all* vmstate is loaded.  Thus post_load just
+ * kicks a bottom half which then does the actual work.
+ */
+static void usb_host_post_load_bh(void *opaque)
+{
+    USBHostDevice *dev = opaque;
+
+    if (dev->fd != -1) {
+        usb_host_close(dev);
+    }
+    if (dev->dev.attached) {
+        usb_device_detach(&dev->dev);
+    }
+    usb_host_auto_check(NULL);
+}
+
+static int usb_host_post_load(void *opaque, int version_id)
+{
+    USBHostDevice *dev = opaque;
+
+    qemu_bh_schedule(dev->bh);
+    return 0;
+}
+
 static int usb_host_initfn(USBDevice *dev)
 {
     USBHostDevice *s = DO_UPCAST(USBHostDevice, dev, dev);
@@ -1432,6 +1474,7 @@ static int usb_host_initfn(USBDevice *dev)
     QTAILQ_INSERT_TAIL(&hostdevs, s, next);
     s->exit.notify = usb_host_exit_notifier;
     qemu_add_exit_notifier(&s->exit);
+    s->bh = qemu_bh_new(usb_host_post_load_bh, s);
     usb_host_auto_check(NULL);
 
     if (s->match.bus_num != 0 && s->match.port != NULL) {
@@ -1443,7 +1486,13 @@ static int usb_host_initfn(USBDevice *dev)
 
 static const VMStateDescription vmstate_usb_host = {
     .name = "usb-host",
-    .unmigratable = 1,
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = usb_host_post_load,
+    .fields = (VMStateField[]) {
+        VMSTATE_USB_DEVICE(dev, USBHostDevice),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 static Property usb_host_dev_properties[] = {
@@ -1737,25 +1786,27 @@ static void usb_host_auto_check(void *unused)
     struct USBHostDevice *s;
     int unconnected = 0;
 
-    usb_host_scan(NULL, usb_host_auto_scan);
+    if (runstate_is_running()) {
+        usb_host_scan(NULL, usb_host_auto_scan);
 
-    QTAILQ_FOREACH(s, &hostdevs, next) {
-        if (s->fd == -1) {
-            unconnected++;
+        QTAILQ_FOREACH(s, &hostdevs, next) {
+            if (s->fd == -1) {
+                unconnected++;
+            }
+            if (s->seen == 0) {
+                s->errcount = 0;
+            }
+            s->seen = 0;
         }
-        if (s->seen == 0) {
-            s->errcount = 0;
-        }
-        s->seen = 0;
-    }
 
-    if (unconnected == 0) {
-        /* nothing to watch */
-        if (usb_auto_timer) {
-            qemu_del_timer(usb_auto_timer);
-            trace_usb_host_auto_scan_disabled();
+        if (unconnected == 0) {
+            /* nothing to watch */
+            if (usb_auto_timer) {
+                qemu_del_timer(usb_auto_timer);
+                trace_usb_host_auto_scan_disabled();
+            }
+            return;
         }
-        return;
     }
 
     if (!usb_auto_timer) {

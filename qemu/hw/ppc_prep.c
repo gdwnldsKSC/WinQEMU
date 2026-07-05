@@ -39,6 +39,7 @@
 #include "blockdev.h"
 #include "arch_init.h"
 #include "exec-memory.h"
+#include "vga-pci.h"
 
 //#define HARD_DEBUG_PPC_IO
 //#define DEBUG_PPC_IO
@@ -441,9 +442,9 @@ static void cpu_request_exit(void *opaque, int irq, int level)
 
 static void ppc_prep_reset(void *opaque)
 {
-    CPUPPCState *env = opaque;
+    PowerPCCPU *cpu = opaque;
 
-    cpu_state_reset(env);
+    cpu_reset(CPU(cpu));
 }
 
 /* PowerPC PREP hardware initialisation */
@@ -455,6 +456,7 @@ static void ppc_prep_init (ram_addr_t ram_size,
                            const char *cpu_model)
 {
     MemoryRegion *sysmem = get_system_memory();
+    PowerPCCPU *cpu = NULL;
     CPUPPCState *env = NULL;
     char *filename;
     nvram_t nvram;
@@ -469,7 +471,6 @@ static void ppc_prep_init (ram_addr_t ram_size,
     uint32_t kernel_base, initrd_base;
     long kernel_size, initrd_size;
     DeviceState *dev;
-    SysBusDevice *sys;
     PCIHostState *pcihost;
     PCIBus *pci_bus;
     PCIDevice *pci;
@@ -487,11 +488,13 @@ static void ppc_prep_init (ram_addr_t ram_size,
     if (cpu_model == NULL)
         cpu_model = "602";
     for (i = 0; i < smp_cpus; i++) {
-        env = cpu_init(cpu_model);
-        if (!env) {
+        cpu = cpu_ppc_init(cpu_model);
+        if (cpu == NULL) {
             fprintf(stderr, "Unable to find PowerPC CPU definition\n");
             exit(1);
         }
+        env = &cpu->env;
+
         if (env->flags & POWERPC_FLAG_RTC_CLK) {
             /* POWER / PowerPC 601 RTC clock frequency is 7.8125 MHz */
             cpu_ppc_tb_init(env, 7812500UL);
@@ -499,7 +502,7 @@ static void ppc_prep_init (ram_addr_t ram_size,
             /* Set time-base frequency to 100 Mhz */
             cpu_ppc_tb_init(env, 100UL * 1000UL * 1000UL);
         }
-        qemu_register_reset(ppc_prep_reset, env);
+        qemu_register_reset(ppc_prep_reset, cpu);
     }
 
     /* allocate RAM */
@@ -580,8 +583,7 @@ static void ppc_prep_init (ram_addr_t ram_size,
     }
 
     dev = qdev_create(NULL, "raven-pcihost");
-    sys = sysbus_from_qdev(dev);
-    pcihost = DO_UPCAST(PCIHostState, busdev, sys);
+    pcihost = PCI_HOST_BRIDGE(dev);
     pcihost->address_space = get_system_memory();
     object_property_add_child(qdev_get_machine(), "raven", OBJECT(dev), NULL);
     qdev_init_nofail(dev);

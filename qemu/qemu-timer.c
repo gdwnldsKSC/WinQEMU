@@ -112,14 +112,10 @@ static int64_t qemu_next_alarm_deadline(void)
 
 static void qemu_rearm_alarm_timer(struct qemu_alarm_timer *t)
 {
-    int64_t nearest_delta_ns;
-    if (!rt_clock->active_timers &&
-        !vm_clock->active_timers &&
-        !host_clock->active_timers) {
-        return;
+    int64_t nearest_delta_ns = qemu_next_alarm_deadline();
+    if (nearest_delta_ns < INT64_MAX) {
+        t->rearm(t, nearest_delta_ns);
     }
-    nearest_delta_ns = qemu_next_alarm_deadline();
-    t->rearm(t, nearest_delta_ns);
 }
 
 /* TODO: MIN_TIMER_REARM_NS should be optimized */
@@ -183,7 +179,7 @@ void configure_alarms(char const *opt)
     char *name;
     struct qemu_alarm_timer tmp;
 
-    if (!strcmp(opt, "?")) {
+    if (is_help_option(opt)) {
         show_available_alarms();
         exit(0);
     }
@@ -763,11 +759,8 @@ int init_timer_alarm(void)
         goto fail;
     }
 
-    /* first event is at time 0 */
     atexit(quit_timers);
-    t->pending = true;
     alarm_timer = t;
-
     return 0;
 
 fail:

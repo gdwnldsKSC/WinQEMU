@@ -106,6 +106,8 @@ typedef int64_t  Elf64_Sxword;
 #define EM_H8S          48      /* Hitachi H8S     */
 #define EM_LATTICEMICO32 138    /* LatticeMico32 */
 
+#define EM_OPENRISC     92        /* OpenCores OpenRISC */
+
 #define EM_UNICORE32    110     /* UniCore32 */
 
 /*
@@ -1036,6 +1038,11 @@ typedef struct elf64_sym {
 
 
 #define EI_NIDENT	16
+
+/* Special value for e_phnum.  This indicates that the real number of
+   program headers is too large to fit into e_phnum.  Instead the real
+   value is in the field sh_info of section 0.  */
+#define PN_XNUM         0xffff
 
 typedef struct elf32_hdr{
   unsigned char	e_ident[EI_NIDENT];

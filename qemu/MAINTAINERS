@@ -207,6 +207,12 @@ M: qemu-devel@nongnu.org
 S: Orphan
 F: hw/gumstix.c
 
+i.MX31
+M: Peter Chubb <peter.chubb@nicta.com.au>
+S: Odd fixes
+F: hw/imx*
+F: hw/kzm.c
+
 Integrator CP
 M: Paul Brook <paul@codesourcery.com>
 M: Peter Maydell <peter.maydell@linaro.org>
@@ -311,6 +317,11 @@ M: Edgar E. Iglesias <edgar.iglesias@gmail.com>
 S: Maintained
 F: hw/petalogix_s3adsp1800.c
 
+petalogix_ml605
+M: Peter Crosthwaite <peter.crosthwaite@petalogix.com>
+S: Maintained
+F: hw/petalogix_ml605_mmu.c
+
 MIPS Machines
 -------------
 Jazz
@@ -393,6 +404,14 @@ S390 Virtio
 M: Alexander Graf <agraf@suse.de>
 S: Maintained
 F: hw/s390-*.c
+
+UniCore32 Machines
+-------------
+PKUnity-3 SoC initramfs-with-busybox
+M: Guan Xuetao <gxt@mprc.pku.edu.cn>
+S: Maintained
+F: hw/puv3*
+F: hw/unicore32/
 
 X86 Machines
 ------------
@@ -477,6 +496,17 @@ S: Supported
 F: hw/virtio-serial*
 F: hw/virtio-console*
 
+Xilinx EDK
+M: Peter Crosthwaite <peter.crosthwaite@petalogix.com>
+M: Edgar E. Iglesias <edgar.iglesias@gmail.com>
+S: Maintained
+F: hw/xilinx_axi*
+F: hw/xilinx_uartlite.c
+F: hw/xilinx_intc.c
+F: hw/xilinx_ethlite.c
+F: hw/xilinx_timer.c
+F: hw/xilinx.h
+
 Subsystems
 ----------
 Audio
@@ -494,6 +524,12 @@ Character Devices
 M: Anthony Liguori <aliguori@us.ibm.com>
 S: Maintained
 F: qemu-char.c
+
+Device Tree
+M: Peter Crosthwaite <peter.crosthwaite@petalogix.com>
+M: Alexander Graf <agraf@suse.de>
+S: Maintained
+F: device-tree.[ch]
 
 GDB stub
 M: qemu-devel@nongnu.org
@@ -532,9 +568,10 @@ F: monitor.c
 
 Network device layer
 M: Anthony Liguori <aliguori@us.ibm.com>
-M: Mark McLoughlin <markmc@redhat.com>
+M: Stefan Hajnoczi <stefanha@gmail.com>
 S: Maintained
 F: net/
+T: git git://github.com/stefanha/qemu.git net
 
 Network Block Device (NBD)
 M: Paolo Bonzini <pbonzini@redhat.com>
@@ -551,7 +588,7 @@ F: slirp/
 T: git git://git.kiszka.org/qemu.git queues/slirp
 
 Tracing
-M: Stefan Hajnoczi <stefanha@linux.vnet.ibm.com>
+M: Stefan Hajnoczi <stefanha@gmail.com>
 S: Maintained
 F: trace/
 F: scripts/tracetool.py

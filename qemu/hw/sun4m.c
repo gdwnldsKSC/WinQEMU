@@ -281,17 +281,19 @@ static void dummy_cpu_set_irq(void *opaque, int irq, int level)
 
 static void main_cpu_reset(void *opaque)
 {
-    CPUSPARCState *env = opaque;
+    SPARCCPU *cpu = opaque;
+    CPUSPARCState *env = &cpu->env;
 
-    cpu_state_reset(env);
+    cpu_reset(CPU(cpu));
     env->halted = 0;
 }
 
 static void secondary_cpu_reset(void *opaque)
 {
-    CPUSPARCState *env = opaque;
+    SPARCCPU *cpu = opaque;
+    CPUSPARCState *env = &cpu->env;
 
-    cpu_state_reset(env);
+    cpu_reset(CPU(cpu));
     env->halted = 1;
 }
 
@@ -809,23 +811,29 @@ static TypeInfo ram_info = {
 static void cpu_devinit(const char *cpu_model, unsigned int id,
                         uint64_t prom_addr, qemu_irq **cpu_irqs)
 {
+    SPARCCPU *cpu;
     CPUSPARCState *env;
 
-    env = cpu_init(cpu_model);
-    if (!env) {
+    cpu = cpu_sparc_init(cpu_model);
+    if (cpu == NULL) {
         fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
         exit(1);
     }
+    env = &cpu->env;
 
     cpu_sparc_set_id(env, id);
     if (id == 0) {
-        qemu_register_reset(main_cpu_reset, env);
+        qemu_register_reset(main_cpu_reset, cpu);
     } else {
-        qemu_register_reset(secondary_cpu_reset, env);
+        qemu_register_reset(secondary_cpu_reset, cpu);
         env->halted = 1;
     }
     *cpu_irqs = qemu_allocate_irqs(cpu_set_irq, env, MAX_PILS);
     env->prom_addr = prom_addr;
+}
+
+static void dummy_fdc_tc(void *opaque, int irq, int level)
+{
 }
 
 static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
@@ -938,9 +946,6 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
               serial_hds[0], serial_hds[1], ESCC_CLOCK, 1);
 
     cpu_halt = qemu_allocate_irqs(cpu_halt_signal, NULL, 1);
-    slavio_misc_init(hwdef->slavio_base, hwdef->aux1_base, hwdef->aux2_base,
-                     slavio_irq[30], fdc_tc);
-
     if (hwdef->apc_base) {
         apc_init(hwdef->apc_base, cpu_halt[0]);
     }
@@ -951,7 +956,12 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
         fd[0] = drive_get(IF_FLOPPY, 0, 0);
         sun4m_fdctrl_init(slavio_irq[22], hwdef->fd_base, fd,
                           &fdc_tc);
+    } else {
+        fdc_tc = *qemu_allocate_irqs(dummy_fdc_tc, NULL, 1);
     }
+
+    slavio_misc_init(hwdef->slavio_base, hwdef->aux1_base, hwdef->aux2_base,
+                     slavio_irq[30], fdc_tc);
 
     if (drive_get_max_bus(IF_SCSI) > 0) {
         fprintf(stderr, "qemu: too many SCSI bus\n");
@@ -1768,15 +1778,17 @@ static void sun4c_hw_init(const struct sun4c_hwdef *hwdef, ram_addr_t RAM_size,
               slavio_irq[1], serial_hds[0], serial_hds[1],
               ESCC_CLOCK, 1);
 
-    slavio_misc_init(0, hwdef->aux1_base, 0, slavio_irq[1], fdc_tc);
-
     if (hwdef->fd_base != (target_phys_addr_t)-1) {
         /* there is zero or one floppy drive */
         memset(fd, 0, sizeof(fd));
         fd[0] = drive_get(IF_FLOPPY, 0, 0);
         sun4m_fdctrl_init(slavio_irq[1], hwdef->fd_base, fd,
                           &fdc_tc);
+    } else {
+        fdc_tc = *qemu_allocate_irqs(dummy_fdc_tc, NULL, 1);
     }
+
+    slavio_misc_init(0, hwdef->aux1_base, 0, slavio_irq[1], fdc_tc);
 
     if (drive_get_max_bus(IF_SCSI) > 0) {
         fprintf(stderr, "qemu: too many SCSI bus\n");

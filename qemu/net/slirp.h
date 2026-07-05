@@ -27,13 +27,12 @@
 #include "qemu-common.h"
 #include "qdict.h"
 #include "qemu-option.h"
+#include "qapi-types.h"
 
 #ifdef CONFIG_SLIRP
 
-int net_init_slirp(QemuOpts *opts,
-                   Monitor *mon,
-                   const char *name,
-                   VLANState *vlan);
+int net_init_slirp(const NetClientOptions *opts, const char *name,
+                   NetClientState *peer);
 
 void net_slirp_hostfwd_add(Monitor *mon, const QDict *qdict);
 void net_slirp_hostfwd_remove(Monitor *mon, const QDict *qdict);

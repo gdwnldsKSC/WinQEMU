@@ -12,13 +12,17 @@
  * Use accessor function in pci.h, pci_bridge.h
  */
 
-extern struct BusInfo pci_bus_info;
+#define TYPE_PCI_BUS "PCI"
+#define PCI_BUS(obj) OBJECT_CHECK(PCIBus, (obj), TYPE_PCI_BUS)
 
 struct PCIBus {
     BusState qbus;
+    PCIDMAContextFunc dma_context_fn;
+    void *dma_context_opaque;
     uint8_t devfn_min;
     pci_set_irq_fn set_irq;
     pci_map_irq_fn map_irq;
+    pci_route_irq_fn route_intx_to_irq;
     pci_hotplug_fn hotplug;
     DeviceState *hotplug_qdev;
     void *irq_opaque;

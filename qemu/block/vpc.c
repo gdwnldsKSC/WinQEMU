@@ -702,7 +702,7 @@ static int vpc_create(const char *filename, QEMUOptionParameter *options)
     }
 
     /* Create the file */
-    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
+    fd = qemu_open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
     if (fd < 0) {
         return -EIO;
     }
@@ -768,7 +768,7 @@ static int vpc_create(const char *filename, QEMUOptionParameter *options)
     }
 
  fail:
-    close(fd);
+    qemu_close(fd);
     return ret;
 }
 

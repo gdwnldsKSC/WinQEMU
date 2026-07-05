@@ -101,7 +101,7 @@ ETEXI
         .name       = "block_job_cancel",
         .args_type  = "device:B",
         .params     = "device",
-        .help       = "stop an active block streaming operation",
+        .help       = "stop an active background block operation",
         .mhandler.cmd = hmp_block_job_cancel,
     },
 
@@ -829,6 +829,26 @@ STEXI
 @item migrate_cancel
 @findex migrate_cancel
 Cancel the current VM migration.
+
+ETEXI
+
+    {
+        .name       = "migrate_set_cache_size",
+        .args_type  = "value:o",
+        .params     = "value",
+        .help       = "set cache size (in bytes) for XBZRLE migrations,"
+                      "the cache size will be rounded down to the nearest "
+                      "power of 2.\n"
+                      "The cache size affects the number of cache misses."
+                      "In case of a high cache miss ratio you need to increase"
+                      " the cache size",
+        .mhandler.cmd = hmp_migrate_set_cache_size,
+    },
+
+STEXI
+@item migrate_set_cache_size @var{value}
+@findex migrate_set_cache_size
+Set cache size to @var{value} (in bytes) for xbzrle migrations.
 ETEXI
 
     {
@@ -861,6 +881,20 @@ Set maximum tolerated downtime (in seconds) for migration.
 ETEXI
 
     {
+        .name       = "migrate_set_capability",
+        .args_type  = "capability:s,state:b",
+        .params     = "capability state",
+        .help       = "Enable/Disable the usage of a capability for migration",
+        .mhandler.cmd = hmp_migrate_set_capability,
+    },
+
+STEXI
+@item migrate_set_capability @var{capability} @var{state}
+@findex migrate_set_capability
+Enable/Disable the usage of a capability @var{capability} for migration.
+ETEXI
+
+    {
         .name       = "client_migrate_info",
         .args_type  = "protocol:s,hostname:s,port:i?,tls-port:i?,cert-subject:s?",
         .params     = "protocol hostname port tls-port cert-subject",
@@ -877,6 +911,34 @@ Set the spice/vnc connection info for the migration target.  The spice/vnc
 server will ask the spice/vnc client to automatically reconnect using the
 new parameters (if specified) once the vm migration finished successfully.
 ETEXI
+
+#if defined(CONFIG_HAVE_CORE_DUMP)
+    {
+        .name       = "dump-guest-memory",
+        .args_type  = "paging:-p,protocol:s,begin:i?,length:i?",
+        .params     = "[-p] protocol [begin] [length]",
+        .help       = "dump guest memory to file"
+                      "\n\t\t\t begin(optional): the starting physical address"
+                      "\n\t\t\t length(optional): the memory size, in bytes",
+        .user_print = monitor_user_noop,
+        .mhandler.cmd = hmp_dump_guest_memory,
+    },
+
+
+STEXI
+@item dump-guest-memory [-p] @var{protocol} @var{begin} @var{length}
+@findex dump-guest-memory
+Dump guest memory to @var{protocol}. The file can be processed with crash or
+gdb.
+  protocol: destination file(started with "file:") or destination file
+            descriptor (started with "fd:")
+    paging: do paging to get guest's memory mapping
+     begin: the starting physical address. It's optional, and should be
+            specified with length together.
+    length: the memory size, in bytes. It's optional, and should be specified
+            with begin together.
+ETEXI
+#endif
 
     {
         .name       = "snapshot_blkdev",
@@ -1009,8 +1071,7 @@ ETEXI
         .args_type  = "netdev:O",
         .params     = "[user|tap|socket],id=str[,prop=value][,...]",
         .help       = "add host network device",
-        .user_print = monitor_user_noop,
-        .mhandler.cmd_new = do_netdev_add,
+        .mhandler.cmd = hmp_netdev_add,
     },
 
 STEXI
@@ -1024,8 +1085,7 @@ ETEXI
         .args_type  = "id:s",
         .params     = "id",
         .help       = "remove host network device",
-        .user_print = monitor_user_noop,
-        .mhandler.cmd_new = do_netdev_del,
+        .mhandler.cmd = hmp_netdev_del,
     },
 
 STEXI
@@ -1210,8 +1270,7 @@ ETEXI
         .args_type  = "fdname:s",
         .params     = "getfd name",
         .help       = "receive a file descriptor via SCM rights and assign it a name",
-        .user_print = monitor_user_noop,
-        .mhandler.cmd_new = do_getfd,
+        .mhandler.cmd = hmp_getfd,
     },
 
 STEXI
@@ -1227,8 +1286,7 @@ ETEXI
         .args_type  = "fdname:s",
         .params     = "closefd name",
         .help       = "close a file descriptor previously passed via SCM rights",
-        .user_print = monitor_user_noop,
-        .mhandler.cmd_new = do_closefd,
+        .mhandler.cmd = hmp_closefd,
     },
 
 STEXI
@@ -1393,6 +1451,10 @@ show CPU statistics
 show user network stack connection states
 @item info migrate
 show migration status
+@item info migrate_capabilities
+show current migration capabilities
+@item info migrate_cache_size
+show current migration XBZRLE cache size
 @item info balloon
 show balloon information
 @item info qtree

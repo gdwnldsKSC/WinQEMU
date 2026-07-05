@@ -1,4 +1,5 @@
 
+
 DEFHEADING(Standard options:)
 
 DEF("help", 0, QEMU_OPTION_h,
@@ -13,7 +14,8 @@ DEF("machine", HAS_ARG, QEMU_OPTION_machine, \
 "                property accel=accel1[:accel2[:...]] selects accelerator\n"
 "                supported accelerators are kvm, xen, tcg (default: tcg)\n"
 "                kernel_irqchip=on|off controls accelerated irqchip support\n"
-"                kvm_shadow_mem=size of KVM shadow MMU\n",
+"                kvm_shadow_mem=size of KVM shadow MMU\n"
+"                dump-guest-core=on|off include guest memory in a core dump (default=on)\n",
 QEMU_ARCH_ALL)
 
 DEF("M", HAS_ARG, QEMU_OPTION_M, "", QEMU_ARCH_ALL)
@@ -665,6 +667,10 @@ DEF("semihosting", 0, QEMU_OPTION_semihosting,
 DEF("old-param", 0, QEMU_OPTION_old_param,
 "-old-param      old param mode\n", QEMU_ARCH_ARM)
 
+DEF("sandbox", HAS_ARG, QEMU_OPTION_sandbox, \
+"-sandbox <arg>  Enable seccomp mode 2 system call filter (default 'off').\n",
+QEMU_ARCH_ALL)
+
 DEF("readconfig", HAS_ARG, QEMU_OPTION_readconfig,
 "-readconfig <file>\n", QEMU_ARCH_ALL)
 DEF("writeconfig", HAS_ARG, QEMU_OPTION_writeconfig,
@@ -690,4 +696,10 @@ QEMU_ARCH_ALL)
 DEF("qtest-log", HAS_ARG, QEMU_OPTION_qtest_log,
 "-qtest-log LOG  specify tracing options\n",
 QEMU_ARCH_ALL)
+
+#ifdef __linux__
+DEF("enable-fips", 0, QEMU_OPTION_enablefips,
+"-enable-fips    enable FIPS 140-2 compliance\n",
+QEMU_ARCH_ALL)
+#endif
 

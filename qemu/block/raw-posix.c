@@ -52,6 +52,10 @@
 #include <sys/param.h>
 #include <linux/cdrom.h>
 #include <linux/fd.h>
+#include <linux/fs.h>
+#endif
+#ifdef CONFIG_FIEMAP
+#include <linux/fiemap.h>
 #endif
 #if defined (__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <sys/disk.h>
@@ -267,7 +271,7 @@ static int raw_open_common(BlockDriverState *bs, const char *filename,
 out_free_buf:
     qemu_vfree(s->aligned_buf);
 out_close:
-    close(fd);
+    qemu_close(fd);
     return -errno;
 }
 
@@ -372,7 +376,7 @@ static void raw_close(BlockDriverState *bs)
 {
     BDRVRawState *s = bs->opaque;
     if (s->fd >= 0) {
-        close(s->fd);
+        qemu_close(s->fd);
         s->fd = -1;
         if (s->aligned_buf != NULL)
             qemu_vfree(s->aligned_buf);
@@ -568,19 +572,119 @@ static int raw_create(const char *filename, QEMUOptionParameter *options)
         options++;
     }
 
-    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
-              0644);
+    fd = qemu_open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+                   0644);
     if (fd < 0) {
         result = -errno;
     } else {
         if (ftruncate(fd, total_size * BDRV_SECTOR_SIZE) != 0) {
             result = -errno;
         }
-        if (close(fd) != 0) {
+        if (qemu_close(fd) != 0) {
             result = -errno;
         }
     }
     return result;
+}
+
+/*
+ * Returns true iff the specified sector is present in the disk image. Drivers
+ * not implementing the functionality are assumed to not support backing files,
+ * hence all their sectors are reported as allocated.
+ *
+ * If 'sector_num' is beyond the end of the disk image the return value is 0
+ * and 'pnum' is set to 0.
+ *
+ * 'pnum' is set to the number of sectors (including and immediately following
+ * the specified sector) that are known to be in the same
+ * allocated/unallocated state.
+ *
+ * 'nb_sectors' is the max value 'pnum' should be set to.  If nb_sectors goes
+ * beyond the end of the disk image it will be clamped.
+ */
+static int coroutine_fn raw_co_is_allocated(BlockDriverState *bs,
+                                            int64_t sector_num,
+                                            int nb_sectors, int *pnum)
+{
+    off_t start, data, hole;
+    int ret;
+
+    ret = fd_open(bs);
+    if (ret < 0) {
+        return ret;
+    }
+
+    start = sector_num * BDRV_SECTOR_SIZE;
+
+#ifdef CONFIG_FIEMAP
+
+    BDRVRawState *s = bs->opaque;
+    struct {
+        struct fiemap fm;
+        struct fiemap_extent fe;
+    } f;
+
+    f.fm.fm_start = start;
+    f.fm.fm_length = (int64_t)nb_sectors * BDRV_SECTOR_SIZE;
+    f.fm.fm_flags = 0;
+    f.fm.fm_extent_count = 1;
+    f.fm.fm_reserved = 0;
+    if (ioctl(s->fd, FS_IOC_FIEMAP, &f) == -1) {
+        /* Assume everything is allocated.  */
+        *pnum = nb_sectors;
+        return 1;
+    }
+
+    if (f.fm.fm_mapped_extents == 0) {
+        /* No extents found, data is beyond f.fm.fm_start + f.fm.fm_length.
+         * f.fm.fm_start + f.fm.fm_length must be clamped to the file size!
+         */
+        off_t length = lseek(s->fd, 0, SEEK_END);
+        hole = f.fm.fm_start;
+        data = MIN(f.fm.fm_start + f.fm.fm_length, length);
+    } else {
+        data = f.fe.fe_logical;
+        hole = f.fe.fe_logical + f.fe.fe_length;
+    }
+
+#elif defined SEEK_HOLE && defined SEEK_DATA
+
+    BDRVRawState *s = bs->opaque;
+
+    hole = lseek(s->fd, start, SEEK_HOLE);
+    if (hole == -1) {
+        /* -ENXIO indicates that sector_num was past the end of the file.
+         * There is a virtual hole there.  */
+        assert(errno != -ENXIO);
+
+        /* Most likely EINVAL.  Assume everything is allocated.  */
+        *pnum = nb_sectors;
+        return 1;
+    }
+
+    if (hole > start) {
+        data = start;
+    } else {
+        /* On a hole.  We need another syscall to find its end.  */
+        data = lseek(s->fd, start, SEEK_DATA);
+        if (data == -1) {
+            data = lseek(s->fd, 0, SEEK_END);
+        }
+    }
+#else
+    *pnum = nb_sectors;
+    return 1;
+#endif
+
+    if (data <= start) {
+        /* On a data extent, compute sectors to the end of the extent.  */
+        *pnum = MIN(nb_sectors, (hole - start) / BDRV_SECTOR_SIZE);
+        return 1;
+    } else {
+        /* On a hole, compute sectors to the beginning of the next extent.  */
+        *pnum = MIN(nb_sectors, (data - start) / BDRV_SECTOR_SIZE);
+        return 0;
+    }
 }
 
 #ifdef CONFIG_XFS
@@ -634,6 +738,7 @@ static BlockDriver bdrv_file = {
     .bdrv_close = raw_close,
     .bdrv_create = raw_create,
     .bdrv_co_discard = raw_co_discard,
+    .bdrv_co_is_allocated = raw_co_is_allocated,
 
     .bdrv_aio_readv = raw_aio_readv,
     .bdrv_aio_writev = raw_aio_writev,
@@ -741,11 +846,11 @@ static int hdev_open(BlockDriverState *bs, const char *filename, int flags)
         if ( bsdPath[ 0 ] != '\0' ) {
             strcat(bsdPath,"s0");
             /* some CDs don't have a partition 0 */
-            fd = open(bsdPath, O_RDONLY | O_BINARY | O_LARGEFILE);
+            fd = qemu_open(bsdPath, O_RDONLY | O_BINARY | O_LARGEFILE);
             if (fd < 0) {
                 bsdPath[strlen(bsdPath)-1] = '1';
             } else {
-                close(fd);
+                qemu_close(fd);
             }
             filename = bsdPath;
         }
@@ -784,7 +889,7 @@ static int fd_open(BlockDriverState *bs)
     last_media_present = (s->fd >= 0);
     if (s->fd >= 0 &&
         (get_clock() - s->fd_open_time) >= FD_OPEN_TIMEOUT) {
-        close(s->fd);
+        qemu_close(s->fd);
         s->fd = -1;
 #ifdef DEBUG_FLOPPY
         printf("Floppy closed\n");
@@ -798,7 +903,7 @@ static int fd_open(BlockDriverState *bs)
 #endif
             return -EIO;
         }
-        s->fd = open(bs->filename, s->open_flags & ~O_NONBLOCK);
+        s->fd = qemu_open(bs->filename, s->open_flags & ~O_NONBLOCK);
         if (s->fd < 0) {
             s->fd_error_time = get_clock();
             s->fd_got_error = 1;
@@ -872,7 +977,7 @@ static int hdev_create(const char *filename, QEMUOptionParameter *options)
         options++;
     }
 
-    fd = open(filename, O_WRONLY | O_BINARY);
+    fd = qemu_open(filename, O_WRONLY | O_BINARY);
     if (fd < 0)
         return -errno;
 
@@ -883,7 +988,7 @@ static int hdev_create(const char *filename, QEMUOptionParameter *options)
     else if (lseek(fd, 0, SEEK_END) < total_size * BDRV_SECTOR_SIZE)
         ret = -ENOSPC;
 
-    close(fd);
+    qemu_close(fd);
     return ret;
 }
 
@@ -933,7 +1038,7 @@ static int floppy_open(BlockDriverState *bs, const char *filename, int flags)
         return ret;
 
     /* close fd so that we can reopen it as needed */
-    close(s->fd);
+    qemu_close(s->fd);
     s->fd = -1;
     s->fd_media_changed = 1;
 
@@ -947,10 +1052,12 @@ static int floppy_probe_device(const char *filename)
     struct floppy_struct fdparam;
     struct stat st;
 
-    if (strstart(filename, "/dev/fd", NULL))
+    if (strstart(filename, "/dev/fd", NULL) &&
+        !strstart(filename, "/dev/fdset/", NULL)) {
         prio = 50;
+    }
 
-    fd = open(filename, O_RDONLY | O_NONBLOCK);
+    fd = qemu_open(filename, O_RDONLY | O_NONBLOCK);
     if (fd < 0) {
         goto out;
     }
@@ -965,7 +1072,7 @@ static int floppy_probe_device(const char *filename)
         prio = 100;
 
 outc:
-    close(fd);
+    qemu_close(fd);
 out:
     return prio;
 }
@@ -1000,14 +1107,14 @@ static void floppy_eject(BlockDriverState *bs, bool eject_flag)
     int fd;
 
     if (s->fd >= 0) {
-        close(s->fd);
+        qemu_close(s->fd);
         s->fd = -1;
     }
-    fd = open(bs->filename, s->open_flags | O_NONBLOCK);
+    fd = qemu_open(bs->filename, s->open_flags | O_NONBLOCK);
     if (fd >= 0) {
         if (ioctl(fd, FDEJECT, 0) < 0)
             perror("FDEJECT");
-        close(fd);
+        qemu_close(fd);
     }
 }
 
@@ -1053,7 +1160,7 @@ static int cdrom_probe_device(const char *filename)
     int prio = 0;
     struct stat st;
 
-    fd = open(filename, O_RDONLY | O_NONBLOCK);
+    fd = qemu_open(filename, O_RDONLY | O_NONBLOCK);
     if (fd < 0) {
         goto out;
     }
@@ -1068,7 +1175,7 @@ static int cdrom_probe_device(const char *filename)
         prio = 100;
 
 outc:
-    close(fd);
+    qemu_close(fd);
 out:
     return prio;
 }
@@ -1176,8 +1283,8 @@ static int cdrom_reopen(BlockDriverState *bs)
      * FreeBSD seems to not notice sometimes...
      */
     if (s->fd >= 0)
-        close(s->fd);
-    fd = open(bs->filename, s->open_flags, 0644);
+        qemu_close(s->fd);
+    fd = qemu_open(bs->filename, s->open_flags, 0644);
     if (fd < 0) {
         s->fd = -1;
         return -EIO;

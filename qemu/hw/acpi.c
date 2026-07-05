@@ -22,6 +22,7 @@
 #include "hw.h"
 #include "pc.h"
 #include "acpi.h"
+#include "monitor.h"
 
 MSC_PACKED_BEGIN_1
 
@@ -374,7 +375,7 @@ void acpi_pm1_cnt_init(ACPIREGS *ar)
     qemu_register_wakeup_notifier(&ar->wakeup);
 }
 
-void acpi_pm1_cnt_write(ACPIREGS *ar, uint16_t val)
+void acpi_pm1_cnt_write(ACPIREGS *ar, uint16_t val, char s4)
 {
     ar->pm1.cnt.cnt = val & ~(ACPI_BITMASK_SLEEP_ENABLE);
 
@@ -389,6 +390,10 @@ void acpi_pm1_cnt_write(ACPIREGS *ar, uint16_t val)
             qemu_system_suspend_request();
             break;
         default:
+            if (sus_typ == s4) { /* S4 request */
+                monitor_protocol_event(QEVENT_SUSPEND_DISK, NULL);
+                qemu_system_shutdown_request();
+            }
             break;
         }
     }

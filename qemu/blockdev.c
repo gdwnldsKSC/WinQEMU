@@ -7,8 +7,8 @@
  * later.  See the COPYING file in the top-level directory.
  */
 
-#include "block.h"
 #include "blockdev.h"
+#include "hw/block-common.h"
 #include "monitor.h"
 #include "qerror.h"
 #include "qemu-option.h"
@@ -278,7 +278,6 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
 {
     const char *buf;
     const char *file = NULL;
-    char devname[128];
     const char *serial;
     const char *mediastr = "";
     BlockInterfaceType type;
@@ -318,7 +317,6 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     serial = qemu_opt_get(opts, "serial");
 
     if ((buf = qemu_opt_get(opts, "if")) != NULL) {
-        pstrcpy(devname, sizeof(devname), buf);
         for (type = 0; type < IF_COUNT && strcmp(buf, if_name[type]); type++)
             ;
         if (type == IF_COUNT) {
@@ -327,21 +325,20 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
 	}
     } else {
         type = default_to_scsi ? IF_SCSI : IF_IDE;
-        pstrcpy(devname, sizeof(devname), if_name[type]);
     }
 
     max_devs = if_max_devs[type];
 
     if (cyls || heads || secs) {
-        if (cyls < 1 || (type == IF_IDE && cyls > 16383)) {
+        if (cyls < 1) {
             error_report("invalid physical cyls number");
 	    return NULL;
 	}
-        if (heads < 1 || (type == IF_IDE && heads > 16)) {
+        if (heads < 1) {
             error_report("invalid physical heads number");
 	    return NULL;
 	}
-        if (secs < 1 || (type == IF_IDE && secs > 63)) {
+        if (secs < 1) {
             error_report("invalid physical secs number");
 	    return NULL;
 	}
@@ -380,6 +377,7 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
 	}
     }
 
+    bdrv_flags |= BDRV_O_CACHE_WB;
     if ((buf = qemu_opt_get(opts, "cache")) != NULL) {
         if (bdrv_parse_cache_flags(buf, &bdrv_flags) != 0) {
             error_report("invalid cache option");
@@ -401,11 +399,11 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
 #endif
 
     if ((buf = qemu_opt_get(opts, "format")) != NULL) {
-       if (strcmp(buf, "?") == 0) {
-           error_printf("Supported formats:");
-           bdrv_iterate_format(bdrv_format_print, NULL);
-           error_printf("\n");
-           return NULL;
+        if (is_help_option(buf)) {
+            error_printf("Supported formats:");
+            bdrv_iterate_format(bdrv_format_print, NULL);
+            error_printf("\n");
+            return NULL;
         }
         drv = bdrv_find_whitelisted_format(buf);
         if (!drv) {
@@ -523,21 +521,23 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
             mediastr = (media == MEDIA_CDROM) ? "-cd" : "-hd";
         if (max_devs)
             snprintf(dinfo->id, 32, "%s%i%s%i",
-                     devname, bus_id, mediastr, unit_id);
+                     if_name[type], bus_id, mediastr, unit_id);
         else
             snprintf(dinfo->id, 32, "%s%s%i",
-                     devname, mediastr, unit_id);
+                     if_name[type], mediastr, unit_id);
     }
     dinfo->bdrv = bdrv_new(dinfo->id);
     dinfo->devaddr = devaddr;
     dinfo->type = type;
     dinfo->bus = bus_id;
     dinfo->unit = unit_id;
+    dinfo->cyls = cyls;
+    dinfo->heads = heads;
+    dinfo->secs = secs;
+    dinfo->trans = translation;
     dinfo->opts = opts;
     dinfo->refcount = 1;
-    if (serial) {
-        pstrcpy(dinfo->serial, sizeof(dinfo->serial), serial);
-    }
+    dinfo->serial = serial;
     QTAILQ_INSERT_TAIL(&drives, dinfo, next);
 
     bdrv_set_on_error(dinfo->bdrv, on_read_error, on_write_error);
@@ -550,17 +550,7 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     case IF_SCSI:
     case IF_XEN:
     case IF_NONE:
-        switch(media) {
-	case MEDIA_DISK:
-            if (cyls != 0) {
-                bdrv_set_geometry_hint(dinfo->bdrv, cyls, heads, secs);
-                bdrv_set_translation_hint(dinfo->bdrv, translation);
-            }
-	    break;
-	case MEDIA_CDROM:
-            dinfo->media_cd = 1;
-	    break;
-	}
+        dinfo->media_cd = media == MEDIA_CDROM;
         break;
     case IF_SD:
     case IF_FLOPPY:
@@ -569,7 +559,7 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
         break;
     case IF_VIRTIO:
         /* add virtio block device */
-        opts = qemu_opts_create(qemu_find_opts("device"), NULL, 0);
+        opts = qemu_opts_create(qemu_find_opts("device"), NULL, 0, NULL);
         if (arch_type == QEMU_ARCH_S390X) {
             qemu_opt_set(opts, "driver", "virtio-blk-s390");
         } else {
@@ -611,6 +601,10 @@ DriveInfo *drive_init(QemuOpts *opts, int default_to_scsi)
     }
 
     bdrv_flags |= ro ? 0 : BDRV_O_RDWR;
+
+    if (ro && copy_on_read) {
+        error_report("warning: disabling copy_on_read on readonly drive");
+    }
 
     ret = bdrv_open(dinfo->bdrv, file, bdrv_flags, drv);
     if (ret < 0) {

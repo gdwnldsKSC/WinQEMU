@@ -15,6 +15,7 @@
 
 #define PCI_CLASS_STORAGE_SCSI           0x0100
 #define PCI_CLASS_STORAGE_IDE            0x0101
+#define PCI_CLASS_STORAGE_RAID           0x0104
 #define PCI_CLASS_STORAGE_SATA           0x0106
 #define PCI_CLASS_STORAGE_OTHER          0x0180
 
@@ -47,6 +48,7 @@
 
 #define PCI_VENDOR_ID_LSI_LOGIC          0x1000
 #define PCI_DEVICE_ID_LSI_53C895A        0x0012
+#define PCI_DEVICE_ID_LSI_SAS1078        0x0060
 
 #define PCI_VENDOR_ID_DEC                0x1011
 #define PCI_DEVICE_ID_DEC_21154          0x0026
@@ -57,6 +59,7 @@
 
 #define PCI_VENDOR_ID_AMD                0x1022
 #define PCI_DEVICE_ID_AMD_LANCE          0x2000
+#define PCI_DEVICE_ID_AMD_SCSI           0x2020
 
 #define PCI_VENDOR_ID_TI                 0x104c
 
@@ -118,6 +121,7 @@
 #define PCI_DEVICE_ID_INTEL_82801I_UHCI6 0x2939
 #define PCI_DEVICE_ID_INTEL_82801I_EHCI1 0x293a
 #define PCI_DEVICE_ID_INTEL_82801I_EHCI2 0x293c
+#define PCI_DEVICE_ID_INTEL_82599_SFP_VF 0x10ed
 
 #define PCI_VENDOR_ID_XEN               0x5853
 #define PCI_DEVICE_ID_XEN_PLATFORM      0x0001

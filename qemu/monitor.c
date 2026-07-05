@@ -66,6 +66,7 @@
 #include "memory.h"
 #include "qmp-commands.h"
 #include "hmp.h"
+#include "qemu-thread.h"
 
 /* for pic/irq_info */
 #if defined(TARGET_SPARC)
@@ -139,11 +140,42 @@ struct mon_fd_t {
     QLIST_ENTRY(mon_fd_t) next;
 };
 
+/* file descriptor associated with a file descriptor set */
+typedef struct MonFdsetFd MonFdsetFd;
+struct MonFdsetFd {
+    int fd;
+    bool removed;
+    char *opaque;
+    QLIST_ENTRY(MonFdsetFd) next;
+};
+
+/* file descriptor set containing fds passed via SCM_RIGHTS */
+typedef struct MonFdset MonFdset;
+struct MonFdset {
+    int64_t id;
+    QLIST_HEAD(, MonFdsetFd) fds;
+    QLIST_HEAD(, MonFdsetFd) dup_fds;
+    QLIST_ENTRY(MonFdset) next;
+};
+
 typedef struct MonitorControl {
     QObject *id;
     JSONMessageParser parser;
     int command_mode;
 } MonitorControl;
+
+/*
+ * To prevent flooding clients, events can be throttled. The
+ * throttling is calculated globally, rather than per-Monitor
+ * instance.
+ */
+typedef struct MonitorEventState {
+    MonitorEvent event; /* Event being tracked */
+    int64_t rate;       /* Period over which to throttle. 0 to disable */
+    int64_t last;       /* Time at which event was last emitted */
+    QEMUTimer *timer;   /* Timer for handling delayed events */
+    QObject *data;      /* Event pending delayed dispatch */
+} MonitorEventState;
 
 struct Monitor {
     CharDriverState *chr;
@@ -158,45 +190,17 @@ struct Monitor {
     CPUArchState *mon_cpu;
     BlockDriverCompletionFunc *password_completion_cb;
     void *password_opaque;
-#ifdef CONFIG_DEBUG_MONITOR
-    int print_calls_nr;
-#endif
     QError *error;
     QLIST_HEAD(,mon_fd_t) fds;
     QLIST_ENTRY(Monitor) entry;
 };
 
-#ifdef CONFIG_DEBUG_MONITOR
-#define MON_DEBUG(fmt, ...) do {    \
-    fprintf(stderr, "Monitor: ");       \
-    fprintf(stderr, fmt, ## __VA_ARGS__); } while (0)
-
-static inline void mon_print_count_inc(Monitor *mon)
-{
-    mon->print_calls_nr++;
-}
-
-static inline void mon_print_count_init(Monitor *mon)
-{
-    mon->print_calls_nr = 0;
-}
-
-static inline int mon_print_count_get(const Monitor *mon)
-{
-    return mon->print_calls_nr;
-}
-
-#else /* !CONFIG_DEBUG_MONITOR */
-#define MON_DEBUG(fmt, ...) do { } while (0)
-static inline void mon_print_count_inc(Monitor *mon) { }
-static inline void mon_print_count_init(Monitor *mon) { }
-static inline int mon_print_count_get(const Monitor *mon) { return 0; }
-#endif /* CONFIG_DEBUG_MONITOR */
-
 /* QMP checker flags */
 #define QMP_ACCEPT_UNKNOWNS 1
 
 static QLIST_HEAD(mon_list, Monitor) mon_list;
+static QLIST_HEAD(mon_fdsets, MonFdset) mon_fdsets;
+static int mon_refcount;
 
 static mon_cmd_t mon_cmds[100]; // must define these two due to MSVC not supporting variable length arrays 
 static mon_cmd_t info_cmds[100];
@@ -285,8 +289,6 @@ void monitor_vprintf(Monitor *mon, const char *fmt, va_list ap)
     if (!mon)
         return;
 
-    mon_print_count_inc(mon);
-
     if (monitor_ctrl_mode(mon)) {
         return;
     }
@@ -371,16 +373,26 @@ static void monitor_json_emitter(Monitor *mon, const QObject *data)
     QDECREF(json);
 }
 
+static QDict *build_qmp_error_dict(const QError *err)
+{
+    QObject *obj;
+
+    obj = qobject_from_jsonf("{ 'error': { 'class': %s, 'desc': %p } }",
+                             ErrorClass_lookup[err->err_class],
+                             qerror_human(err));
+
+    return qobject_to_qdict(obj);
+}
+
 static void monitor_protocol_emitter(Monitor *mon, QObject *data)
 {
     QDict *qmp;
 
     trace_monitor_protocol_emitter(mon);
 
-    qmp = qdict_new();
-
     if (!monitor_has_error(mon)) {
         /* success response */
+        qmp = qdict_new();
         if (data) {
             qobject_incref(data);
             qdict_put_obj(qmp, "return", data);
@@ -390,9 +402,7 @@ static void monitor_protocol_emitter(Monitor *mon, QObject *data)
         }
     } else {
         /* error response */
-        qdict_put(mon->error->error, "desc", qerror_human(mon->error));
-        qdict_put(qmp, "error", mon->error->error);
-        QINCREF(mon->error->error);
+        qmp = build_qmp_error_dict(mon->error);
         QDECREF(mon->error);
         mon->error = NULL;
     }
@@ -422,6 +432,167 @@ static void timestamp_put(QDict *qdict)
     qdict_put_obj(qdict, "timestamp", obj);
 }
 
+
+static const char *monitor_event_names[] = {
+    [QEVENT_SHUTDOWN] = "SHUTDOWN",
+    [QEVENT_RESET] = "RESET",
+    [QEVENT_POWERDOWN] = "POWERDOWN",
+    [QEVENT_STOP] = "STOP",
+    [QEVENT_RESUME] = "RESUME",
+    [QEVENT_VNC_CONNECTED] = "VNC_CONNECTED",
+    [QEVENT_VNC_INITIALIZED] = "VNC_INITIALIZED",
+    [QEVENT_VNC_DISCONNECTED] = "VNC_DISCONNECTED",
+    [QEVENT_BLOCK_IO_ERROR] = "BLOCK_IO_ERROR",
+    [QEVENT_RTC_CHANGE] = "RTC_CHANGE",
+    [QEVENT_WATCHDOG] = "WATCHDOG",
+    [QEVENT_SPICE_CONNECTED] = "SPICE_CONNECTED",
+    [QEVENT_SPICE_INITIALIZED] = "SPICE_INITIALIZED",
+    [QEVENT_SPICE_DISCONNECTED] = "SPICE_DISCONNECTED",
+    [QEVENT_BLOCK_JOB_COMPLETED] = "BLOCK_JOB_COMPLETED",
+    [QEVENT_BLOCK_JOB_CANCELLED] = "BLOCK_JOB_CANCELLED",
+    [QEVENT_DEVICE_TRAY_MOVED] = "DEVICE_TRAY_MOVED",
+    [QEVENT_SUSPEND] = "SUSPEND",
+    [QEVENT_SUSPEND_DISK] = "SUSPEND_DISK",
+    [QEVENT_WAKEUP] = "WAKEUP",
+    [QEVENT_BALLOON_CHANGE] = "BALLOON_CHANGE",
+};
+QEMU_BUILD_BUG_ON(ARRAY_SIZE(monitor_event_names) != QEVENT_MAX)
+
+MonitorEventState monitor_event_state[QEVENT_MAX];
+QemuMutex monitor_event_state_lock;
+
+/*
+ * Emits the event to every monitor instance
+ */
+static void
+monitor_protocol_event_emit(MonitorEvent event,
+                            QObject *data)
+{
+    Monitor *mon;
+
+    trace_monitor_protocol_event_emit(event, data);
+    QLIST_FOREACH(mon, &mon_list, entry) {
+        if (monitor_ctrl_mode(mon) && qmp_cmd_mode(mon)) {
+            monitor_json_emitter(mon, data);
+        }
+    }
+}
+
+
+/*
+ * Queue a new event for emission to Monitor instances,
+ * applying any rate limiting if required.
+ */
+static void
+monitor_protocol_event_queue(MonitorEvent event,
+                             QObject *data)
+{
+    MonitorEventState *evstate;
+    int64_t now = qemu_get_clock_ns(rt_clock);
+    assert(event < QEVENT_MAX);
+
+    qemu_mutex_lock(&monitor_event_state_lock);
+    evstate = &(monitor_event_state[event]);
+    trace_monitor_protocol_event_queue(event,
+                                       data,
+                                       evstate->rate,
+                                       evstate->last,
+                                       now);
+
+    /* Rate limit of 0 indicates no throttling */
+    if (!evstate->rate) {
+        monitor_protocol_event_emit(event, data);
+        evstate->last = now;
+    } else {
+        int64_t delta = now - evstate->last;
+        if (evstate->data ||
+            delta < evstate->rate) {
+            /* If there's an existing event pending, replace
+             * it with the new event, otherwise schedule a
+             * timer for delayed emission
+             */
+            if (evstate->data) {
+                qobject_decref(evstate->data);
+            } else {
+                int64_t then = evstate->last + evstate->rate;
+                qemu_mod_timer_ns(evstate->timer, then);
+            }
+            evstate->data = data;
+            qobject_incref(evstate->data);
+        } else {
+            monitor_protocol_event_emit(event, data);
+            evstate->last = now;
+        }
+    }
+    qemu_mutex_unlock(&monitor_event_state_lock);
+}
+
+
+/*
+ * The callback invoked by QemuTimer when a delayed
+ * event is ready to be emitted
+ */
+static void monitor_protocol_event_handler(void *opaque)
+{
+    MonitorEventState *evstate = opaque;
+    int64_t now = qemu_get_clock_ns(rt_clock);
+
+    qemu_mutex_lock(&monitor_event_state_lock);
+
+    trace_monitor_protocol_event_handler(evstate->event,
+                                         evstate->data,
+                                         evstate->last,
+                                         now);
+    if (evstate->data) {
+        monitor_protocol_event_emit(evstate->event, evstate->data);
+        qobject_decref(evstate->data);
+        evstate->data = NULL;
+    }
+    evstate->last = now;
+    qemu_mutex_unlock(&monitor_event_state_lock);
+}
+
+
+/*
+ * @event: the event ID to be limited
+ * @rate: the rate limit in milliseconds
+ *
+ * Sets a rate limit on a particular event, so no
+ * more than 1 event will be emitted within @rate
+ * milliseconds
+ */
+static void
+monitor_protocol_event_throttle(MonitorEvent event,
+                                int64_t rate)
+{
+    MonitorEventState *evstate;
+    assert(event < QEVENT_MAX);
+
+    evstate = &(monitor_event_state[event]);
+
+    trace_monitor_protocol_event_throttle(event, rate);
+    evstate->event = event;
+    evstate->rate = rate * SCALE_MS;
+    evstate->timer = qemu_new_timer(rt_clock,
+                                    SCALE_MS,
+                                    monitor_protocol_event_handler,
+                                    evstate);
+    evstate->last = 0;
+    evstate->data = NULL;
+}
+
+
+/* Global, one-time initializer to configure the rate limiting
+ * and initialize state */
+static void monitor_protocol_event_init(void)
+{
+    qemu_mutex_init(&monitor_event_state_lock);
+    /* Limit RTC & BALLOON events to 1 per second */
+    monitor_protocol_event_throttle(QEVENT_RTC_CHANGE, 1000);
+    monitor_protocol_event_throttle(QEVENT_BALLOON_CHANGE, 1000);
+    monitor_protocol_event_throttle(QEVENT_WATCHDOG, 1000);
+}
+
 /**
  * monitor_protocol_event(): Generate a Monitor event
  *
@@ -431,72 +602,11 @@ void monitor_protocol_event(MonitorEvent event, QObject *data)
 {
     QDict *qmp;
     const char *event_name;
-    Monitor *mon;
 
     assert(event < QEVENT_MAX);
 
-    switch (event) {
-        case QEVENT_SHUTDOWN:
-            event_name = "SHUTDOWN";
-            break;
-        case QEVENT_RESET:
-            event_name = "RESET";
-            break;
-        case QEVENT_POWERDOWN:
-            event_name = "POWERDOWN";
-            break;
-        case QEVENT_STOP:
-            event_name = "STOP";
-            break;
-        case QEVENT_RESUME:
-            event_name = "RESUME";
-            break;
-        case QEVENT_VNC_CONNECTED:
-            event_name = "VNC_CONNECTED";
-            break;
-        case QEVENT_VNC_INITIALIZED:
-            event_name = "VNC_INITIALIZED";
-            break;
-        case QEVENT_VNC_DISCONNECTED:
-            event_name = "VNC_DISCONNECTED";
-            break;
-        case QEVENT_BLOCK_IO_ERROR:
-            event_name = "BLOCK_IO_ERROR";
-            break;
-        case QEVENT_RTC_CHANGE:
-            event_name = "RTC_CHANGE";
-            break;
-        case QEVENT_WATCHDOG:
-            event_name = "WATCHDOG";
-            break;
-        case QEVENT_SPICE_CONNECTED:
-            event_name = "SPICE_CONNECTED";
-            break;
-        case QEVENT_SPICE_INITIALIZED:
-            event_name = "SPICE_INITIALIZED";
-            break;
-        case QEVENT_SPICE_DISCONNECTED:
-            event_name = "SPICE_DISCONNECTED";
-            break;
-        case QEVENT_BLOCK_JOB_COMPLETED:
-            event_name = "BLOCK_JOB_COMPLETED";
-            break;
-        case QEVENT_BLOCK_JOB_CANCELLED:
-            event_name = "BLOCK_JOB_CANCELLED";
-            break;
-        case QEVENT_DEVICE_TRAY_MOVED:
-             event_name = "DEVICE_TRAY_MOVED";
-            break;
-        case QEVENT_SUSPEND:
-            event_name = "SUSPEND";
-            break;
-        case QEVENT_WAKEUP:
-            event_name = "WAKEUP";
-            break;
-        default:
-            abort();
-            break;
-    }
+    event_name = monitor_event_names[event];
+    assert(event_name != NULL);
 
     qmp = qdict_new();
     timestamp_put(qmp);
@@ -506,11 +616,8 @@ void monitor_protocol_event(MonitorEvent event, QObject *data)
         qdict_put_obj(qmp, "data", data);
     }
 
-    QLIST_FOREACH(mon, &mon_list, entry) {
-        if (monitor_ctrl_mode(mon) && qmp_cmd_mode(mon)) {
-            monitor_json_emitter(mon, QOBJECT(qmp));
-        }
-    }
+    trace_monitor_protocol_event(event, event_name, qmp);
+    monitor_protocol_event_queue(event, QOBJECT(qmp));
     QDECREF(qmp);
 }
 
@@ -738,6 +845,25 @@ CommandInfoList *qmp_query_commands(Error **errp)
     return cmd_list;
 }
 
+EventInfoList *qmp_query_events(Error **errp)
+{
+    EventInfoList *info, *ev_list = NULL;
+    MonitorEvent e;
+
+    for (e = 0 ; e < QEVENT_MAX ; e++) {
+        const char *event_name = monitor_event_names[e];
+        assert(event_name != NULL);
+        info = g_malloc0(sizeof(*info));
+        info->value = g_malloc0(sizeof(*info->value));
+        info->value->name = g_strdup(event_name);
+
+        info->next = ev_list;
+        ev_list = info;
+    }
+
+    return ev_list;
+}
+
 /* set the current CPU defined by the user */
 int monitor_set_cpu(int cpu_index)
 {
@@ -809,13 +935,6 @@ static void do_info_cpu_stats(Monitor *mon)
 
     env = mon_get_cpu();
     cpu_dump_statistics(env, (FILE *)mon, &monitor_fprintf, 0);
-}
-#endif
-
-#if defined(CONFIG_TRACE_SIMPLE)
-static void do_info_trace(Monitor *mon)
-{
-    st_print_trace((FILE *)mon, &monitor_fprintf);
 }
 #endif
 
@@ -1133,45 +1252,24 @@ static void do_print(Monitor *mon, const QDict *qdict)
     int format = qdict_get_int(qdict, "format");
     target_phys_addr_t val = qdict_get_int(qdict, "val");
 
-#if TARGET_PHYS_ADDR_BITS == 32
     switch(format) {
     case 'o':
-        monitor_printf(mon, "%#o", val);
+        monitor_printf(mon, "%#" TARGET_PRIoPHYS, val);
         break;
     case 'x':
-        monitor_printf(mon, "%#x", val);
+        monitor_printf(mon, "%#" TARGET_PRIxPHYS, val);
         break;
     case 'u':
-        monitor_printf(mon, "%u", val);
+        monitor_printf(mon, "%" TARGET_PRIuPHYS, val);
         break;
     default:
     case 'd':
-        monitor_printf(mon, "%d", val);
+        monitor_printf(mon, "%" TARGET_PRIdPHYS, val);
         break;
     case 'c':
         monitor_printc(mon, val);
         break;
     }
-#else
-    switch(format) {
-    case 'o':
-        monitor_printf(mon, "%#" PRIo64, val);
-        break;
-    case 'x':
-        monitor_printf(mon, "%#" PRIx64, val);
-        break;
-    case 'u':
-        monitor_printf(mon, "%" PRIu64, val);
-        break;
-    default:
-    case 'd':
-        monitor_printf(mon, "%" PRId64, val);
-        break;
-    case 'c':
-        monitor_printc(mon, val);
-        break;
-    }
-#endif
     monitor_printf(mon, "\n");
 }
 
@@ -2199,48 +2297,45 @@ static void do_inject_mce(Monitor *mon, const QDict *qdict)
 }
 #endif
 
-static int do_getfd(Monitor *mon, const QDict *qdict, QObject **ret_data)
+void qmp_getfd(const char *fdname, Error **errp)
 {
-    const char *fdname = qdict_get_str(qdict, "fdname");
     mon_fd_t *monfd;
     int fd;
 
-    fd = qemu_chr_fe_get_msgfd(mon->chr);
+    fd = qemu_chr_fe_get_msgfd(cur_mon->chr);
     if (fd == -1) {
-        qerror_report(QERR_FD_NOT_SUPPLIED);
-        return -1;
+        error_set(errp, QERR_FD_NOT_SUPPLIED);
+        return;
     }
 
     if (qemu_isdigit(fdname[0])) {
-        qerror_report(QERR_INVALID_PARAMETER_VALUE, "fdname",
-                      "a name not starting with a digit");
-        return -1;
+        error_set(errp, QERR_INVALID_PARAMETER_VALUE, "fdname",
+                  "a name not starting with a digit");
+        return;
     }
 
-    QLIST_FOREACH(monfd, &mon->fds, next) {
+    QLIST_FOREACH(monfd, &cur_mon->fds, next) {
         if (strcmp(monfd->name, fdname) != 0) {
             continue;
         }
 
         close(monfd->fd);
         monfd->fd = fd;
-        return 0;
+        return;
     }
 
     monfd = g_malloc0(sizeof(mon_fd_t));
     monfd->name = g_strdup(fdname);
     monfd->fd = fd;
 
-    QLIST_INSERT_HEAD(&mon->fds, monfd, next);
-    return 0;
+    QLIST_INSERT_HEAD(&cur_mon->fds, monfd, next);
 }
 
-static int do_closefd(Monitor *mon, const QDict *qdict, QObject **ret_data)
+void qmp_closefd(const char *fdname, Error **errp)
 {
-    const char *fdname = qdict_get_str(qdict, "fdname");
     mon_fd_t *monfd;
 
-    QLIST_FOREACH(monfd, &mon->fds, next) {
+    QLIST_FOREACH(monfd, &cur_mon->fds, next) {
         if (strcmp(monfd->name, fdname) != 0) {
             continue;
         }
@@ -2249,11 +2344,10 @@ static int do_closefd(Monitor *mon, const QDict *qdict, QObject **ret_data)
         close(monfd->fd);
         g_free(monfd->name);
         g_free(monfd);
-        return 0;
+        return;
     }
 
-    qerror_report(QERR_FD_NOT_FOUND, fdname);
-    return -1;
+    error_set(errp, QERR_FD_NOT_FOUND, fdname);
 }
 
 static void do_loadvm(Monitor *mon, const QDict *qdict)
@@ -2290,6 +2384,271 @@ int monitor_get_fd(Monitor *mon, const char *fdname)
     }
 
     return -1;
+}
+
+static void monitor_fdset_cleanup(MonFdset *mon_fdset)
+{
+    MonFdsetFd *mon_fdset_fd;
+    MonFdsetFd *mon_fdset_fd_next;
+
+    QLIST_FOREACH_SAFE(mon_fdset_fd, &mon_fdset->fds, next, mon_fdset_fd_next) {
+        if (mon_fdset_fd->removed ||
+                (QLIST_EMPTY(&mon_fdset->dup_fds) && mon_refcount == 0)) {
+            close(mon_fdset_fd->fd);
+            g_free(mon_fdset_fd->opaque);
+            QLIST_REMOVE(mon_fdset_fd, next);
+            g_free(mon_fdset_fd);
+        }
+    }
+
+    if (QLIST_EMPTY(&mon_fdset->fds) && QLIST_EMPTY(&mon_fdset->dup_fds)) {
+        QLIST_REMOVE(mon_fdset, next);
+        g_free(mon_fdset);
+    }
+}
+
+static void monitor_fdsets_cleanup(void)
+{
+    MonFdset *mon_fdset;
+    MonFdset *mon_fdset_next;
+
+    QLIST_FOREACH_SAFE(mon_fdset, &mon_fdsets, next, mon_fdset_next) {
+        monitor_fdset_cleanup(mon_fdset);
+    }
+}
+
+AddfdInfo *qmp_add_fd(bool has_fdset_id, int64_t fdset_id, bool has_opaque,
+                      const char *opaque, Error **errp)
+{
+    int fd;
+    Monitor *mon = cur_mon;
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd;
+    AddfdInfo *fdinfo;
+
+    fd = qemu_chr_fe_get_msgfd(mon->chr);
+    if (fd == -1) {
+        error_set(errp, QERR_FD_NOT_SUPPLIED);
+        goto error;
+    }
+
+    if (has_fdset_id) {
+        QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+            if (mon_fdset->id == fdset_id) {
+                break;
+            }
+        }
+        if (mon_fdset == NULL) {
+            error_set(errp, QERR_INVALID_PARAMETER_VALUE, "fdset-id",
+                      "an existing fdset-id");
+            goto error;
+        }
+    } else {
+        int64_t fdset_id_prev = -1;
+        MonFdset *mon_fdset_cur = QLIST_FIRST(&mon_fdsets);
+
+        /* Use first available fdset ID */
+        QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+            mon_fdset_cur = mon_fdset;
+            if (fdset_id_prev == mon_fdset_cur->id - 1) {
+                fdset_id_prev = mon_fdset_cur->id;
+                continue;
+            }
+            break;
+        }
+
+        mon_fdset = g_malloc0(sizeof(*mon_fdset));
+        mon_fdset->id = fdset_id_prev + 1;
+
+        /* The fdset list is ordered by fdset ID */
+        if (mon_fdset->id == 0) {
+            QLIST_INSERT_HEAD(&mon_fdsets, mon_fdset, next);
+        } else if (mon_fdset->id < mon_fdset_cur->id) {
+            QLIST_INSERT_BEFORE(mon_fdset_cur, mon_fdset, next);
+        } else {
+            QLIST_INSERT_AFTER(mon_fdset_cur, mon_fdset, next);
+        }
+    }
+
+    mon_fdset_fd = g_malloc0(sizeof(*mon_fdset_fd));
+    mon_fdset_fd->fd = fd;
+    mon_fdset_fd->removed = false;
+    if (has_opaque) {
+        mon_fdset_fd->opaque = g_strdup(opaque);
+    }
+    QLIST_INSERT_HEAD(&mon_fdset->fds, mon_fdset_fd, next);
+
+    fdinfo = g_malloc0(sizeof(*fdinfo));
+    fdinfo->fdset_id = mon_fdset->id;
+    fdinfo->fd = mon_fdset_fd->fd;
+
+    return fdinfo;
+
+error:
+    if (fd != -1) {
+        close(fd);
+    }
+    return NULL;
+}
+
+void qmp_remove_fd(int64_t fdset_id, bool has_fd, int64_t fd, Error **errp)
+{
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd;
+    char fd_str[60];
+
+    QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+        if (mon_fdset->id != fdset_id) {
+            continue;
+        }
+        QLIST_FOREACH(mon_fdset_fd, &mon_fdset->fds, next) {
+            if (has_fd) {
+                if (mon_fdset_fd->fd != fd) {
+                    continue;
+                }
+                mon_fdset_fd->removed = true;
+                break;
+            } else {
+                mon_fdset_fd->removed = true;
+            }
+        }
+        if (has_fd && !mon_fdset_fd) {
+            goto error;
+        }
+        monitor_fdset_cleanup(mon_fdset);
+        return;
+    }
+
+error:
+    if (has_fd) {
+        snprintf(fd_str, sizeof(fd_str), "fdset-id:%" PRId64 ", fd:%" PRId64,
+                 fdset_id, fd);
+    } else {
+        snprintf(fd_str, sizeof(fd_str), "fdset-id:%" PRId64, fdset_id);
+    }
+    error_set(errp, QERR_FD_NOT_FOUND, fd_str);
+}
+
+FdsetInfoList *qmp_query_fdsets(Error **errp)
+{
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd;
+    FdsetInfoList *fdset_list = NULL;
+
+    QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+        FdsetInfoList *fdset_info = g_malloc0(sizeof(*fdset_info));
+        FdsetFdInfoList *fdsetfd_list = NULL;
+
+        fdset_info->value = g_malloc0(sizeof(*fdset_info->value));
+        fdset_info->value->fdset_id = mon_fdset->id;
+
+        QLIST_FOREACH(mon_fdset_fd, &mon_fdset->fds, next) {
+            FdsetFdInfoList *fdsetfd_info;
+
+            fdsetfd_info = g_malloc0(sizeof(*fdsetfd_info));
+            fdsetfd_info->value = g_malloc0(sizeof(*fdsetfd_info->value));
+            fdsetfd_info->value->fd = mon_fdset_fd->fd;
+            if (mon_fdset_fd->opaque) {
+                fdsetfd_info->value->has_opaque = true;
+                fdsetfd_info->value->opaque = g_strdup(mon_fdset_fd->opaque);
+            } else {
+                fdsetfd_info->value->has_opaque = false;
+            }
+
+            fdsetfd_info->next = fdsetfd_list;
+            fdsetfd_list = fdsetfd_info;
+        }
+
+        fdset_info->value->fds = fdsetfd_list;
+
+        fdset_info->next = fdset_list;
+        fdset_list = fdset_info;
+    }
+
+    return fdset_list;
+}
+
+int monitor_fdset_get_fd(int64_t fdset_id, int flags)
+{
+#ifndef _WIN32
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd;
+    int mon_fd_flags;
+
+    QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+        if (mon_fdset->id != fdset_id) {
+            continue;
+        }
+        QLIST_FOREACH(mon_fdset_fd, &mon_fdset->fds, next) {
+            mon_fd_flags = fcntl(mon_fdset_fd->fd, F_GETFL);
+            if (mon_fd_flags == -1) {
+                return -1;
+            }
+
+            if ((flags & O_ACCMODE) == (mon_fd_flags & O_ACCMODE)) {
+                return mon_fdset_fd->fd;
+            }
+        }
+        errno = EACCES;
+        return -1;
+    }
+#endif
+
+    errno = ENOENT;
+    return -1;
+}
+
+int monitor_fdset_dup_fd_add(int64_t fdset_id, int dup_fd)
+{
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd_dup;
+
+    QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+        if (mon_fdset->id != fdset_id) {
+            continue;
+        }
+        QLIST_FOREACH(mon_fdset_fd_dup, &mon_fdset->dup_fds, next) {
+            if (mon_fdset_fd_dup->fd == dup_fd) {
+                return -1;
+            }
+        }
+        mon_fdset_fd_dup = g_malloc0(sizeof(*mon_fdset_fd_dup));
+        mon_fdset_fd_dup->fd = dup_fd;
+        QLIST_INSERT_HEAD(&mon_fdset->dup_fds, mon_fdset_fd_dup, next);
+        return 0;
+    }
+    return -1;
+}
+
+static int monitor_fdset_dup_fd_find_remove(int dup_fd, bool remove)
+{
+    MonFdset *mon_fdset;
+    MonFdsetFd *mon_fdset_fd_dup;
+
+    QLIST_FOREACH(mon_fdset, &mon_fdsets, next) {
+        QLIST_FOREACH(mon_fdset_fd_dup, &mon_fdset->dup_fds, next) {
+            if (mon_fdset_fd_dup->fd == dup_fd) {
+                if (remove) {
+                    QLIST_REMOVE(mon_fdset_fd_dup, next);
+                    if (QLIST_EMPTY(&mon_fdset->dup_fds)) {
+                        monitor_fdset_cleanup(mon_fdset);
+                    }
+                }
+                return mon_fdset->id;
+            }
+        }
+    }
+    return -1;
+}
+
+int monitor_fdset_dup_fd_find(int dup_fd)
+{
+    return monitor_fdset_dup_fd_find_remove(dup_fd, false);
+}
+
+int monitor_fdset_dup_fd_remove(int dup_fd)
+{
+    return monitor_fdset_dup_fd_find_remove(dup_fd, true);
 }
 
 /* mon_cmds and info_cmds would be sorted at runtime */
@@ -2558,6 +2917,20 @@ static mon_cmd_t info_cmds[] = {
         .mhandler.info = hmp_info_migrate,
     },
     {
+        .name       = "migrate_capabilities",
+        .args_type  = "",
+        .params     = "",
+        .help       = "show current migration capabilities",
+        .mhandler.info = hmp_info_migrate_capabilities,
+    },
+    {
+        .name       = "migrate_cache_size",
+        .args_type  = "",
+        .params     = "",
+        .help       = "show current migration xbzrle cache size",
+        .mhandler.info = hmp_info_migrate_cache_size,
+    },
+    {
         .name       = "balloon",
         .args_type  = "",
         .params     = "",
@@ -2585,15 +2958,6 @@ static mon_cmd_t info_cmds[] = {
         .help       = "show roms",
         .mhandler.info = do_info_roms,
     },
-#if defined(CONFIG_TRACE_SIMPLE)
-    {
-        .name       = "trace",
-        .args_type  = "",
-        .params     = "",
-        .help       = "show current contents of trace buffer",
-        .mhandler.info = do_info_trace,
-    },
-#endif
     {
         .name       = "trace-events",
         .args_type  = "",
@@ -3772,8 +4136,6 @@ void monitor_set_error(Monitor *mon, QError *qerror)
     if (!mon->error) {
         mon->error = qerror;
     } else {
-        MON_DEBUG("Additional error report at %s:%d\n",
-                  qerror->file, qerror->linenr);
         QDECREF(qerror);
     }
 }
@@ -3787,36 +4149,7 @@ static void handler_audit(Monitor *mon, const mon_cmd_t *cmd, int ret)
          * Action: Report an internal error to the client if in QMP.
          */
         qerror_report(QERR_UNDEFINED_ERROR);
-        MON_DEBUG("command '%s' returned failure but did not pass an error\n",
-                  cmd->name);
     }
-
-#ifdef CONFIG_DEBUG_MONITOR
-    if (!ret && monitor_has_error(mon)) {
-        /*
-         * If it returns success, it must not have passed an error.
-         *
-         * Action: Report the passed error to the client.
-         */
-        MON_DEBUG("command '%s' returned success but passed an error\n",
-                  cmd->name);
-    }
-
-    if (mon_print_count_get(mon) > 0 && strcmp(cmd->name, "info") != 0) {
-        /*
-         * Handlers should not call Monitor print functions.
-         *
-         * Action: Ignore them in QMP.
-         *
-         * (XXX: we don't check any 'info' or 'query' command here
-         * because the user print function _is_ called by do_info(), hence
-         * we will trigger this check. This problem will go away when we
-         * make 'query' commands real and kill do_info())
-         */
-        MON_DEBUG("command '%s' called print functions %d time(s)\n",
-                  cmd->name, mon_print_count_get(mon));
-    }
-#endif
 }
 
 static void handle_user_command(Monitor *mon, const char *cmdline)
@@ -4345,8 +4678,6 @@ static void qmp_call_cmd(Monitor *mon, const mon_cmd_t *cmd,
     int ret;
     QObject *data = NULL;
 
-    mon_print_count_init(mon);
-
     ret = cmd->mhandler.cmd_new(mon, params, &data);
     handler_audit(mon, cmd, ret);
     monitor_protocol_emitter(mon, data);
@@ -4501,13 +4832,16 @@ static void monitor_control_event(void *opaque, int event)
     switch (event) {
     case CHR_EVENT_OPENED:
         mon->mc->command_mode = 0;
-        json_message_parser_init(&mon->mc->parser, handle_qmp_command);
         data = get_qmp_greeting();
         monitor_json_emitter(mon, data);
         qobject_decref(data);
+        mon_refcount++;
         break;
     case CHR_EVENT_CLOSED:
         json_message_parser_destroy(&mon->mc->parser);
+        json_message_parser_init(&mon->mc->parser, handle_qmp_command);
+        mon_refcount--;
+        monitor_fdsets_cleanup();
         break;
     }
 }
@@ -4548,6 +4882,12 @@ static void monitor_event(void *opaque, int event)
             readline_show_prompt(mon->rs);
         }
         mon->reset_seen = 1;
+        mon_refcount++;
+        break;
+
+    case CHR_EVENT_CLOSED:
+        mon_refcount--;
+        monitor_fdsets_cleanup();
         break;
     }
 }
@@ -4599,6 +4939,7 @@ void monitor_init(CharDriverState *chr, int flags)
 
     if (is_first_init) {
         key_timer = qemu_new_timer_ns(vm_clock, release_keys, NULL);
+        monitor_protocol_event_init();
         is_first_init = 0;
     }
 
@@ -4617,6 +4958,8 @@ void monitor_init(CharDriverState *chr, int flags)
         qemu_chr_add_handlers(chr, monitor_can_read, monitor_control_read,
                               monitor_control_event, mon);
         qemu_chr_fe_set_echo(chr, true);
+
+        json_message_parser_init(&mon->mc->parser, handle_qmp_command);
     } else {
         qemu_chr_add_handlers(chr, monitor_can_read, monitor_read,
                               monitor_event, mon);

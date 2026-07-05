@@ -23,6 +23,7 @@
 #include "qemu-common.h"
 #include "sysemu.h"
 #include "kvm.h"
+#include "kvm_i386.h"
 #include "cpu.h"
 #include "gdbstub.h"
 #include "host-utils.h"
@@ -62,8 +63,14 @@ static bool has_msr_star;
 static bool has_msr_hsave_pa;
 static bool has_msr_tsc_deadline;
 static bool has_msr_async_pf_en;
+static bool has_msr_pv_eoi_en;
 static bool has_msr_misc_enable;
 static int lm_capable_kernel;
+
+bool kvm_allows_irq0_override(void)
+{
+    return !kvm_irqchip_in_kernel() || kvm_has_gsi_routing();
+}
 
 static struct kvm_cpuid2 *try_get_cpuid(KVMState *s, int max)
 {
@@ -361,8 +368,13 @@ int kvm_arch_init_vcpu(CPUX86State *env)
     env->cpuid_features &= kvm_arch_get_supported_cpuid(s, 1, 0, R_EDX);
 
     i = env->cpuid_ext_features & CPUID_EXT_HYPERVISOR;
+    j = env->cpuid_ext_features & CPUID_EXT_TSC_DEADLINE_TIMER;
     env->cpuid_ext_features &= kvm_arch_get_supported_cpuid(s, 1, 0, R_ECX);
     env->cpuid_ext_features |= i;
+    if (j && kvm_irqchip_in_kernel() &&
+        kvm_check_extension(s, KVM_CAP_TSC_DEADLINE_TIMER)) {
+        env->cpuid_ext_features |= CPUID_EXT_TSC_DEADLINE_TIMER;
+    }
 
     env->cpuid_ext2_features &= kvm_arch_get_supported_cpuid(s, 0x80000001,
                                                              0, R_EDX);
@@ -443,6 +455,8 @@ int kvm_arch_init_vcpu(CPUX86State *env)
     }
 
     has_msr_async_pf_en = c->eax & (1 << KVM_FEATURE_ASYNC_PF);
+
+    has_msr_pv_eoi_en = c->eax & (1 << KVM_FEATURE_PV_EOI);
 
     cpu_x86_cpuid(env, 0, 0, &limit, &unused, &unused, &unused);
 
@@ -579,11 +593,13 @@ int kvm_arch_init_vcpu(CPUX86State *env)
 
 void kvm_arch_reset_vcpu(CPUX86State *env)
 {
+    X86CPU *cpu = x86_env_get_cpu(env);
+
     env->exception_injected = -1;
     env->interrupt_injected = -1;
     env->xcr0 = 1;
     if (kvm_irqchip_in_kernel()) {
-        env->mp_state = cpu_is_bsp(env) ? KVM_MP_STATE_RUNNABLE :
+        env->mp_state = cpu_is_bsp(cpu) ? KVM_MP_STATE_RUNNABLE :
                                           KVM_MP_STATE_UNINITIALIZED;
     } else {
         env->mp_state = KVM_MP_STATE_RUNNABLE;
@@ -1004,6 +1020,10 @@ static int kvm_put_msrs(CPUX86State *env, int level)
             kvm_msr_entry_set(&msrs[n++], MSR_KVM_ASYNC_PF_EN,
                               env->async_pf_en_msr);
         }
+        if (has_msr_pv_eoi_en) {
+            kvm_msr_entry_set(&msrs[n++], MSR_KVM_PV_EOI_EN,
+                              env->pv_eoi_en_msr);
+        }
         if (hyperv_hypercall_available()) {
             kvm_msr_entry_set(&msrs[n++], HV_X64_MSR_GUEST_OS_ID, 0);
             kvm_msr_entry_set(&msrs[n++], HV_X64_MSR_HYPERCALL, 0);
@@ -1246,6 +1266,9 @@ static int kvm_get_msrs(CPUX86State *env)
     if (has_msr_async_pf_en) {
         msrs[n++].index = MSR_KVM_ASYNC_PF_EN;
     }
+    if (has_msr_pv_eoi_en) {
+        msrs[n++].index = MSR_KVM_PV_EOI_EN;
+    }
 
     if (env->mcg_cap) {
         msrs[n++].index = MSR_MCG_STATUS;
@@ -1324,6 +1347,9 @@ static int kvm_get_msrs(CPUX86State *env)
             break;
         case MSR_KVM_ASYNC_PF_EN:
             env->async_pf_en_msr = msrs[i].data;
+            break;
+        case MSR_KVM_PV_EOI_EN:
+            env->pv_eoi_en_msr = msrs[i].data;
             break;
         }
     }
@@ -1698,6 +1724,8 @@ void kvm_arch_post_run(CPUX86State *env, struct kvm_run *run)
 
 int kvm_arch_process_async_events(CPUX86State *env)
 {
+    X86CPU *cpu = x86_env_get_cpu(env);
+
     if (env->interrupt_request & CPU_INTERRUPT_MCE) {
         /* We must not raise CPU_INTERRUPT_MCE if it's not supported. */
         assert(env->mcg_cap);
@@ -1725,6 +1753,10 @@ int kvm_arch_process_async_events(CPUX86State *env)
         return 0;
     }
 
+    if (env->interrupt_request & CPU_INTERRUPT_POLL) {
+        env->interrupt_request &= ~CPU_INTERRUPT_POLL;
+        apic_poll_irq(env->apic_state);
+    }
     if (((env->interrupt_request & CPU_INTERRUPT_HARD) &&
          (env->eflags & IF_MASK)) ||
         (env->interrupt_request & CPU_INTERRUPT_NMI)) {
@@ -1732,11 +1764,11 @@ int kvm_arch_process_async_events(CPUX86State *env)
     }
     if (env->interrupt_request & CPU_INTERRUPT_INIT) {
         kvm_cpu_synchronize_state(env);
-        do_cpu_init(env);
+        do_cpu_init(cpu);
     }
     if (env->interrupt_request & CPU_INTERRUPT_SIPI) {
         kvm_cpu_synchronize_state(env);
-        do_cpu_sipi(env);
+        do_cpu_sipi(cpu);
     }
     if (env->interrupt_request & CPU_INTERRUPT_TPR) {
         env->interrupt_request &= ~CPU_INTERRUPT_TPR;
@@ -2028,4 +2060,11 @@ void kvm_arch_init_irq_routing(KVMState *s)
          */
         no_hpet = 1;
     }
+    /* We know at this point that we're using the in-kernel
+     * irqchip, so we can use irqfds, and on x86 we know
+     * we can use msi via irqfd and GSI routing.
+     */
+    kvm_irqfds_allowed = true;
+    kvm_msi_via_irqfd_allowed = true;
+    kvm_gsi_routing_allowed = true;
 }

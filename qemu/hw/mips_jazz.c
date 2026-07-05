@@ -50,8 +50,9 @@ enum jazz_model_e
 
 static void main_cpu_reset(void *opaque)
 {
-    CPUMIPSState *env = opaque;
-    cpu_state_reset(env);
+    MIPSCPU *cpu = opaque;
+
+    cpu_reset(CPU(cpu));
 }
 
 static uint64_t rtc_read(void *opaque, target_phys_addr_t addr, unsigned size)
@@ -112,6 +113,7 @@ static void mips_jazz_init(MemoryRegion *address_space,
 {
     char *filename;
     int bios_size, n;
+    MIPSCPU *cpu;
     CPUMIPSState *env;
     qemu_irq *rc4030, *i8259;
     rc4030_dma *dmas;
@@ -140,12 +142,13 @@ static void mips_jazz_init(MemoryRegion *address_space,
         cpu_model = "24Kf";
 #endif
     }
-    env = cpu_init(cpu_model);
-    if (!env) {
+    cpu = cpu_mips_init(cpu_model);
+    if (cpu == NULL) {
         fprintf(stderr, "Unable to find CPU definition\n");
         exit(1);
     }
-    qemu_register_reset(main_cpu_reset, env);
+    env = &cpu->env;
+    qemu_register_reset(main_cpu_reset, cpu);
 
     /* allocate RAM */
     memory_region_init_ram(ram, "mips_jazz.ram", ram_size);
@@ -236,7 +239,7 @@ static void mips_jazz_init(MemoryRegion *address_space,
             dp83932_init(nd, 0x80001000, 2, get_system_memory(), rc4030[4],
                          rc4030_opaque, rc4030_dma_memory_rw);
             break;
-        } else if (strcmp(nd->model, "?") == 0) {
+        } else if (is_help_option(nd->model)) {
             fprintf(stderr, "qemu: Supported NICs: dp83932\n");
             exit(1);
         } else {

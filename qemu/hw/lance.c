@@ -85,7 +85,7 @@ static const MemoryRegionOps lance_mem_ops = {
     },
 };
 
-static void lance_cleanup(VLANClientState *nc)
+static void lance_cleanup(NetClientState *nc)
 {
     PCNetState *d = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -93,7 +93,7 @@ static void lance_cleanup(VLANClientState *nc)
 }
 
 static NetClientInfo net_lance_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = pcnet_can_receive,
     .receive = pcnet_receive,

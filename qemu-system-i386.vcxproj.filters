@@ -126,9 +126,6 @@
     <ClCompile Include="qemu\arm-dis.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\arm-semi.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\block.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -708,9 +705,6 @@
     <ClCompile Include="qemu\hw\ppc_prep.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\ppce500_mpc8544ds.c">
-      <Filter>qemu\hw\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\hw\ppce500_pci.c">
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
@@ -996,9 +990,6 @@
     <ClCompile Include="qemu\target-i386\machine.c">
       <Filter>qemu\target-i386</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\target-i386\op_helper.c">
-      <Filter>qemu\target-i386</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\target-i386\translate.c">
       <Filter>qemu\target-i386</Filter>
     </ClCompile>
@@ -1111,9 +1102,6 @@
       <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ioport.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\ioport-user.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\qdev-addr.c">
@@ -1467,13 +1455,10 @@
     <ClCompile Include="qemu\ui\x_keymap.c">
       <Filter>qemu\ui\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\ui\vnc-jobs-async.c">
-      <Filter>qemu\ui\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\ui\vnc-jobs-sync.c">
-      <Filter>qemu\ui\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\ui\vnc-palette.c">
+      <Filter>qemu\ui\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\ui\vnc-jobs.c">
       <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ivshmem.c">
@@ -1809,6 +1794,9 @@
     <ClCompile Include="qemu\qom\object.c">
       <Filter>qemu\qom\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\qapi\opts-visitor.c">
+      <Filter>qemu\qapi</Filter>
+    </ClCompile>
     <ClCompile Include="qemu\qemu-coroutine-sleep.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -1932,6 +1920,9 @@
     <ClCompile Include="qemu\cputlb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\dump-stub.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
     <ClCompile Include="qemu\hw\shpc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1946,6 +1937,75 @@
     </ClCompile>
     <ClCompile Include="qemu\target-i386\cpu.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\block-common.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\arch_dump.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\arch_memory_mapping.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\cc_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\excp_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\fpu_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\hyperv.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\int_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\ioport-user.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\kvm-stub.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\mem_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\misc_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\seg_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\smm_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\target-i386\svm_helper.c">
+      <Filter>qemu\target-i386</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\hd-geometry.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\stream.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\usb\dev-uas.c">
+      <Filter>qemu\hw\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-log.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\net\hub.c">
+      <Filter>qemu\net\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\page_cache.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\memory_mapping.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\memory_mapping-stub.c">
+      <Filter>qemu\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2417,9 +2477,6 @@
     <ClInclude Include="qemu\target-i386\helper.h">
       <Filter>qemu\target-i386</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\target-i386\helper_template.h">
-      <Filter>qemu\target-i386</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\target-i386\ops_sse.h">
       <Filter>qemu\target-i386</Filter>
     </ClInclude>
@@ -2858,9 +2915,6 @@
     <ClInclude Include="qemu\error.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\error_int.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\hw\virtio-pci.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
@@ -3004,6 +3058,30 @@
     </ClInclude>
     <ClInclude Include="qemu\hw\usb\desc.h">
       <Filter>qemu\hw\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\hw\block-common.h">
+      <Filter>qemu\hw\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\cc_helper_template.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\cpu-qom.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\hyperv.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\kvm_i386.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\target-i386\shift_helper_template.h">
+      <Filter>qemu\target-i386</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\net\hub.h">
+      <Filter>qemu\net\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\memory_mapping.h">
+      <Filter>qemu\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

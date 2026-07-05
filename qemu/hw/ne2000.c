@@ -21,17 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-/*
- * WinQEMU GPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL is available it will apply instead, WinQEMU elects to use only the 
- * General Public License version 3 (GPLv3) at this time for any software where a choice of 
- * GPL license versions is made available with the language indicating that GPLv3 or any later
- * version may be used, or where a choice of which version of the GPL is applied is otherwise unspecified.
- * 
- * Please contact Yan Wen (celestialwy@gmail.com) if you need additional information or have any questions.
- */
- 
 #include "hw.h"
 #include "pci.h"
 #include "net.h"
@@ -176,7 +165,7 @@ static int ne2000_buffer_full(NE2000State *s)
     return 0;
 }
 
-int ne2000_can_receive(VLANClientState *nc)
+int ne2000_can_receive(NetClientState *nc)
 {
     NE2000State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -187,7 +176,7 @@ int ne2000_can_receive(VLANClientState *nc)
 
 #define MIN_BUF_SIZE 60
 
-ssize_t ne2000_receive(VLANClientState *nc, const uint8_t *buf, size_t size_)
+ssize_t ne2000_receive(NetClientState *nc, const uint8_t *buf, size_t size_)
 {
     NE2000State *s = DO_UPCAST(NICState, nc, nc)->opaque;
     int size = size_;
@@ -729,15 +718,15 @@ static void ne2000_write(void *opaque, target_phys_addr_t addr,
     NE2000State *s = opaque;
 
     if (addr < 0x10 && size == 1) {
-        return ne2000_ioport_write(s, addr, data);
+        ne2000_ioport_write(s, addr, data);
     } else if (addr == 0x10) {
         if (size <= 2) {
-            return ne2000_asic_ioport_write(s, addr, data);
+            ne2000_asic_ioport_write(s, addr, data);
         } else {
-            return ne2000_asic_ioport_writel(s, addr, data);
+            ne2000_asic_ioport_writel(s, addr, data);
         }
     } else if (addr == 0x1f && size == 1) {
-        return ne2000_reset_ioport_write(s, addr, data);
+        ne2000_reset_ioport_write(s, addr, data);
     }
 }
 
@@ -755,7 +744,7 @@ void ne2000_setup_io(NE2000State *s, unsigned size)
     memory_region_init_io(&s->io, &ne2000_ops, s, "ne2000", size);
 }
 
-static void ne2000_cleanup(VLANClientState *nc)
+static void ne2000_cleanup(NetClientState *nc)
 {
     NE2000State *s = DO_UPCAST(NICState, nc, nc)->opaque;
 
@@ -763,7 +752,7 @@ static void ne2000_cleanup(VLANClientState *nc)
 }
 
 static NetClientInfo net_ne2000_info = {
-    .type = NET_CLIENT_TYPE_NIC,
+    .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
     .can_receive = ne2000_can_receive,
     .receive = ne2000_receive,
@@ -796,14 +785,13 @@ static int pci_ne2000_init(PCIDevice *pci_dev)
     return 0;
 }
 
-static int pci_ne2000_exit(PCIDevice *pci_dev)
+static void pci_ne2000_exit(PCIDevice *pci_dev)
 {
     PCINE2000State *d = DO_UPCAST(PCINE2000State, dev, pci_dev);
     NE2000State *s = &d->ne2000;
 
     memory_region_destroy(&s->io);
-    qemu_del_vlan_client(&s->nic->nc);
-    return 0;
+    qemu_del_net_client(&s->nic->nc);
 }
 
 static Property ne2000_properties[] = {

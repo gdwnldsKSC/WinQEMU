@@ -1,3 +1,4 @@
+#include "stream.h"
 #include "qemu-common.h"
 #include "net.h"
 
@@ -6,7 +7,7 @@ xilinx_intc_create(target_phys_addr_t base, qemu_irq irq, int kind_of_intr)
 {
     DeviceState *dev;
 
-    dev = qdev_create(NULL, "xilinx,intc");
+    dev = qdev_create(NULL, "xlnx.xps-intc");
     qdev_prop_set_uint32(dev, "kind-of-intr", kind_of_intr);
     qdev_init_nofail(dev);
     sysbus_mmio_map(sysbus_from_qdev(dev), 0, base);
@@ -16,12 +17,12 @@ xilinx_intc_create(target_phys_addr_t base, qemu_irq irq, int kind_of_intr)
 
 /* OPB Timer/Counter.  */
 static inline DeviceState *
-xilinx_timer_create(target_phys_addr_t base, qemu_irq irq, int nr, int freq)
+xilinx_timer_create(target_phys_addr_t base, qemu_irq irq, int oto, int freq)
 {
     DeviceState *dev;
 
-    dev = qdev_create(NULL, "xilinx,timer");
-    qdev_prop_set_uint32(dev, "nr-timers", nr);
+    dev = qdev_create(NULL, "xlnx,xps-timer");
+    qdev_prop_set_uint32(dev, "one-timer-only", oto);
     qdev_prop_set_uint32(dev, "frequency", freq);
     qdev_init_nofail(dev);
     sysbus_mmio_map(sysbus_from_qdev(dev), 0, base);
@@ -36,12 +37,12 @@ xilinx_ethlite_create(NICInfo *nd, target_phys_addr_t base, qemu_irq irq,
 {
     DeviceState *dev;
 
-    qemu_check_nic_model(nd, "xilinx-ethlite");
+    qemu_check_nic_model(nd, "xlnx.xps-ethernetlite");
 
-    dev = qdev_create(NULL, "xilinx,ethlite");
+    dev = qdev_create(NULL, "xlnx.xps-ethernetlite");
     qdev_set_nic_properties(dev, nd);
-    qdev_prop_set_uint32(dev, "txpingpong", txpingpong);
-    qdev_prop_set_uint32(dev, "rxpingpong", rxpingpong);
+    qdev_prop_set_uint32(dev, "tx-ping-pong", txpingpong);
+    qdev_prop_set_uint32(dev, "rx-ping-pong", rxpingpong);
     qdev_init_nofail(dev);
     sysbus_mmio_map(sysbus_from_qdev(dev), 0, base);
     sysbus_connect_irq(sysbus_from_qdev(dev), 0, irq);
@@ -49,18 +50,18 @@ xilinx_ethlite_create(NICInfo *nd, target_phys_addr_t base, qemu_irq irq,
 }
 
 static inline DeviceState *
-xilinx_axiethernet_create(void *dmach,
-                          NICInfo *nd, target_phys_addr_t base, qemu_irq irq,
+xilinx_axiethernet_create(NICInfo *nd, StreamSlave *peer,
+                          target_phys_addr_t base, qemu_irq irq,
                           int txmem, int rxmem)
 {
     DeviceState *dev;
-    qemu_check_nic_model(nd, "xilinx-axienet");
+    qemu_check_nic_model(nd, "xlnx.axi-ethernet");
 
-    dev = qdev_create(NULL, "xilinx,axienet");
+    dev = qdev_create(NULL, "xlnx.axi-ethernet");
     qdev_set_nic_properties(dev, nd);
-    qdev_prop_set_uint32(dev, "c_rxmem", rxmem);
-    qdev_prop_set_uint32(dev, "c_txmem", txmem);
-    qdev_prop_set_ptr(dev, "dmach", dmach);
+    qdev_prop_set_uint32(dev, "rxmem", rxmem);
+    qdev_prop_set_uint32(dev, "txmem", txmem);
+    object_property_set_link(OBJECT(dev), OBJECT(peer), "tx_dev", NULL);
     qdev_init_nofail(dev);
     sysbus_mmio_map(sysbus_from_qdev(dev), 0, base);
     sysbus_connect_irq(sysbus_from_qdev(dev), 0, irq);
@@ -68,21 +69,16 @@ xilinx_axiethernet_create(void *dmach,
     return dev;
 }
 
-static inline DeviceState *
-xilinx_axiethernetdma_create(void *dmach,
-                             target_phys_addr_t base, qemu_irq irq,
-                             qemu_irq irq2, int freqhz)
+static inline void
+xilinx_axiethernetdma_init(DeviceState *dev, StreamSlave *peer,
+                           target_phys_addr_t base, qemu_irq irq,
+                           qemu_irq irq2, int freqhz)
 {
-    DeviceState *dev = NULL;
-
-    dev = qdev_create(NULL, "xilinx,axidma");
     qdev_prop_set_uint32(dev, "freqhz", freqhz);
-    qdev_prop_set_ptr(dev, "dmach", dmach);
+    object_property_set_link(OBJECT(dev), OBJECT(peer), "tx_dev", NULL);
     qdev_init_nofail(dev);
 
     sysbus_mmio_map(sysbus_from_qdev(dev), 0, base);
-    sysbus_connect_irq(sysbus_from_qdev(dev), 0, irq2);
-    sysbus_connect_irq(sysbus_from_qdev(dev), 1, irq);
-
-    return dev;
+    sysbus_connect_irq(sysbus_from_qdev(dev), 0, irq);
+    sysbus_connect_irq(sysbus_from_qdev(dev), 1, irq2);
 }

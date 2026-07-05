@@ -12,27 +12,39 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#include "compiler.h"
-#include <stdbool.h>
-
-/**
- * A class representing internal errors within QEMU.  An error has a string
- * typename and optionally a set of named string parameters.
+/*
+ * A class representing internal errors within QEMU.  An error has a ErrorClass
+ * code and a human message.
+ *
+ * MSVC modification: this opaque forward typedef is declared before the
+ * includes below.  qapi-types.h now pulls in qemu-common.h (-> cpu.h ->
+ * cpu-qom.h) which references the bare "Error" type; if error.h is the entry
+ * point of that include cycle, cpu-qom.h re-includes error.h (guard already
+ * set, skipped) and would see Error undefined unless it is typedef'd first.
  */
 typedef struct Error Error;
 
+#include "compiler.h"
+#include "qapi-types.h"
+#include <stdbool.h>
+
 /**
- * Set an indirect pointer to an error given a printf-style format parameter.
- * Currently, qerror.h defines these error formats.  This function is not
- * meant to be used outside of QEMU.
+ * Set an indirect pointer to an error given a ErrorClass value and a
+ * printf-style human message.  This function is not meant to be used outside
+ * of QEMU.
  */
-void error_set(Error **err, const char *fmt, ...) GCC_FMT_ATTR(2, 3);
+void error_set(Error **err, ErrorClass err_class, const char *fmt, ...) GCC_FMT_ATTR(3, 4);
 
 /**
  * Returns true if an indirect pointer to an error is pointing to a valid
  * error object.
  */
 bool error_is_set(Error **err);
+
+/*
+ * Get the error class of an error object.
+ */
+ErrorClass error_get_class(const Error *err);
 
 /**
  * Returns an exact copy of the error passed as an argument.
@@ -45,19 +57,9 @@ Error *error_copy(const Error *err);
 const char *error_get_pretty(Error *err);
 
 /**
- * Get an individual named error field.
- */
-const char *error_get_field(Error *err, const char *field);
-
-/**
- * Get an individual named error field.
- */
-void error_set_field(Error *err, const char *field, const char *value);
-
-/**
  * Propagate an error to an indirect pointer to an error.  This function will
  * always transfer ownership of the error reference and handles the case where
- * dst_err is NULL correctly.
+ * dst_err is NULL correctly.  Errors after the first are discarded.
  */
 void error_propagate(Error **dst_err, Error *local_err);
 
@@ -65,11 +67,5 @@ void error_propagate(Error **dst_err, Error *local_err);
  * Free an error object.
  */
 void error_free(Error *err);
-
-/**
- * Determine if an error is of a speific type (based on the qerror format).
- * Non-QEMU users should get the `class' field to identify the error type.
- */
-bool error_is_type(Error *err, const char *fmt);
 
 #endif

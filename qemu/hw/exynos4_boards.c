@@ -81,7 +81,7 @@ static void lan9215_init(uint32_t base, qemu_irq irq)
     SysBusDevice *s;
 
     /* This should be a 9215 but the 9118 is close enough */
-    if (nd_table[0].vlan) {
+    if (nd_table[0].used) {
         qemu_check_nic_model(&nd_table[0], "lan9118");
         dev = qdev_create(NULL, "lan9118");
         qdev_set_nic_properties(dev, &nd_table[0]);
@@ -138,7 +138,7 @@ static void nuri_init(ram_addr_t ram_size,
     exynos4_boards_init_common(kernel_filename, kernel_cmdline,
                 initrd_filename, EXYNOS4_BOARD_NURI);
 
-    arm_load_kernel(first_cpu, &exynos4_board_binfo);
+    arm_load_kernel(arm_env_get_cpu(first_cpu), &exynos4_board_binfo);
 }
 
 static void smdkc210_init(ram_addr_t ram_size,
@@ -151,7 +151,7 @@ static void smdkc210_init(ram_addr_t ram_size,
 
     lan9215_init(SMDK_LAN9118_BASE_ADDR,
             qemu_irq_invert(s->irq_table[exynos4210_get_irq(37, 1)]));
-    arm_load_kernel(first_cpu, &exynos4_board_binfo);
+    arm_load_kernel(arm_env_get_cpu(first_cpu), &exynos4_board_binfo);
 }
 
 static QEMUMachine exynos4_machines[EXYNOS4_NUM_OF_BOARDS] = {

@@ -274,6 +274,28 @@ extern unsigned long reserved_va;
 #define cpu_ldsw_code(env1, p) ldsw_raw(p)
 #define cpu_ldl_code(env1, p) ldl_raw(p)
 #define cpu_ldq_code(env1, p) ldq_raw(p)
+
+#define cpu_ldub_data(env, addr) ldub_raw(addr)
+#define cpu_lduw_data(env, addr) lduw_raw(addr)
+#define cpu_ldsw_data(env, addr) ldsw_raw(addr)
+#define cpu_ldl_data(env, addr) ldl_raw(addr)
+#define cpu_ldq_data(env, addr) ldq_raw(addr)
+
+#define cpu_stb_data(env, addr, data) stb_raw(addr, data)
+#define cpu_stw_data(env, addr, data) stw_raw(addr, data)
+#define cpu_stl_data(env, addr, data) stl_raw(addr, data)
+#define cpu_stq_data(env, addr, data) stq_raw(addr, data)
+
+#define cpu_ldub_kernel(env, addr) ldub_raw(addr)
+#define cpu_lduw_kernel(env, addr) lduw_raw(addr)
+#define cpu_ldsw_kernel(env, addr) ldsw_raw(addr)
+#define cpu_ldl_kernel(env, addr) ldl_raw(addr)
+#define cpu_ldq_kernel(env, addr) ldq_raw(addr)
+
+#define cpu_stb_kernel(env, addr, data) stb_raw(addr, data)
+#define cpu_stw_kernel(env, addr, data) stw_raw(addr, data)
+#define cpu_stl_kernel(env, addr, data) stl_raw(addr, data)
+#define cpu_stq_kernel(env, addr, data) stq_raw(addr, data)
 #endif
 
 #define ldub_kernel(p) ldub_raw(p)
@@ -291,6 +313,15 @@ extern unsigned long reserved_va;
 #define stfl_kernel(p, v) stfl_raw(p, v)
 #define stfq_kernel(p, vt) stfq_raw(p, v)
 
+#ifdef CONFIG_TCG_PASS_AREG0
+#define cpu_ldub_data(env, addr) ldub_raw(addr)
+#define cpu_lduw_data(env, addr) lduw_raw(addr)
+#define cpu_ldl_data(env, addr) ldl_raw(addr)
+
+#define cpu_stb_data(env, addr, data) stb_raw(addr, data)
+#define cpu_stw_data(env, addr, data) stw_raw(addr, data)
+#define cpu_stl_data(env, addr, data) stl_raw(addr, data)
+#endif
 #endif /* defined(CONFIG_USER_ONLY) */
 
 /* page related stuff */
@@ -443,33 +474,8 @@ void cpu_watchpoint_remove_all(CPUArchState *env, int mask);
 #define SSTEP_NOTIMER 0x4  /* Do not Timers while single stepping */
 
 void cpu_single_step(CPUArchState *env, int enabled);
-void cpu_state_reset(CPUArchState *s);
 int cpu_is_stopped(CPUArchState *env);
 void run_on_cpu(CPUArchState *env, void (*func)(void *data), void *data);
-
-#define CPU_LOG_TB_OUT_ASM (1 << 0)
-#define CPU_LOG_TB_IN_ASM  (1 << 1)
-#define CPU_LOG_TB_OP      (1 << 2)
-#define CPU_LOG_TB_OP_OPT  (1 << 3)
-#define CPU_LOG_INT        (1 << 4)
-#define CPU_LOG_EXEC       (1 << 5)
-#define CPU_LOG_PCALL      (1 << 6)
-#define CPU_LOG_IOPORT     (1 << 7)
-#define CPU_LOG_TB_CPU     (1 << 8)
-#define CPU_LOG_RESET      (1 << 9)
-
-/* define log items */
-typedef struct CPULogItem {
-    int mask;
-    const char *name;
-    const char *help;
-} CPULogItem;
-
-extern const CPULogItem cpu_log_items[];
-
-void cpu_set_log(int log_flags);
-void cpu_set_log_filename(const char *filename);
-int cpu_str_to_log_mask(const char *str);
 
 #if !defined(CONFIG_USER_ONLY)
 
@@ -502,6 +508,7 @@ typedef struct RAMBlock {
 typedef struct RAMList {
     uint8_t *phys_dirty;
     QLIST_HEAD(, RAMBlock) blocks;
+    uint64_t dirty_pages;
 } RAMList;
 extern RAMList ram_list;
 

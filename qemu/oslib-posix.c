@@ -41,6 +41,9 @@ extern int daemon(int, int);
       therefore we need special code which handles running on Valgrind. */
 #  define QEMU_VMALLOC_ALIGN (512 * 4096)
 #  define CONFIG_VALGRIND
+#elif defined(__linux__) && defined(__s390x__)
+   /* Use 1 MiB (segment size) alignment so gmap can be used by KVM. */
+#  define QEMU_VMALLOC_ALIGN (256 * 4096)
 #else
 #  define QEMU_VMALLOC_ALIGN getpagesize()
 #endif
@@ -105,6 +108,8 @@ void *qemu_memalign(size_t alignment, size_t size)
     return ptr;
 }
 
+/* conflicts with qemu_vmalloc in bsd-user/mmap.c */
+#if !defined(CONFIG_BSD_USER)
 /* alloc shared memory pages */
 void *qemu_vmalloc(size_t size)
 {
@@ -127,6 +132,7 @@ void *qemu_vmalloc(size_t size)
     trace_qemu_vmalloc(size, ptr);
     return ptr;
 }
+#endif
 
 void qemu_vfree(void *ptr)
 {

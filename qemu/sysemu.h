@@ -62,6 +62,7 @@ int qemu_powerdown_requested(void);
 void qemu_system_killed(int signal, pid_t pid);
 void qemu_kill_report(void);
 extern qemu_irq qemu_system_powerdown;
+void qemu_devices_reset(void);
 void qemu_system_reset(bool report);
 
 void qemu_add_exit_notifier(Notifier *notify);
@@ -77,7 +78,8 @@ void do_info_snapshots(Monitor *mon);
 void qemu_announce_self(void);
 
 bool qemu_savevm_state_blocked(Error **errp);
-int qemu_savevm_state_begin(QEMUFile *f, int blk_enable, int shared);
+int qemu_savevm_state_begin(QEMUFile *f,
+                            const MigrationParams *params);
 int qemu_savevm_state_iterate(QEMUFile *f);
 int qemu_savevm_state_complete(QEMUFile *f);
 void qemu_savevm_state_cancel(QEMUFile *f);
@@ -133,9 +135,10 @@ extern uint8_t qemu_extra_params_fw[2];
 extern QEMUClock *rtc_clock;
 
 #define MAX_NODES 64
+#define MAX_CPUMASK_BITS 255
 extern int nb_numa_nodes;
 extern uint64_t node_mem[MAX_NODES];
-extern uint64_t node_cpumask[MAX_NODES];
+extern unsigned long *node_cpumask[MAX_NODES];
 
 #define MAX_OPTION_ROMS 16
 typedef struct QEMUOptionRom {
