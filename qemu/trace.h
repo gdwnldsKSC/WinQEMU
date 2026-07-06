@@ -657,15 +657,27 @@ static inline void trace_usb_ehci_reset(void)
 {
 }
 
-static inline void trace_usb_ehci_mmio_readl(uint32_t addr, const char * str, uint32_t val)
+static inline void trace_usb_ehci_opreg_read(uint32_t addr, const char * str, uint32_t val)
 {
 }
 
-static inline void trace_usb_ehci_mmio_writel(uint32_t addr, const char * str, uint32_t val)
+static inline void trace_usb_ehci_opreg_write(uint32_t addr, const char * str, uint32_t val)
 {
 }
 
-static inline void trace_usb_ehci_mmio_change(uint32_t addr, const char * str, uint32_t new, uint32_t old)
+static inline void trace_usb_ehci_opreg_change(uint32_t addr, const char * str, uint32_t new, uint32_t old)
+{
+}
+
+static inline void trace_usb_ehci_portsc_read(uint32_t addr, uint32_t port, uint32_t val)
+{
+}
+
+static inline void trace_usb_ehci_portsc_write(uint32_t addr, uint32_t port, uint32_t val)
+{
+}
+
+static inline void trace_usb_ehci_portsc_change(uint32_t addr, uint32_t port, uint32_t new, uint32_t old)
 {
 }
 
@@ -734,6 +746,18 @@ static inline void trace_usb_ehci_packet_action(void * q, void * p, const char *
 }
 
 static inline void trace_usb_ehci_irq(uint32_t level, uint32_t frindex, uint32_t sts, uint32_t mask)
+{
+}
+
+static inline void trace_usb_ehci_guest_bug(const char * reason)
+{
+}
+
+static inline void trace_usb_ehci_doorbell_ring(void)
+{
+}
+
+static inline void trace_usb_ehci_doorbell_ack(void)
 {
 }
 
@@ -961,7 +985,7 @@ static inline void trace_usb_xhci_ep_reset(uint32_t slotid, uint32_t epid)
 {
 }
 
-static inline void trace_usb_xhci_xfer_start(void * xfer, uint32_t slotid, uint32_t epid, uint32_t length)
+static inline void trace_usb_xhci_xfer_start(void * xfer, uint32_t slotid, uint32_t epid)
 {
 }
 
@@ -2921,7 +2945,7 @@ static inline void trace_qxl_io_read_unexpected(int qid)
 {
 }
 
-static inline void trace_qxl_io_unexpected_vga_mode(int qid, uint32_t io_port, const char * desc)
+static inline void trace_qxl_io_unexpected_vga_mode(int qid, uint64_t addr, uint64_t val, const char * desc)
 {
 }
 
@@ -3045,6 +3069,10 @@ static inline void trace_qxl_spice_flush_surfaces_async(int qid, uint32_t surfac
 {
 }
 
+static inline void trace_qxl_spice_monitors_config(int qid)
+{
+}
+
 static inline void trace_qxl_spice_loadvm_commands(int qid, void * ext, uint32_t count)
 {
 }
@@ -3074,6 +3102,14 @@ static inline void trace_qxl_spice_update_area_rest(int qid, uint32_t num_dirty_
 }
 
 static inline void trace_qxl_surfaces_dirty(int qid, int surface, int offset, int size)
+{
+}
+
+static inline void trace_qxl_send_events(int qid, uint32_t events)
+{
+}
+
+static inline void trace_qxl_set_guest_bug(int qid)
 {
 }
 
@@ -3277,9 +3313,12 @@ static inline void trace_spapr_pci_lsi_set(const char * busname, int pin, uint32
 #define TRACE_USB_PORT_DETACH_ENABLED 1
 #define TRACE_USB_PORT_RELEASE_ENABLED 1
 #define TRACE_USB_EHCI_RESET_ENABLED 1
-#define TRACE_USB_EHCI_MMIO_READL_ENABLED 1
-#define TRACE_USB_EHCI_MMIO_WRITEL_ENABLED 1
-#define TRACE_USB_EHCI_MMIO_CHANGE_ENABLED 1
+#define TRACE_USB_EHCI_OPREG_READ_ENABLED 1
+#define TRACE_USB_EHCI_OPREG_WRITE_ENABLED 1
+#define TRACE_USB_EHCI_OPREG_CHANGE_ENABLED 1
+#define TRACE_USB_EHCI_PORTSC_READ_ENABLED 1
+#define TRACE_USB_EHCI_PORTSC_WRITE_ENABLED 1
+#define TRACE_USB_EHCI_PORTSC_CHANGE_ENABLED 1
 #define TRACE_USB_EHCI_USBSTS_ENABLED 1
 #define TRACE_USB_EHCI_STATE_ENABLED 1
 #define TRACE_USB_EHCI_QH_PTRS_ENABLED 1
@@ -3297,6 +3336,9 @@ static inline void trace_spapr_pci_lsi_set(const char * busname, int pin, uint32
 #define TRACE_USB_EHCI_QUEUE_ACTION_ENABLED 1
 #define TRACE_USB_EHCI_PACKET_ACTION_ENABLED 1
 #define TRACE_USB_EHCI_IRQ_ENABLED 1
+#define TRACE_USB_EHCI_GUEST_BUG_ENABLED 1
+#define TRACE_USB_EHCI_DOORBELL_RING_ENABLED 1
+#define TRACE_USB_EHCI_DOORBELL_ACK_ENABLED 1
 #define TRACE_USB_UHCI_RESET_ENABLED 1
 #define TRACE_USB_UHCI_SCHEDULE_START_ENABLED 1
 #define TRACE_USB_UHCI_SCHEDULE_STOP_ENABLED 1
@@ -3876,6 +3918,7 @@ static inline void trace_spapr_pci_lsi_set(const char * busname, int pin, uint32
 #define TRACE_QXL_SPICE_DESTROY_SURFACE_WAIT_COMPLETE_ENABLED 1
 #define TRACE_QXL_SPICE_DESTROY_SURFACE_WAIT_ENABLED 1
 #define TRACE_QXL_SPICE_FLUSH_SURFACES_ASYNC_ENABLED 1
+#define TRACE_QXL_SPICE_MONITORS_CONFIG_ENABLED 1
 #define TRACE_QXL_SPICE_LOADVM_COMMANDS_ENABLED 1
 #define TRACE_QXL_SPICE_OOM_ENABLED 1
 #define TRACE_QXL_SPICE_RESET_CURSOR_ENABLED 1
@@ -3884,6 +3927,8 @@ static inline void trace_spapr_pci_lsi_set(const char * busname, int pin, uint32
 #define TRACE_QXL_SPICE_UPDATE_AREA_ENABLED 1
 #define TRACE_QXL_SPICE_UPDATE_AREA_REST_ENABLED 1
 #define TRACE_QXL_SURFACES_DIRTY_ENABLED 1
+#define TRACE_QXL_SEND_EVENTS_ENABLED 1
+#define TRACE_QXL_SET_GUEST_BUG_ENABLED 1
 #define TRACE_QXL_RENDER_BLIT_GUEST_PRIMARY_INITIALIZED_ENABLED 1
 #define TRACE_QXL_RENDER_BLIT_ENABLED 1
 #define TRACE_QXL_RENDER_GUEST_PRIMARY_RESIZED_ENABLED 1

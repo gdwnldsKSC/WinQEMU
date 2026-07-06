@@ -937,8 +937,11 @@ static void console_putchar(TextConsole *s, int ch)
     case TTY_STATE_CSI: /* handle escape sequence parameters */
         if (ch >= '0' && ch <= '9') {
             if (s->nb_esc_params < MAX_ESC_PARAMS) {
-                s->esc_params[s->nb_esc_params] =
-                    s->esc_params[s->nb_esc_params] * 10 + ch - '0';
+                int *param = &s->esc_params[s->nb_esc_params];
+                int digit = (ch - '0');
+
+                *param = (*param <= (INT_MAX - digit) / 10) ?
+                         *param * 10 + digit : INT_MAX;
             }
         } else {
             if (s->nb_esc_params < MAX_ESC_PARAMS)
@@ -1611,7 +1614,7 @@ PixelFormat qemu_different_endianness_pixelformat(int bpp)
     memset(&pf, 0x00, sizeof(PixelFormat));
 
     pf.bits_per_pixel = bpp;
-    pf.bytes_per_pixel = bpp / 8;
+    pf.bytes_per_pixel = DIV_ROUND_UP(bpp, 8);
     pf.depth = bpp == 32 ? 24 : bpp;
 
     switch (bpp) {
@@ -1660,13 +1663,12 @@ PixelFormat qemu_default_pixelformat(int bpp)
     memset(&pf, 0x00, sizeof(PixelFormat));
 
     pf.bits_per_pixel = bpp;
-    pf.bytes_per_pixel = bpp / 8;
+    pf.bytes_per_pixel = DIV_ROUND_UP(bpp, 8);
     pf.depth = bpp == 32 ? 24 : bpp;
 
     switch (bpp) {
         case 15:
             pf.bits_per_pixel = 16;
-            pf.bytes_per_pixel = 2;
             pf.rmask = 0x00007c00;
             pf.gmask = 0x000003E0;
             pf.bmask = 0x0000001F;

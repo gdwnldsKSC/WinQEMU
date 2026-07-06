@@ -833,6 +833,7 @@ void qapi_free_SpiceChannel(SpiceChannel * obj);
 struct SpiceInfo
 {
     bool enabled;
+    bool migrated;
     bool has_host;
     char * host;
     bool has_port;

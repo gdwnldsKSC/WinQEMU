@@ -937,11 +937,7 @@ void tcg_dump_ops(TCGContext *s)
                                                        args[nb_oargs + i]));
                 }
             }
-        } else if (c == INDEX_op_movi_i32 
-#if TCG_TARGET_REG_BITS == 64
-                   || c == INDEX_op_movi_i64
-#endif
-                   ) {
+        } else if (c == INDEX_op_movi_i32 || c == INDEX_op_movi_i64) {
             tcg_target_ulong val;
             TCGHelperInfo *th;
 
@@ -991,17 +987,13 @@ void tcg_dump_ops(TCGContext *s)
             }
             switch (c) {
             case INDEX_op_brcond_i32:
-#if TCG_TARGET_REG_BITS == 32
-            case INDEX_op_brcond2_i32:
-#elif TCG_TARGET_REG_BITS == 64
-            case INDEX_op_brcond_i64:
-#endif
             case INDEX_op_setcond_i32:
-#if TCG_TARGET_REG_BITS == 32
+            case INDEX_op_movcond_i32:
+            case INDEX_op_brcond2_i32:
             case INDEX_op_setcond2_i32:
-#elif TCG_TARGET_REG_BITS == 64
+            case INDEX_op_brcond_i64:
             case INDEX_op_setcond_i64:
-#endif
+            case INDEX_op_movcond_i64:
                 if (args[k] < ARRAY_SIZE(cond_name) && cond_name[args[k]]) {
                     qemu_log(",%s", cond_name[args[k++]]);
                 } else {
@@ -1297,11 +1289,6 @@ static void tcg_liveness_analysis(TCGContext *s)
                 args--;
             }
             break;
-        case INDEX_op_set_label:
-            args--;
-            /* mark end of basic block */
-            tcg_la_bb_end(s, dead_temps);
-            break;
         case INDEX_op_debug_insn_start:
             args -= def->nb_args;
             break;
@@ -1463,7 +1450,8 @@ static void temp_allocate_frame(TCGContext *s, int temp)
 {
     TCGTemp *ts;
     ts = &s->temps[temp];
-#ifndef __sparc_v9__ /* Sparc64 stack is accessed with offset of 2047 */
+#if !(defined(__sparc__) && TCG_TARGET_REG_BITS == 64)
+    /* Sparc64 stack is accessed with offset of 2047 */
     s->current_frame_offset = (s->current_frame_offset +
                                (tcg_target_long)sizeof(tcg_target_long) - 1) &
         ~(sizeof(tcg_target_long) - 1);
@@ -2101,16 +2089,12 @@ static inline int tcg_gen_code_common(TCGContext *s, uint8_t *gen_code_buf,
 #endif
         switch(opc) {
         case INDEX_op_mov_i32:
-#if TCG_TARGET_REG_BITS == 64
         case INDEX_op_mov_i64:
-#endif
             dead_args = s->op_dead_args[op_index];
             tcg_reg_alloc_mov(s, def, args, dead_args);
             break;
         case INDEX_op_movi_i32:
-#if TCG_TARGET_REG_BITS == 64
         case INDEX_op_movi_i64:
-#endif
             tcg_reg_alloc_movi(s, args);
             break;
         case INDEX_op_debug_insn_start:

@@ -2572,7 +2572,6 @@
     <ClInclude Include="qemu\dis-asm.h" />
     <ClInclude Include="qemu\disas.h" />
     <ClInclude Include="qemu\dma.h" />
-    <ClInclude Include="qemu\dyngen-exec.h" />
     <ClInclude Include="qemu\elf.h" />
     <ClInclude Include="qemu\exec-all.h" />
     <ClInclude Include="qemu\gdbstub.h" />

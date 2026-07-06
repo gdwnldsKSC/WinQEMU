@@ -2072,9 +2072,6 @@
     <ClInclude Include="qemu\dma.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\dyngen-exec.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\elf.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>

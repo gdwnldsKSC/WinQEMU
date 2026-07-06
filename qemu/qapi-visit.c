@@ -1090,6 +1090,7 @@ void visit_type_SpiceInfo(Visitor *m, SpiceInfo ** obj, const char *name, Error 
         if (!err) {
             if (!obj || *obj) {
                 visit_type_bool(m, obj ? &(*obj)->enabled : NULL, "enabled", &err);
+                visit_type_bool(m, obj ? &(*obj)->migrated : NULL, "migrated", &err);
                 visit_start_optional(m, obj ? &(*obj)->has_host : NULL, "host", &err);
                 if (obj && (*obj)->has_host) {
                     visit_type_str(m, obj ? &(*obj)->host : NULL, "host", &err);
