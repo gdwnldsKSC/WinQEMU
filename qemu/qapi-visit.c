@@ -1637,7 +1637,7 @@ void visit_type_BlockdevAction(Visitor *m, BlockdevAction ** obj, const char *na
     if (!error_is_set(errp)) {
         visit_start_struct(m, (void **)obj, "BlockdevAction", name, sizeof(BlockdevAction), &err);
         if (!err) {
-            if (!obj || *obj) {
+            if (obj && *obj) {
                 visit_type_BlockdevActionKind(m, &(*obj)->kind, "type", &err);
                 if (!err) {
                     switch ((*obj)->kind) {
@@ -2429,7 +2429,7 @@ void visit_type_NetClientOptions(Visitor *m, NetClientOptions ** obj, const char
     if (!error_is_set(errp)) {
         visit_start_struct(m, (void **)obj, "NetClientOptions", name, sizeof(NetClientOptions), &err);
         if (!err) {
-            if (!obj || *obj) {
+            if (obj && *obj) {
                 visit_type_NetClientOptionsKind(m, &(*obj)->kind, "type", &err);
                 if (!err) {
                     switch ((*obj)->kind) {

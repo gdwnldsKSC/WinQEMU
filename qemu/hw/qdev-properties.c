@@ -913,7 +913,7 @@ static void set_blocksize(Object *obj, Visitor *v, void *opaque,
     /* We rely on power-of-2 blocksizes for bitmasks */
     if ((value & (value - 1)) != 0) {
         error_set(errp, QERR_PROPERTY_VALUE_NOT_POWER_OF_2,
-                  dev->id ? dev->id :"", name, value);
+                  dev->id ? dev->id :"", name, (int64_t)value);
         return;
     }
 
