@@ -304,6 +304,40 @@ static int vmdk_is_cid_valid(BlockDriverState *bs)
     return 1;
 }
 
+/* Queue extents, if any, for reopen() */
+static int vmdk_reopen_prepare(BDRVReopenState *state,
+                               BlockReopenQueue *queue, Error **errp)
+{
+    BDRVVmdkState *s;
+    int ret = -1;
+    int i;
+    VmdkExtent *e;
+
+    assert(state != NULL);
+    assert(state->bs != NULL);
+
+    if (queue == NULL) {
+        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
+                 "No reopen queue for VMDK extents");
+        goto exit;
+    }
+
+    s = state->bs->opaque;
+
+    assert(s != NULL);
+
+    for (i = 0; i < s->num_extents; i++) {
+        e = &s->extents[i];
+        if (e->file != state->bs->file) {
+            bdrv_reopen_queue(queue, e->file, state->flags);
+        }
+    }
+    ret = 0;
+
+exit:
+    return ret;
+}
+
 static int vmdk_parent_open(BlockDriverState *bs)
 {
     char *p_name;
@@ -1079,6 +1113,7 @@ static int vmdk_read(BlockDriverState *bs, int64_t sector_num,
     BDRVVmdkState *s = bs->opaque;
     int ret;
     uint64_t n, index_in_cluster;
+    uint64_t extent_begin_sector, extent_relative_sector_num;
     VmdkExtent *extent = NULL;
     uint64_t cluster_offset;
 
@@ -1090,7 +1125,9 @@ static int vmdk_read(BlockDriverState *bs, int64_t sector_num,
         ret = get_cluster_offset(
                             bs, extent, NULL,
                             sector_num << 9, 0, &cluster_offset);
-        index_in_cluster = sector_num % extent->cluster_sectors;
+        extent_begin_sector = extent->end_sector - extent->sectors;
+        extent_relative_sector_num = sector_num - extent_begin_sector;
+        index_in_cluster = extent_relative_sector_num % extent->cluster_sectors;
         n = extent->cluster_sectors - index_in_cluster;
         if (n > nb_sectors) {
             n = nb_sectors;
@@ -1141,6 +1178,7 @@ static int vmdk_write(BlockDriverState *bs, int64_t sector_num,
     VmdkExtent *extent = NULL;
     int n, ret;
     int64_t index_in_cluster;
+    uint64_t extent_begin_sector, extent_relative_sector_num;
     uint64_t cluster_offset;
     VmdkMetaData m_data;
 
@@ -1183,7 +1221,9 @@ static int vmdk_write(BlockDriverState *bs, int64_t sector_num,
         if (ret) {
             return -EINVAL;
         }
-        index_in_cluster = sector_num % extent->cluster_sectors;
+        extent_begin_sector = extent->end_sector - extent->sectors;
+        extent_relative_sector_num = sector_num - extent_begin_sector;
+        index_in_cluster = extent_relative_sector_num % extent->cluster_sectors;
         n = extent->cluster_sectors - index_in_cluster;
         if (n > nb_sectors) {
             n = nb_sectors;
@@ -1395,8 +1435,7 @@ static int relative_path(char *dest, int dest_size,
         return -1;
     }
     if (path_is_absolute(target)) {
-        dest[dest_size - 1] = '\0';
-        strncpy(dest, target, dest_size - 1);
+        pstrcpy(dest, dest_size, target);
         return 0;
     }
     while (base[i] == target[i]) {
@@ -1667,6 +1706,7 @@ static BlockDriver bdrv_vmdk = {
     .instance_size  = sizeof(BDRVVmdkState),
     .bdrv_probe     = vmdk_probe,
     .bdrv_open      = vmdk_open,
+    .bdrv_reopen_prepare = vmdk_reopen_prepare,
     .bdrv_read      = vmdk_co_read,
     .bdrv_write     = vmdk_co_write,
     .bdrv_close     = vmdk_close,

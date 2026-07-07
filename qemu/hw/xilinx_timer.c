@@ -72,7 +72,7 @@ static inline unsigned int num_timers(struct timerblock *t)
     return 2 - t->one_timer_only;
 }
 
-static inline unsigned int timer_from_addr(target_phys_addr_t addr)
+static inline unsigned int timer_from_addr(hwaddr addr)
 {
     /* Timers get a 4x32bit control reg area each.  */
     return addr >> 2;
@@ -93,7 +93,7 @@ static void timer_update_irq(struct timerblock *t)
 }
 
 static uint64_t
-timer_read(void *opaque, target_phys_addr_t addr, unsigned int size)
+timer_read(void *opaque, hwaddr addr, unsigned int size)
 {
     struct timerblock *t = opaque;
     struct xlx_timer *xt;
@@ -142,7 +142,7 @@ static void timer_enable(struct xlx_timer *xt)
 }
 
 static void
-timer_write(void *opaque, target_phys_addr_t addr,
+timer_write(void *opaque, hwaddr addr,
             uint64_t val64, unsigned int size)
 {
     struct timerblock *t = opaque;
@@ -225,7 +225,8 @@ static int xilinx_timer_init(SysBusDevice *dev)
 }
 
 static Property xilinx_timer_properties[] = {
-    DEFINE_PROP_UINT32("frequency", struct timerblock, freq_hz,   62 * 1000000),
+    DEFINE_PROP_UINT32("clock-frequency", struct timerblock, freq_hz,
+                                                                62 * 1000000),
     DEFINE_PROP_UINT8("one-timer-only", struct timerblock, one_timer_only, 0),
     DEFINE_PROP_END_OF_LIST(),
 };

@@ -264,11 +264,7 @@ typedef struct {
 
     /* Data in mem is always in the byte order of the controller (le).
      * It must be dword aligned to allow direct access to 32 bit values. */
-#ifndef _MSC_VER
-    uint8_t mem[PCI_MEM_SIZE] __attribute__((aligned(8)));;
-#else
-	__declspec(align(8)) uint8_t mem[PCI_MEM_SIZE];
-#endif
+    uint8_t mem[PCI_MEM_SIZE] __attribute__((aligned(8)));
 
     /* Configuration bytes. */
     uint8_t configuration[22];
@@ -1582,7 +1578,7 @@ static void eepro100_write4(EEPRO100State * s, uint32_t addr, uint32_t val)
     }
 }
 
-static uint64_t eepro100_read(void *opaque, target_phys_addr_t addr,
+static uint64_t eepro100_read(void *opaque, hwaddr addr,
                               unsigned size)
 {
     EEPRO100State *s = opaque;
@@ -1595,7 +1591,7 @@ static uint64_t eepro100_read(void *opaque, target_phys_addr_t addr,
     }
 }
 
-static void eepro100_write(void *opaque, target_phys_addr_t addr,
+static void eepro100_write(void *opaque, hwaddr addr,
                            uint64_t data, unsigned size)
 {
     EEPRO100State *s = opaque;

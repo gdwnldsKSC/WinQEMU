@@ -24,6 +24,67 @@
 
 #include "qmp-commands.h"
 
+int qmp_marshal_input_add_client(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * protocol = NULL;
+    char * fdname = NULL;
+    bool has_skipauth = false;
+    bool skipauth;
+    bool has_tls = false;
+    bool tls;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &protocol, "protocol", errp);
+    visit_type_str(v, &fdname, "fdname", errp);
+    visit_start_optional(v, &has_skipauth, "skipauth", errp);
+    if (has_skipauth) {
+        visit_type_bool(v, &skipauth, "skipauth", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_tls, "tls", errp);
+    if (has_tls) {
+        visit_type_bool(v, &tls, "tls", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_add_client(protocol, fdname, has_skipauth, skipauth, has_tls, tls, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &protocol, "protocol", errp);
+    visit_type_str(v, &fdname, "fdname", errp);
+    visit_start_optional(v, &has_skipauth, "skipauth", errp);
+    if (has_skipauth) {
+        visit_type_bool(v, &skipauth, "skipauth", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_tls, "tls", errp);
+    if (has_tls) {
+        visit_type_bool(v, &tls, "tls", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
 static void qmp_marshal_output_query_name(NameInfo * ret_in, QObject **ret_out, Error **errp)
 {
     QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
@@ -1462,6 +1523,167 @@ out:
     return 0;
 }
 
+int qmp_marshal_input_block_commit(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+    bool has_base = false;
+    char * base = NULL;
+    char * top = NULL;
+    bool has_speed = false;
+    int64_t speed;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_base, "base", errp);
+    if (has_base) {
+        visit_type_str(v, &base, "base", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_type_str(v, &top, "top", errp);
+    visit_start_optional(v, &has_speed, "speed", errp);
+    if (has_speed) {
+        visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_block_commit(device, has_base, base, top, has_speed, speed, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_base, "base", errp);
+    if (has_base) {
+        visit_type_str(v, &base, "base", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_type_str(v, &top, "top", errp);
+    visit_start_optional(v, &has_speed, "speed", errp);
+    if (has_speed) {
+        visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+    char * target = NULL;
+    bool has_format = false;
+    char * format = NULL;
+    MirrorSyncMode sync;
+    bool has_mode = false;
+    NewImageMode mode;
+    bool has_speed = false;
+    int64_t speed;
+    bool has_on_source_error = false;
+    BlockdevOnError on_source_error;
+    bool has_on_target_error = false;
+    BlockdevOnError on_target_error;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_str(v, &target, "target", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_str(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_type_MirrorSyncMode(v, &sync, "sync", errp);
+    visit_start_optional(v, &has_mode, "mode", errp);
+    if (has_mode) {
+        visit_type_NewImageMode(v, &mode, "mode", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_speed, "speed", errp);
+    if (has_speed) {
+        visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_source_error, "on-source-error", errp);
+    if (has_on_source_error) {
+        visit_type_BlockdevOnError(v, &on_source_error, "on-source-error", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_target_error, "on-target-error", errp);
+    if (has_on_target_error) {
+        visit_type_BlockdevOnError(v, &on_target_error, "on-target-error", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_drive_mirror(device, target, has_format, format, sync, has_mode, mode, has_speed, speed, has_on_source_error, on_source_error, has_on_target_error, on_target_error, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_str(v, &target, "target", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_str(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_type_MirrorSyncMode(v, &sync, "sync", errp);
+    visit_start_optional(v, &has_mode, "mode", errp);
+    if (has_mode) {
+        visit_type_NewImageMode(v, &mode, "mode", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_speed, "speed", errp);
+    if (has_speed) {
+        visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_source_error, "on-source-error", errp);
+    if (has_on_source_error) {
+        visit_type_BlockdevOnError(v, &on_source_error, "on-source-error", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_target_error, "on-target-error", errp);
+    if (has_on_target_error) {
+        visit_type_BlockdevOnError(v, &on_target_error, "on-target-error", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
 int qmp_marshal_input_migrate_cancel(Monitor *mon, const QDict *qdict, QObject **ret)
 {
     Error *local_err = NULL;
@@ -1964,6 +2186,8 @@ int qmp_marshal_input_block_stream(Monitor *mon, const QDict *qdict, QObject **r
     char * base = NULL;
     bool has_speed = false;
     int64_t speed;
+    bool has_on_error = false;
+    BlockdevOnError on_error;
 
     mi = qmp_input_visitor_new_strict(QOBJECT(args));
     v = qmp_input_get_visitor(mi);
@@ -1978,12 +2202,17 @@ int qmp_marshal_input_block_stream(Monitor *mon, const QDict *qdict, QObject **r
         visit_type_int(v, &speed, "speed", errp);
     }
     visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_error, "on-error", errp);
+    if (has_on_error) {
+        visit_type_BlockdevOnError(v, &on_error, "on-error", errp);
+    }
+    visit_end_optional(v, errp);
     qmp_input_visitor_cleanup(mi);
 
     if (error_is_set(errp)) {
         goto out;
     }
-    qmp_block_stream(device, has_base, base, has_speed, speed, errp);
+    qmp_block_stream(device, has_base, base, has_speed, speed, has_on_error, on_error, errp);
 
 out:
     md = qapi_dealloc_visitor_new();
@@ -1997,6 +2226,11 @@ out:
     visit_start_optional(v, &has_speed, "speed", errp);
     if (has_speed) {
         visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_on_error, "on-error", errp);
+    if (has_on_error) {
+        visit_type_BlockdevOnError(v, &on_error, "on-error", errp);
     }
     visit_end_optional(v, errp);
     qapi_dealloc_visitor_cleanup(md);
@@ -2055,6 +2289,52 @@ int qmp_marshal_input_block_job_cancel(Monitor *mon, const QDict *qdict, QObject
     QapiDeallocVisitor *md;
     Visitor *v;
     char * device = NULL;
+    bool has_force = false;
+    bool force;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_force, "force", errp);
+    if (has_force) {
+        visit_type_bool(v, &force, "force", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_block_job_cancel(device, has_force, force, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_force, "force", errp);
+    if (has_force) {
+        visit_type_bool(v, &force, "force", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_block_job_pause(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
 
     mi = qmp_input_visitor_new_strict(QOBJECT(args));
     v = qmp_input_get_visitor(mi);
@@ -2064,7 +2344,75 @@ int qmp_marshal_input_block_job_cancel(Monitor *mon, const QDict *qdict, QObject
     if (error_is_set(errp)) {
         goto out;
     }
-    qmp_block_job_cancel(device, errp);
+    qmp_block_job_pause(device, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_block_job_resume(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_block_job_resume(device, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_block_job_complete(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_block_job_complete(device, errp);
 
 out:
     md = qapi_dealloc_visitor_new();
@@ -2305,6 +2653,40 @@ out:
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_str(v, &filename, "filename", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_xen_set_global_dirty_log(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    bool enable;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_bool(v, &enable, "enable", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_xen_set_global_dirty_log(enable, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_bool(v, &enable, "enable", errp);
     qapi_dealloc_visitor_cleanup(md);
 
     if (local_err) {
@@ -2794,6 +3176,188 @@ int qmp_marshal_input_query_target(Monitor *mon, const QDict *qdict, QObject **r
     if (!error_is_set(errp)) {
         qmp_marshal_output_query_target(retval, ret, errp);
     }
+
+out:
+
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_send_key(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    KeyValueList * keys = NULL;
+    bool has_hold_time = false;
+    int64_t hold_time;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_KeyValueList(v, &keys, "keys", errp);
+    visit_start_optional(v, &has_hold_time, "hold-time", errp);
+    if (has_hold_time) {
+        visit_type_int(v, &hold_time, "hold-time", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_send_key(keys, has_hold_time, hold_time, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_KeyValueList(v, &keys, "keys", errp);
+    visit_start_optional(v, &has_hold_time, "hold-time", errp);
+    if (has_hold_time) {
+        visit_type_int(v, &hold_time, "hold-time", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_screendump(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * filename = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &filename, "filename", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_screendump(filename, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &filename, "filename", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_nbd_server_start(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    SocketAddress * addr = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_SocketAddress(v, &addr, "addr", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_nbd_server_start(addr, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SocketAddress(v, &addr, "addr", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_nbd_server_add(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+    bool has_writable = false;
+    bool writable;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_writable, "writable", errp);
+    if (has_writable) {
+        visit_type_bool(v, &writable, "writable", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_nbd_server_add(device, has_writable, writable, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_start_optional(v, &has_writable, "writable", errp);
+    if (has_writable) {
+        visit_type_bool(v, &writable, "writable", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_nbd_server_stop(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    (void)args;
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_nbd_server_stop(errp);
 
 out:
 

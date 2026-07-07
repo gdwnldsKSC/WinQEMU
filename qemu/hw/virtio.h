@@ -69,7 +69,7 @@
 
 struct VirtQueue;
 
-static inline target_phys_addr_t vring_align(target_phys_addr_t addr,
+static inline hwaddr vring_align(hwaddr addr,
                                              unsigned long align)
 {
     return (addr + align - 1) & ~(align - 1);
@@ -84,8 +84,8 @@ typedef struct VirtQueueElement
     unsigned int index;
     unsigned int out_num;
     unsigned int in_num;
-    target_phys_addr_t in_addr[VIRTQUEUE_MAX_SIZE];
-    target_phys_addr_t out_addr[VIRTQUEUE_MAX_SIZE];
+    hwaddr in_addr[VIRTQUEUE_MAX_SIZE];
+    hwaddr out_addr[VIRTQUEUE_MAX_SIZE];
     struct iovec in_sg[VIRTQUEUE_MAX_SIZE];
     struct iovec out_sg[VIRTQUEUE_MAX_SIZE];
 } VirtQueueElement;
@@ -144,10 +144,14 @@ void virtqueue_flush(VirtQueue *vq, unsigned int count);
 void virtqueue_fill(VirtQueue *vq, const VirtQueueElement *elem,
                     unsigned int len, unsigned int idx);
 
-void virtqueue_map_sg(struct iovec *sg, target_phys_addr_t *addr,
+void virtqueue_map_sg(struct iovec *sg, hwaddr *addr,
     size_t num_sg, int is_write);
 int virtqueue_pop(VirtQueue *vq, VirtQueueElement *elem);
-int virtqueue_avail_bytes(VirtQueue *vq, int in_bytes, int out_bytes);
+int virtqueue_avail_bytes(VirtQueue *vq, unsigned int in_bytes,
+                          unsigned int out_bytes);
+void virtqueue_get_avail_bytes(VirtQueue *vq, unsigned int *in_bytes,
+                               unsigned int *out_bytes,
+                               unsigned max_in_bytes, unsigned max_out_bytes);
 
 void virtio_notify(VirtIODevice *vdev, VirtQueue *vq);
 
@@ -175,8 +179,8 @@ uint32_t virtio_config_readl(VirtIODevice *vdev, uint32_t addr);
 void virtio_config_writeb(VirtIODevice *vdev, uint32_t addr, uint32_t data);
 void virtio_config_writew(VirtIODevice *vdev, uint32_t addr, uint32_t data);
 void virtio_config_writel(VirtIODevice *vdev, uint32_t addr, uint32_t data);
-void virtio_queue_set_addr(VirtIODevice *vdev, int n, target_phys_addr_t addr);
-target_phys_addr_t virtio_queue_get_addr(VirtIODevice *vdev, int n);
+void virtio_queue_set_addr(VirtIODevice *vdev, int n, hwaddr addr);
+hwaddr virtio_queue_get_addr(VirtIODevice *vdev, int n);
 int virtio_queue_get_num(VirtIODevice *vdev, int n);
 void virtio_queue_notify(VirtIODevice *vdev, int n);
 uint16_t virtio_queue_vector(VirtIODevice *vdev, int n);
@@ -200,6 +204,8 @@ VirtIODevice *virtio_serial_init(DeviceState *dev, virtio_serial_conf *serial);
 VirtIODevice *virtio_balloon_init(DeviceState *dev);
 typedef struct VirtIOSCSIConf VirtIOSCSIConf;
 VirtIODevice *virtio_scsi_init(DeviceState *dev, VirtIOSCSIConf *conf);
+typedef struct VirtIORNGConf VirtIORNGConf;
+VirtIODevice *virtio_rng_init(DeviceState *dev, VirtIORNGConf *conf);
 #ifdef CONFIG_LINUX
 VirtIODevice *virtio_9p_init(DeviceState *dev, V9fsConf *conf);
 #endif
@@ -210,6 +216,7 @@ void virtio_blk_exit(VirtIODevice *vdev);
 void virtio_serial_exit(VirtIODevice *vdev);
 void virtio_balloon_exit(VirtIODevice *vdev);
 void virtio_scsi_exit(VirtIODevice *vdev);
+void virtio_rng_exit(VirtIODevice *vdev);
 
 #define DEFINE_VIRTIO_COMMON_FEATURES(_state, _field) \
 	DEFINE_PROP_BIT("indirect_desc", _state, _field, \
@@ -217,14 +224,14 @@ void virtio_scsi_exit(VirtIODevice *vdev);
 	DEFINE_PROP_BIT("event_idx", _state, _field, \
 			VIRTIO_RING_F_EVENT_IDX, true)
 
-target_phys_addr_t virtio_queue_get_desc_addr(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_avail_addr(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_used_addr(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_ring_addr(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_desc_size(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_avail_size(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_used_size(VirtIODevice *vdev, int n);
-target_phys_addr_t virtio_queue_get_ring_size(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_desc_addr(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_avail_addr(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_used_addr(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_ring_addr(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_desc_size(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_avail_size(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_used_size(VirtIODevice *vdev, int n);
+hwaddr virtio_queue_get_ring_size(VirtIODevice *vdev, int n);
 uint16_t virtio_queue_get_last_avail_idx(VirtIODevice *vdev, int n);
 void virtio_queue_set_last_avail_idx(VirtIODevice *vdev, int n, uint16_t idx);
 VirtQueue *virtio_get_queue(VirtIODevice *vdev, int n);

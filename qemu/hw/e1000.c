@@ -61,6 +61,8 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 
 /* this is the size past which hardware will drop packets when setting LPE=0 */
 #define MAXIMUM_ETHERNET_VLAN_SIZE 1522
+/* this is the size past which hardware will drop packets when setting LPE=1 */
+#define MAXIMUM_ETHERNET_LPE_SIZE 16384
 
 /*
  * HW models:
@@ -268,6 +270,8 @@ rxbufsize(uint32_t v)
 static void e1000_reset(void *opaque)
 {
     E1000State *d = opaque;
+    uint8_t *macaddr = d->conf.macaddr.a;
+    int i;
 
     qemu_del_timer(d->autoneg_timer);
     memset(d->phy_reg, 0, sizeof d->phy_reg);
@@ -279,6 +283,14 @@ static void e1000_reset(void *opaque)
 
     if (d->nic->nc.link_down) {
         e1000_link_down(d);
+    }
+
+    /* Some guests expect pre-initialized RAH/RAL (AddrValid flag + MACaddr) */
+    d->mac_reg[RA] = 0;
+    d->mac_reg[RA + 1] = E1000_RAH_AV;
+    for (i = 0; i < 4; i++) {
+        d->mac_reg[RA] |= macaddr[i] << (8 * i);
+        d->mac_reg[RA + 1] |= (i < 2) ? macaddr[i + 4] << (8 * i) : 0;
     }
 }
 
@@ -799,8 +811,9 @@ e1000_receive(NetClientState *nc, const uint8_t *buf, size_t size)
     }
 
     /* Discard oversized packets if !LPE and !SBP. */
-    if (size > MAXIMUM_ETHERNET_VLAN_SIZE
-        && !(s->mac_reg[RCTL] & E1000_RCTL_LPE)
+    if ((size > MAXIMUM_ETHERNET_LPE_SIZE ||
+        (size > MAXIMUM_ETHERNET_VLAN_SIZE
+        && !(s->mac_reg[RCTL] & E1000_RCTL_LPE)))
         && !(s->mac_reg[RCTL] & E1000_RCTL_SBP)) {
         return size;
     }
@@ -1029,7 +1042,7 @@ static void (*macreg_writeops[VFTA+128])(E1000State *, int, uint32_t) = {NULL};
 enum { NWRITEOPS = ARRAY_SIZE(macreg_writeops) };
 
 static void
-e1000_mmio_write(void *opaque, target_phys_addr_t addr, uint64_t val,
+e1000_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                  unsigned size)
 {
     E1000State *s = opaque;
@@ -1046,7 +1059,7 @@ e1000_mmio_write(void *opaque, target_phys_addr_t addr, uint64_t val,
 }
 
 static uint64_t
-e1000_mmio_read(void *opaque, target_phys_addr_t addr, unsigned size)
+e1000_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
     E1000State *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
@@ -1069,7 +1082,7 @@ static const MemoryRegionOps e1000_mmio_ops = {
     },
 };
 
-static uint64_t e1000_io_read(void *opaque, target_phys_addr_t addr,
+static uint64_t e1000_io_read(void *opaque, hwaddr addr,
                               unsigned size)
 {
     E1000State *s = opaque;
@@ -1078,7 +1091,7 @@ static uint64_t e1000_io_read(void *opaque, target_phys_addr_t addr,
     return 0;
 }
 
-static void e1000_io_write(void *opaque, target_phys_addr_t addr,
+static void e1000_io_write(void *opaque, hwaddr addr,
                            uint64_t val, unsigned size)
 {
     E1000State *s = opaque;
@@ -1097,11 +1110,23 @@ static bool is_version_1(void *opaque, int version_id)
     return version_id == 1;
 }
 
+static int e1000_post_load(void *opaque, int version_id)
+{
+    E1000State *s = opaque;
+
+    /* nc.link_down can't be migrated, so infer link_down according
+     * to link status bit in mac_reg[STATUS] */
+    s->nic->nc.link_down = (s->mac_reg[STATUS] & E1000_STATUS_LU) == 0;
+
+    return 0;
+}
+
 static const VMStateDescription vmstate_e1000 = {
     .name = "e1000",
     .version_id = 2,
     .minimum_version_id = 1,
     .minimum_version_id_old = 1,
+    .post_load = e1000_post_load,
     .fields      = (VMStateField []) {
         VMSTATE_PCI_DEVICE(dev, E1000State),
         VMSTATE_UNUSED_TEST(is_version_1, 4), /* was instance id */

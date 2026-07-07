@@ -1,0 +1,246 @@
+﻿  pixman.c
+  pixman-access.c
+  pixman-access-accessors.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(635,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(636,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(637,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(638,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(666,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(667,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(668,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(696,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(697,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(698,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(699,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(727,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(728,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(729,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(821,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(822,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(823,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(841,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(842,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(843,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(844,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(862,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(863,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(864,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(865,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(883,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(884,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(885,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1083,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1163,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1164,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1165,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1185,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1186,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1187,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(635,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(636,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(637,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(638,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(666,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(667,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(668,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(696,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(697,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+  pixman-arm.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(698,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(699,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(727,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(728,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(729,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(821,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(822,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(823,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(841,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(842,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(843,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(844,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(862,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(863,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(864,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(865,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(883,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(884,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(885,37): warning C4244: 'function': conversion from 'uint64_t' to 'uint16_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1083,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1163,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1164,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1165,28): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1185,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1186,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-access.c(1187,31): warning C4244: '=': conversion from 'const float' to 'uint8_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-access-accessors.c')
+  
+  pixman-bits-image.c
+  pixman-combine32.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (932). Save the file in Unicode format to prevent data loss
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(744,23): warning C4244: 'return': conversion from 'double' to 'uint32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(991,29): warning C4244: '=': conversion from 'double' to 'uint32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(992,29): warning C4244: '=': conversion from 'double' to 'uint32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(993,29): warning C4244: '=': conversion from 'double' to 'uint32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine32.c(1332,51): warning C4244: 'function': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+  pixman-combine-float.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (932). Save the file in Unicode format to prevent data loss
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(207,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(214,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(221,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(228,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(235,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(242,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(249,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-combine-float.c(256,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  pixman-conical-gradient.c
+  pixman-edge.c
+  pixman-edge-accessors.c
+  pixman-fast-path.c
+  pixman-general.c
+  pixman-glyph.c
+  pixman-gradient-walker.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-gradient-walker.c(71,6): warning C4244: '=': conversion from 'pixman_fixed_48_16_t' to 'int32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-gradient-walker.c(88,18): warning C4244: '+=': conversion from 'pixman_fixed_48_16_t' to 'int32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-gradient-walker.c(89,18): warning C4244: '+=': conversion from 'pixman_fixed_48_16_t' to 'int32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-gradient-walker.c(108,18): warning C4244: '+=': conversion from 'pixman_fixed_48_16_t' to 'int32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-gradient-walker.c(109,18): warning C4244: '+=': conversion from 'pixman_fixed_48_16_t' to 'int32_t', possible loss of data
+  pixman-image.c
+  pixman-implementation.c
+  pixman-linear-gradient.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-linear-gradient.c(156,50): warning C4244: '=': conversion from 'double' to 'pixman_fixed_32_32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-linear-gradient.c(182,18): warning C4244: '=': conversion from 'double' to 'pixman_fixed_32_32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-linear-gradient.c(209,53): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+  pixman-matrix.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-matrix.c(732,7): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-matrix.c(733,7): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-matrix.c(734,7): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-matrix.c(735,7): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+  pixman-mips.c
+  pixman-noop.c
+  Generating Code...
+  Compiling...
+  pixman-ppc.c
+  pixman-radial-gradient.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(1,1): warning C4819: The file contains a character that cannot be represented in the current code page (932). Save the file in Unicode format to prevent data loss
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(108,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(113,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(142,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(144,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(149,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(151,49): warning C4244: 'function': conversion from 'double' to 'pixman_fixed_48_16_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(329,46): warning C4244: 'function': conversion from 'pixman_fixed_32_32_t' to 'double', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(329,49): warning C4244: 'function': conversion from 'pixman_fixed_32_32_t' to 'double', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-radial-gradient.c(459,17): warning C4244: '=': conversion from 'pixman_fixed_32_32_t' to 'double', possible loss of data
+  pixman-region16.c
+  pixman-region32.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2232,29): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2233,29): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2234,29): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2235,29): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2277,31): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2278,31): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2279,31): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-region.c(2280,31): warning C4244: '=': conversion from 'overflow_int_t' to 'int32_t', possible loss of data
+  (compiling source file 'third_party/pixman/pixman/pixman-region32.c')
+  
+  pixman-solid-fill.c
+  pixman-sse2.c
+  pixman-timer.c
+  pixman-trap.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(108,16): warning C4244: '=': conversion from 'pixman_fixed_48_16_t' to 'pixman_fixed_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(117,16): warning C4244: '=': conversion from 'pixman_fixed_48_16_t' to 'pixman_fixed_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(107,32): warning C4244: 'initializing': conversion from 'pixman_fixed_48_16_t' to 'int', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(116,21): warning C4244: 'initializing': conversion from 'pixman_fixed_48_16_t' to 'int', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(146,13): warning C4244: '=': conversion from 'pixman_fixed_48_16_t' to 'pixman_fixed_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-trap.c(141,14): warning C4244: 'initializing': conversion from 'pixman_fixed_48_16_t' to 'int', possible loss of data
+  pixman-utils.c
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-utils.c(84,11): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-utils.c(202,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-utils.c(203,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-utils.c(204,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+Q:\GitHub\WinQEMU\third_party\pixman\pixman\pixman-utils.c(205,6): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+  pixman-x86.c
+  Generating Code...
+  pixman.vcxproj -> Q:\GitHub\WinQEMU\bin\Win32\Debug\pixman.lib

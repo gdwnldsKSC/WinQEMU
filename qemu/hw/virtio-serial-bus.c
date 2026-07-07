@@ -53,6 +53,15 @@ struct VirtIOSerial {
     uint32_t *ports_map;
 
     struct virtio_console_config config;
+
+    struct {
+        QEMUTimer *timer;
+        int nr_active_ports;
+        struct {
+            VirtIOSerialPort *port;
+            uint8_t host_connected;
+        } *connected;
+    } post_load;
 };
 
 static VirtIOSerialPort *find_port_by_id(VirtIOSerial *vser, uint32_t id)
@@ -287,6 +296,7 @@ ssize_t virtio_serial_write(VirtIOSerialPort *port, const uint8_t *buf,
 size_t virtio_serial_guest_ready(VirtIOSerialPort *port)
 {
     VirtQueue *vq = port->ivq;
+    unsigned int bytes;
 
     if (!virtio_queue_ready(vq) ||
         !(port->vser->vdev.status & VIRTIO_CONFIG_S_DRIVER_OK) ||
@@ -296,14 +306,8 @@ size_t virtio_serial_guest_ready(VirtIOSerialPort *port)
     if (use_multiport(port->vser) && !port->guest_connected) {
         return 0;
     }
-
-    if (virtqueue_avail_bytes(vq, 4096, 0)) {
-        return 4096;
-    }
-    if (virtqueue_avail_bytes(vq, 1, 0)) {
-        return 1;
-    }
-    return 0;
+    virtqueue_get_avail_bytes(vq, &bytes, NULL, 4096, 0);
+    return bytes;
 }
 
 static void flush_queued_data_bh(void *opaque)
@@ -631,6 +635,29 @@ static void virtio_serial_save(QEMUFile *f, void *opaque)
     }
 }
 
+static void virtio_serial_post_load_timer_cb(void *opaque)
+{
+    int i;
+    VirtIOSerial *s = opaque;
+    VirtIOSerialPort *port;
+    uint8_t host_connected;
+
+    for (i = 0 ; i < s->post_load.nr_active_ports; ++i) {
+        port = s->post_load.connected[i].port;
+        host_connected = s->post_load.connected[i].host_connected;
+        if (host_connected != port->host_connected) {
+            /*
+             * We have to let the guest know of the host connection
+             * status change
+             */
+            send_control_event(port, VIRTIO_CONSOLE_PORT_OPEN,
+                               port->host_connected);
+        }
+    }
+    g_free(s->post_load.connected);
+    s->post_load.connected = NULL;
+}
+
 static int virtio_serial_load(QEMUFile *f, void *opaque, int version_id)
 {
     VirtIOSerial *s = opaque;
@@ -678,10 +705,13 @@ static int virtio_serial_load(QEMUFile *f, void *opaque, int version_id)
 
     qemu_get_be32s(f, &nr_active_ports);
 
+    s->post_load.nr_active_ports = nr_active_ports;
+    s->post_load.connected =
+        g_malloc0(sizeof(*s->post_load.connected) * nr_active_ports);
+
     /* Items in struct VirtIOSerialPort */
     for (i = 0; i < nr_active_ports; i++) {
         uint32_t id;
-        bool host_connected;
 
         id = qemu_get_be32(f);
         port = find_port_by_id(s, id);
@@ -690,15 +720,8 @@ static int virtio_serial_load(QEMUFile *f, void *opaque, int version_id)
         }
 
         port->guest_connected = qemu_get_byte(f);
-        host_connected = qemu_get_byte(f);
-        if (host_connected != port->host_connected) {
-            /*
-             * We have to let the guest know of the host connection
-             * status change
-             */
-            send_control_event(port, VIRTIO_CONSOLE_PORT_OPEN,
-                               port->host_connected);
-        }
+        s->post_load.connected[i].port = port;
+        s->post_load.connected[i].host_connected = qemu_get_byte(f);
 
         if (version_id > 2) {
             uint32_t elem_popped;
@@ -723,6 +746,7 @@ static int virtio_serial_load(QEMUFile *f, void *opaque, int version_id)
             }
         }
     }
+    qemu_mod_timer(s->post_load.timer, 1);
     return 0;
 }
 
@@ -972,6 +996,9 @@ VirtIODevice *virtio_serial_init(DeviceState *dev, virtio_serial_conf *conf)
     register_savevm(dev, "virtio-console", -1, 3, virtio_serial_save,
                     virtio_serial_load, vser);
 
+    vser->post_load.timer = qemu_new_timer_ns(vm_clock,
+            virtio_serial_post_load_timer_cb, vser);
+
     return vdev;
 }
 
@@ -984,6 +1011,8 @@ void virtio_serial_exit(VirtIODevice *vdev)
     g_free(vser->ivqs);
     g_free(vser->ovqs);
     g_free(vser->ports_map);
+    g_free(vser->post_load.connected);
+    qemu_free_timer(vser->post_load.timer);
 
     virtio_cleanup(vdev);
 }

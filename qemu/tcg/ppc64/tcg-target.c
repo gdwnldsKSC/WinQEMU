@@ -208,12 +208,6 @@ static void patch_reloc (uint8_t *code_ptr, int type,
     }
 }
 
-/* maximum number of register used for input function arguments */
-static int tcg_target_get_call_iarg_regs_count (int flags)
-{
-    return ARRAY_SIZE (tcg_target_call_iarg_regs);
-}
-
 /* parse target specific constraints */
 static int target_parse_constraint (TCGArgConstraint *ct, const char **pct_str)
 {
@@ -424,7 +418,7 @@ enum {
     CR_SO
 };
 
-static const uint32_t tcg_to_bc[10] = {
+static const uint32_t tcg_to_bc[] = {
     [TCG_COND_EQ]  = BC | BI (7, CR_EQ) | BO_COND_TRUE,
     [TCG_COND_NE]  = BC | BI (7, CR_EQ) | BO_COND_FALSE,
     [TCG_COND_LT]  = BC | BI (7, CR_LT) | BO_COND_TRUE,
@@ -1251,15 +1245,6 @@ static void tcg_out_op (TCGContext *s, TCGOpcode opc, const TCGArg *args,
     case INDEX_op_call:
         tcg_out_call (s, args[0], const_args[0]);
         break;
-    case INDEX_op_jmp:
-        if (const_args[0]) {
-            tcg_out_b (s, 0, args[0]);
-        }
-        else {
-            tcg_out32 (s, MTSPR | RS (args[0]) | CTR);
-            tcg_out32 (s, BCCTR | BO_ALWAYS);
-        }
-        break;
     case INDEX_op_movi_i32:
         tcg_out_movi (s, TCG_TYPE_I32, args[0], args[1]);
         break;
@@ -1594,7 +1579,6 @@ static const TCGTargetOpDef ppc_op_defs[] = {
     { INDEX_op_exit_tb, { } },
     { INDEX_op_goto_tb, { } },
     { INDEX_op_call, { "ri" } },
-    { INDEX_op_jmp, { "ri" } },
     { INDEX_op_br, { } },
 
     { INDEX_op_mov_i32, { "r", "r" } },

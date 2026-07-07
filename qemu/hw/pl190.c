@@ -85,7 +85,7 @@ static void pl190_update_vectors(pl190_state *s)
     pl190_update(s);
 }
 
-static uint64_t pl190_read(void *opaque, target_phys_addr_t offset,
+static uint64_t pl190_read(void *opaque, hwaddr offset,
                            unsigned size)
 {
     pl190_state *s = (pl190_state *)opaque;
@@ -143,12 +143,13 @@ static uint64_t pl190_read(void *opaque, target_phys_addr_t offset,
     case 13: /* DEFVECTADDR */
         return s->vect_addr[16];
     default:
-        hw_error("pl190_read: Bad offset %x\n", (int)offset);
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "pl190_read: Bad offset %x\n", (int)offset);
         return 0;
     }
 }
 
-static void pl190_write(void *opaque, target_phys_addr_t offset,
+static void pl190_write(void *opaque, hwaddr offset,
                         uint64_t val, unsigned size)
 {
     pl190_state *s = (pl190_state *)opaque;
@@ -198,11 +199,12 @@ static void pl190_write(void *opaque, target_phys_addr_t offset,
         break;
     case 0xc0: /* ITCR */
         if (val) {
-            hw_error("pl190: Test mode not implemented\n");
+            qemu_log_mask(LOG_UNIMP, "pl190: Test mode not implemented\n");
         }
         break;
     default:
-        hw_error("pl190_write: Bad offset %x\n", (int)offset);
+        qemu_log_mask(LOG_GUEST_ERROR,
+                     "pl190_write: Bad offset %x\n", (int)offset);
         return;
     }
     pl190_update(s);

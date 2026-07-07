@@ -16,7 +16,8 @@
 #ifndef QAPI_TYPES_H
 #define QAPI_TYPES_H
 
-#include "qemu-common.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 
 extern const char *ErrorClass_lookup[];
@@ -28,9 +29,14 @@ typedef enum ErrorClass
     ERROR_CLASS_DEVICE_NOT_ACTIVE = 3,
     ERROR_CLASS_DEVICE_NOT_FOUND = 4,
     ERROR_CLASS_K_V_M_MISSING_CAP = 5,
-    ERROR_CLASS_MIGRATION_EXPECTED = 6,
-    ERROR_CLASS_MAX = 7,
+    ERROR_CLASS_MAX = 6,
 } ErrorClass;
+
+typedef struct ErrorClassList
+{
+    ErrorClass value;
+    struct ErrorClassList *next;
+} ErrorClassList;
 
 typedef struct NameInfo NameInfo;
 
@@ -75,6 +81,28 @@ typedef enum RunState
     RUN_STATE_WATCHDOG = 13,
     RUN_STATE_MAX = 14,
 } RunState;
+
+typedef struct RunStateList
+{
+    RunState value;
+    struct RunStateList *next;
+} RunStateList;
+
+typedef struct SnapshotInfo SnapshotInfo;
+
+typedef struct SnapshotInfoList
+{
+    SnapshotInfo *value;
+    struct SnapshotInfoList *next;
+} SnapshotInfoList;
+
+typedef struct ImageInfo ImageInfo;
+
+typedef struct ImageInfoList
+{
+    ImageInfo *value;
+    struct ImageInfoList *next;
+} ImageInfoList;
 
 typedef struct StatusInfo StatusInfo;
 
@@ -147,6 +175,12 @@ typedef enum MigrationCapability
     MIGRATION_CAPABILITY_MAX = 1,
 } MigrationCapability;
 
+typedef struct MigrationCapabilityList
+{
+    MigrationCapability value;
+    struct MigrationCapabilityList *next;
+} MigrationCapabilityList;
+
 typedef struct MigrationCapabilityStatus MigrationCapabilityStatus;
 
 typedef struct MigrationCapabilityStatusList
@@ -187,6 +221,20 @@ typedef enum BlockDeviceIoStatus
     BLOCK_DEVICE_IO_STATUS_NOSPACE = 2,
     BLOCK_DEVICE_IO_STATUS_MAX = 3,
 } BlockDeviceIoStatus;
+
+typedef struct BlockDeviceIoStatusList
+{
+    BlockDeviceIoStatus value;
+    struct BlockDeviceIoStatusList *next;
+} BlockDeviceIoStatusList;
+
+typedef struct BlockDirtyInfo BlockDirtyInfo;
+
+typedef struct BlockDirtyInfoList
+{
+    BlockDirtyInfo *value;
+    struct BlockDirtyInfoList *next;
+} BlockDirtyInfoList;
 
 typedef struct BlockInfo BlockInfo;
 
@@ -245,6 +293,12 @@ typedef enum SpiceQueryMouseMode
     SPICE_QUERY_MOUSE_MODE_MAX = 3,
 } SpiceQueryMouseMode;
 
+typedef struct SpiceQueryMouseModeList
+{
+    SpiceQueryMouseMode value;
+    struct SpiceQueryMouseModeList *next;
+} SpiceQueryMouseModeList;
+
 typedef struct SpiceInfo SpiceInfo;
 
 typedef struct SpiceInfoList
@@ -301,6 +355,37 @@ typedef struct PciInfoList
     struct PciInfoList *next;
 } PciInfoList;
 
+extern const char *BlockdevOnError_lookup[];
+typedef enum BlockdevOnError
+{
+    BLOCKDEV_ON_ERROR_REPORT = 0,
+    BLOCKDEV_ON_ERROR_IGNORE = 1,
+    BLOCKDEV_ON_ERROR_ENOSPC = 2,
+    BLOCKDEV_ON_ERROR_STOP = 3,
+    BLOCKDEV_ON_ERROR_MAX = 4,
+} BlockdevOnError;
+
+typedef struct BlockdevOnErrorList
+{
+    BlockdevOnError value;
+    struct BlockdevOnErrorList *next;
+} BlockdevOnErrorList;
+
+extern const char *MirrorSyncMode_lookup[];
+typedef enum MirrorSyncMode
+{
+    MIRROR_SYNC_MODE_TOP = 0,
+    MIRROR_SYNC_MODE_FULL = 1,
+    MIRROR_SYNC_MODE_NONE = 2,
+    MIRROR_SYNC_MODE_MAX = 3,
+} MirrorSyncMode;
+
+typedef struct MirrorSyncModeList
+{
+    MirrorSyncMode value;
+    struct MirrorSyncModeList *next;
+} MirrorSyncModeList;
+
 typedef struct BlockJobInfo BlockJobInfo;
 
 typedef struct BlockJobInfoList
@@ -316,6 +401,12 @@ typedef enum NewImageMode
     NEW_IMAGE_MODE_ABSOLUTE_PATHS = 1,
     NEW_IMAGE_MODE_MAX = 2,
 } NewImageMode;
+
+typedef struct NewImageModeList
+{
+    NewImageMode value;
+    struct NewImageModeList *next;
+} NewImageModeList;
 
 typedef struct BlockdevSnapshot BlockdevSnapshot;
 
@@ -483,6 +574,39 @@ typedef struct NetdevList
     struct NetdevList *next;
 } NetdevList;
 
+typedef struct InetSocketAddress InetSocketAddress;
+
+typedef struct InetSocketAddressList
+{
+    InetSocketAddress *value;
+    struct InetSocketAddressList *next;
+} InetSocketAddressList;
+
+typedef struct UnixSocketAddress UnixSocketAddress;
+
+typedef struct UnixSocketAddressList
+{
+    UnixSocketAddress *value;
+    struct UnixSocketAddressList *next;
+} UnixSocketAddressList;
+
+typedef struct SocketAddress SocketAddress;
+
+typedef struct SocketAddressList
+{
+    SocketAddress *value;
+    struct SocketAddressList *next;
+} SocketAddressList;
+
+extern const char *SocketAddressKind_lookup[];
+typedef enum SocketAddressKind
+{
+    SOCKET_ADDRESS_KIND_INET = 0,
+    SOCKET_ADDRESS_KIND_UNIX = 1,
+    SOCKET_ADDRESS_KIND_FD = 2,
+    SOCKET_ADDRESS_KIND_MAX = 3,
+} SocketAddressKind;
+
 typedef struct MachineInfo MachineInfo;
 
 typedef struct MachineInfoList
@@ -554,6 +678,12 @@ typedef enum TargetType
     TARGET_TYPE_MAX = 25,
 } TargetType;
 
+typedef struct TargetTypeList
+{
+    TargetType value;
+    struct TargetTypeList *next;
+} TargetTypeList;
+
 typedef struct TargetInfo TargetInfo;
 
 typedef struct TargetInfoList
@@ -561,6 +691,157 @@ typedef struct TargetInfoList
     TargetInfo *value;
     struct TargetInfoList *next;
 } TargetInfoList;
+
+extern const char *QKeyCode_lookup[];
+typedef enum QKeyCode
+{
+    Q_KEY_CODE_SHIFT = 0,
+    Q_KEY_CODE_SHIFT_R = 1,
+    Q_KEY_CODE_ALT = 2,
+    Q_KEY_CODE_ALT_R = 3,
+    Q_KEY_CODE_ALTGR = 4,
+    Q_KEY_CODE_ALTGR_R = 5,
+    Q_KEY_CODE_CTRL = 6,
+    Q_KEY_CODE_CTRL_R = 7,
+    Q_KEY_CODE_MENU = 8,
+    Q_KEY_CODE_ESC = 9,
+    Q_KEY_CODE_1 = 10,
+    Q_KEY_CODE_2 = 11,
+    Q_KEY_CODE_3 = 12,
+    Q_KEY_CODE_4 = 13,
+    Q_KEY_CODE_5 = 14,
+    Q_KEY_CODE_6 = 15,
+    Q_KEY_CODE_7 = 16,
+    Q_KEY_CODE_8 = 17,
+    Q_KEY_CODE_9 = 18,
+    Q_KEY_CODE_0 = 19,
+    Q_KEY_CODE_MINUS = 20,
+    Q_KEY_CODE_EQUAL = 21,
+    Q_KEY_CODE_BACKSPACE = 22,
+    Q_KEY_CODE_TAB = 23,
+    Q_KEY_CODE_Q = 24,
+    Q_KEY_CODE_W = 25,
+    Q_KEY_CODE_E = 26,
+    Q_KEY_CODE_R = 27,
+    Q_KEY_CODE_T = 28,
+    Q_KEY_CODE_Y = 29,
+    Q_KEY_CODE_U = 30,
+    Q_KEY_CODE_I = 31,
+    Q_KEY_CODE_O = 32,
+    Q_KEY_CODE_P = 33,
+    Q_KEY_CODE_BRACKET_LEFT = 34,
+    Q_KEY_CODE_BRACKET_RIGHT = 35,
+    Q_KEY_CODE_RET = 36,
+    Q_KEY_CODE_A = 37,
+    Q_KEY_CODE_S = 38,
+    Q_KEY_CODE_D = 39,
+    Q_KEY_CODE_F = 40,
+    Q_KEY_CODE_G = 41,
+    Q_KEY_CODE_H = 42,
+    Q_KEY_CODE_J = 43,
+    Q_KEY_CODE_K = 44,
+    Q_KEY_CODE_L = 45,
+    Q_KEY_CODE_SEMICOLON = 46,
+    Q_KEY_CODE_APOSTROPHE = 47,
+    Q_KEY_CODE_GRAVE_ACCENT = 48,
+    Q_KEY_CODE_BACKSLASH = 49,
+    Q_KEY_CODE_Z = 50,
+    Q_KEY_CODE_X = 51,
+    Q_KEY_CODE_C = 52,
+    Q_KEY_CODE_V = 53,
+    Q_KEY_CODE_B = 54,
+    Q_KEY_CODE_N = 55,
+    Q_KEY_CODE_M = 56,
+    Q_KEY_CODE_COMMA = 57,
+    Q_KEY_CODE_DOT = 58,
+    Q_KEY_CODE_SLASH = 59,
+    Q_KEY_CODE_ASTERISK = 60,
+    Q_KEY_CODE_SPC = 61,
+    Q_KEY_CODE_CAPS_LOCK = 62,
+    Q_KEY_CODE_F1 = 63,
+    Q_KEY_CODE_F2 = 64,
+    Q_KEY_CODE_F3 = 65,
+    Q_KEY_CODE_F4 = 66,
+    Q_KEY_CODE_F5 = 67,
+    Q_KEY_CODE_F6 = 68,
+    Q_KEY_CODE_F7 = 69,
+    Q_KEY_CODE_F8 = 70,
+    Q_KEY_CODE_F9 = 71,
+    Q_KEY_CODE_F10 = 72,
+    Q_KEY_CODE_NUM_LOCK = 73,
+    Q_KEY_CODE_SCROLL_LOCK = 74,
+    Q_KEY_CODE_KP_DIVIDE = 75,
+    Q_KEY_CODE_KP_MULTIPLY = 76,
+    Q_KEY_CODE_KP_SUBTRACT = 77,
+    Q_KEY_CODE_KP_ADD = 78,
+    Q_KEY_CODE_KP_ENTER = 79,
+    Q_KEY_CODE_KP_DECIMAL = 80,
+    Q_KEY_CODE_SYSRQ = 81,
+    Q_KEY_CODE_KP_0 = 82,
+    Q_KEY_CODE_KP_1 = 83,
+    Q_KEY_CODE_KP_2 = 84,
+    Q_KEY_CODE_KP_3 = 85,
+    Q_KEY_CODE_KP_4 = 86,
+    Q_KEY_CODE_KP_5 = 87,
+    Q_KEY_CODE_KP_6 = 88,
+    Q_KEY_CODE_KP_7 = 89,
+    Q_KEY_CODE_KP_8 = 90,
+    Q_KEY_CODE_KP_9 = 91,
+    Q_KEY_CODE_LESS = 92,
+    Q_KEY_CODE_F11 = 93,
+    Q_KEY_CODE_F12 = 94,
+    Q_KEY_CODE_PRINT = 95,
+    Q_KEY_CODE_HOME = 96,
+    Q_KEY_CODE_PGUP = 97,
+    Q_KEY_CODE_PGDN = 98,
+    Q_KEY_CODE_END = 99,
+    Q_KEY_CODE_LEFT = 100,
+    Q_KEY_CODE_UP = 101,
+    Q_KEY_CODE_DOWN = 102,
+    Q_KEY_CODE_RIGHT = 103,
+    Q_KEY_CODE_INSERT = 104,
+    Q_KEY_CODE_DELETE = 105,
+    Q_KEY_CODE_STOP = 106,
+    Q_KEY_CODE_AGAIN = 107,
+    Q_KEY_CODE_PROPS = 108,
+    Q_KEY_CODE_UNDO = 109,
+    Q_KEY_CODE_FRONT = 110,
+    Q_KEY_CODE_COPY = 111,
+    Q_KEY_CODE_OPEN = 112,
+    Q_KEY_CODE_PASTE = 113,
+    Q_KEY_CODE_FIND = 114,
+    Q_KEY_CODE_CUT = 115,
+    Q_KEY_CODE_LF = 116,
+    Q_KEY_CODE_HELP = 117,
+    Q_KEY_CODE_META_L = 118,
+    Q_KEY_CODE_META_R = 119,
+    Q_KEY_CODE_COMPOSE = 120,
+    Q_KEY_CODE_MAX = 121,
+} QKeyCode;
+
+typedef struct QKeyCodeList
+{
+    QKeyCode value;
+    struct QKeyCodeList *next;
+} QKeyCodeList;
+
+typedef struct KeyValue KeyValue;
+
+typedef struct KeyValueList
+{
+    KeyValue *value;
+    struct KeyValueList *next;
+} KeyValueList;
+
+extern const char *KeyValueKind_lookup[];
+typedef enum KeyValueKind
+{
+    KEY_VALUE_KIND_NUMBER = 0,
+    KEY_VALUE_KIND_QCODE = 1,
+    KEY_VALUE_KIND_MAX = 2,
+} KeyValueKind;
+
+void qapi_free_ErrorClassList(ErrorClassList * obj);
 
 struct NameInfo
 {
@@ -593,6 +874,48 @@ struct KvmInfo
 
 void qapi_free_KvmInfoList(KvmInfoList * obj);
 void qapi_free_KvmInfo(KvmInfo * obj);
+
+void qapi_free_RunStateList(RunStateList * obj);
+
+struct SnapshotInfo
+{
+    char * id;
+    char * name;
+    int64_t vm_state_size;
+    int64_t date_sec;
+    int64_t date_nsec;
+    int64_t vm_clock_sec;
+    int64_t vm_clock_nsec;
+};
+
+void qapi_free_SnapshotInfoList(SnapshotInfoList * obj);
+void qapi_free_SnapshotInfo(SnapshotInfo * obj);
+
+struct ImageInfo
+{
+    char * filename;
+    char * format;
+    bool has_dirty_flag;
+    bool dirty_flag;
+    bool has_actual_size;
+    int64_t actual_size;
+    int64_t virtual_size;
+    bool has_cluster_size;
+    int64_t cluster_size;
+    bool has_encrypted;
+    bool encrypted;
+    bool has_backing_filename;
+    char * backing_filename;
+    bool has_full_backing_filename;
+    char * full_backing_filename;
+    bool has_backing_filename_format;
+    char * backing_filename_format;
+    bool has_snapshots;
+    SnapshotInfoList * snapshots;
+};
+
+void qapi_free_ImageInfoList(ImageInfoList * obj);
+void qapi_free_ImageInfo(ImageInfo * obj);
 
 struct StatusInfo
 {
@@ -645,6 +968,7 @@ struct MigrationStats
     int64_t duplicate;
     int64_t normal;
     int64_t normal_bytes;
+    int64_t dirty_pages_rate;
 };
 
 void qapi_free_MigrationStatsList(MigrationStatsList * obj);
@@ -674,10 +998,16 @@ struct MigrationInfo
     XBZRLECacheStats * xbzrle_cache;
     bool has_total_time;
     int64_t total_time;
+    bool has_expected_downtime;
+    int64_t expected_downtime;
+    bool has_downtime;
+    int64_t downtime;
 };
 
 void qapi_free_MigrationInfoList(MigrationInfoList * obj);
 void qapi_free_MigrationInfo(MigrationInfo * obj);
+
+void qapi_free_MigrationCapabilityList(MigrationCapabilityList * obj);
 
 struct MigrationCapabilityStatus
 {
@@ -739,6 +1069,16 @@ struct BlockDeviceInfo
 void qapi_free_BlockDeviceInfoList(BlockDeviceInfoList * obj);
 void qapi_free_BlockDeviceInfo(BlockDeviceInfo * obj);
 
+void qapi_free_BlockDeviceIoStatusList(BlockDeviceIoStatusList * obj);
+
+struct BlockDirtyInfo
+{
+    int64_t count;
+};
+
+void qapi_free_BlockDirtyInfoList(BlockDirtyInfoList * obj);
+void qapi_free_BlockDirtyInfo(BlockDirtyInfo * obj);
+
 struct BlockInfo
 {
     char * device;
@@ -751,6 +1091,8 @@ struct BlockInfo
     bool tray_open;
     bool has_io_status;
     BlockDeviceIoStatus io_status;
+    bool has_dirty;
+    BlockDirtyInfo * dirty;
 };
 
 void qapi_free_BlockInfoList(BlockInfoList * obj);
@@ -829,6 +1171,8 @@ struct SpiceChannel
 
 void qapi_free_SpiceChannelList(SpiceChannelList * obj);
 void qapi_free_SpiceChannel(SpiceChannel * obj);
+
+void qapi_free_SpiceQueryMouseModeList(SpiceQueryMouseModeList * obj);
 
 struct SpiceInfo
 {
@@ -950,17 +1294,26 @@ struct PciInfo
 void qapi_free_PciInfoList(PciInfoList * obj);
 void qapi_free_PciInfo(PciInfo * obj);
 
+void qapi_free_BlockdevOnErrorList(BlockdevOnErrorList * obj);
+
+void qapi_free_MirrorSyncModeList(MirrorSyncModeList * obj);
+
 struct BlockJobInfo
 {
     char * type;
     char * device;
     int64_t len;
     int64_t offset;
+    bool busy;
+    bool paused;
     int64_t speed;
+    BlockDeviceIoStatus io_status;
 };
 
 void qapi_free_BlockJobInfoList(BlockJobInfoList * obj);
 void qapi_free_BlockJobInfo(BlockJobInfo * obj);
+
+void qapi_free_NewImageModeList(NewImageModeList * obj);
 
 struct BlockdevSnapshot
 {
@@ -1065,6 +1418,8 @@ struct NetdevUserOptions
     char * dhcpstart;
     bool has_dns;
     char * dns;
+    bool has_dnssearch;
+    StringList * dnssearch;
     bool has_smb;
     char * smb;
     bool has_smbserver;
@@ -1211,6 +1566,42 @@ struct Netdev
 void qapi_free_NetdevList(NetdevList * obj);
 void qapi_free_Netdev(Netdev * obj);
 
+struct InetSocketAddress
+{
+    char * host;
+    char * port;
+    bool has_to;
+    uint16_t to;
+    bool has_ipv4;
+    bool ipv4;
+    bool has_ipv6;
+    bool ipv6;
+};
+
+void qapi_free_InetSocketAddressList(InetSocketAddressList * obj);
+void qapi_free_InetSocketAddress(InetSocketAddress * obj);
+
+struct UnixSocketAddress
+{
+    char * path;
+};
+
+void qapi_free_UnixSocketAddressList(UnixSocketAddressList * obj);
+void qapi_free_UnixSocketAddress(UnixSocketAddress * obj);
+
+struct SocketAddress
+{
+    SocketAddressKind kind;
+    union {
+        void *data;
+        InetSocketAddress * inet;
+        UnixSocketAddress * q_unix;
+        String * fd;
+    };
+};
+void qapi_free_SocketAddressList(SocketAddressList * obj);
+void qapi_free_SocketAddress(SocketAddress * obj);
+
 struct MachineInfo
 {
     char * name;
@@ -1259,6 +1650,8 @@ struct FdsetInfo
 void qapi_free_FdsetInfoList(FdsetInfoList * obj);
 void qapi_free_FdsetInfo(FdsetInfo * obj);
 
+void qapi_free_TargetTypeList(TargetTypeList * obj);
+
 struct TargetInfo
 {
     TargetType arch;
@@ -1266,5 +1659,19 @@ struct TargetInfo
 
 void qapi_free_TargetInfoList(TargetInfoList * obj);
 void qapi_free_TargetInfo(TargetInfo * obj);
+
+void qapi_free_QKeyCodeList(QKeyCodeList * obj);
+
+struct KeyValue
+{
+    KeyValueKind kind;
+    union {
+        void *data;
+        int64_t number;
+        QKeyCode qcode;
+    };
+};
+void qapi_free_KeyValueList(KeyValueList * obj);
+void qapi_free_KeyValue(KeyValue * obj);
 
 #endif

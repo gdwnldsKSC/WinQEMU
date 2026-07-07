@@ -423,8 +423,6 @@ void armv7m_nvic_complete_irq(void *opaque, int irq);
     (((cp) << 16) | ((is64) << 15) | ((crn) << 11) |    \
      ((crm) << 7) | ((opc1) << 3) | (opc2))
 
-#define DECODE_CPREG_CRN(enc) (((enc) >> 7) & 0xf)
-
 /* ARMCPRegInfo type field bits. If the SPECIAL bit is set this is a
  * special-behaviour cp reg and bits [15..8] indicate what behaviour
  * it has. Otherwise it is a simple cp reg, where CONST indicates that
@@ -720,8 +718,10 @@ static inline void cpu_get_tb_cpu_state(CPUARMState *env, target_ulong *pc,
     }
 }
 
-static inline bool cpu_has_work(CPUARMState *env)
+static inline bool cpu_has_work(CPUState *cpu)
 {
+    CPUARMState *env = &ARM_CPU(cpu)->env;
+
     return env->interrupt_request &
         (CPU_INTERRUPT_FIQ | CPU_INTERRUPT_HARD | CPU_INTERRUPT_EXITTB);
 }

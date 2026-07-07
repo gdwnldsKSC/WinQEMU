@@ -25,7 +25,6 @@ const char *ErrorClass_lookup[] = {
     "DeviceNotActive",
     "DeviceNotFound",
     "KVMMissingCap",
-    "MigrationExpected",
     NULL,
 };
 
@@ -66,6 +65,21 @@ const char *SpiceQueryMouseMode_lookup[] = {
     NULL,
 };
 
+const char *BlockdevOnError_lookup[] = {
+    "report",
+    "ignore",
+    "enospc",
+    "stop",
+    NULL,
+};
+
+const char *MirrorSyncMode_lookup[] = {
+    "top",
+    "full",
+    "none",
+    NULL,
+};
+
 const char *NewImageMode_lookup[] = {
     "existing",
     "absolute-paths",
@@ -87,6 +101,13 @@ const char *NetClientOptionsKind_lookup[] = {
     "dump",
     "bridge",
     "hubport",
+    NULL,
+};
+
+const char *SocketAddressKind_lookup[] = {
+    "inet",
+    "unix",
+    "fd",
     NULL,
 };
 
@@ -118,6 +139,152 @@ const char *TargetType_lookup[] = {
     "xtensa",
     NULL,
 };
+
+const char *QKeyCode_lookup[] = {
+    "shift",
+    "shift_r",
+    "alt",
+    "alt_r",
+    "altgr",
+    "altgr_r",
+    "ctrl",
+    "ctrl_r",
+    "menu",
+    "esc",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "0",
+    "minus",
+    "equal",
+    "backspace",
+    "tab",
+    "q",
+    "w",
+    "e",
+    "r",
+    "t",
+    "y",
+    "u",
+    "i",
+    "o",
+    "p",
+    "bracket_left",
+    "bracket_right",
+    "ret",
+    "a",
+    "s",
+    "d",
+    "f",
+    "g",
+    "h",
+    "j",
+    "k",
+    "l",
+    "semicolon",
+    "apostrophe",
+    "grave_accent",
+    "backslash",
+    "z",
+    "x",
+    "c",
+    "v",
+    "b",
+    "n",
+    "m",
+    "comma",
+    "dot",
+    "slash",
+    "asterisk",
+    "spc",
+    "caps_lock",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "f9",
+    "f10",
+    "num_lock",
+    "scroll_lock",
+    "kp_divide",
+    "kp_multiply",
+    "kp_subtract",
+    "kp_add",
+    "kp_enter",
+    "kp_decimal",
+    "sysrq",
+    "kp_0",
+    "kp_1",
+    "kp_2",
+    "kp_3",
+    "kp_4",
+    "kp_5",
+    "kp_6",
+    "kp_7",
+    "kp_8",
+    "kp_9",
+    "less",
+    "f11",
+    "f12",
+    "print",
+    "home",
+    "pgup",
+    "pgdn",
+    "end",
+    "left",
+    "up",
+    "down",
+    "right",
+    "insert",
+    "delete",
+    "stop",
+    "again",
+    "props",
+    "undo",
+    "front",
+    "copy",
+    "open",
+    "paste",
+    "find",
+    "cut",
+    "lf",
+    "help",
+    "meta_l",
+    "meta_r",
+    "compose",
+    NULL,
+};
+
+const char *KeyValueKind_lookup[] = {
+    "number",
+    "qcode",
+    NULL,
+};
+
+void qapi_free_ErrorClassList(ErrorClassList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ErrorClassList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
 
 void qapi_free_NameInfoList(NameInfoList * obj)
 {
@@ -206,6 +373,81 @@ void qapi_free_KvmInfo(KvmInfo * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_KvmInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_RunStateList(RunStateList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_RunStateList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_SnapshotInfoList(SnapshotInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SnapshotInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_SnapshotInfo(SnapshotInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SnapshotInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ImageInfoList(ImageInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ImageInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ImageInfo(ImageInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ImageInfo(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -449,6 +691,21 @@ void qapi_free_MigrationInfo(MigrationInfo * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
+void qapi_free_MigrationCapabilityList(MigrationCapabilityList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_MigrationCapabilityList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
 void qapi_free_MigrationCapabilityStatusList(MigrationCapabilityStatusList * obj)
 {
     QapiDeallocVisitor *md;
@@ -566,6 +823,51 @@ void qapi_free_BlockDeviceInfo(BlockDeviceInfo * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_BlockDeviceInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_BlockDeviceIoStatusList(BlockDeviceIoStatusList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockDeviceIoStatusList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_BlockDirtyInfoList(BlockDirtyInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockDirtyInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_BlockDirtyInfo(BlockDirtyInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockDirtyInfo(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -746,6 +1048,21 @@ void qapi_free_SpiceChannel(SpiceChannel * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_SpiceChannel(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_SpiceQueryMouseModeList(SpiceQueryMouseModeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SpiceQueryMouseModeList(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -959,6 +1276,36 @@ void qapi_free_PciInfo(PciInfo * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
+void qapi_free_BlockdevOnErrorList(BlockdevOnErrorList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_BlockdevOnErrorList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_MirrorSyncModeList(MirrorSyncModeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_MirrorSyncModeList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
 void qapi_free_BlockJobInfoList(BlockJobInfoList * obj)
 {
     QapiDeallocVisitor *md;
@@ -986,6 +1333,21 @@ void qapi_free_BlockJobInfo(BlockJobInfo * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_BlockJobInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_NewImageModeList(NewImageModeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_NewImageModeList(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -1529,6 +1891,96 @@ void qapi_free_Netdev(Netdev * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
+void qapi_free_InetSocketAddressList(InetSocketAddressList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_InetSocketAddressList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_InetSocketAddress(InetSocketAddress * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_InetSocketAddress(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_UnixSocketAddressList(UnixSocketAddressList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_UnixSocketAddressList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_UnixSocketAddress(UnixSocketAddress * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_UnixSocketAddress(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_SocketAddressList(SocketAddressList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SocketAddressList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_SocketAddress(SocketAddress * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_SocketAddress(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
 void qapi_free_MachineInfoList(MachineInfoList * obj)
 {
     QapiDeallocVisitor *md;
@@ -1679,6 +2131,21 @@ void qapi_free_FdsetInfo(FdsetInfo * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
+void qapi_free_TargetTypeList(TargetTypeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_TargetTypeList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
 void qapi_free_TargetInfoList(TargetInfoList * obj)
 {
     QapiDeallocVisitor *md;
@@ -1706,6 +2173,51 @@ void qapi_free_TargetInfo(TargetInfo * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_TargetInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_QKeyCodeList(QKeyCodeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_QKeyCodeList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_KeyValueList(KeyValueList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_KeyValueList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_KeyValue(KeyValue * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_KeyValue(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 

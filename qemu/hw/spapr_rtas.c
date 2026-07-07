@@ -163,6 +163,7 @@ static void rtas_start_cpu(sPAPREnvironment *spapr,
                            uint32_t nret, target_ulong rets)
 {
     target_ulong id, start, r3;
+    CPUState *cpu;
     CPUPPCState *env;
 
     if (nargs != 3 || nret != 1) {
@@ -175,6 +176,8 @@ static void rtas_start_cpu(sPAPREnvironment *spapr,
     r3 = rtas_ld(args, 2);
 
     for (env = first_cpu; env; env = env->next_cpu) {
+        cpu = ENV_GET_CPU(env);
+
         if (env->cpu_index != id) {
             continue;
         }
@@ -184,12 +187,17 @@ static void rtas_start_cpu(sPAPREnvironment *spapr,
             return;
         }
 
+        /* This will make sure qemu state is up to date with kvm, and
+         * mark it dirty so our changes get flushed back before the
+         * new cpu enters */
+        kvm_cpu_synchronize_state(env);
+
         env->msr = (1ULL << MSR_SF) | (1ULL << MSR_ME);
         env->nip = start;
         env->gpr[3] = r3;
         env->halted = 0;
 
-        qemu_cpu_kick(env);
+        qemu_cpu_kick(cpu);
 
         rtas_st(rets, 0, 0);
         return;
@@ -236,6 +244,15 @@ target_ulong spapr_rtas_call(sPAPREnvironment *spapr,
 
 void spapr_rtas_register(const char *name, spapr_rtas_fn fn)
 {
+    int i;
+
+    for (i = 0; i < (rtas_next - rtas_table); i++) {
+        if (strcmp(name, rtas_table[i].name) == 0) {
+            fprintf(stderr, "RTAS call \"%s\" registered twice\n", name);
+            exit(1);
+        }
+    }
+
     assert(rtas_next < (rtas_table + TOKEN_MAX));
 
     rtas_next->name = name;
@@ -244,8 +261,8 @@ void spapr_rtas_register(const char *name, spapr_rtas_fn fn)
     rtas_next++;
 }
 
-int spapr_rtas_device_tree_setup(void *fdt, target_phys_addr_t rtas_addr,
-                                 target_phys_addr_t rtas_size)
+int spapr_rtas_device_tree_setup(void *fdt, hwaddr rtas_addr,
+                                 hwaddr rtas_size)
 {
     int ret;
     int i;

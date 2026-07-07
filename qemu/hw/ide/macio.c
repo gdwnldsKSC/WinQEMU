@@ -76,7 +76,8 @@ static void pmac_ide_atapi_transfer_cb(void *opaque, int ret)
 
     s->io_buffer_size = io->len;
 
-    qemu_sglist_init(&s->sg, io->len / MACIO_PAGE_SIZE + 1, NULL);
+    qemu_sglist_init(&s->sg, io->len / MACIO_PAGE_SIZE + 1,
+                     &dma_context_memory);
     qemu_sglist_add(&s->sg, io->addr, io->len);
     io->addr += io->len;
     io->len = 0;
@@ -89,7 +90,6 @@ static void pmac_ide_atapi_transfer_cb(void *opaque, int ret)
 done:
     bdrv_acct_done(s->bs, &s->acct);
     io->dma_end(opaque);
-    return;
 }
 
 static void pmac_ide_transfer_cb(void *opaque, int ret)
@@ -133,7 +133,8 @@ static void pmac_ide_transfer_cb(void *opaque, int ret)
     s->io_buffer_index = 0;
     s->io_buffer_size = io->len;
 
-    qemu_sglist_init(&s->sg, io->len / MACIO_PAGE_SIZE + 1, NULL);
+    qemu_sglist_init(&s->sg, io->len / MACIO_PAGE_SIZE + 1,
+                     &dma_context_memory);
     qemu_sglist_add(&s->sg, io->addr, io->len);
     io->addr += io->len;
     io->len = 0;
@@ -199,7 +200,7 @@ static void pmac_ide_flush(DBDMA_io *io)
 
 /* PowerMac IDE memory IO */
 static void pmac_ide_writeb (void *opaque,
-                             target_phys_addr_t addr, uint32_t val)
+                             hwaddr addr, uint32_t val)
 {
     MACIOIDEState *d = opaque;
 
@@ -227,7 +228,7 @@ static void pmac_ide_writeb (void *opaque,
     }
 }
 
-static uint32_t pmac_ide_readb (void *opaque,target_phys_addr_t addr)
+static uint32_t pmac_ide_readb (void *opaque,hwaddr addr)
 {
     uint8_t retval;
     MACIOIDEState *d = opaque;
@@ -259,7 +260,7 @@ static uint32_t pmac_ide_readb (void *opaque,target_phys_addr_t addr)
 }
 
 static void pmac_ide_writew (void *opaque,
-                             target_phys_addr_t addr, uint32_t val)
+                             hwaddr addr, uint32_t val)
 {
     MACIOIDEState *d = opaque;
 
@@ -270,7 +271,7 @@ static void pmac_ide_writew (void *opaque,
     }
 }
 
-static uint32_t pmac_ide_readw (void *opaque,target_phys_addr_t addr)
+static uint32_t pmac_ide_readw (void *opaque,hwaddr addr)
 {
     uint16_t retval;
     MACIOIDEState *d = opaque;
@@ -286,7 +287,7 @@ static uint32_t pmac_ide_readw (void *opaque,target_phys_addr_t addr)
 }
 
 static void pmac_ide_writel (void *opaque,
-                             target_phys_addr_t addr, uint32_t val)
+                             hwaddr addr, uint32_t val)
 {
     MACIOIDEState *d = opaque;
 
@@ -297,7 +298,7 @@ static void pmac_ide_writel (void *opaque,
     }
 }
 
-static uint32_t pmac_ide_readl (void *opaque,target_phys_addr_t addr)
+static uint32_t pmac_ide_readl (void *opaque,hwaddr addr)
 {
     uint32_t retval;
     MACIOIDEState *d = opaque;

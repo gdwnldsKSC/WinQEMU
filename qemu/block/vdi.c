@@ -60,9 +60,6 @@
 /* TODO: move uuid emulation to some central place in QEMU. */
 #include "sysemu.h"     /* UUID_FMT */
 typedef unsigned char uuid_t[16];
-void uuid_generate(uuid_t out);
-int uuid_is_null(const uuid_t uu);
-void uuid_unparse(const uuid_t uu, char *out);
 #endif
 
 /* Code configuration options. */
@@ -124,18 +121,18 @@ void uuid_unparse(const uuid_t uu, char *out);
 #define VDI_IS_ALLOCATED(X) ((X) < VDI_DISCARDED)
 
 #if !defined(CONFIG_UUID)
-void uuid_generate(uuid_t out)
+static inline void uuid_generate(uuid_t out)
 {
     memset(out, 0, sizeof(uuid_t));
 }
 
-int uuid_is_null(const uuid_t uu)
+static inline int uuid_is_null(const uuid_t uu)
 {
     uuid_t null_uuid = { 0 };
     return memcmp(uu, null_uuid, sizeof(uuid_t)) == 0;
 }
 
-void uuid_unparse(const uuid_t uu, char *out)
+static inline void uuid_unparse(const uuid_t uu, char *out)
 {
     snprintf(out, 37, UUID_FMT,
             uu[0], uu[1], uu[2], uu[3], uu[4], uu[5], uu[6], uu[7],
@@ -454,6 +451,12 @@ static int vdi_open(BlockDriverState *bs, int flags)
     return -1;
 }
 
+static int vdi_reopen_prepare(BDRVReopenState *state,
+                              BlockReopenQueue *queue, Error **errp)
+{
+    return 0;
+}
+
 static int coroutine_fn vdi_co_is_allocated(BlockDriverState *bs,
         int64_t sector_num, int nb_sectors, int *pnum)
 {
@@ -761,6 +764,7 @@ static BlockDriver bdrv_vdi = {
     .bdrv_probe = vdi_probe,
     .bdrv_open = vdi_open,
     .bdrv_close = vdi_close,
+    .bdrv_reopen_prepare = vdi_reopen_prepare,
     .bdrv_create = vdi_create,
     .bdrv_co_is_allocated = vdi_co_is_allocated,
     .bdrv_make_empty = vdi_make_empty,

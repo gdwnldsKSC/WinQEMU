@@ -433,13 +433,13 @@ def maybe_open(really, name, opt):
 
 try:
     os.makedirs(output_dir)
-except OSError as e:
+except os.error as e:
     if e.errno != errno.EEXIST:
         raise
 
 exprs = parse_schema(sys.stdin)
-commands = list(filter(lambda expr: 'command' in expr, exprs))
-commands = list(filter(lambda expr: not 'gen' in expr, commands))
+commands = [expr for expr in exprs if 'command' in expr]
+commands = [expr for expr in commands if 'gen' not in expr]
 
 if dispatch_type == "sync":
     fdecl = maybe_open(do_h, h_file, 'w')

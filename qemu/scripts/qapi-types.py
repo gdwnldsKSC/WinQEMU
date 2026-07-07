@@ -31,6 +31,16 @@ typedef struct %(name)sList
 ''',
                  name=name)
 
+def generate_fwd_enum_struct(name, members):
+    return mcgen('''
+typedef struct %(name)sList
+{
+    %(name)s value;
+    struct %(name)sList *next;
+} %(name)sList;
+''',
+                 name=name)
+
 def generate_struct(structname, fieldname, members):
     ret = mcgen('''
 struct %(name)s
@@ -91,9 +101,9 @@ const char *%(name)s_lookup[] = {
 
 def generate_enum_name(name):
     if name.isupper():
-        return c_fun(name)
+        return c_fun(name, False)
     new_name = ''
-    for c in c_fun(name):
+    for c in c_fun(name, False):
         if c.isupper():
             new_name += '_'
         new_name += c
@@ -217,7 +227,7 @@ h_file = output_dir + prefix + h_file
 
 try:
     os.makedirs(output_dir)
-except OSError as e:
+except os.error as e:
     if e.errno != errno.EEXIST:
         raise
 
@@ -273,20 +283,22 @@ fdecl.write(mcgen('''
 #ifndef %(guard)s
 #define %(guard)s
 
-#include "qemu-common.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 ''',
                   guard=guardname(h_file)))
 
 exprs = parse_schema(sys.stdin)
-exprs = list(filter(lambda expr: not 'gen' in expr, exprs))
+exprs = [expr for expr in exprs if 'gen' not in expr]
 
 for expr in exprs:
     ret = "\n"
     if 'type' in expr:
         ret += generate_fwd_struct(expr['type'], expr['data'])
     elif 'enum' in expr:
-        ret += generate_enum(expr['enum'], expr['data'])
+        ret += generate_enum(expr['enum'], expr['data']) + "\n"
+        ret += generate_fwd_enum_struct(expr['enum'], expr['data'])
         fdef.write(generate_enum_lookup(expr['enum'], expr['data']))
     elif 'union' in expr:
         ret += generate_fwd_struct(expr['union'], expr['data']) + "\n"
@@ -310,6 +322,9 @@ for expr in exprs:
         fdef.write(generate_type_cleanup(expr['union'] + "List") + "\n")
         ret += generate_type_cleanup_decl(expr['union'])
         fdef.write(generate_type_cleanup(expr['union']) + "\n")
+    elif 'enum' in expr:
+        ret += generate_type_cleanup_decl(expr['enum'] + "List")
+        fdef.write(generate_type_cleanup(expr['enum'] + "List") + "\n")
     else:
         continue
     fdecl.write(ret)

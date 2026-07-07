@@ -555,7 +555,6 @@ void esp_reg_write(ESPState *s, uint32_t saddr, uint64_t val)
 	case ESP_WTEST:
 #endif
         break;
-
     default:
         trace_esp_error_invalid_write(val, saddr);
         return;
@@ -563,7 +562,7 @@ void esp_reg_write(ESPState *s, uint32_t saddr, uint64_t val)
     s->wregs[saddr] = val;
 }
 
-static bool esp_mem_accepts(void *opaque, target_phys_addr_t addr,
+static bool esp_mem_accepts(void *opaque, hwaddr addr,
                             unsigned size, bool is_write)
 {
     return (size == 1) || (is_write && size == 4);
@@ -598,7 +597,7 @@ typedef struct {
     ESPState esp;
 } SysBusESPState;
 
-static void sysbus_esp_mem_write(void *opaque, target_phys_addr_t addr,
+static void sysbus_esp_mem_write(void *opaque, hwaddr addr,
                                  uint64_t val, unsigned int size)
 {
     SysBusESPState *sysbus = opaque;
@@ -608,7 +607,7 @@ static void sysbus_esp_mem_write(void *opaque, target_phys_addr_t addr,
     esp_reg_write(&sysbus->esp, saddr, val);
 }
 
-static uint64_t sysbus_esp_mem_read(void *opaque, target_phys_addr_t addr,
+static uint64_t sysbus_esp_mem_read(void *opaque, hwaddr addr,
                                     unsigned int size)
 {
     SysBusESPState *sysbus = opaque;
@@ -625,7 +624,7 @@ static const MemoryRegionOps sysbus_esp_mem_ops = {
     .valid.accepts = esp_mem_accepts,
 };
 
-void esp_init(target_phys_addr_t espaddr, int it_shift,
+void esp_init(hwaddr espaddr, int it_shift,
               ESPDMAMemoryReadWriteFunc dma_memory_read,
               ESPDMAMemoryReadWriteFunc dma_memory_write,
               void *dma_opaque, qemu_irq irq, qemu_irq *reset,

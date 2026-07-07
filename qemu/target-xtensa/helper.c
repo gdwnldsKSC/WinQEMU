@@ -118,7 +118,7 @@ void xtensa_cpu_list(FILE *f, fprintf_function cpu_fprintf)
     }
 }
 
-target_phys_addr_t cpu_get_phys_page_debug(CPUXtensaState *env, target_ulong addr)
+hwaddr cpu_get_phys_page_debug(CPUXtensaState *env, target_ulong addr)
 {
     uint32_t paddr;
     uint32_t page_size;
@@ -486,7 +486,8 @@ static int get_physical_addr_mmu(CPUXtensaState *env, bool update_tlb,
             INST_FETCH_PRIVILEGE_CAUSE;
     }
 
-    *access = mmu_attr_to_access(entry->attr);
+    *access = mmu_attr_to_access(entry->attr) &
+        ~(dtlb ? PAGE_EXEC : PAGE_READ | PAGE_WRITE);
     if (!is_access_granted(*access, is_write)) {
         return dtlb ?
             (is_write ?

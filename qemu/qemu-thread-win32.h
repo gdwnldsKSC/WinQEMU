@@ -18,6 +18,10 @@ struct QemuCond {
     HANDLE continue_event;
 };
 
+struct QemuSemaphore {
+    HANDLE sema;
+};
+
 typedef struct QemuThreadData QemuThreadData;
 struct QemuThread {
     QemuThreadData *data;

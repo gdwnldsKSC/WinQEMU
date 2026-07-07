@@ -26,6 +26,7 @@
 #include "loader.h"
 #include "elf.h"
 #include "hw/virtio.h"
+#include "hw/virtio-rng.h"
 #include "hw/virtio-serial.h"
 #include "hw/virtio-net.h"
 #include "hw/sysbus.h"
@@ -56,7 +57,7 @@ static const VirtIOBindings virtio_s390_bindings;
 static ram_addr_t s390_virtio_device_num_vq(VirtIOS390Device *dev);
 
 /* length of VirtIO device pages */
-const target_phys_addr_t virtio_size = S390_DEVICE_PAGES * TARGET_PAGE_SIZE;
+const hwaddr virtio_size = S390_DEVICE_PAGES * TARGET_PAGE_SIZE;
 
 static void s390_virtio_bus_reset(void *opaque)
 {
@@ -67,7 +68,7 @@ static void s390_virtio_bus_reset(void *opaque)
 void s390_virtio_reset_idx(VirtIOS390Device *dev)
 {
     int i;
-    target_phys_addr_t idx_addr;
+    hwaddr idx_addr;
     uint8_t num_vq;
 
     num_vq = s390_virtio_device_num_vq(dev);
@@ -199,6 +200,18 @@ static int s390_virtio_scsi_init(VirtIOS390Device *dev)
     VirtIODevice *vdev;
 
     vdev = virtio_scsi_init((DeviceState *)dev, &dev->scsi);
+    if (!vdev) {
+        return -1;
+    }
+
+    return s390_virtio_device_init(dev, vdev);
+}
+
+static int s390_virtio_rng_init(VirtIOS390Device *dev)
+{
+    VirtIODevice *vdev;
+
+    vdev = virtio_rng_init((DeviceState *)dev, &dev->rng);
     if (!vdev) {
         return -1;
     }
@@ -448,6 +461,29 @@ static TypeInfo s390_virtio_serial = {
     .class_init    = s390_virtio_serial_class_init,
 };
 
+static void s390_virtio_rng_initfn(Object *obj)
+{
+    VirtIOS390Device *dev = VIRTIO_S390_DEVICE(obj);
+
+    object_property_add_link(obj, "rng", TYPE_RNG_BACKEND,
+                             (Object **)&dev->rng.rng, NULL);
+}
+
+static void s390_virtio_rng_class_init(ObjectClass *klass, void *data)
+{
+    VirtIOS390DeviceClass *k = VIRTIO_S390_DEVICE_CLASS(klass);
+
+    k->init = s390_virtio_rng_init;
+}
+
+static TypeInfo s390_virtio_rng = {
+    .name          = "virtio-rng-s390",
+    .parent        = TYPE_VIRTIO_S390_DEVICE,
+    .instance_size = sizeof(VirtIOS390Device),
+    .instance_init = s390_virtio_rng_initfn,
+    .class_init    = s390_virtio_rng_class_init,
+};
+
 static int s390_virtio_busdev_init(DeviceState *dev)
 {
     VirtIOS390Device *_dev = (VirtIOS390Device *)dev;
@@ -528,6 +564,7 @@ static void s390_virtio_register_types(void)
     type_register_static(&s390_virtio_blk);
     type_register_static(&s390_virtio_net);
     type_register_static(&s390_virtio_scsi);
+    type_register_static(&s390_virtio_rng);
     type_register_static(&s390_virtio_bridge_info);
 }
 

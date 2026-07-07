@@ -41,20 +41,14 @@ typedef struct SHPCIState {
     uint32_t iobr;
 } SHPCIState;
 
-static void sh_pci_reg_write (void *p, target_phys_addr_t addr, uint64_t val,
+static void sh_pci_reg_write (void *p, hwaddr addr, uint64_t val,
                               unsigned size)
 {
     SHPCIState *pcic = p;
-#ifdef _MSC_VER
-    if (addr >= 0 && addr <= 0xfc)
-        cpu_to_le32w((uint32_t*)(pcic->dev->config + addr), val);
-#endif
     switch(addr) {
-#ifndef _MSC_VER
     case 0 ... 0xfc:
         cpu_to_le32w((uint32_t*)(pcic->dev->config + addr), val);
         break;
-#endif
     case 0x1c0:
         pcic->par = val;
         break;
@@ -75,19 +69,13 @@ static void sh_pci_reg_write (void *p, target_phys_addr_t addr, uint64_t val,
     }
 }
 
-static uint64_t sh_pci_reg_read (void *p, target_phys_addr_t addr,
+static uint64_t sh_pci_reg_read (void *p, hwaddr addr,
                                  unsigned size)
 {
     SHPCIState *pcic = p;
-#ifdef _MSC_VER
-    if (addr >= 0 && addr <= 0xfc)
-		return le32_to_cpup((uint32_t*)(pcic->dev->config + addr));
-#endif
     switch(addr) {
-#ifndef _MSC_VER
     case 0 ... 0xfc:
         return le32_to_cpup((uint32_t*)(pcic->dev->config + addr));
-#endif
     case 0x1c0:
         return pcic->par;
     case 0x1c4:
@@ -195,4 +183,4 @@ static void sh_pci_register_types(void)
     type_register_static(&sh_pci_host_info);
 }
 
-type_init(sh_pci_register_types);
+type_init(sh_pci_register_types)

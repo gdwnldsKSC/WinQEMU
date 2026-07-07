@@ -79,6 +79,14 @@ void cpu_dump_state(CPUS390XState *env, FILE *f, fprintf_function cpu_fprintf,
 {
     int i;
 
+    if (env->cc_op > 3) {
+        cpu_fprintf(f, "PSW=mask %016" PRIx64 " addr %016" PRIx64 " cc %15s\n",
+                    env->psw.mask, env->psw.addr, cc_name(env->cc_op));
+    } else {
+        cpu_fprintf(f, "PSW=mask %016" PRIx64 " addr %016" PRIx64 " cc %02x\n",
+                    env->psw.mask, env->psw.addr, env->cc_op);
+    }
+
     for (i = 0; i < 16; i++) {
         cpu_fprintf(f, "R%02d=%016" PRIx64, i, env->regs[i]);
         if ((i % 4) == 3) {
@@ -97,8 +105,6 @@ void cpu_dump_state(CPUS390XState *env, FILE *f, fprintf_function cpu_fprintf,
         }
     }
 
-    cpu_fprintf(f, "\n");
-
 #ifndef CONFIG_USER_ONLY
     for (i = 0; i < 16; i++) {
         cpu_fprintf(f, "C%02d=%016" PRIx64, i, env->cregs[i]);
@@ -110,22 +116,14 @@ void cpu_dump_state(CPUS390XState *env, FILE *f, fprintf_function cpu_fprintf,
     }
 #endif
 
-    cpu_fprintf(f, "\n");
-
-    if (env->cc_op > 3) {
-        cpu_fprintf(f, "PSW=mask %016" PRIx64 " addr %016" PRIx64 " cc %15s\n",
-                    env->psw.mask, env->psw.addr, cc_name(env->cc_op));
-    } else {
-        cpu_fprintf(f, "PSW=mask %016" PRIx64 " addr %016" PRIx64 " cc %02x\n",
-                    env->psw.mask, env->psw.addr, env->cc_op);
-    }
-
 #ifdef DEBUG_INLINE_BRANCHES
     for (i = 0; i < CC_OP_MAX; i++) {
         cpu_fprintf(f, "  %15s = %10ld\t%10ld\n", cc_name(i),
                     inline_branch_miss[i], inline_branch_hit[i]);
     }
 #endif
+
+    cpu_fprintf(f, "\n");
 }
 
 static TCGv_i64 psw_addr;
@@ -5136,7 +5134,7 @@ static inline void gen_intermediate_code_internal(CPUS390XState *env,
     dc.tb = tb;
     dc.cc_op = CC_OP_DYNAMIC;
 
-    gen_opc_end = gen_opc_buf + OPC_MAX_SIZE;
+    gen_opc_end = tcg_ctx.gen_opc_buf + OPC_MAX_SIZE;
 
     next_page_start = (pc_start & TARGET_PAGE_MASK) + TARGET_PAGE_SIZE;
 
@@ -5158,7 +5156,7 @@ static inline void gen_intermediate_code_internal(CPUS390XState *env,
             }
         }
         if (search_pc) {
-            j = gen_opc_ptr - gen_opc_buf;
+            j = tcg_ctx.gen_opc_ptr - tcg_ctx.gen_opc_buf;
             if (lj < j) {
                 lj++;
                 while (lj < j) {
@@ -5173,17 +5171,19 @@ static inline void gen_intermediate_code_internal(CPUS390XState *env,
         if (num_insns + 1 == max_insns && (tb->cflags & CF_LAST_IO)) {
             gen_io_start();
         }
-#if defined(S390X_DEBUG_DISAS_VERBOSE)
-        LOG_DISAS("pc " TARGET_FMT_lx "\n",
-                  dc.pc);
-#endif
+
+        if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_OP | CPU_LOG_TB_OP_OPT))) {
+            tcg_gen_debug_insn_start(dc.pc);
+        }
+
         disas_s390_insn(env, &dc);
 
         num_insns++;
         if (env->singlestep_enabled) {
             gen_debug(&dc);
         }
-    } while (!dc.is_jmp && gen_opc_ptr < gen_opc_end && dc.pc < next_page_start
+    } while (!dc.is_jmp && tcg_ctx.gen_opc_ptr < gen_opc_end
+             && dc.pc < next_page_start
              && num_insns < max_insns && !env->singlestep_enabled
              && !singlestep);
 
@@ -5207,9 +5207,9 @@ static inline void gen_intermediate_code_internal(CPUS390XState *env,
         tcg_gen_exit_tb(0);
     }
     gen_icount_end(tb, num_insns);
-    *gen_opc_ptr = INDEX_op_end;
+    *tcg_ctx.gen_opc_ptr = INDEX_op_end;
     if (search_pc) {
-        j = gen_opc_ptr - gen_opc_buf;
+        j = tcg_ctx.gen_opc_ptr - tcg_ctx.gen_opc_buf;
         lj++;
         while (lj <= j) {
             gen_opc_instr_start[lj++] = 0;
@@ -5219,10 +5219,9 @@ static inline void gen_intermediate_code_internal(CPUS390XState *env,
         tb->icount = num_insns;
     }
 #if defined(S390X_DEBUG_DISAS)
-    log_cpu_state_mask(CPU_LOG_TB_CPU, env, 0);
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
         qemu_log("IN: %s\n", lookup_symbol(pc_start));
-        log_target_disas(pc_start, dc.pc - pc_start, 1);
+        log_target_disas(env, pc_start, dc.pc - pc_start, 1);
         qemu_log("\n");
     }
 #endif

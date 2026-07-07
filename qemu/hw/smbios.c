@@ -17,8 +17,6 @@
 #include "smbios.h"
 #include "loader.h"
 
-MSC_PACKED_BEGIN_1
-
 /*
  * Structures shared with the BIOS
  */
@@ -38,8 +36,6 @@ struct smbios_table {
     struct smbios_header header;
     uint8_t data[];
 } QEMU_PACKED;
-
-MSC_PACKED_END
 
 #define SMBIOS_FIELD_ENTRY 0
 #define SMBIOS_TABLE_ENTRY 1

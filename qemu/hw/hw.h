@@ -4,14 +4,16 @@
 
 #include "qemu-common.h"
 
-#if defined(TARGET_PHYS_ADDR_BITS) && !defined(NEED_CPU_H)
+#if !defined(CONFIG_USER_ONLY) && !defined(NEED_CPU_H)
 #include "cpu-common.h"
 #endif
 
 #include "ioport.h"
 #include "irq.h"
+#include "qemu-aio.h"
 #include "qemu-file.h"
 #include "vmstate.h"
+#include "qemu-log.h"
 
 #ifdef NEED_CPU_H
 #if TARGET_LONG_BITS == 64

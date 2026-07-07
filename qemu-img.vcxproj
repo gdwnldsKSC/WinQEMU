@@ -80,7 +80,7 @@
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>Default</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
@@ -89,8 +89,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glib-2.0.lib;gthread-2.0.lib;gobject-2.0.lib;gio-2.0.lib;Ws2_32.lib;zlib1.lib;pxwc.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)third_party\glib\lib;.\third_party\precompiled old winqemu libs\Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>pixman.lib;glib-2.0.lib;gthread-2.0.lib;gobject-2.0.lib;gio-2.0.lib;Ws2_32.lib;zlib1.lib;pxwc.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)bin\$(Platform)\$(Configuration);$(SolutionDir)third_party\glib\lib;.\third_party\precompiled old winqemu libs\Debug</AdditionalLibraryDirectories>
       <OutputFile>$(SolutionDir)bin\$(Platform)\$(Configuration)\$(ProjectName).exe</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -139,9 +139,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="qemu\aes.c" />
-    <ClCompile Include="qemu\aio.c" />
+    <ClCompile Include="qemu\aio-win32.c" />
     <ClCompile Include="qemu\async.c" />
     <ClCompile Include="qemu\block.c" />
+    <ClCompile Include="qemu\blockjob.c" />
     <ClCompile Include="qemu\block\blkdebug.c" />
     <ClCompile Include="qemu\block\blkverify.c" />
     <ClCompile Include="qemu\block\bochs.c" />
@@ -168,9 +169,11 @@
     <ClCompile Include="qemu\block\vmdk.c" />
     <ClCompile Include="qemu\block\vpc.c" />
     <ClCompile Include="qemu\block\vvfat.c" />
+    <ClCompile Include="qemu\block\win32-aio.c" />
     <ClCompile Include="qemu\coroutine-win32.c" />
     <ClCompile Include="qemu\cutils.c" />
     <ClCompile Include="qemu\error.c" />
+    <ClCompile Include="qemu\event_notifier-win32.c" />
     <ClCompile Include="qemu\iohandler.c" />
     <ClCompile Include="qemu\iov.c" />
     <ClCompile Include="qemu\json-lexer.c" />
@@ -181,6 +184,12 @@
     <ClCompile Include="qemu\notify.c" />
     <ClCompile Include="qemu\osdep.c" />
     <ClCompile Include="qemu\oslib-win32.c" />
+    <ClCompile Include="qemu\qapi-types.c" />
+    <ClCompile Include="qemu\qapi-visit.c" />
+    <ClCompile Include="qemu\qapi\qapi-dealloc-visitor.c" />
+    <ClCompile Include="qemu\qapi\qapi-visit-core.c" />
+    <ClCompile Include="qemu\qapi\qmp-output-visitor.c" />
+    <ClCompile Include="qemu\qapi\string-output-visitor.c" />
     <ClCompile Include="qemu\qbool.c" />
     <ClCompile Include="qemu\qdict.c" />
     <ClCompile Include="qemu\qemu-config.c" />
@@ -201,9 +210,12 @@
     <ClCompile Include="qemu\qjson.c" />
     <ClCompile Include="qemu\qlist.c" />
     <ClCompile Include="qemu\qstring.c" />
+    <ClCompile Include="qemu\stubs\fdset-find-fd.c" />
+    <ClCompile Include="qemu\stubs\fdset-remove-fd.c" />
+    <ClCompile Include="qemu\thread-pool.c" />
     <ClCompile Include="third_party\outside_qemu_tree_custom\clock_gettime.c" />
     <ClCompile Include="third_party\outside_qemu_tree_custom\gettimeofday.c" />
-    <ClCompile Include="third_party\outside_qemu_tree_custom\XGetopt.c" />
+    <ClCompile Include="third_party\outside_qemu_tree_custom\getopt.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

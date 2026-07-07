@@ -76,6 +76,7 @@
 #define PCI_DEVICE_ID_VIRTIO_BALLOON     0x1002
 #define PCI_DEVICE_ID_VIRTIO_CONSOLE     0x1003
 #define PCI_DEVICE_ID_VIRTIO_SCSI        0x1004
+#define PCI_DEVICE_ID_VIRTIO_RNG         0x1005
 
 #define FMT_PCIBUS                      PRIx64
 
@@ -211,6 +212,8 @@ struct PCIDevice {
     int32_t devfn;
     char name[64];
     PCIIORegion io_regions[PCI_NUM_REGIONS];
+    AddressSpace bus_master_as;
+    MemoryRegion bus_master_enable_region;
     DMAContext *dma;
 
     /* do not access the following fields */
@@ -316,6 +319,8 @@ void pci_bus_irqs(PCIBus *bus, pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
                   void *irq_opaque, int nirq);
 int pci_bus_get_irq_level(PCIBus *bus, int irq_num);
 void pci_bus_hotplug(PCIBus *bus, pci_hotplug_fn hotplug, DeviceState *dev);
+/* 0 <= pin <= 3 0 = INTA, 1 = INTB, 2 = INTC, 3 = INTD */
+int pci_swizzle_map_irq_fn(PCIDevice *pci_dev, int pin);
 PCIBus *pci_register_bus(DeviceState *parent, const char *name,
                          pci_set_irq_fn set_irq, pci_map_irq_fn map_irq,
                          void *irq_opaque,
@@ -324,6 +329,7 @@ PCIBus *pci_register_bus(DeviceState *parent, const char *name,
                          uint8_t devfn_min, int nirq);
 void pci_bus_set_route_irq_fn(PCIBus *, pci_route_irq_fn);
 PCIINTxRoute pci_device_route_intx_to_irq(PCIDevice *dev, int pin);
+bool pci_intx_route_changed(PCIINTxRoute *old, PCIINTxRoute *new);
 void pci_bus_fire_intx_routing_notifier(PCIBus *bus);
 void pci_device_set_intx_routing_notifier(PCIDevice *dev,
                                           PCIINTxRoutingNotifier notifier);
@@ -334,6 +340,9 @@ PCIDevice *pci_nic_init(NICInfo *nd, const char *default_model,
                         const char *default_devaddr);
 PCIDevice *pci_nic_init_nofail(NICInfo *nd, const char *default_model,
                                const char *default_devaddr);
+
+PCIDevice *pci_vga_init(PCIBus *bus);
+
 int pci_bus_num(PCIBus *s);
 void pci_for_each_device(PCIBus *bus, int bus_num,
                          void (*fn)(PCIBus *bus, PCIDevice *d, void *opaque),

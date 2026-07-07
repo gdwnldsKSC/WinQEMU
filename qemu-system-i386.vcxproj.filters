@@ -109,15 +109,15 @@
     <Filter Include="qemu\hw\usb">
       <UniqueIdentifier>{f4f3c4b0-15ee-4a2b-aa54-12bceebdbbde}</UniqueIdentifier>
     </Filter>
+    <Filter Include="qemu\backends">
+      <UniqueIdentifier>{48f8d01a-4c3c-4820-885e-8f759933e07b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="qemu\aes.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\aio.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\alpha-dis.c">
@@ -205,9 +205,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\osdep.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\posix-aio-compat.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ppc-dis.c">
@@ -1038,9 +1035,6 @@
     <ClCompile Include="qemu\block\dmg.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\block\nbd.c">
-      <Filter>qemu\block\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\block\parallels.c">
       <Filter>qemu\block\src</Filter>
     </ClCompile>
@@ -1476,9 +1470,6 @@
     <ClCompile Include="qemu\net\tap-haiku.c">
       <Filter>qemu\net\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\pflib.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\ui\spice-core.c">
       <Filter>qemu\ui\src</Filter>
     </ClCompile>
@@ -1743,7 +1734,7 @@
     <ClCompile Include="qemu\slirp\arp_table.c">
       <Filter>qemu\slirp</Filter>
     </ClCompile>
-    <ClCompile Include="third_party\outside_qemu_tree_custom\XGetopt.c">
+    <ClCompile Include="third_party\outside_qemu_tree_custom\getopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="third_party\outside_qemu_tree_custom\clock_gettime.c">
@@ -1783,9 +1774,6 @@
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\main-loop.c">
-      <Filter>qemu\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\event_notifier.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\qemu-coroutine-io.c">
@@ -2006,6 +1994,54 @@
     </ClCompile>
     <ClCompile Include="qemu\memory_mapping-stub.c">
       <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\aio-win32.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\uri.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\thread-pool.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\commit.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\slirp\dnssearch.c">
+      <Filter>qemu\slirp</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\blockjob.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qemu-pixman.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\win32-aio.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\event_notifier-win32.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\mirror.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\blockdev-nbd.c">
+      <Filter>qemu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\serial-isa.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\pam.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\virtio-rng.c">
+      <Filter>qemu\hw\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\backends\rng.c">
+      <Filter>qemu\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\backends\rng-egd.c">
+      <Filter>qemu\backends</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2537,9 +2573,6 @@
     <ClInclude Include="qemu\qemu-config.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\block\raw-posix-aio.h">
-      <Filter>qemu\block\inc</Filter>
-    </ClInclude>
     <ClInclude Include="qemu\qint.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
@@ -2997,9 +3030,6 @@
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\qemu-options-wrapper.h">
-      <Filter>qemu\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\exec-obsolete.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\ptimer.h">

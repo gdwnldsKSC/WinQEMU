@@ -21,17 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "net.h"
-
 #include "config-host.h"
 
-#include "net/tap.h"
-#include "net/socket.h"
-#include "net/dump.h"
-#include "net/slirp.h"
-#include "net/vde.h"
+#include "net.h"
+#include "net/clients.h"
 #include "net/hub.h"
+#include "net/slirp.h"
 #include "net/util.h"
+
 #include "monitor.h"
 #include "qemu-common.h"
 #include "qemu_socket.h"
@@ -538,24 +535,6 @@ int qemu_find_nic_model(NICInfo *nd, const char * const *models,
     return -1;
 }
 
-int net_handle_fd_param(Monitor *mon, const char *param)
-{
-    int fd;
-
-    if (!qemu_isdigit(param[0]) && mon) {
-
-        fd = monitor_get_fd(mon, param);
-        if (fd == -1) {
-            error_report("No file descriptor named %s found", param);
-            return -1;
-        }
-    } else {
-        fd = qemu_parse_fd(param);
-    }
-
-    return fd;
-}
-
 static int net_init_nic(const NetClientOptions *opts, const char *name,
                         NetClientState *peer)
 {
@@ -848,6 +827,7 @@ exit_err:
 void qmp_netdev_del(const char *id, Error **errp)
 {
     NetClientState *nc;
+    QemuOpts *opts;
 
     nc = qemu_find_netdev(id);
     if (!nc) {
@@ -855,8 +835,14 @@ void qmp_netdev_del(const char *id, Error **errp)
         return;
     }
 
+    opts = qemu_opts_find(qemu_find_opts_err("netdev", NULL), id);
+    if (!opts) {
+        error_setg(errp, "Device '%s' is not a netdev", id);
+        return;
+    }
+
     qemu_del_net_client(nc);
-    qemu_opts_del(qemu_opts_find(qemu_find_opts_err("netdev", errp), id));
+    qemu_opts_del(opts);
 }
 
 void print_net_client(Monitor *mon, NetClientState *nc)

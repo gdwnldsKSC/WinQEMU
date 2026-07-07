@@ -38,6 +38,8 @@ typedef enum MonitorEvent {
     QEVENT_SPICE_DISCONNECTED,
     QEVENT_BLOCK_JOB_COMPLETED,
     QEVENT_BLOCK_JOB_CANCELLED,
+    QEVENT_BLOCK_JOB_ERROR,
+    QEVENT_BLOCK_JOB_READY,
     QEVENT_DEVICE_TRAY_MOVED,
     QEVENT_SUSPEND,
     QEVENT_SUSPEND_DISK,
@@ -66,7 +68,8 @@ int monitor_read_block_device_key(Monitor *mon, const char *device,
                                   BlockDriverCompletionFunc *completion_cb,
                                   void *opaque);
 
-int monitor_get_fd(Monitor *mon, const char *fdname);
+int monitor_get_fd(Monitor *mon, const char *fdname, Error **errp);
+int monitor_handle_fd_param(Monitor *mon, const char *fdname);
 
 void monitor_vprintf(Monitor *mon, const char *fmt, va_list ap)
     GCC_FMT_ATTR(2, 0);
@@ -88,6 +91,9 @@ int qmp_qom_set(Monitor *mon, const QDict *qdict, QObject **ret);
 
 int qmp_qom_get(Monitor *mon, const QDict *qdict, QObject **ret);
 
+AddfdInfo *monitor_fdset_add_fd(int fd, bool has_fdset_id, int64_t fdset_id,
+                                bool has_opaque, const char *opaque,
+                                Error **errp);
 int monitor_fdset_get_fd(int64_t fdset_id, int flags);
 int monitor_fdset_dup_fd_add(int64_t fdset_id, int dup_fd);
 int monitor_fdset_dup_fd_remove(int dup_fd);

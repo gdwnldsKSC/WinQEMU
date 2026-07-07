@@ -20,8 +20,7 @@
 #include <spice/qxl_dev.h>
 
 #include "qemu-thread.h"
-#include "console.h"
-#include "pflib.h"
+#include "qemu-pixman.h"
 #include "sysemu.h"
 
 #define NUM_MEMSLOTS 8
@@ -31,8 +30,6 @@
 #define MEMSLOT_GROUP_HOST  0
 #define MEMSLOT_GROUP_GUEST 1
 #define NUM_MEMSLOTS_GROUPS 2
-
-#define NUM_SURFACES 1024
 
 /*
  * Internal enum to differenciate between options for
@@ -79,13 +76,12 @@ struct SimpleSpiceDisplay {
     QXLWorker *worker;
     QXLInstance qxl;
     uint32_t unique;
-    QemuPfConv *conv;
+    pixman_image_t *surface;
+    pixman_image_t *mirror;
+    int32_t num_surfaces;
 
     QXLRect dirty;
     int notify;
-#if SPICE_SERVER_VERSION < 0x000b02 /* before 0.11.2 */
-    int running;
-#endif
 
     /*
      * All struct members below this comment can be accessed from
@@ -93,7 +89,7 @@ struct SimpleSpiceDisplay {
      * to them must be protected by the lock.
      */
     QemuMutex lock;
-    SimpleSpiceUpdate *update;
+    QTAILQ_HEAD(, SimpleSpiceUpdate) updates;
     QEMUCursor *cursor;
     int mouse_x, mouse_y;
 };
@@ -103,6 +99,7 @@ struct SimpleSpiceUpdate {
     QXLImage image;
     QXLCommandExt ext;
     uint8_t *bitmap;
+    QTAILQ_ENTRY(SimpleSpiceUpdate) next;
 };
 
 int qemu_spice_rect_is_empty(const QXLRect* r);
@@ -132,8 +129,6 @@ void qemu_spice_create_primary_surface(SimpleSpiceDisplay *ssd, uint32_t id,
 void qemu_spice_destroy_primary_surface(SimpleSpiceDisplay *ssd,
                                         uint32_t id, qxl_async_io async);
 void qemu_spice_wakeup(SimpleSpiceDisplay *ssd);
-#if SPICE_SERVER_VERSION >= 0x000b02 /* before 0.11.2 */
 void qemu_spice_display_start(void);
 void qemu_spice_display_stop(void);
-#endif
 int qemu_spice_display_is_running(SimpleSpiceDisplay *ssd);

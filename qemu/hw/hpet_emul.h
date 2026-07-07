@@ -56,8 +56,6 @@
 #define HPET_TN_INT_ROUTE_CAP_SHIFT 32
 #define HPET_TN_CFG_BITS_READONLY_OR_RESERVED 0xffff80b1U
 
-MSC_PACKED_BEGIN_1
-
 struct hpet_fw_entry
 {
     uint32_t event_timer_block_id;
@@ -71,8 +69,6 @@ struct hpet_fw_config
     uint8_t count;
     struct hpet_fw_entry hpet[8];
 } QEMU_PACKED;
-
-MSC_PACKED_END
 
 extern struct hpet_fw_config hpet_cfg;
 #endif

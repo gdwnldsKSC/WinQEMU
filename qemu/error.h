@@ -12,21 +12,15 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-/*
- * A class representing internal errors within QEMU.  An error has a ErrorClass
- * code and a human message.
- *
- * MSVC modification: this opaque forward typedef is declared before the
- * includes below.  qapi-types.h now pulls in qemu-common.h (-> cpu.h ->
- * cpu-qom.h) which references the bare "Error" type; if error.h is the entry
- * point of that include cycle, cpu-qom.h re-includes error.h (guard already
- * set, skipped) and would see Error undefined unless it is typedef'd first.
- */
-typedef struct Error Error;
-
 #include "compiler.h"
 #include "qapi-types.h"
 #include <stdbool.h>
+
+/**
+ * A class representing internal errors within QEMU.  An error has a ErrorClass
+ * code and a human message.
+ */
+typedef struct Error Error;
 
 /**
  * Set an indirect pointer to an error given a ErrorClass value and a
@@ -34,6 +28,21 @@ typedef struct Error Error;
  * of QEMU.
  */
 void error_set(Error **err, ErrorClass err_class, const char *fmt, ...) GCC_FMT_ATTR(3, 4);
+
+/**
+ * Set an indirect pointer to an error given a ErrorClass value and a
+ * printf-style human message, followed by a strerror() string if
+ * @os_error is not zero.
+ */
+void error_set_errno(Error **err, int os_error, ErrorClass err_class, const char *fmt, ...) GCC_FMT_ATTR(4, 5);
+
+/**
+ * Same as error_set(), but sets a generic error
+ */
+#define error_setg(err, fmt, ...) \
+    error_set(err, ERROR_CLASS_GENERIC_ERROR, fmt, ## __VA_ARGS__)
+#define error_setg_errno(err, os_error, fmt, ...) \
+    error_set_errno(err, os_error, ERROR_CLASS_GENERIC_ERROR, fmt, ## __VA_ARGS__)
 
 /**
  * Returns true if an indirect pointer to an error is pointing to a valid

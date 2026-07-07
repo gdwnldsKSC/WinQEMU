@@ -4,9 +4,16 @@
 #include "qemu-common.h"
 
 #ifdef NEED_CPU_H
+/* MSVC port modification: the port defines NEED_CPU_H project-wide rather
+ * than per-object like upstream's makefiles, so this header can be reached
+ * (via qemu-log.h, new in 1.3) before cpu.h has provided CPUArchState,
+ * target_ulong and hwaddr.  cpu.h is include-guarded and its subtree never
+ * includes disas.h, so pulling it in here is safe and order-independent. */
+#include "cpu.h"
 /* Disassemble this for me please... (debugging). */
 void disas(FILE *out, void *code, unsigned long size);
-void target_disas(FILE *out, target_ulong code, target_ulong size, int flags);
+void target_disas(FILE *out, CPUArchState *env, target_ulong code,
+                  target_ulong size, int flags);
 
 void monitor_disas(Monitor *mon, CPUArchState *env,
                    target_ulong pc, int nb_insn, int is_physical, int flags);
@@ -22,7 +29,7 @@ struct elf64_sym;
 #if defined(CONFIG_USER_ONLY)
 typedef const char *(*lookup_symbol_t)(struct syminfo *s, target_ulong orig_addr);
 #else
-typedef const char *(*lookup_symbol_t)(struct syminfo *s, target_phys_addr_t orig_addr);
+typedef const char *(*lookup_symbol_t)(struct syminfo *s, hwaddr orig_addr);
 #endif
 
 struct syminfo {

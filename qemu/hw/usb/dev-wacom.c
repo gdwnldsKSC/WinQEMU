@@ -250,7 +250,7 @@ static void usb_wacom_handle_reset(USBDevice *dev)
     s->mode = WACOM_MODE_HID;
 }
 
-static int usb_wacom_handle_control(USBDevice *dev, USBPacket *p,
+static void usb_wacom_handle_control(USBDevice *dev, USBPacket *p,
                int request, int value, int index, int length, uint8_t *data)
 {
     USBWacomState *s = (USBWacomState *) dev;
@@ -258,10 +258,9 @@ static int usb_wacom_handle_control(USBDevice *dev, USBPacket *p,
 
     ret = usb_desc_handle_control(dev, p, request, value, index, length, data);
     if (ret >= 0) {
-        return ret;
+        return;
     }
 
-    ret = 0;
     switch (request) {
     case WACOM_SET_REPORT:
         if (s->mouse_grabbed) {
@@ -269,36 +268,33 @@ static int usb_wacom_handle_control(USBDevice *dev, USBPacket *p,
             s->mouse_grabbed = 0;
         }
         s->mode = data[0];
-        ret = 0;
         break;
     case WACOM_GET_REPORT:
         data[0] = 0;
         data[1] = s->mode;
-        ret = 2;
+        p->actual_length = 2;
         break;
     /* USB HID requests */
     case HID_GET_REPORT:
         if (s->mode == WACOM_MODE_HID)
-            ret = usb_mouse_poll(s, data, length);
+            p->actual_length = usb_mouse_poll(s, data, length);
         else if (s->mode == WACOM_MODE_WACOM)
-            ret = usb_wacom_poll(s, data, length);
+            p->actual_length = usb_wacom_poll(s, data, length);
         break;
     case HID_GET_IDLE:
-        ret = 1;
         data[0] = s->idle;
+        p->actual_length = 1;
         break;
     case HID_SET_IDLE:
         s->idle = (uint8_t) (value >> 8);
-        ret = 0;
         break;
     default:
-        ret = USB_RET_STALL;
+        p->status = USB_RET_STALL;
         break;
     }
-    return ret;
 }
 
-static int usb_wacom_handle_data(USBDevice *dev, USBPacket *p)
+static void usb_wacom_handle_data(USBDevice *dev, USBPacket *p)
 {
     USBWacomState *s = (USBWacomState *) dev;
 #ifndef _MSC_VER
@@ -306,7 +302,7 @@ static int usb_wacom_handle_data(USBDevice *dev, USBPacket *p)
 #else
     uint8_t* buf = g_malloc(p->iov.size);
 #endif
-    int ret = 0;
+    int len = 0;
 
     switch (p->pid) {
     case USB_TOKEN_IN:
@@ -315,26 +311,25 @@ static int usb_wacom_handle_data(USBDevice *dev, USBPacket *p)
 #ifdef _MSC_VER
                 g_free(buf);
 #endif
-                return USB_RET_NAK;
+                p->status = USB_RET_NAK;
+                return;
             }
             s->changed = 0;
             if (s->mode == WACOM_MODE_HID)
-                ret = usb_mouse_poll(s, buf, p->iov.size);
+                len = usb_mouse_poll(s, buf, p->iov.size);
             else if (s->mode == WACOM_MODE_WACOM)
-                ret = usb_wacom_poll(s, buf, p->iov.size);
-            usb_packet_copy(p, buf, ret);
+                len = usb_wacom_poll(s, buf, p->iov.size);
+            usb_packet_copy(p, buf, len);
             break;
         }
         /* Fall through.  */
     case USB_TOKEN_OUT:
     default:
-        ret = USB_RET_STALL;
-        break;
-    }
 #ifdef _MSC_VER
-    g_free(buf);
+        g_free(buf);
 #endif
-    return ret;
+        p->status = USB_RET_STALL;
+    }
 }
 
 static void usb_wacom_handle_destroy(USBDevice *dev)

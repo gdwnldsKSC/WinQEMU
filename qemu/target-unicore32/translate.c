@@ -1861,6 +1861,10 @@ static void disas_uc32_insn(CPUUniCore32State *env, DisasContext *s)
 {
     unsigned int insn;
 
+    if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_OP | CPU_LOG_TB_OP_OPT))) {
+        tcg_gen_debug_insn_start(s->pc);
+    }
+
     insn = cpu_ldl_code(env, s->pc);
     s->pc += 4;
 
@@ -1928,8 +1932,6 @@ static void disas_uc32_insn(CPUUniCore32State *env, DisasContext *s)
         }
         ILLEGAL;
     }
-
-    return;
 }
 
 /* generate intermediate code in gen_opc_buf and gen_opparam_buf for
@@ -1954,7 +1956,7 @@ static inline void gen_intermediate_code_internal(CPUUniCore32State *env,
 
     dc->tb = tb;
 
-    gen_opc_end = gen_opc_buf + OPC_MAX_SIZE;
+    gen_opc_end = tcg_ctx.gen_opc_buf + OPC_MAX_SIZE;
 
     dc->is_jmp = DISAS_NEXT;
     dc->pc = pc_start;
@@ -1997,7 +1999,7 @@ static inline void gen_intermediate_code_internal(CPUUniCore32State *env,
             }
         }
         if (search_pc) {
-            j = gen_opc_ptr - gen_opc_buf;
+            j = tcg_ctx.gen_opc_ptr - tcg_ctx.gen_opc_buf;
             if (lj < j) {
                 lj++;
                 while (lj < j) {
@@ -2029,7 +2031,7 @@ static inline void gen_intermediate_code_internal(CPUUniCore32State *env,
          * Also stop translation when a page boundary is reached.  This
          * ensures prefetch aborts occur at the right place.  */
         num_insns++;
-    } while (!dc->is_jmp && gen_opc_ptr < gen_opc_end &&
+    } while (!dc->is_jmp && tcg_ctx.gen_opc_ptr < gen_opc_end &&
              !env->singlestep_enabled &&
              !singlestep &&
              dc->pc < next_page_start &&
@@ -2101,18 +2103,18 @@ static inline void gen_intermediate_code_internal(CPUUniCore32State *env,
 
 done_generating:
     gen_icount_end(tb, num_insns);
-    *gen_opc_ptr = INDEX_op_end;
+    *tcg_ctx.gen_opc_ptr = INDEX_op_end;
 
 #ifdef DEBUG_DISAS
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
         qemu_log("----------------\n");
         qemu_log("IN: %s\n", lookup_symbol(pc_start));
-        log_target_disas(pc_start, dc->pc - pc_start, 0);
+        log_target_disas(env, pc_start, dc->pc - pc_start, 0);
         qemu_log("\n");
     }
 #endif
     if (search_pc) {
-        j = gen_opc_ptr - gen_opc_buf;
+        j = tcg_ctx.gen_opc_ptr - tcg_ctx.gen_opc_buf;
         lj++;
         while (lj <= j) {
             gen_opc_instr_start[lj++] = 0;

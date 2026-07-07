@@ -65,6 +65,9 @@
 #define QT1 (env->qt1)
 
 #if !defined(CONFIG_USER_ONLY)
+static void QEMU_NORETURN do_unaligned_access(CPUSPARCState *env,
+                                              target_ulong addr, int is_write,
+                                              int is_user, uintptr_t retaddr);
 #include "softmmu_exec.h"
 #define MMUSUFFIX _mmu
 #define ALIGNED_ONLY
@@ -619,21 +622,21 @@ uint64_t helper_ld_asi(CPUSPARCState *env, target_ulong addr, int asi, int size,
     case 0x21 ... 0x2f: /* MMU passthrough, 0x100000000 to 0xfffffffff */
         switch (size) {
         case 1:
-            ret = ldub_phys((target_phys_addr_t)addr
-                            | ((target_phys_addr_t)(asi & 0xf) << 32));
+            ret = ldub_phys((hwaddr)addr
+                            | ((hwaddr)(asi & 0xf) << 32));
             break;
         case 2:
-            ret = lduw_phys((target_phys_addr_t)addr
-                            | ((target_phys_addr_t)(asi & 0xf) << 32));
+            ret = lduw_phys((hwaddr)addr
+                            | ((hwaddr)(asi & 0xf) << 32));
             break;
         default:
         case 4:
-            ret = ldl_phys((target_phys_addr_t)addr
-                           | ((target_phys_addr_t)(asi & 0xf) << 32));
+            ret = ldl_phys((hwaddr)addr
+                           | ((hwaddr)(asi & 0xf) << 32));
             break;
         case 8:
-            ret = ldq_phys((target_phys_addr_t)addr
-                           | ((target_phys_addr_t)(asi & 0xf) << 32));
+            ret = ldq_phys((hwaddr)addr
+                           | ((hwaddr)(asi & 0xf) << 32));
             break;
         }
         break;
@@ -1015,21 +1018,21 @@ void helper_st_asi(CPUSPARCState *env, target_ulong addr, uint64_t val, int asi,
         {
             switch (size) {
             case 1:
-                stb_phys((target_phys_addr_t)addr
-                         | ((target_phys_addr_t)(asi & 0xf) << 32), val);
+                stb_phys((hwaddr)addr
+                         | ((hwaddr)(asi & 0xf) << 32), val);
                 break;
             case 2:
-                stw_phys((target_phys_addr_t)addr
-                         | ((target_phys_addr_t)(asi & 0xf) << 32), val);
+                stw_phys((hwaddr)addr
+                         | ((hwaddr)(asi & 0xf) << 32), val);
                 break;
             case 4:
             default:
-                stl_phys((target_phys_addr_t)addr
-                         | ((target_phys_addr_t)(asi & 0xf) << 32), val);
+                stl_phys((hwaddr)addr
+                         | ((hwaddr)(asi & 0xf) << 32), val);
                 break;
             case 8:
-                stq_phys((target_phys_addr_t)addr
-                         | ((target_phys_addr_t)(asi & 0xf) << 32), val);
+                stq_phys((hwaddr)addr
+                         | ((hwaddr)(asi & 0xf) << 32), val);
                 break;
             }
         }
@@ -2313,7 +2316,7 @@ void helper_stqf(CPUSPARCState *env, target_ulong addr, int mem_idx)
 
 #if !defined(CONFIG_USER_ONLY)
 #ifndef TARGET_SPARC64
-void cpu_unassigned_access(CPUSPARCState *env, target_phys_addr_t addr,
+void cpu_unassigned_access(CPUSPARCState *env, hwaddr addr,
                            int is_write, int is_exec, int is_asi, int size)
 {
     int fault_type;
@@ -2373,7 +2376,7 @@ void cpu_unassigned_access(CPUSPARCState *env, target_phys_addr_t addr,
     }
 }
 #else
-void cpu_unassigned_access(CPUSPARCState *env, target_phys_addr_t addr,
+void cpu_unassigned_access(CPUSPARCState *env, hwaddr addr,
                            int is_write, int is_exec, int is_asi, int size)
 {
 #ifdef DEBUG_UNASSIGNED
@@ -2390,9 +2393,8 @@ void cpu_unassigned_access(CPUSPARCState *env, target_phys_addr_t addr,
 #endif
 #endif
 
-#if !defined(CONFIG_USER_ONLY)
 /* XXX: make it generic ? */
-static void cpu_restore_state2(CPUSPARCState *env, uintptr_t retaddr)
+void cpu_restore_state2(CPUSPARCState *env, uintptr_t retaddr)
 {
     TranslationBlock *tb;
 
@@ -2407,8 +2409,10 @@ static void cpu_restore_state2(CPUSPARCState *env, uintptr_t retaddr)
     }
 }
 
-void do_unaligned_access(CPUSPARCState *env, target_ulong addr, int is_write,
-                         int is_user, uintptr_t retaddr)
+#if !defined(CONFIG_USER_ONLY)
+static void QEMU_NORETURN do_unaligned_access(CPUSPARCState *env,
+                                              target_ulong addr, int is_write,
+                                              int is_user, uintptr_t retaddr)
 {
 #ifdef DEBUG_UNALIGNED
     printf("Unaligned access to 0x" TARGET_FMT_lx " from 0x" TARGET_FMT_lx

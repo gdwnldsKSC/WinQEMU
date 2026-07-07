@@ -123,7 +123,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;TARGET_PHYS_ADDR_BITS=32;DATA_SIZE=4;WIN32_AIO;HAS_AUDIO;CONFIG_PCSPK;CONFIG_CS4231A;CONFIG_ADLIB;CONFIG_GUS;CONFIG_AC97;CONFIG_ES1370;CONFIG_YMF262;HAS_AUDIO_CHOICE;CONFIG_VNC_THREAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -139,9 +139,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glib-2.0.lib;gthread-2.0.lib;gobject-2.0.lib;gio-2.0.lib;Ws2_32.lib;SDL.lib;zlib1.lib;dsound.lib;dxguid.lib;Iphlpapi.lib;WinMM.Lib;pxwc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pixman.lib;glib-2.0.lib;gthread-2.0.lib;gobject-2.0.lib;gio-2.0.lib;Ws2_32.lib;SDL.lib;zlib1.lib;dsound.lib;dxguid.lib;Iphlpapi.lib;WinMM.Lib;pxwc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(SolutionDir)bin\$(Platform)\$(Configuration)\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)libs\Win32\Debug;$(SolutionDir)third_party\glib\lib;.\third_party\precompiled old winqemu libs\Debug;.\third_party\precompiled old winqemu libs\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)bin\$(Platform)\$(Configuration);$(SolutionDir)libs\Win32\Debug;$(SolutionDir)third_party\glib\lib;.\third_party\precompiled old winqemu libs\Debug;.\third_party\precompiled old winqemu libs\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <ImportLibrary>
@@ -153,7 +153,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>.\outside_qemu_tree_custom;.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;TARGET_ALPHA;CONFIG_SOFTMMU;DATA_BITS=32;TARGET_PHYS_ADDR_BITS=32;DATA_SIZE=4;WIN32_AIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -181,7 +181,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
@@ -209,7 +209,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>UninitializedLocalUsageCheck</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -237,7 +237,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;WIN32_AIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling />
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -266,7 +266,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.\pxwc\inc;.\zlib;.\SDL\include;.\fmod api 3.75\api\inc;.\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)qemu\qapi;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-i386;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;WINQEMU_EXPORTS;NEED_CPU_H;__i386__;TARGET_I386;CONFIG_SOFTMMU;DATA_BITS=32;DATA_SIZE=4;WIN32_AIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -292,6 +292,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="qemu\acl.c" />
+    <ClCompile Include="qemu\aio-win32.c" />
     <ClCompile Include="qemu\arch_init.c" />
     <ClCompile Include="qemu\async.c" />
     <ClCompile Include="qemu\audio\audio_win_int.c" />
@@ -302,15 +303,20 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\audio\winwaveaudio.c" />
+    <ClCompile Include="qemu\backends\rng-egd.c" />
+    <ClCompile Include="qemu\backends\rng.c" />
     <ClCompile Include="qemu\balloon.c" />
     <ClCompile Include="qemu\bitmap.c" />
     <ClCompile Include="qemu\bitops.c" />
     <ClCompile Include="qemu\block-migration.c" />
+    <ClCompile Include="qemu\blockdev-nbd.c" />
     <ClCompile Include="qemu\blockdev.c" />
+    <ClCompile Include="qemu\blockjob.c" />
     <ClCompile Include="qemu\block\blkdebug.c" />
     <ClCompile Include="qemu\block\blkverify.c" />
     <ClCompile Include="qemu\block\bochs.c" />
     <ClCompile Include="qemu\block\cloop.c" />
+    <ClCompile Include="qemu\block\commit.c" />
     <ClCompile Include="qemu\block\cow.c" />
     <ClCompile Include="qemu\block\curl.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -319,7 +325,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\block\dmg.c" />
-    <ClCompile Include="qemu\block\nbd.c" />
+    <ClCompile Include="qemu\block\mirror.c" />
     <ClCompile Include="qemu\block\parallels.c" />
     <ClCompile Include="qemu\block\qcow.c" />
     <ClCompile Include="qemu\block\qcow2-cache.c" />
@@ -358,6 +364,7 @@
     <ClCompile Include="qemu\block\vmdk.c" />
     <ClCompile Include="qemu\block\vpc.c" />
     <ClCompile Include="qemu\block\vvfat.c" />
+    <ClCompile Include="qemu\block\win32-aio.c" />
     <ClCompile Include="qemu\cmd.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -371,7 +378,7 @@
     <ClCompile Include="qemu\cursor.c" />
     <ClCompile Include="qemu\dump-stub.c" />
     <ClCompile Include="qemu\error.c" />
-    <ClCompile Include="qemu\event_notifier.c" />
+    <ClCompile Include="qemu\event_notifier-win32.c" />
     <ClCompile Include="qemu\fsdev\qemu-fsdev.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -632,6 +639,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qemu\hw\pam.c" />
     <ClCompile Include="qemu\hw\pci-stub.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -685,6 +693,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\scsi-bus.c" />
+    <ClCompile Include="qemu\hw\serial-isa.c" />
     <ClCompile Include="qemu\hw\sga.c" />
     <ClCompile Include="qemu\hw\shpc.c" />
     <ClCompile Include="qemu\hw\slotid_cap.c" />
@@ -753,6 +762,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\hw\virtio-pci.c" />
+    <ClCompile Include="qemu\hw\virtio-rng.c" />
     <ClCompile Include="qemu\hw\virtio-scsi.c" />
     <ClCompile Include="qemu\hw\virtio-serial-bus.c" />
     <ClCompile Include="qemu\hw\vt82c686.c" />
@@ -866,7 +876,6 @@
     </ClCompile>
     <ClCompile Include="qemu\oslib-win32.c" />
     <ClCompile Include="qemu\page_cache.c" />
-    <ClCompile Include="qemu\pflib.c" />
     <ClCompile Include="qemu\qapi-types.c" />
     <ClCompile Include="qemu\qapi-visit.c" />
     <ClCompile Include="qemu\qapi\opts-visitor.c" />
@@ -906,6 +915,7 @@
     </ClCompile>
     <ClCompile Include="qemu\qemu-log.c" />
     <ClCompile Include="qemu\qemu-option.c" />
+    <ClCompile Include="qemu\qemu-pixman.c" />
     <ClCompile Include="qemu\qemu-progress.c" />
     <ClCompile Include="qemu\qemu-thread-posix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -942,6 +952,7 @@
     <ClCompile Include="qemu\qstring.c" />
     <ClCompile Include="qemu\qtest.c" />
     <ClCompile Include="qemu\slirp\arp_table.c" />
+    <ClCompile Include="qemu\slirp\dnssearch.c" />
     <ClCompile Include="qemu\spice-qemu-char.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1024,6 +1035,7 @@
     </ClCompile>
     <ClCompile Include="qemu\tcg-runtime.c" />
     <ClCompile Include="qemu\tcg\optimize.c" />
+    <ClCompile Include="qemu\thread-pool.c" />
     <ClCompile Include="qemu\trace.c" />
     <ClCompile Include="qemu\trace\control.c" />
     <ClCompile Include="qemu\trace\default.c">
@@ -1115,6 +1127,7 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc.c" />
     <ClCompile Include="qemu\ui\x_keymap.c" />
+    <ClCompile Include="qemu\uri.c" />
     <ClCompile Include="qemu\xen-all.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1142,7 +1155,6 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">CompileAsC</CompileAs>
     </ClCompile>
-    <ClCompile Include="qemu\aio.c" />
     <ClCompile Include="qemu\alpha-dis.c" />
     <ClCompile Include="qemu\arm-dis.c" />
     <ClCompile Include="qemu\block.c" />
@@ -1205,14 +1217,6 @@
     <ClCompile Include="qemu\nbd.c" />
     <ClCompile Include="qemu\net.c" />
     <ClCompile Include="qemu\osdep.c" />
-    <ClCompile Include="qemu\posix-aio-compat.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="qemu\ppc-dis.c" />
     <ClCompile Include="qemu\qemu-char.c" />
     <ClCompile Include="qemu\qemu-img.c">
@@ -2327,7 +2331,7 @@
     <ClCompile Include="third_party\outside_qemu_tree_custom\clock_gettime.c" />
     <ClCompile Include="third_party\outside_qemu_tree_custom\gettimeofday.c" />
     <ClCompile Include="third_party\outside_qemu_tree_custom\msvc_compat_shims.c" />
-    <ClCompile Include="third_party\outside_qemu_tree_custom\XGetopt.c" />
+    <ClCompile Include="third_party\outside_qemu_tree_custom\getopt.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config-target.h" />
@@ -2341,7 +2345,6 @@
     <ClInclude Include="qemu\blockdev.h" />
     <ClInclude Include="qemu\block\qcow2.h" />
     <ClInclude Include="qemu\block\qed.h" />
-    <ClInclude Include="qemu\block\raw-posix-aio.h" />
     <ClInclude Include="qemu\bt-host.h" />
     <ClInclude Include="qemu\cmd.h" />
     <ClInclude Include="qemu\compatfd.h" />
@@ -2351,7 +2354,6 @@
     <ClInclude Include="qemu\error.h" />
     <ClInclude Include="qemu\event_notifier.h" />
     <ClInclude Include="qemu\exec-memory.h" />
-    <ClInclude Include="qemu\exec-obsolete.h" />
     <ClInclude Include="qemu\fsdev\file-op-9p.h" />
     <ClInclude Include="qemu\fsdev\qemu-fsdev.h" />
     <ClInclude Include="qemu\hmp.h" />

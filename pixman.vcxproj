@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}</ProjectGuid>
+    <RootNamespace>pixman</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_LIB;PACKAGE=pixman-1;PACKAGE_VERSION=;PACKAGE_BUGREPORT=;USE_SSE2;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>third_party\pixman\pixman;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>NDEBUG;_LIB;PACKAGE=pixman-1;PACKAGE_VERSION=;PACKAGE_BUGREPORT=;USE_SSE2;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>third_party\pixman\pixman;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="third_party\pixman\pixman\pixman.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-access.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-access-accessors.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-arm.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-bits-image.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-combine32.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-combine-float.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-conical-gradient.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-edge.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-edge-accessors.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-fast-path.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-general.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-glyph.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-gradient-walker.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-image.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-implementation.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-linear-gradient.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-matrix.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-mips.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-noop.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-ppc.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-radial-gradient.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-region16.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-region32.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-solid-fill.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-sse2.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-timer.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-trap.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-utils.c" />
+    <ClCompile Include="third_party\pixman\pixman\pixman-x86.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="third_party\pixman\pixman\pixman.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-version.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-accessor.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-combine32.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-compiler.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-edge-imp.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-inlines.h" />
+    <ClInclude Include="third_party\pixman\pixman\pixman-private.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

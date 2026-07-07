@@ -243,8 +243,6 @@ typedef struct AHCIPortRegs {
     uint32_t    reserved;
 } AHCIPortRegs;
 
-MSC_PACKED_BEGIN_1
-
 typedef struct AHCICmdHdr {
     uint32_t    opts;
     uint32_t    status;
@@ -257,8 +255,6 @@ typedef struct AHCI_SG {
     uint32_t    reserved;
     uint32_t    flags_size;
 } QEMU_PACKED AHCI_SG;
-
-MSC_PACKED_END
 
 typedef struct AHCIDevice AHCIDevice;
 
@@ -311,8 +307,6 @@ typedef struct AHCIPCIState {
     AHCIState ahci;
 } AHCIPCIState;
 
-MSC_PACKED_BEGIN_1
-
 typedef struct NCQFrame {
     uint8_t fis_type;
     uint8_t c;
@@ -335,8 +329,6 @@ typedef struct NCQFrame {
     uint8_t reserved9;
     uint8_t reserved10;
 } QEMU_PACKED NCQFrame;
-
-MSC_PACKED_END
 
 void ahci_init(AHCIState *s, DeviceState *qdev, DMAContext *dma, int ports);
 void ahci_uninit(AHCIState *s);

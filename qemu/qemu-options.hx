@@ -6,10 +6,6 @@ HXCOMM construct option structures, enums and help message for specified
 HXCOMM architectures.
 HXCOMM HXCOMM can be used for comments, discarded from both texi and C
 
-HXCOMM TODO : when we are able to change -help output without breaking
-HXCOMM libvirt we should update the help options which refer to -cpu ?,
-HXCOMM -driver ?, etc to use the preferred -cpu help etc instead.
-
 DEFHEADING(Standard options:)
 STEXI
 @table @option
@@ -33,17 +29,18 @@ ETEXI
 
 DEF("machine", HAS_ARG, QEMU_OPTION_machine, \
     "-machine [type=]name[,prop[=value][,...]]\n"
-    "                selects emulated machine (-machine ? for list)\n"
+    "                selects emulated machine ('-machine help' for list)\n"
     "                property accel=accel1[:accel2[:...]] selects accelerator\n"
     "                supported accelerators are kvm, xen, tcg (default: tcg)\n"
     "                kernel_irqchip=on|off controls accelerated irqchip support\n"
     "                kvm_shadow_mem=size of KVM shadow MMU\n"
-    "                dump-guest-core=on|off include guest memory in a core dump (default=on)\n",
+    "                dump-guest-core=on|off include guest memory in a core dump (default=on)\n"
+    "                mem-merge=on|off controls memory merge support (default: on)\n",
     QEMU_ARCH_ALL)
 STEXI
 @item -machine [type=]@var{name}[,prop=@var{value}[,...]]
 @findex -machine
-Select the emulated machine by @var{name}. Use @code{-machine ?} to list
+Select the emulated machine by @var{name}. Use @code{-machine help} to list
 available machines. Supported machine properties are:
 @table @option
 @item accel=@var{accels1}[:@var{accels2}[:...]]
@@ -57,6 +54,10 @@ Enables in-kernel irqchip support for the chosen accelerator when available.
 Defines the size of the KVM shadow MMU.
 @item dump-guest-core=on|off
 Include guest memory in a core dump. The default is on.
+@item mem-merge=on|off
+Enables or disables memory merge support. This feature, when supported by
+the host, de-duplicates identical memory pages among VMs instances
+(enabled by default).
 @end table
 ETEXI
 
@@ -64,11 +65,11 @@ HXCOMM Deprecated by -machine
 DEF("M", HAS_ARG, QEMU_OPTION_M, "", QEMU_ARCH_ALL)
 
 DEF("cpu", HAS_ARG, QEMU_OPTION_cpu,
-    "-cpu cpu        select CPU (-cpu ? for list)\n", QEMU_ARCH_ALL)
+    "-cpu cpu        select CPU ('-cpu help' for list)\n", QEMU_ARCH_ALL)
 STEXI
 @item -cpu @var{model}
 @findex -cpu
-Select CPU model (-cpu ? for list and additional feature selection)
+Select CPU model (@code{-cpu help} for list and additional feature selection)
 ETEXI
 
 DEF("smp", HAS_ARG, QEMU_OPTION_smp,
@@ -205,33 +206,33 @@ Open drive @option{file} as read-only. Guest write attempts will fail.
 file sectors into the image file.
 @end table
 
-By default, writethrough caching is used for all block device.  This means that
-the host page cache will be used to read and write data but write notification
-will be sent to the guest only when the data has been reported as written by
-the storage subsystem.
+By default, the @option{cache=writeback} mode is used. It will report data
+writes as completed as soon as the data is present in the host page cache.
+This is safe as long as your guest OS makes sure to correctly flush disk caches
+where needed. If your guest OS does not handle volatile disk write caches
+correctly and your host crashes or loses power, then the guest may experience
+data corruption.
 
-Writeback caching will report data writes as completed as soon as the data is
-present in the host page cache.  This is safe as long as you trust your host.
-If your host crashes or loses power, then the guest may experience data
-corruption.
+For such guests, you should consider using @option{cache=writethrough}. This
+means that the host page cache will be used to read and write data, but write
+notification will be sent to the guest only after QEMU has made sure to flush
+each write to the disk. Be aware that this has a major impact on performance.
 
 The host page cache can be avoided entirely with @option{cache=none}.  This will
-attempt to do disk IO directly to the guests memory.  QEMU may still perform
-an internal copy of the data.
+attempt to do disk IO directly to the guest's memory.  QEMU may still perform
+an internal copy of the data. Note that this is considered a writeback mode and
+the guest OS must handle the disk write cache correctly in order to avoid data
+corruption on host crashes.
 
 The host page cache can be avoided while only sending write notifications to
-the guest when the data has been reported as written by the storage subsystem
-using @option{cache=directsync}.
-
-Some block drivers perform badly with @option{cache=writethrough}, most notably,
-qcow2.  If performance is more important than correctness,
-@option{cache=writeback} should be used with qcow2.
+the guest when the data has been flushed to the disk using
+@option{cache=directsync}.
 
 In case you don't care about data integrity over host failures, use
-cache=unsafe. This option tells QEMU that it never needs to write any data
-to the disk but can instead keeps things in cache. If anything goes wrong,
+@option{cache=unsafe}. This option tells QEMU that it never needs to write any
+data to the disk but can instead keep things in cache. If anything goes wrong,
 like your host losing power, the disk storage getting disconnected accidentally,
-etc. you're image will most probably be rendered unusable.   When using
+etc. your image will most probably be rendered unusable.   When using
 the @option{-snapshot} option, unsafe caching is always used.
 
 Copy-on-read avoids accessing the same backing file sectors repeatedly and is
@@ -250,6 +251,14 @@ qemu-system-i386 -drive file=file,index=0,media=disk
 qemu-system-i386 -drive file=file,index=1,media=disk
 qemu-system-i386 -drive file=file,index=2,media=disk
 qemu-system-i386 -drive file=file,index=3,media=disk
+@end example
+
+You can open an image using pre-opened file descriptors from an fd set:
+@example
+qemu-system-i386
+-add-fd fd=3,set=2,opaque="rdwr:/path/to/file"
+-add-fd fd=4,set=2,opaque="rdonly:/path/to/file"
+-drive file=/dev/fdset/2,index=0,media=disk
 @end example
 
 You can connect a CDROM to the slave of ide0:
@@ -281,6 +290,34 @@ qemu-system-i386 -drive file=a -drive file=b"
 is interpreted like:
 @example
 qemu-system-i386 -hda a -hdb b
+@end example
+ETEXI
+
+DEF("add-fd", HAS_ARG, QEMU_OPTION_add_fd,
+    "-add-fd fd=fd,set=set[,opaque=opaque]\n"
+    "                Add 'fd' to fd 'set'\n", QEMU_ARCH_ALL)
+STEXI
+@item -add-fd fd=@var{fd},set=@var{set}[,opaque=@var{opaque}]
+@findex -add-fd
+
+Add a file descriptor to an fd set.  Valid options are:
+
+@table @option
+@item fd=@var{fd}
+This option defines the file descriptor of which a duplicate is added to fd set.
+The file descriptor cannot be stdin, stdout, or stderr.
+@item set=@var{set}
+This option defines the ID of the fd set to add the file descriptor to.
+@item opaque=@var{opaque}
+This option defines a free-form string that can be used to describe @var{fd}.
+@end table
+
+You can open an image using pre-opened file descriptors from an fd set:
+@example
+qemu-system-i386
+-add-fd fd=3,set=2,opaque="rdwr:/path/to/file"
+-add-fd fd=4,set=2,opaque="rdonly:/path/to/file"
+-drive file=/dev/fdset/2,index=0,media=disk
 @end example
 ETEXI
 
@@ -339,13 +376,14 @@ ETEXI
 
 DEF("boot", HAS_ARG, QEMU_OPTION_boot,
     "-boot [order=drives][,once=drives][,menu=on|off]\n"
-    "      [,splash=sp_name][,splash-time=sp_time]\n"
+    "      [,splash=sp_name][,splash-time=sp_time][,reboot-timeout=rb_time]\n"
     "                'drives': floppy (a), hard disk (c), CD-ROM (d), network (n)\n"
     "                'sp_name': the file's name that would be passed to bios as logo picture, if menu=on\n"
-    "                'sp_time': the period that splash picture last if menu=on, unit is ms\n",
+    "                'sp_time': the period that splash picture last if menu=on, unit is ms\n"
+    "                'rb_timeout': the timeout before guest reboot when boot failed, unit is ms\n",
     QEMU_ARCH_ALL)
 STEXI
-@item -boot [order=@var{drives}][,once=@var{drives}][,menu=on|off][,splash=@var{sp_name}][,splash-time=@var{sp_time}]
+@item -boot [order=@var{drives}][,once=@var{drives}][,menu=on|off][,splash=@var{sp_name}][,splash-time=@var{sp_time}][,reboot-timeout=@var{rb_timeout}]
 @findex -boot
 Specify boot order @var{drives} as a string of drive letters. Valid
 drive letters depend on the target achitecture. The x86 PC uses: a, b
@@ -363,6 +401,11 @@ supports them. Currently Seabios for X86 system support it.
 limitation: The splash file could be a jpeg file or a BMP file in 24 BPP
 format(true color). The resolution should be supported by the SVGA mode, so
 the recommended is 320x240, 640x480, 800x640.
+
+A timeout could be passed to bios, guest will pause for @var{rb_timeout} ms
+when boot failed, then reboot. If @var{rb_timeout} is '-1', guest will not
+reboot, qemu passes '-1' to bios by default. Currently Seabios for X86
+system support it.
 
 @example
 # try to boot from network first, then from hard disk
@@ -452,12 +495,12 @@ ETEXI
 DEF("soundhw", HAS_ARG, QEMU_OPTION_soundhw,
     "-soundhw c1,... enable audio support\n"
     "                and only specified sound cards (comma separated list)\n"
-    "                use -soundhw ? to get the list of supported cards\n"
-    "                use -soundhw all to enable all of them\n", QEMU_ARCH_ALL)
+    "                use '-soundhw help' to get the list of supported cards\n"
+    "                use '-soundhw all' to enable all of them\n", QEMU_ARCH_ALL)
 STEXI
 @item -soundhw @var{card1}[,@var{card2},...] or -soundhw all
 @findex -soundhw
-Enable audio and selected sound hardware. Use ? to print all
+Enable audio and selected sound hardware. Use 'help' to print all
 available sound hardware.
 
 @example
@@ -466,7 +509,7 @@ qemu-system-i386 -soundhw es1370 disk.img
 qemu-system-i386 -soundhw ac97 disk.img
 qemu-system-i386 -soundhw hda disk.img
 qemu-system-i386 -soundhw all disk.img
-qemu-system-i386 -soundhw ?
+qemu-system-i386 -soundhw help
 @end example
 
 Note that Linux's i810_audio OSS kernel (for AC97) module might
@@ -555,16 +598,16 @@ DEF("device", HAS_ARG, QEMU_OPTION_device,
     "-device driver[,prop[=value][,...]]\n"
     "                add device (based on driver)\n"
     "                prop=value,... sets driver properties\n"
-    "                use -device ? to print all possible drivers\n"
-    "                use -device driver,? to print all possible properties\n",
+    "                use '-device help' to print all possible drivers\n"
+    "                use '-device driver,help' to print all possible properties\n",
     QEMU_ARCH_ALL)
 STEXI
 @item -device @var{driver}[,@var{prop}[=@var{value}][,...]]
 @findex -device
 Add device @var{driver}.  @var{prop}=@var{value} sets driver
 properties.  Valid properties depend on the driver.  To get help on
-possible drivers and properties, use @code{-device ?} and
-@code{-device @var{driver},?}.
+possible drivers and properties, use @code{-device help} and
+@code{-device @var{driver},help}.
 ETEXI
 
 DEFHEADING()
@@ -1275,8 +1318,8 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
     "                create a new Network Interface Card and connect it to VLAN 'n'\n"
 #ifdef CONFIG_SLIRP
     "-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=on|off]\n"
-    "         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n"
-    "         [,hostfwd=rule][,guestfwd=rule]"
+    "         [,hostname=host][,dhcpstart=addr][,dns=addr][,dnssearch=domain][,tftp=dir]\n"
+    "         [,bootfile=f][,hostfwd=rule][,guestfwd=rule]"
 #ifndef _WIN32
                                              "[,smb=dir[,smbserver=addr]]\n"
 #endif
@@ -1354,7 +1397,7 @@ Valid values for @var{type} are
 @code{virtio}, @code{i82551}, @code{i82557b}, @code{i82559er},
 @code{ne2k_pci}, @code{ne2k_isa}, @code{pcnet}, @code{rtl8139},
 @code{e1000}, @code{smc91c111}, @code{lance} and @code{mcf_fec}.
-Not all devices are supported on all targets.  Use -net nic,model=?
+Not all devices are supported on all targets.  Use @code{-net nic,model=help}
 for a list of available devices for your target.
 
 @item -netdev user,id=@var{id}[,@var{option}][,@var{option}][,...]
@@ -1385,7 +1428,7 @@ able to contact the host and no guest IP packets will be routed over the host
 to the outside. This option does not affect any explicitly set forwarding rules.
 
 @item hostname=@var{name}
-Specifies the client hostname reported by the builtin DHCP server.
+Specifies the client hostname reported by the built-in DHCP server.
 
 @item dhcpstart=@var{addr}
 Specify the first of the 16 IPs the built-in DHCP server can assign. Default
@@ -1395,6 +1438,18 @@ is the 15th to 31st IP in the guest network, i.e. x.x.x.15 to x.x.x.31.
 Specify the guest-visible address of the virtual nameserver. The address must
 be different from the host address. Default is the 3rd IP in the guest network,
 i.e. x.x.x.3.
+
+@item dnssearch=@var{domain}
+Provides an entry for the domain-search list sent by the built-in
+DHCP server. More than one domain suffix can be transmitted by specifying
+this option multiple times. If supported, this will cause the guest to
+automatically try to append the given domain suffix(es) in case a domain name
+can not be resolved.
+
+Example:
+@example
+qemu -net user,dnssearch=mgmt.example.org,dnssearch=example.org [...]
+@end example
 
 @item tftp=@var{dir}
 When using the user mode network stack, activate a built-in TFTP
@@ -2011,6 +2066,23 @@ qemu-system-i386 --drive file=sheepdog:192.0.2.1:30000:MyVirtualMachine
 
 See also @url{http://http://www.osrg.net/sheepdog/}.
 
+@item GlusterFS
+GlusterFS is an user space distributed file system.
+QEMU supports the use of GlusterFS volumes for hosting VM disk images using
+TCP, Unix Domain Sockets and RDMA transport protocols.
+
+Syntax for specifying a VM disk image on GlusterFS volume is
+@example
+gluster[+transport]://[server[:port]]/volname/image[?socket=...]
+@end example
+
+
+Example
+@example
+qemu-system-x86_84 --drive file=gluster://192.0.2.1/testvol/a.img
+@end example
+
+See also @url{http://www.gluster.org}.
 @end table
 ETEXI
 
@@ -2387,7 +2459,7 @@ Shorthand for -gdb tcp::1234, i.e. open a gdbserver on TCP port 1234
 ETEXI
 
 DEF("d", HAS_ARG, QEMU_OPTION_d, \
-    "-d item1,...    output log to /tmp/qemu.log (use -d ? for a list of log items)\n",
+    "-d item1,...    output log to /tmp/qemu.log (use '-d help' for a list of log items)\n",
     QEMU_ARCH_ALL)
 STEXI
 @item -d
@@ -2522,13 +2594,13 @@ ETEXI
 
 DEF("clock", HAS_ARG, QEMU_OPTION_clock, \
     "-clock          force the use of the given methods for timer alarm.\n" \
-    "                To see what timers are available use -clock ?\n",
+    "                To see what timers are available use '-clock help'\n",
     QEMU_ARCH_ALL)
 STEXI
 @item -clock @var{method}
 @findex -clock
 Force the use of the given methods for timer alarm. To see what timers
-are available use -clock ?.
+are available use @code{-clock help}.
 ETEXI
 
 HXCOMM Options deprecated by -rtc
@@ -2597,7 +2669,7 @@ watchdog with a single timer, or @code{i6300esb} (Intel 6300ESB I/O
 controller hub) which is a much more featureful PCI-based dual-timer
 watchdog.  Choose a model for which your guest has drivers.
 
-Use @code{-watchdog ?} to list available hardware models.  Only one
+Use @code{-watchdog help} to list available hardware models.  Only one
 watchdog can be enabled for a guest.
 ETEXI
 
@@ -2844,6 +2916,30 @@ STEXI
 @findex -enable-fips
 Enable FIPS 140-2 compliance mode.
 ETEXI
+
+HXCOMM Deprecated by -machine accel=tcg property
+DEF("no-kvm", 0, QEMU_OPTION_no_kvm, "", QEMU_ARCH_I386)
+
+HXCOMM Deprecated by kvm-pit driver properties
+DEF("no-kvm-pit-reinjection", 0, QEMU_OPTION_no_kvm_pit_reinjection,
+    "", QEMU_ARCH_I386)
+
+HXCOMM Deprecated (ignored)
+DEF("no-kvm-pit", 0, QEMU_OPTION_no_kvm_pit, "", QEMU_ARCH_I386)
+
+HXCOMM Deprecated by -machine kernel_irqchip=on|off property
+DEF("no-kvm-irqchip", 0, QEMU_OPTION_no_kvm_irqchip, "", QEMU_ARCH_I386)
+
+HXCOMM Deprecated (ignored)
+DEF("tdf", 0, QEMU_OPTION_tdf,"", QEMU_ARCH_ALL)
+
+DEF("object", HAS_ARG, QEMU_OPTION_object,
+    "-object TYPENAME[,PROP1=VALUE1,...]\n"
+    "                create an new object of type TYPENAME setting properties\n"
+    "                in the order they are specified.  Note that the 'id'\n"
+    "                property must be set.  These objects are placed in the\n"
+    "                '/objects' path.\n",
+    QEMU_ARCH_ALL)
 
 HXCOMM This is the last statement. Insert new options before this line!
 STEXI

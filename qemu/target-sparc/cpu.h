@@ -583,10 +583,10 @@ static inline int tlb_compare_context(const SparcTLBEntry *tlb,
 
 /* cpu-exec.c */
 #if !defined(CONFIG_USER_ONLY)
-void cpu_unassigned_access(CPUSPARCState *env1, target_phys_addr_t addr,
+void cpu_unassigned_access(CPUSPARCState *env1, hwaddr addr,
                            int is_write, int is_exec, int is_asi, int size);
 #if defined(TARGET_SPARC64)
-target_phys_addr_t cpu_get_phys_page_nofault(CPUSPARCState *env, target_ulong addr,
+hwaddr cpu_get_phys_page_nofault(CPUSPARCState *env, target_ulong addr,
                                            int mmu_idx);
 #endif
 #endif
@@ -711,9 +711,7 @@ uint64_t cpu_tick_get_count(CPUTimer *timer);
 void cpu_tick_set_limit(CPUTimer *timer, uint64_t limit);
 trap_state* cpu_tsptr(CPUSPARCState* env);
 #endif
-void QEMU_NORETURN do_unaligned_access(CPUSPARCState *env, target_ulong addr,
-                                       int is_write, int is_user,
-                                       uintptr_t retaddr);
+void cpu_restore_state2(CPUSPARCState *env, uintptr_t retaddr);
 
 #define TB_FLAG_FPU_ENABLED (1 << 4)
 #define TB_FLAG_AM_ENABLED (1 << 5)
@@ -763,8 +761,10 @@ static inline bool tb_am_enabled(int tb_flags)
 #endif
 }
 
-static inline bool cpu_has_work(CPUSPARCState *env1)
+static inline bool cpu_has_work(CPUState *cpu)
 {
+    CPUSPARCState *env1 = &SPARC_CPU(cpu)->env;
+
     return (env1->interrupt_request & CPU_INTERRUPT_HARD) &&
            cpu_interrupts_enabled(env1);
 }

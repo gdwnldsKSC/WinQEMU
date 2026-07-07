@@ -268,7 +268,7 @@ static const int tcg_target_call_oarg_regs[] = {
 #define S390_CC_ALWAYS  15
 
 /* Condition codes that result from a COMPARE and COMPARE LOGICAL.  */
-static const uint8_t tcg_cond_to_s390_cond[10] = {
+static const uint8_t tcg_cond_to_s390_cond[] = {
     [TCG_COND_EQ]  = S390_CC_EQ,
     [TCG_COND_NE]  = S390_CC_NE,
     [TCG_COND_LT]  = S390_CC_LT,
@@ -284,7 +284,7 @@ static const uint8_t tcg_cond_to_s390_cond[10] = {
 /* Condition codes that result from a LOAD AND TEST.  Here, we have no
    unsigned instruction variation, however since the test is vs zero we
    can re-map the outcomes appropriately.  */
-static const uint8_t tcg_cond_to_ltr_cond[10] = {
+static const uint8_t tcg_cond_to_ltr_cond[] = {
     [TCG_COND_EQ]  = S390_CC_EQ,
     [TCG_COND_NE]  = S390_CC_NE,
     [TCG_COND_LT]  = S390_CC_LT,
@@ -354,11 +354,6 @@ static void patch_reloc(uint8_t *code_ptr, int type,
         tcg_abort();
         break;
     }
-}
-
-static int tcg_target_get_call_iarg_regs_count(int flags)
-{
-    return sizeof(tcg_target_call_iarg_regs) / sizeof(int);
 }
 
 /* parse target specific constraints */
@@ -1118,7 +1113,7 @@ static void tgen64_xori(TCGContext *s, TCGReg dest, tcg_target_ulong val)
 static int tgen_cmp(TCGContext *s, TCGType type, TCGCond c, TCGReg r1,
                     TCGArg c2, int c2const)
 {
-    bool is_unsigned = (c > TCG_COND_GT);
+    bool is_unsigned = is_unsigned_cond(c);
     if (c2const) {
         if (c2 == 0) {
             if (type == TCG_TYPE_I32) {
@@ -2042,11 +2037,6 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         break;
 #endif /* TCG_TARGET_REG_BITS == 64 */
 
-    case INDEX_op_jmp:
-        /* This one is obsolete and never emitted.  */
-        tcg_abort();
-        break;
-
     default:
         fprintf(stderr,"unimplemented opc 0x%x\n",opc);
         tcg_abort();
@@ -2057,7 +2047,6 @@ static const TCGTargetOpDef s390_op_defs[] = {
     { INDEX_op_exit_tb, { } },
     { INDEX_op_goto_tb, { } },
     { INDEX_op_call, { "ri" } },
-    { INDEX_op_jmp, { "ri" } },
     { INDEX_op_br, { } },
 
     { INDEX_op_mov_i32, { "r", "r" } },

@@ -185,12 +185,6 @@ static void patch_reloc(uint8_t *code_ptr, int type,
     }
 }
 
-/* maximum number of register used for input function arguments */
-static inline int tcg_target_get_call_iarg_regs_count(int flags)
-{
-    return 4;
-}
-
 /* parse target specific constraints */
 static int target_parse_constraint(TCGArgConstraint *ct, const char **pct_str)
 {
@@ -328,6 +322,9 @@ enum {
     OPC_REGIMM   = 0x01 << 26,
     OPC_BLTZ     = OPC_REGIMM | (0x00 << 16),
     OPC_BGEZ     = OPC_REGIMM | (0x01 << 16),
+
+    OPC_SPECIAL2 = 0x1c << 26,
+    OPC_MUL      = OPC_SPECIAL2 | 0x002,
 
     OPC_SPECIAL3 = 0x1f << 26,
     OPC_INS      = OPC_SPECIAL3 | 0x004,
@@ -1328,10 +1325,6 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         tcg_out_opc_reg(s, OPC_JALR, TCG_REG_RA, args[0], 0);
         tcg_out_nop(s);
         break;
-    case INDEX_op_jmp:
-        tcg_out_opc_reg(s, OPC_JR, 0, args[0], 0);
-        tcg_out_nop(s);
-        break;
     case INDEX_op_br:
         tcg_out_brcond(s, TCG_COND_EQ, TCG_REG_ZERO, TCG_REG_ZERO, args[0]);
         break;
@@ -1413,8 +1406,12 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         tcg_out_mov(s, TCG_TYPE_I32, args[0], TCG_REG_AT);
         break;
     case INDEX_op_mul_i32:
+#if defined(__mips_isa_rev) && (__mips_isa_rev >= 1)
+        tcg_out_opc_reg(s, OPC_MUL, args[0], args[1], args[2]);
+#else
         tcg_out_opc_reg(s, OPC_MULT, 0, args[1], args[2]);
         tcg_out_opc_reg(s, OPC_MFLO, args[0], 0, 0);
+#endif
         break;
     case INDEX_op_mulu2_i32:
         tcg_out_opc_reg(s, OPC_MULTU, 0, args[2], args[3]);
@@ -1583,7 +1580,6 @@ static const TCGTargetOpDef mips_op_defs[] = {
     { INDEX_op_exit_tb, { } },
     { INDEX_op_goto_tb, { } },
     { INDEX_op_call, { "C" } },
-    { INDEX_op_jmp, { "r" } },
     { INDEX_op_br, { } },
 
     { INDEX_op_mov_i32, { "r", "r" } },

@@ -33,8 +33,6 @@
 #define HEADER_VERSION 2
 #define HEADER_SIZE 64
 
-MSC_PACKED_BEGIN_1
-
 // always little-endian
 struct parallels_header {
     char magic[16]; // "WithoutFreeSpace"
@@ -46,8 +44,6 @@ struct parallels_header {
     uint32_t nb_sectors;
     char padding[24];
 } QEMU_PACKED;
-
-MSC_PACKED_END
 
 typedef struct BDRVParallelsState {
     CoMutex lock;

@@ -807,17 +807,23 @@ static int ohci_service_iso_td(OHCIState *ohci, struct ohci_ed *ed,
                          DMA_DIRECTION_TO_DEVICE);
     }
 
-    if (completion) {
-        ret = ohci->usb_packet.result;
-    } else {
+    if (!completion) {
+        bool int_req = relative_frame_number == frame_count &&
+                       OHCI_BM(iso_td.flags, TD_DI) == 0;
         dev = ohci_find_device(ohci, OHCI_BM(ed->flags, ED_FA));
         ep = usb_ep_get(dev, pid, OHCI_BM(ed->flags, ED_EN));
-        usb_packet_setup(&ohci->usb_packet, pid, ep, addr);
+        usb_packet_setup(&ohci->usb_packet, pid, ep, addr, false, int_req);
         usb_packet_addbuf(&ohci->usb_packet, ohci->usb_buf, len);
-        ret = usb_handle_packet(dev, &ohci->usb_packet);
-        if (ret == USB_RET_ASYNC) {
+        usb_handle_packet(dev, &ohci->usb_packet);
+        if (ohci->usb_packet.status == USB_RET_ASYNC) {
+            usb_device_flush_ep_queue(dev, ep);
             return 1;
         }
+    }
+    if (ohci->usb_packet.status == USB_RET_SUCCESS) {
+        ret = ohci->usb_packet.actual_length;
+    } else {
+        ret = ohci->usb_packet.status;
     }
 
 #ifdef DEBUG_ISOCH
@@ -994,7 +1000,6 @@ static int ohci_service_td(OHCIState *ohci, struct ohci_ed *ed)
     }
 #endif
     if (completion) {
-        ret = ohci->usb_packet.result;
         ohci->async_td = 0;
         ohci->async_complete = 0;
     } else {
@@ -1011,17 +1016,25 @@ static int ohci_service_td(OHCIState *ohci, struct ohci_ed *ed)
         }
         dev = ohci_find_device(ohci, OHCI_BM(ed->flags, ED_FA));
         ep = usb_ep_get(dev, pid, OHCI_BM(ed->flags, ED_EN));
-        usb_packet_setup(&ohci->usb_packet, pid, ep, addr);
+        usb_packet_setup(&ohci->usb_packet, pid, ep, addr, !flag_r,
+                         OHCI_BM(td.flags, TD_DI) == 0);
         usb_packet_addbuf(&ohci->usb_packet, ohci->usb_buf, pktlen);
-        ret = usb_handle_packet(dev, &ohci->usb_packet);
+        usb_handle_packet(dev, &ohci->usb_packet);
 #ifdef DEBUG_PACKET
-        DPRINTF("ret=%d\n", ret);
+        DPRINTF("status=%d\n", ohci->usb_packet.status);
 #endif
-        if (ret == USB_RET_ASYNC) {
+        if (ohci->usb_packet.status == USB_RET_ASYNC) {
+            usb_device_flush_ep_queue(dev, ep);
             ohci->async_td = addr;
             return 1;
         }
     }
+    if (ohci->usb_packet.status == USB_RET_SUCCESS) {
+        ret = ohci->usb_packet.actual_length;
+    } else {
+        ret = ohci->usb_packet.status;
+    }
+
     if (ret >= 0) {
         if (dir == OHCI_TD_DIR_IN) {
             ohci_copy_td(ohci, &td, ohci->usb_buf, ret,
@@ -1470,12 +1483,10 @@ static void ohci_port_set_status(OHCIState *ohci, int portnum, uint32_t val)
 
     if (old_state != port->ctrl)
         ohci_set_interrupt(ohci, OHCI_INTR_RHSC);
-
-    return;
 }
 
 static uint64_t ohci_mem_read(void *opaque,
-                              target_phys_addr_t addr,
+                              hwaddr addr,
                               unsigned size)
 {
     OHCIState *ohci = opaque;
@@ -1598,7 +1609,7 @@ static uint64_t ohci_mem_read(void *opaque,
 }
 
 static void ohci_mem_write(void *opaque,
-                           target_phys_addr_t addr,
+                           hwaddr addr,
                            uint64_t val,
                            unsigned size)
 {
@@ -1848,7 +1859,7 @@ static int ohci_init_pxa(SysBusDevice *dev)
 
     /* Cannot fail as we pass NULL for masterbus */
     usb_ohci_init(&s->ohci, &dev->qdev, s->num_ports, s->dma_offset, NULL, 0,
-                  NULL);
+                  &dma_context_memory);
     sysbus_init_irq(dev, &s->ohci.irq);
     sysbus_init_mmio(dev, &s->ohci.mem);
 
@@ -1871,6 +1882,7 @@ static void ohci_pci_class_init(ObjectClass *klass, void *data)
     k->vendor_id = PCI_VENDOR_ID_APPLE;
     k->device_id = PCI_DEVICE_ID_APPLE_IPID_USB;
     k->class_id = PCI_CLASS_SERIAL_USB;
+    k->no_hotplug = 1;
     dc->desc = "Apple USB Controller";
     dc->props = ohci_pci_properties;
 }

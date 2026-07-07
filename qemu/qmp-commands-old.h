@@ -24,10 +24,7 @@
 {
 .name       = "screendump",
 .args_type  = "filename:F",
-.params     = "filename",
-.help       = "save screen into PPM image 'filename'",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_screen_dump,
+.mhandler.cmd_new = qmp_marshal_input_screendump,
 },
 
 
@@ -84,6 +81,13 @@
 
 
 {
+.name       = "send-key",
+.args_type  = "keys:O,hold-time:i?",
+.mhandler.cmd_new = qmp_marshal_input_send_key,
+},
+
+
+{
 .name       = "cpu",
 .args_type  = "index:i",
 .mhandler.cmd_new = qmp_marshal_input_cpu,
@@ -115,6 +119,13 @@
 .name       = "xen-save-devices-state",
 .args_type  = "filename:F",
 .mhandler.cmd_new = qmp_marshal_input_xen_save_devices_state,
+},
+
+
+{
+.name       = "xen-set-global-dirty-log",
+.args_type  = "enable:b",
+.mhandler.cmd_new = qmp_marshal_input_xen_set_global_dirty_log,
 },
 
 
@@ -202,8 +213,14 @@
 
 {
 .name       = "block-stream",
-.args_type  = "device:B,base:s?,speed:o?",
+.args_type  = "device:B,base:s?,speed:o?,on-error:s?",
 .mhandler.cmd_new = qmp_marshal_input_block_stream,
+},
+
+{
+.name       = "block-commit",
+.args_type  = "device:B,base:s?,top:s,speed:o?",
+.mhandler.cmd_new = qmp_marshal_input_block_commit,
 },
 
 {
@@ -214,8 +231,23 @@
 
 {
 .name       = "block-job-cancel",
-.args_type  = "device:B",
+.args_type  = "device:B,force:b?",
 .mhandler.cmd_new = qmp_marshal_input_block_job_cancel,
+},
+{
+.name       = "block-job-pause",
+.args_type  = "device:B",
+.mhandler.cmd_new = qmp_marshal_input_block_job_pause,
+},
+{
+.name       = "block-job-resume",
+.args_type  = "device:B",
+.mhandler.cmd_new = qmp_marshal_input_block_job_resume,
+},
+{
+.name       = "block-job-complete",
+.args_type  = "device:B",
+.mhandler.cmd_new = qmp_marshal_input_block_job_complete,
 },
 {
 .name       = "transaction",
@@ -228,6 +260,14 @@
 .name       = "blockdev-snapshot-sync",
 .args_type  = "device:B,snapshot-file:s,format:s?,mode:s?",
 .mhandler.cmd_new = qmp_marshal_input_blockdev_snapshot_sync,
+},
+
+
+{
+.name       = "drive-mirror",
+.args_type  = "sync:s,device:B,target:s,speed:i?,mode:s?,format:s?,"
+"on-source-error:s?,on-target-error:s?",
+.mhandler.cmd_new = qmp_marshal_input_drive_mirror,
 },
 
 
@@ -320,10 +360,7 @@
 {
 .name       = "add_client",
 .args_type  = "protocol:s,fdname:s,skipauth:b?,tls:b?",
-.params     = "protocol fdname skipauth tls",
-.help       = "add a graphics client",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = add_graphics_client,
+.mhandler.cmd_new = qmp_marshal_input_add_client,
 },
 
 {
@@ -500,6 +537,22 @@
 .name       = "qom-get",
 .args_type  = "path:s,property:s",
 .mhandler.cmd_new = qmp_qom_get,
+},
+
+{
+.name       = "nbd-server-start",
+.args_type  = "addr:q",
+.mhandler.cmd_new = qmp_marshal_input_nbd_server_start,
+},
+{
+.name       = "nbd-server-add",
+.args_type  = "device:B,writable:b?",
+.mhandler.cmd_new = qmp_marshal_input_nbd_server_add,
+},
+{
+.name       = "nbd-server-stop",
+.args_type  = "",
+.mhandler.cmd_new = qmp_marshal_input_nbd_server_stop,
 },
 
 {

@@ -21,9 +21,6 @@
     <ClCompile Include="qemu\aes.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\aio.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="qemu\async.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -114,7 +111,7 @@
     <ClCompile Include="qemu\qemu-coroutine-lock.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="third_party\outside_qemu_tree_custom\XGetopt.c">
+    <ClCompile Include="third_party\outside_qemu_tree_custom\getopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="qemu\block\blkdebug.c">
@@ -214,6 +211,45 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="qemu\iov.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\aio-win32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\event_notifier-win32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\blockjob.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\stubs\fdset-find-fd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\stubs\fdset-remove-fd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\block\win32-aio.c">
+      <Filter>Source Files\block</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\thread-pool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi\qmp-output-visitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi\qapi-visit-core.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi\string-output-visitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi-types.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi-visit.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\qapi\qapi-dealloc-visitor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

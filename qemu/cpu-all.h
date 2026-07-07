@@ -356,6 +356,9 @@ CPUArchState *cpu_copy(CPUArchState *env);
 CPUArchState *qemu_get_cpu(int cpu);
 
 #define CPU_DUMP_CODE 0x00010000
+#define CPU_DUMP_FPU 0x00020000 /* dump FPU register state, not just integer */
+/* dump info about TCG QEMU's condition code optimization state */
+#define CPU_DUMP_CCOP 0x00040000
 
 void cpu_dump_state(CPUArchState *env, FILE *f, fprintf_function cpu_fprintf,
                     int flags);
@@ -435,8 +438,6 @@ void cpu_reset_interrupt(CPUArchState *env, int mask);
 
 void cpu_exit(CPUArchState *s);
 
-bool qemu_cpu_has_work(CPUArchState *env);
-
 /* Breakpoint/watchpoint flags */
 #define BP_MEM_READ           0x01
 #define BP_MEM_WRITE          0x02
@@ -463,15 +464,13 @@ void cpu_watchpoint_remove_all(CPUArchState *env, int mask);
 #define SSTEP_NOTIMER 0x4  /* Do not Timers while single stepping */
 
 void cpu_single_step(CPUArchState *env, int enabled);
-int cpu_is_stopped(CPUArchState *env);
-void run_on_cpu(CPUArchState *env, void (*func)(void *data), void *data);
 
 #if !defined(CONFIG_USER_ONLY)
 
 /* Return the physical page corresponding to a virtual one. Use it
    only for debugging because no protection checks are done. Return -1
    if no page found. */
-target_phys_addr_t cpu_get_phys_page_debug(CPUArchState *env, target_ulong addr);
+hwaddr cpu_get_phys_page_debug(CPUArchState *env, target_ulong addr);
 
 /* memory API */
 
@@ -497,7 +496,6 @@ typedef struct RAMBlock {
 typedef struct RAMList {
     uint8_t *phys_dirty;
     QLIST_HEAD(, RAMBlock) blocks;
-    uint64_t dirty_pages;
 } RAMList;
 extern RAMList ram_list;
 
@@ -515,6 +513,7 @@ extern int mem_prealloc;
 #define TLB_MMIO        (1 << 5)
 
 void dump_exec_info(FILE *f, fprintf_function cpu_fprintf);
+ram_addr_t last_ram_offset(void);
 #endif /* !CONFIG_USER_ONLY */
 
 int cpu_memory_rw_debug(CPUArchState *env, target_ulong addr,

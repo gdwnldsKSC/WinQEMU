@@ -56,16 +56,7 @@
 #   define __printf__ __gnu_printf__
 #  endif
 # endif
-#if defined(_WIN32)
-#define GCC_WEAK __attribute__((weak))
-#define GCC_WEAK_DECL GCC_WEAK
 #else
-#define GCC_WEAK __attribute__((weak))
-#define GCC_WEAK_DECL
-#endif
-#else
-#define GCC_WEAK
-#define GCC_WEAK_DECL
 #define GCC_ATTR /**/
 #define GCC_FMT_ATTR(n, m)
 #endif
@@ -85,6 +76,12 @@
 #  define __attribute__(x)
 #  define __attribute(x)
 # endif
+#endif
+
+#ifdef _MSC_VER
+/* MSVC modification: MinGW/glibc LFS types that MSVC lacks.  off64_t is
+ * used by the raw-win32 native AIO code (new in qemu 1.3). */
+typedef __int64 off64_t;
 #endif
 
 #endif /* COMPILER_H */

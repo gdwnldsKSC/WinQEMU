@@ -126,7 +126,7 @@ iscsi_aio_cancel(BlockDriverAIOCB *blockacb)
     }
 }
 
-static AIOPool iscsi_aio_pool = {
+static const AIOCBInfo iscsi_aiocb_info = {
     .aiocb_size         = sizeof(IscsiAIOCB),
     .cancel             = iscsi_aio_cancel,
 };
@@ -227,7 +227,7 @@ iscsi_aio_writev(BlockDriverState *bs, int64_t sector_num,
     uint64_t lba;
     struct iscsi_data data;
 
-    acb = qemu_aio_get(&iscsi_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&iscsi_aiocb_info, bs, cb, opaque);
     trace_iscsi_aio_writev(iscsi, sector_num, nb_sectors, opaque, acb);
 
     acb->iscsilun = iscsilun;
@@ -255,10 +255,6 @@ iscsi_aio_writev(BlockDriverState *bs, int64_t sector_num,
     acb->task->xfer_dir = SCSI_XFER_WRITE;
     acb->task->cdb_size = 16;
     acb->task->cdb[0] = 0x8a;
-    if (!(bs->open_flags & BDRV_O_CACHE_WB)) {
-        /* set FUA on writes when cache mode is write through */
-        acb->task->cdb[1] |= 0x04;
-    }
     lba = sector_qemu2lun(sector_num, iscsilun);
     *(uint32_t *)&acb->task->cdb[2]  = htonl(lba >> 32);
     *(uint32_t *)&acb->task->cdb[6]  = htonl(lba & 0xffffffff);
@@ -322,7 +318,7 @@ iscsi_aio_readv(BlockDriverState *bs, int64_t sector_num,
 
     qemu_read_size = BDRV_SECTOR_SIZE * (size_t)nb_sectors;
 
-    acb = qemu_aio_get(&iscsi_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&iscsi_aiocb_info, bs, cb, opaque);
     trace_iscsi_aio_readv(iscsi, sector_num, nb_sectors, opaque, acb);
 
     acb->iscsilun = iscsilun;
@@ -427,7 +423,7 @@ iscsi_aio_flush(BlockDriverState *bs,
     struct iscsi_context *iscsi = iscsilun->iscsi;
     IscsiAIOCB *acb;
 
-    acb = qemu_aio_get(&iscsi_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&iscsi_aiocb_info, bs, cb, opaque);
 
     acb->iscsilun = iscsilun;
     acb->canceled   = 0;
@@ -480,7 +476,7 @@ iscsi_aio_discard(BlockDriverState *bs,
     IscsiAIOCB *acb;
     struct unmap_list list[1];
 
-    acb = qemu_aio_get(&iscsi_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&iscsi_aiocb_info, bs, cb, opaque);
 
     acb->iscsilun = iscsilun;
     acb->canceled   = 0;
@@ -555,7 +551,7 @@ static BlockDriverAIOCB *iscsi_aio_ioctl(BlockDriverState *bs,
 
     assert(req == SG_IO);
 
-    acb = qemu_aio_get(&iscsi_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&iscsi_aiocb_info, bs, cb, opaque);
 
     acb->iscsilun = iscsilun;
     acb->canceled    = 0;

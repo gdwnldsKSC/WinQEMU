@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-#include "net/tap.h"
+#include "tap.h"
 
 #include "config-host.h"
 
@@ -34,6 +34,7 @@
 #include <net/if.h>
 
 #include "net.h"
+#include "clients.h"
 #include "monitor.h"
 #include "sysemu.h"
 #include "qemu-char.h"
@@ -340,6 +341,13 @@ static TAPState *net_tap_fd_init(NetClientState *peer,
     s->using_vnet_hdr = 0;
     s->has_ufo = tap_probe_has_ufo(s->fd);
     tap_set_offload(&s->nc, 0, 0, 0, 0, 0);
+    /*
+     * Make sure host header length is set correctly in tap:
+     * it might have been modified by another instance of qemu.
+     */
+    if (tap_probe_vnet_hdr_len(s->fd, s->host_vnet_hdr_len)) {
+        tap_fd_set_vnet_hdr_len(s->fd, s->host_vnet_hdr_len);
+    }
     tap_read_poll(s, 1);
     s->vhost_net = NULL;
     return s;
@@ -610,7 +618,7 @@ int net_init_tap(const NetClientOptions *opts, const char *name,
             return -1;
         }
 
-        fd = net_handle_fd_param(cur_mon, tap->fd);
+        fd = monitor_handle_fd_param(cur_mon, tap->fd);
         if (fd == -1) {
             return -1;
         }
@@ -686,7 +694,7 @@ int net_init_tap(const NetClientOptions *opts, const char *name,
         int vhostfd;
 
         if (tap->has_vhostfd) {
-            vhostfd = net_handle_fd_param(cur_mon, tap->vhostfd);
+            vhostfd = monitor_handle_fd_param(cur_mon, tap->vhostfd);
             if (vhostfd == -1) {
                 return -1;
             }

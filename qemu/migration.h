@@ -40,13 +40,16 @@ struct MigrationState
     void *opaque;
     MigrationParams params;
     int64_t total_time;
+    int64_t downtime;
+    int64_t expected_downtime;
+    int64_t dirty_pages_rate;
     bool enabled_capabilities[MIGRATION_CAPABILITY_MAX];
     int64_t xbzrle_cache_size;
 };
 
 void process_incoming_migration(QEMUFile *f);
 
-int qemu_start_incoming_migration(const char *uri, Error **errp);
+void qemu_start_incoming_migration(const char *uri, Error **errp);
 
 uint64_t migrate_max_downtime(void);
 
@@ -54,32 +57,38 @@ void do_info_migrate_print(Monitor *mon, const QObject *data);
 
 void do_info_migrate(Monitor *mon, QObject **ret_data);
 
-int exec_start_incoming_migration(const char *host_port);
+void exec_start_incoming_migration(const char *host_port, Error **errp);
 
-int exec_start_outgoing_migration(MigrationState *s, const char *host_port);
+void exec_start_outgoing_migration(MigrationState *s, const char *host_port, Error **errp);
 
-int tcp_start_incoming_migration(const char *host_port, Error **errp);
+void tcp_start_incoming_migration(const char *host_port, Error **errp);
 
-int tcp_start_outgoing_migration(MigrationState *s, const char *host_port,
-                                 Error **errp);
+void tcp_start_outgoing_migration(MigrationState *s, const char *host_port, Error **errp);
 
-int unix_start_incoming_migration(const char *path);
+void unix_start_incoming_migration(const char *path, Error **errp);
 
-int unix_start_outgoing_migration(MigrationState *s, const char *path);
+void unix_start_outgoing_migration(MigrationState *s, const char *path, Error **errp);
 
-int fd_start_incoming_migration(const char *path);
+void fd_start_incoming_migration(const char *path, Error **errp);
 
-int fd_start_outgoing_migration(MigrationState *s, const char *fdname);
+void fd_start_outgoing_migration(MigrationState *s, const char *fdname, Error **errp);
 
 void migrate_fd_error(MigrationState *s);
 
 void migrate_fd_connect(MigrationState *s);
+
+ssize_t migrate_fd_put_buffer(MigrationState *s, const void *data,
+                              size_t size);
+void migrate_fd_put_ready(MigrationState *s);
+int migrate_fd_wait_for_unfreeze(MigrationState *s);
+int migrate_fd_close(MigrationState *s);
 
 void add_migration_state_change_notifier(Notifier *notify);
 void remove_migration_state_change_notifier(Notifier *notify);
 bool migration_is_active(MigrationState *);
 bool migration_has_finished(MigrationState *);
 bool migration_has_failed(MigrationState *);
+MigrationState *migrate_get_current(void);
 
 uint64_t ram_bytes_remaining(void);
 uint64_t ram_bytes_transferred(void);

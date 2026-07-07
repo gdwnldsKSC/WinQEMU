@@ -1,5 +1,4 @@
 
-
 DEFHEADING(Standard options:)
 
 DEF("help", 0, QEMU_OPTION_h,
@@ -10,18 +9,19 @@ DEF("version", 0, QEMU_OPTION_version,
 
 DEF("machine", HAS_ARG, QEMU_OPTION_machine, \
 "-machine [type=]name[,prop[=value][,...]]\n"
-"                selects emulated machine (-machine ? for list)\n"
+"                selects emulated machine ('-machine help' for list)\n"
 "                property accel=accel1[:accel2[:...]] selects accelerator\n"
 "                supported accelerators are kvm, xen, tcg (default: tcg)\n"
 "                kernel_irqchip=on|off controls accelerated irqchip support\n"
 "                kvm_shadow_mem=size of KVM shadow MMU\n"
-"                dump-guest-core=on|off include guest memory in a core dump (default=on)\n",
+"                dump-guest-core=on|off include guest memory in a core dump (default=on)\n"
+"                mem-merge=on|off controls memory merge support (default: on)\n",
 QEMU_ARCH_ALL)
 
 DEF("M", HAS_ARG, QEMU_OPTION_M, "", QEMU_ARCH_ALL)
 
 DEF("cpu", HAS_ARG, QEMU_OPTION_cpu,
-"-cpu cpu        select CPU (-cpu ? for list)\n", QEMU_ARCH_ALL)
+"-cpu cpu        select CPU ('-cpu help' for list)\n", QEMU_ARCH_ALL)
 
 DEF("smp", HAS_ARG, QEMU_OPTION_smp,
 "-smp n[,maxcpus=cpus][,cores=cores][,threads=threads][,sockets=sockets]\n"
@@ -60,6 +60,10 @@ DEF("drive", HAS_ARG, QEMU_OPTION_drive,
 "       [[,bps=b]|[[,bps_rd=r][,bps_wr=w]]][[,iops=i]|[[,iops_rd=r][,iops_wr=w]]\n"
 "                use 'file' as a drive image\n", QEMU_ARCH_ALL)
 
+DEF("add-fd", HAS_ARG, QEMU_OPTION_add_fd,
+"-add-fd fd=fd,set=set[,opaque=opaque]\n"
+"                Add 'fd' to fd 'set'\n", QEMU_ARCH_ALL)
+
 DEF("set", HAS_ARG, QEMU_OPTION_set,
 "-set group.id.arg=value\n"
 "                set <arg> parameter for item <id> of type <group>\n"
@@ -82,10 +86,11 @@ DEF("pflash", HAS_ARG, QEMU_OPTION_pflash,
 
 DEF("boot", HAS_ARG, QEMU_OPTION_boot,
 "-boot [order=drives][,once=drives][,menu=on|off]\n"
-"      [,splash=sp_name][,splash-time=sp_time]\n"
+"      [,splash=sp_name][,splash-time=sp_time][,reboot-timeout=rb_time]\n"
 "                'drives': floppy (a), hard disk (c), CD-ROM (d), network (n)\n"
 "                'sp_name': the file's name that would be passed to bios as logo picture, if menu=on\n"
-"                'sp_time': the period that splash picture last if menu=on, unit is ms\n",
+"                'sp_time': the period that splash picture last if menu=on, unit is ms\n"
+"                'rb_timeout': the timeout before guest reboot when boot failed, unit is ms\n",
 QEMU_ARCH_ALL)
 
 DEF("snapshot", 0, QEMU_OPTION_snapshot,
@@ -117,8 +122,8 @@ QEMU_ARCH_ALL)
 DEF("soundhw", HAS_ARG, QEMU_OPTION_soundhw,
 "-soundhw c1,... enable audio support\n"
 "                and only specified sound cards (comma separated list)\n"
-"                use -soundhw ? to get the list of supported cards\n"
-"                use -soundhw all to enable all of them\n", QEMU_ARCH_ALL)
+"                use '-soundhw help' to get the list of supported cards\n"
+"                use '-soundhw all' to enable all of them\n", QEMU_ARCH_ALL)
 
 DEF("balloon", HAS_ARG, QEMU_OPTION_balloon,
 "-balloon none   disable balloon device\n"
@@ -138,8 +143,8 @@ DEF("device", HAS_ARG, QEMU_OPTION_device,
 "-device driver[,prop[=value][,...]]\n"
 "                add device (based on driver)\n"
 "                prop=value,... sets driver properties\n"
-"                use -device ? to print all possible drivers\n"
-"                use -device driver,? to print all possible properties\n",
+"                use '-device help' to print all possible drivers\n"
+"                use '-device driver,help' to print all possible properties\n",
 QEMU_ARCH_ALL)
 
 DEFHEADING()
@@ -309,16 +314,16 @@ DEF("smb", HAS_ARG, QEMU_OPTION_smb, "", QEMU_ARCH_ALL)
 #ifdef CONFIG_SLIRP
 #ifdef _WIN32
 #define SLIRP_OPTIONS \
-"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
-"         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
-"         [,hostfwd=rule][,guestfwd=rule]" \
+"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=on|off]\n" \
+"         [,hostname=host][,dhcpstart=addr][,dns=addr][,dnssearch=domain][,tftp=dir]\n" \
+"         [,bootfile=f][,hostfwd=rule][,guestfwd=rule]" \
 "                connect the user mode network stack to VLAN 'n', configure its\n" \
 "                DHCP server and enabled optional services\n"
 #else
 #define SLIRP_OPTIONS \
-"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=y|n]\n" \
-"         [,hostname=host][,dhcpstart=addr][,dns=addr][,tftp=dir][,bootfile=f]\n" \
-"         [,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]" \
+"-net user[,vlan=n][,name=str][,net=addr[/mask]][,host=addr][,restrict=on|off]\n" \
+"         [,hostname=host][,dhcpstart=addr][,dns=addr][,dnssearch=domain][,tftp=dir]\n" \
+"         [,bootfile=f][,hostfwd=rule][,guestfwd=rule][,smb=dir[,smbserver=addr]]\n" \
 "                connect the user mode network stack to VLAN 'n', configure its\n" \
 "                DHCP server and enabled optional services\n"
 #endif
@@ -474,6 +479,8 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 
 // END HEAVILY MODIFIED SECTION
 
+
+
 DEFHEADING()
 
 DEF("iscsi", HAS_ARG, QEMU_OPTION_iscsi,
@@ -558,7 +565,7 @@ DEF("s", 0, QEMU_OPTION_s, \
 QEMU_ARCH_ALL)
 
 DEF("d", HAS_ARG, QEMU_OPTION_d, \
-"-d item1,...    output log to /tmp/qemu.log (use -d ? for a list of log items)\n",
+"-d item1,...    output log to /tmp/qemu.log (use '-d help' for a list of log items)\n",
 QEMU_ARCH_ALL)
 
 DEF("D", HAS_ARG, QEMU_OPTION_D, \
@@ -614,7 +621,7 @@ QEMU_ARCH_ALL)
 
 DEF("clock", HAS_ARG, QEMU_OPTION_clock, \
 "-clock          force the use of the given methods for timer alarm.\n" \
-"                To see what timers are available use -clock ?\n",
+"                To see what timers are available use '-clock help'\n",
 QEMU_ARCH_ALL)
 
 DEF("localtime", 0, QEMU_OPTION_localtime, "", QEMU_ARCH_ALL)
@@ -718,4 +725,23 @@ DEF("enable-fips", 0, QEMU_OPTION_enablefips,
 "-enable-fips    enable FIPS 140-2 compliance\n",
 QEMU_ARCH_ALL)
 #endif
+
+DEF("no-kvm", 0, QEMU_OPTION_no_kvm, "", QEMU_ARCH_I386)
+
+DEF("no-kvm-pit-reinjection", 0, QEMU_OPTION_no_kvm_pit_reinjection,
+"", QEMU_ARCH_I386)
+
+DEF("no-kvm-pit", 0, QEMU_OPTION_no_kvm_pit, "", QEMU_ARCH_I386)
+
+DEF("no-kvm-irqchip", 0, QEMU_OPTION_no_kvm_irqchip, "", QEMU_ARCH_I386)
+
+DEF("tdf", 0, QEMU_OPTION_tdf,"", QEMU_ARCH_ALL)
+
+DEF("object", HAS_ARG, QEMU_OPTION_object,
+"-object TYPENAME[,PROP1=VALUE1,...]\n"
+"                create an new object of type TYPENAME setting properties\n"
+"                in the order they are specified.  Note that the 'id'\n"
+"                property must be set.  These objects are placed in the\n"
+"                '/objects' path.\n",
+QEMU_ARCH_ALL)
 

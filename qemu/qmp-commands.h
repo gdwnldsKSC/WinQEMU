@@ -20,6 +20,8 @@
 #include "qdict.h"
 #include "error.h"
 
+void qmp_add_client(const char * protocol, const char * fdname, bool has_skipauth, bool skipauth, bool has_tls, bool tls, Error **errp);
+int qmp_marshal_input_add_client(Monitor *mon, const QDict *qdict, QObject **ret);
 NameInfo * qmp_query_name(Error **errp);
 int qmp_marshal_input_query_name(Monitor *mon, const QDict *qdict, QObject **ret);
 VersionInfo * qmp_query_version(Error **errp);
@@ -94,6 +96,10 @@ void qmp_blockdev_snapshot_sync(const char * device, const char * snapshot_file,
 int qmp_marshal_input_blockdev_snapshot_sync(Monitor *mon, const QDict *qdict, QObject **ret);
 char * qmp_human_monitor_command(const char * command_line, bool has_cpu_index, int64_t cpu_index, Error **errp);
 int qmp_marshal_input_human_monitor_command(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_block_commit(const char * device, bool has_base, const char * base, const char * top, bool has_speed, int64_t speed, Error **errp);
+int qmp_marshal_input_block_commit(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_drive_mirror(const char * device, const char * target, bool has_format, const char * format, MirrorSyncMode sync, bool has_mode, NewImageMode mode, bool has_speed, int64_t speed, bool has_on_source_error, BlockdevOnError on_source_error, bool has_on_target_error, BlockdevOnError on_target_error, Error **errp);
+int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_migrate_cancel(Error **errp);
 int qmp_marshal_input_migrate_cancel(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_migrate_set_downtime(double value, Error **errp);
@@ -118,12 +124,18 @@ void qmp_change(const char * device, const char * target, bool has_arg, const ch
 int qmp_marshal_input_change(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_block_set_io_throttle(const char * device, int64_t bps, int64_t bps_rd, int64_t bps_wr, int64_t iops, int64_t iops_rd, int64_t iops_wr, Error **errp);
 int qmp_marshal_input_block_set_io_throttle(Monitor *mon, const QDict *qdict, QObject **ret);
-void qmp_block_stream(const char * device, bool has_base, const char * base, bool has_speed, int64_t speed, Error **errp);
+void qmp_block_stream(const char * device, bool has_base, const char * base, bool has_speed, int64_t speed, bool has_on_error, BlockdevOnError on_error, Error **errp);
 int qmp_marshal_input_block_stream(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_block_job_set_speed(const char * device, int64_t speed, Error **errp);
 int qmp_marshal_input_block_job_set_speed(Monitor *mon, const QDict *qdict, QObject **ret);
-void qmp_block_job_cancel(const char * device, Error **errp);
+void qmp_block_job_cancel(const char * device, bool has_force, bool force, Error **errp);
 int qmp_marshal_input_block_job_cancel(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_block_job_pause(const char * device, Error **errp);
+int qmp_marshal_input_block_job_pause(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_block_job_resume(const char * device, Error **errp);
+int qmp_marshal_input_block_job_resume(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_block_job_complete(const char * device, Error **errp);
+int qmp_marshal_input_block_job_complete(Monitor *mon, const QDict *qdict, QObject **ret);
 ObjectTypeInfoList * qmp_qom_list_types(bool has_implements, const char * implements, bool has_abstract, bool abstract, Error **errp);
 int qmp_marshal_input_qom_list_types(Monitor *mon, const QDict *qdict, QObject **ret);
 DevicePropertyInfoList * qmp_device_list_properties(const char * typename, Error **errp);
@@ -132,6 +144,8 @@ void qmp_migrate(const char * uri, bool has_blk, bool blk, bool has_inc, bool in
 int qmp_marshal_input_migrate(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_xen_save_devices_state(const char * filename, Error **errp);
 int qmp_marshal_input_xen_save_devices_state(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_xen_set_global_dirty_log(bool enable, Error **errp);
+int qmp_marshal_input_xen_set_global_dirty_log(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_device_del(const char * id, Error **errp);
 int qmp_marshal_input_device_del(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_dump_guest_memory(bool paging, const char * protocol, bool has_begin, int64_t begin, bool has_length, int64_t length, Error **errp);
@@ -154,5 +168,15 @@ FdsetInfoList * qmp_query_fdsets(Error **errp);
 int qmp_marshal_input_query_fdsets(Monitor *mon, const QDict *qdict, QObject **ret);
 TargetInfo * qmp_query_target(Error **errp);
 int qmp_marshal_input_query_target(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_send_key(KeyValueList * keys, bool has_hold_time, int64_t hold_time, Error **errp);
+int qmp_marshal_input_send_key(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_screendump(const char * filename, Error **errp);
+int qmp_marshal_input_screendump(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_nbd_server_start(SocketAddress * addr, Error **errp);
+int qmp_marshal_input_nbd_server_start(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_nbd_server_add(const char * device, bool has_writable, bool writable, Error **errp);
+int qmp_marshal_input_nbd_server_add(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_nbd_server_stop(Error **errp);
+int qmp_marshal_input_nbd_server_stop(Monitor *mon, const QDict *qdict, QObject **ret);
 
 #endif

@@ -40,7 +40,7 @@
 #include <signal.h>
 #include "osdep.h"
 #include "qemu-queue.h"
-#include "targphys.h"
+#include "hwaddr.h"
 
 #ifndef TARGET_LONG_BITS
 #error TARGET_LONG_BITS must be defined before including this header
@@ -168,7 +168,7 @@ extern int CPUTLBEntry_wrong_size[sizeof(CPUTLBEntry) == (1 << CPU_TLB_ENTRY_BIT
 #define CPU_COMMON_TLB \
     /* The meaning of the MMU modes is defined in the target code. */   \
     CPUTLBEntry tlb_table[NB_MMU_MODES][CPU_TLB_SIZE];                  \
-    target_phys_addr_t iotlb[NB_MMU_MODES][CPU_TLB_SIZE];               \
+    hwaddr iotlb[NB_MMU_MODES][CPU_TLB_SIZE];               \
     target_ulong tlb_flush_addr;                                        \
     target_ulong tlb_flush_mask;
 
@@ -258,15 +258,9 @@ typedef struct CPUWatchpoint {
     int nr_cores;  /* number of cores within this CPU package */        \
     int nr_threads;/* number of threads within this CPU */              \
     int running; /* Nonzero if cpu is currently running(usermode).  */  \
-    int thread_id;                                                      \
     /* user data */                                                     \
     void *opaque;                                                       \
                                                                         \
-    uint32_t created;                                                   \
-    uint32_t stop;   /* Stop request */                                 \
-    uint32_t stopped; /* Artificially stopped */                        \
-    struct QemuCond *halt_cond;                                         \
-    struct qemu_work_item *queued_work_first, *queued_work_last;        \
     const char *cpu_model_str;                                          \
     struct KVMState *kvm_state;                                         \
     struct kvm_run *kvm_run;                                            \

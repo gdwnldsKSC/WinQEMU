@@ -23,6 +23,8 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "hw/irq.h"
+
 MSC_PACKED_BEGIN_1
 
 /* BD Address */

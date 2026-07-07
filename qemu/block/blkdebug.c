@@ -28,6 +28,7 @@
 
 typedef struct BDRVBlkdebugState {
     int state;
+    int new_state;
     QLIST_HEAD(, BlkdebugRule) rules[BLKDBG_EVENT_MAX];
     QSIMPLEQ_HEAD(, BlkdebugRule) active_rules;
 } BDRVBlkdebugState;
@@ -40,7 +41,7 @@ typedef struct BlkdebugAIOCB {
 
 static void blkdebug_aio_cancel(BlockDriverAIOCB *blockacb);
 
-static AIOPool blkdebug_aio_pool = {
+static const AIOCBInfo blkdebug_aiocb_info = {
     .aiocb_size = sizeof(BlkdebugAIOCB),
     .cancel     = blkdebug_aio_cancel,
 };
@@ -334,7 +335,7 @@ static BlockDriverAIOCB *inject_error(BlockDriverState *bs,
         return NULL;
     }
 
-    acb = qemu_aio_get(&blkdebug_aio_pool, bs, cb, opaque);
+    acb = qemu_aio_get(&blkdebug_aiocb_info, bs, cb, opaque);
     acb->ret = -error;
 
     bh = qemu_bh_new(error_callback_bh, acb);
@@ -403,12 +404,12 @@ static void blkdebug_close(BlockDriverState *bs)
 }
 
 static bool process_rule(BlockDriverState *bs, struct BlkdebugRule *rule,
-    int old_state, bool injected)
+    bool injected)
 {
     BDRVBlkdebugState *s = bs->opaque;
 
     /* Only process rules for the current state */
-    if (rule->state && rule->state != old_state) {
+    if (rule->state && rule->state != s->state) {
         return injected;
     }
 
@@ -423,7 +424,7 @@ static bool process_rule(BlockDriverState *bs, struct BlkdebugRule *rule,
         break;
 
     case ACTION_SET_STATE:
-        s->state = rule->options.set_state.new_state;
+        s->new_state = rule->options.set_state.new_state;
         break;
     }
     return injected;
@@ -433,15 +434,16 @@ static void blkdebug_debug_event(BlockDriverState *bs, BlkDebugEvent event)
 {
     BDRVBlkdebugState *s = bs->opaque;
     struct BlkdebugRule *rule;
-    int old_state = s->state;
     bool injected;
 
     assert((int)event >= 0 && event < BLKDBG_EVENT_MAX);
 
     injected = false;
+    s->new_state = s->state;
     QLIST_FOREACH(rule, &s->rules[event], next) {
-        injected = process_rule(bs, rule, old_state, injected);
+        injected = process_rule(bs, rule, injected);
     }
+    s->state = s->new_state;
 }
 
 static int64_t blkdebug_getlength(BlockDriverState *bs)

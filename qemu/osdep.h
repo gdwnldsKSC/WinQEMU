@@ -130,6 +130,11 @@ void qemu_vfree(void *ptr);
 #else
 #define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
 #endif
+#ifdef MADV_HUGEPAGE
+#define QEMU_MADV_HUGEPAGE MADV_HUGEPAGE
+#else
+#define QEMU_MADV_HUGEPAGE QEMU_MADV_INVALID
+#endif
 
 #elif defined(CONFIG_POSIX_MADVISE)
 
@@ -138,6 +143,7 @@ void qemu_vfree(void *ptr);
 #define QEMU_MADV_DONTFORK  QEMU_MADV_INVALID
 #define QEMU_MADV_MERGEABLE QEMU_MADV_INVALID
 #define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
+#define QEMU_MADV_HUGEPAGE  QEMU_MADV_INVALID
 
 #else /* no-op */
 
@@ -146,10 +152,14 @@ void qemu_vfree(void *ptr);
 #define QEMU_MADV_DONTFORK  QEMU_MADV_INVALID
 #define QEMU_MADV_MERGEABLE QEMU_MADV_INVALID
 #define QEMU_MADV_DONTDUMP QEMU_MADV_INVALID
+#define QEMU_MADV_HUGEPAGE  QEMU_MADV_INVALID
 
 #endif
 
 int qemu_madvise(void *addr, size_t len, int advice);
+
+int qemu_open(const char *name, int flags, ...);
+int qemu_close(int fd);
 
 #if defined(__HAIKU__) && defined(__i386__)
 #define FMT_pid "%ld"

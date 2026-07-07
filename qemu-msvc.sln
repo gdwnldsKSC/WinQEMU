@@ -72,6 +72,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sys", "sys", "{F839259D-F9D
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qemu-img", "qemu-img.vcxproj", "{9658550B-07CC-4605-91C3-BA8058852235}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A} = {D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qemu-io", "qemu-io.vcxproj", "{70A44934-FE36-427B-9452-2999C23C58A1}"
 EndProject
@@ -79,12 +82,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qemu-system-alpha", "qemu-s
 	ProjectSection(ProjectDependencies) = postProject
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A} = {DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A} = {D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qemu-system-i386", "qemu-system-i386.vcxproj", "{043CD6CD-5932-4FFE-A2E5-173B7682D109}"
 	ProjectSection(ProjectDependencies) = postProject
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A} = {DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A} = {D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL", "third_party\SDL-1.2-main\VisualC\SDL\SDL.vcxproj", "{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}"
@@ -93,6 +98,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDLmain", "third_party\SDL-
 	ProjectSection(ProjectDependencies) = postProject
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pixman", "pixman.vcxproj", "{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -104,6 +111,18 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug|Win32.Build.0 = Debug|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug|x64.ActiveCfg = Debug|x64
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug|x64.Build.0 = Debug|x64
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug-alpha|Win32.ActiveCfg = Debug|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug-alpha|Win32.Build.0 = Debug|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug-alpha|x64.ActiveCfg = Debug|x64
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Debug-alpha|x64.Build.0 = Debug|x64
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Release|Win32.ActiveCfg = Release|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Release|Win32.Build.0 = Release|Win32
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Release|x64.ActiveCfg = Release|x64
+		{D5A3B76F-4C21-4E85-9A2B-6E83F0C71E4A}.Release|x64.Build.0 = Release|x64
 		{9658550B-07CC-4605-91C3-BA8058852235}.Debug|Win32.ActiveCfg = Debug|Win32
 		{9658550B-07CC-4605-91C3-BA8058852235}.Debug|Win32.Build.0 = Debug|Win32
 		{9658550B-07CC-4605-91C3-BA8058852235}.Debug|x64.ActiveCfg = Debug|x64

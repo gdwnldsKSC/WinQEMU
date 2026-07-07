@@ -44,6 +44,7 @@ static const QDevAlias qdev_alias_table[] = {
     { "virtio-serial-s390", "virtio-serial", QEMU_ARCH_S390X },
     { "lsi53c895a", "lsi" },
     { "ich9-ahci", "ahci" },
+    { "kvm-pci-assign", "pci-assign" },
     { }
 };
 
@@ -288,8 +289,7 @@ static BusState *qbus_find_recursive(BusState *bus, const char *name,
     if (name && (strcmp(bus->name, name) != 0)) {
         match = 0;
     }
-    if (bus_typename &&
-        (strcmp(object_get_typename(OBJECT(bus)), bus_typename) != 0)) {
+    if (bus_typename && !object_dynamic_cast(OBJECT(bus), bus_typename)) {
         match = 0;
     }
     if (match) {
@@ -434,7 +434,7 @@ DeviceState *qdev_device_add(QemuOpts *opts)
         if (!bus) {
             return NULL;
         }
-        if (strcmp(object_get_typename(OBJECT(bus)), k->bus_type) != 0) {
+        if (!object_dynamic_cast(OBJECT(bus), k->bus_type)) {
             qerror_report(QERR_BAD_BUS_FOR_DEVICE,
                           driver, object_get_typename(OBJECT(bus)));
             return NULL;

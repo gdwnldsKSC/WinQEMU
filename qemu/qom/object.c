@@ -363,6 +363,9 @@ void object_unparent(Object *obj)
     if (obj->parent) {
         object_property_del_child(obj->parent, obj, NULL);
     }
+    if (obj->class->unparent) {
+        (obj->class->unparent)(obj);
+    }
 }
 
 static void object_deinit(Object *obj, TypeImpl *type)
@@ -376,7 +379,7 @@ static void object_deinit(Object *obj, TypeImpl *type)
     }
 }
 
-void object_finalize(void *data)
+static void object_finalize(void *data)
 {
     Object *obj = data;
     TypeImpl *ti = obj->class->type;
@@ -385,6 +388,9 @@ void object_finalize(void *data)
     object_property_del_all(obj);
 
     g_assert(obj->ref == 0);
+    if (obj->free) {
+        obj->free(obj);
+    }
 }
 
 Object *object_new_with_type(Type type)
@@ -396,6 +402,7 @@ Object *object_new_with_type(Type type)
 
     obj = g_malloc(type->instance_size);
     object_initialize_with_type(obj, type);
+    obj->free = g_free;
 
     return obj;
 }
@@ -412,7 +419,6 @@ void object_delete(Object *obj)
     object_unparent(obj);
     g_assert(obj->ref == 1);
     object_unref(obj);
-    g_free(obj);
 }
 
 Object *object_dynamic_cast(Object *obj, const char *typename)
@@ -1180,6 +1186,62 @@ void object_property_add_str(Object *obj, const char *name,
                         get ? property_get_str : NULL,
                         set ? property_set_str : NULL,
                         property_release_str,
+                        prop, errp);
+}
+
+typedef struct BoolProperty
+{
+    bool (*get)(Object *, Error **);
+    void (*set)(Object *, bool, Error **);
+} BoolProperty;
+
+static void property_get_bool(Object *obj, Visitor *v, void *opaque,
+                              const char *name, Error **errp)
+{
+    BoolProperty *prop = opaque;
+    bool value;
+
+    value = prop->get(obj, errp);
+    visit_type_bool(v, &value, name, errp);
+}
+
+static void property_set_bool(Object *obj, Visitor *v, void *opaque,
+                              const char *name, Error **errp)
+{
+    BoolProperty *prop = opaque;
+    bool value;
+    Error *local_err = NULL;
+
+    visit_type_bool(v, &value, name, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+    prop->set(obj, value, errp);
+}
+
+static void property_release_bool(Object *obj, const char *name,
+                                  void *opaque)
+{
+    BoolProperty *prop = opaque;
+    g_free(prop);
+}
+
+void object_property_add_bool(Object *obj, const char *name,
+                              bool (*get)(Object *, Error **),
+                              void (*set)(Object *, bool, Error **),
+                              Error **errp)
+{
+    BoolProperty *prop = g_malloc0(sizeof(*prop));
+
+    prop->get = get;
+    prop->set = set;
+
+    object_property_add(obj, name, "bool",
+                        get ? property_get_bool : NULL,
+                        set ? property_set_bool : NULL,
+                        property_release_bool,
                         prop, errp);
 }
 

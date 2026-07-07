@@ -31,6 +31,8 @@
 #include "config.h"
 #include "monitor.h"
 #include "sysemu.h"
+#include "bitops.h"
+#include "bitmap.h"
 #include "arch_init.h"
 #include "audio/audio.h"
 #include "hw/pc.h"
@@ -45,6 +47,7 @@
 #include "hw/pcspk.h"
 #include "qemu/page_cache.h"
 #include "qmp-commands.h"
+#include "trace.h"
 
 #ifdef DEBUG_ARCH_INIT
 #define DPRINTF(fmt, ...) \
@@ -136,7 +139,6 @@ static struct defconfig_file {
     /* Indicates it is an user config file (disabled by -no-user-config) */
     bool userconfig;
 } default_config_files[] = {
-    { CONFIG_QEMU_DATADIR "/cpus-" TARGET_ARCH ".conf",  false },
     { CONFIG_QEMU_CONFDIR "/qemu.conf",                   true },
     { CONFIG_QEMU_CONFDIR "/target-" TARGET_ARCH ".conf", true },
     { NULL }, /* end of list */
@@ -331,6 +333,78 @@ static int save_xbzrle_page(QEMUFile *f, uint8_t *current_data,
 
 static RAMBlock *last_block;
 static ram_addr_t last_offset;
+static unsigned long *migration_bitmap;
+static uint64_t migration_dirty_pages;
+
+static inline bool migration_bitmap_test_and_reset_dirty(MemoryRegion *mr,
+                                                         ram_addr_t offset)
+{
+    bool ret;
+    int nr = (mr->ram_addr + offset) >> TARGET_PAGE_BITS;
+
+    ret = test_and_clear_bit(nr, migration_bitmap);
+
+    if (ret) {
+        migration_dirty_pages--;
+    }
+    return ret;
+}
+
+static inline bool migration_bitmap_set_dirty(MemoryRegion *mr,
+                                              ram_addr_t offset)
+{
+    bool ret;
+    int nr = (mr->ram_addr + offset) >> TARGET_PAGE_BITS;
+
+    ret = test_and_set_bit(nr, migration_bitmap);
+
+    if (!ret) {
+        migration_dirty_pages++;
+    }
+    return ret;
+}
+
+static void migration_bitmap_sync(void)
+{
+    RAMBlock *block;
+    ram_addr_t addr;
+    uint64_t num_dirty_pages_init = migration_dirty_pages;
+    MigrationState *s = migrate_get_current();
+    static int64_t start_time;
+    static int64_t num_dirty_pages_period;
+    int64_t end_time;
+
+    if (!start_time) {
+        start_time = qemu_get_clock_ms(rt_clock);
+    }
+
+    trace_migration_bitmap_sync_start();
+    memory_global_sync_dirty_bitmap(get_system_memory());
+
+    QLIST_FOREACH(block, &ram_list.blocks, next) {
+        for (addr = 0; addr < block->length; addr += TARGET_PAGE_SIZE) {
+            if (memory_region_get_dirty(block->mr, addr, TARGET_PAGE_SIZE,
+                                        DIRTY_MEMORY_MIGRATION)) {
+                migration_bitmap_set_dirty(block->mr, addr);
+            }
+        }
+        memory_region_reset_dirty(block->mr, 0, block->length,
+                                  DIRTY_MEMORY_MIGRATION);
+    }
+    trace_migration_bitmap_sync_end(migration_dirty_pages
+                                    - num_dirty_pages_init);
+    num_dirty_pages_period += migration_dirty_pages - num_dirty_pages_init;
+    end_time = qemu_get_clock_ms(rt_clock);
+
+    /* more than 1 second = 1000 millisecons */
+    if (end_time > start_time + 1000) {
+        s->dirty_pages_rate = num_dirty_pages_period * 1000
+            / (end_time - start_time);
+        start_time = end_time;
+        num_dirty_pages_period = 0;
+    }
+}
+
 
 /*
  * ram_save_block: Writes a page of memory to the stream f
@@ -353,13 +427,9 @@ static int ram_save_block(QEMUFile *f, bool last_stage)
 
     do {
         mr = block->mr;
-        if (memory_region_get_dirty(mr, offset, TARGET_PAGE_SIZE,
-                                    DIRTY_MEMORY_MIGRATION)) {
+        if (migration_bitmap_test_and_reset_dirty(mr, offset)) {
             uint8_t *p;
             int cont = (block == last_block) ? RAM_SAVE_FLAG_CONTINUE : 0;
-
-            memory_region_reset_dirty(mr, offset, TARGET_PAGE_SIZE,
-                                      DIRTY_MEMORY_MIGRATION);
 
             p = (char *)memory_region_get_ram_ptr(mr) + offset;
 
@@ -410,7 +480,7 @@ static uint64_t bytes_transferred;
 
 static ram_addr_t ram_save_remaining(void)
 {
-    return ram_list.dirty_pages;
+    return migration_dirty_pages;
 }
 
 uint64_t ram_bytes_remaining(void)
@@ -465,9 +535,13 @@ static void sort_ram_list(void)
 
 static void migration_end(void)
 {
-    memory_global_dirty_log_stop();
+    if (migration_bitmap) {
+        memory_global_dirty_log_stop();
+        g_free(migration_bitmap);
+        migration_bitmap = NULL;
+    }
 
-    if (migrate_use_xbzrle()) {
+    if (XBZRLE.cache) {
         cache_fini(XBZRLE.cache);
         g_free(XBZRLE.cache);
         g_free(XBZRLE.encoded_buf);
@@ -482,17 +556,27 @@ static void ram_migration_cancel(void *opaque)
     migration_end();
 }
 
+
+static void reset_ram_globals(void)
+{
+    last_block = NULL;
+    last_offset = 0;
+    sort_ram_list();
+}
+
 #define MAX_WAIT 50 /* ms, half buffered_file limit */
 
 static int ram_save_setup(QEMUFile *f, void *opaque)
 {
-    ram_addr_t addr;
     RAMBlock *block;
+    int64_t ram_pages = last_ram_offset() >> TARGET_PAGE_BITS;
+
+    migration_bitmap = bitmap_new(ram_pages);
+    bitmap_set(migration_bitmap, 0, ram_pages);
+    migration_dirty_pages = ram_pages;
 
     bytes_transferred = 0;
-    last_block = NULL;
-    last_offset = 0;
-    sort_ram_list();
+    reset_ram_globals();
 
     if (migrate_use_xbzrle()) {
         XBZRLE.cache = cache_init(migrate_xbzrle_cache_size() /
@@ -507,17 +591,8 @@ static int ram_save_setup(QEMUFile *f, void *opaque)
         acct_clear();
     }
 
-    /* Make sure all dirty bits are set */
-    QLIST_FOREACH(block, &ram_list.blocks, next) {
-        for (addr = 0; addr < block->length; addr += TARGET_PAGE_SIZE) {
-            if (!memory_region_get_dirty(block->mr, addr, TARGET_PAGE_SIZE,
-                                         DIRTY_MEMORY_MIGRATION)) {
-                memory_region_set_dirty(block->mr, addr, TARGET_PAGE_SIZE);
-            }
-        }
-    }
-
     memory_global_dirty_log_start();
+    migration_bitmap_sync();
 
     qemu_put_be64(f, ram_bytes_total() | RAM_SAVE_FLAG_MEM_SIZE);
 
@@ -538,7 +613,8 @@ static int ram_save_iterate(QEMUFile *f, void *opaque)
     double bwidth = 0;
     int ret;
     int i;
-    uint64_t expected_time;
+    uint64_t expected_downtime;
+    MigrationState *s = migrate_get_current();
 
     bytes_transferred_last = bytes_transferred;
     bwidth = qemu_get_clock_ns(rt_clock);
@@ -577,31 +653,32 @@ static int ram_save_iterate(QEMUFile *f, void *opaque)
     bwidth = qemu_get_clock_ns(rt_clock) - bwidth;
     bwidth = (bytes_transferred - bytes_transferred_last) / bwidth;
 
-    /* if we haven't transferred anything this round, force expected_time to a
-     * a very high value, but without crashing */
+    /* if we haven't transferred anything this round, force
+     * expected_downtime to a very high value, but without
+     * crashing */
     if (bwidth == 0) {
         bwidth = 0.000001;
     }
 
     qemu_put_be64(f, RAM_SAVE_FLAG_EOS);
 
-    expected_time = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
+    expected_downtime = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
+    DPRINTF("ram_save_live: expected(%" PRIu64 ") <= max(" PRIu64 ")?\n",
+            expected_downtime, migrate_max_downtime());
 
-    DPRINTF("ram_save_live: expected(%" PRIu64 ") <= max(%" PRIu64 ")?\n",
-            expected_time, migrate_max_downtime());
+    if (expected_downtime <= migrate_max_downtime()) {
+        migration_bitmap_sync();
+        expected_downtime = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
+        s->expected_downtime = expected_downtime / 1000000; /* ns -> ms */
 
-    if (expected_time <= migrate_max_downtime()) {
-        memory_global_sync_dirty_bitmap(get_system_memory());
-        expected_time = ram_save_remaining() * TARGET_PAGE_SIZE / bwidth;
-
-        return expected_time <= migrate_max_downtime();
+        return expected_downtime <= migrate_max_downtime();
     }
     return 0;
 }
 
 static int ram_save_complete(QEMUFile *f, void *opaque)
 {
-    memory_global_sync_dirty_bitmap(get_system_memory());
+    migration_bitmap_sync();
 
     /* try transferring iterative blocks of memory */
 
@@ -616,7 +693,7 @@ static int ram_save_complete(QEMUFile *f, void *opaque)
         }
         bytes_transferred += bytes_sent;
     }
-    memory_global_dirty_log_stop();
+    migration_end();
 
     qemu_put_be64(f, RAM_SAVE_FLAG_EOS);
 
@@ -764,7 +841,8 @@ static int ram_load(QEMUFile *f, void *opaque, int version_id)
             memset(host, ch, TARGET_PAGE_SIZE);
 #ifndef _WIN32
             if (ch == 0 &&
-                (!kvm_enabled() || kvm_has_sync_mmu())) {
+                (!kvm_enabled() || kvm_has_sync_mmu()) &&
+                getpagesize() <= TARGET_PAGE_SIZE) {
                 qemu_madvise(host, TARGET_PAGE_SIZE, QEMU_MADV_DONTNEED);
             }
 #endif

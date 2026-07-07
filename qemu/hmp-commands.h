@@ -57,10 +57,38 @@
 
 {
 .name       = "block_job_cancel",
+.args_type  = "force:-f,device:B",
+.params     = "[-f] device",
+.help       = "stop an active background block operation (use -f"
+"\n\t\t\t if the operation is currently paused)",
+.mhandler.cmd = hmp_block_job_cancel,
+},
+
+
+{
+.name       = "block_job_complete",
 .args_type  = "device:B",
 .params     = "device",
 .help       = "stop an active background block operation",
-.mhandler.cmd = hmp_block_job_cancel,
+.mhandler.cmd = hmp_block_job_complete,
+},
+
+
+{
+.name       = "block_job_pause",
+.args_type  = "device:B",
+.params     = "device",
+.help       = "pause an active background block operation",
+.mhandler.cmd = hmp_block_job_pause,
+},
+
+
+{
+.name       = "block_job_resume",
+.args_type  = "device:B",
+.params     = "device",
+.help       = "resume a paused background block operation",
+.mhandler.cmd = hmp_block_job_resume,
 },
 
 
@@ -97,8 +125,7 @@
 .args_type  = "filename:F",
 .params     = "filename",
 .help       = "save screen into PPM image 'filename'",
-.user_print = monitor_user_noop,
-.mhandler.cmd_new = do_screen_dump,
+.mhandler.cmd = hmp_screen_dump,
 },
 
 
@@ -259,10 +286,10 @@
 
 {
 .name       = "sendkey",
-.args_type  = "string:s,hold_time:i?",
+.args_type  = "keys:s,hold-time:i?",
 .params     = "keys [hold_ms]",
 .help       = "send keys to the VM (e.g. 'sendkey ctrl-alt-f1', default hold time=100 ms)",
-.mhandler.cmd = do_sendkey,
+.mhandler.cmd = hmp_send_key,
 },
 
 
@@ -502,12 +529,11 @@
 #if defined(CONFIG_HAVE_CORE_DUMP)
 {
 .name       = "dump-guest-memory",
-.args_type  = "paging:-p,protocol:s,begin:i?,length:i?",
-.params     = "[-p] protocol [begin] [length]",
+.args_type  = "paging:-p,filename:F,begin:i?,length:i?",
+.params     = "[-p] filename [begin] [length]",
 .help       = "dump guest memory to file"
 "\n\t\t\t begin(optional): the starting physical address"
 "\n\t\t\t length(optional): the memory size, in bytes",
-.user_print = monitor_user_noop,
 .mhandler.cmd = hmp_dump_guest_memory,
 },
 
@@ -530,6 +556,21 @@
 .mhandler.cmd = hmp_snapshot_blkdev,
 },
 
+
+{
+.name       = "drive_mirror",
+.args_type  = "reuse:-n,full:-f,device:B,target:s,format:s?",
+.params     = "[-n] [-f] device target [format]",
+.help       = "initiates live storage\n\t\t\t"
+"migration for a device. The device's contents are\n\t\t\t"
+"copied to the new image file, including data that\n\t\t\t"
+"is written after the command is started.\n\t\t\t"
+"The -n flag requests QEMU to reuse the image found\n\t\t\t"
+"in new-image-file, instead of recreating it from scratch.\n\t\t\t"
+"The -f flag requests QEMU to copy the whole disk,\n\t\t\t"
+"so that the result does not need a backing file.\n\t\t\t",
+.mhandler.cmd = hmp_drive_mirror,
+},
 
 {
 .name       = "drive_add",
@@ -716,6 +757,31 @@
 },
 
 
+{
+.name       = "nbd_server_start",
+.args_type  = "all:-a,writable:-w,uri:s",
+.params     = "nbd_server_start [-a] [-w] host:port",
+.help       = "serve block devices on the given host and port",
+.mhandler.cmd = hmp_nbd_server_start,
+},
+
+{
+.name       = "nbd_server_add",
+.args_type  = "writable:-w,device:B",
+.params     = "nbd_server_add [-w] device",
+.help       = "export a block device via NBD",
+.mhandler.cmd = hmp_nbd_server_add,
+},
+
+{
+.name       = "nbd_server_stop",
+.args_type  = "",
+.params     = "nbd_server_stop",
+.help       = "stop serving block devices using the NBD protocol",
+.mhandler.cmd = hmp_nbd_server_stop,
+},
+
+
 #if defined(TARGET_I386)
 
 {
@@ -790,8 +856,5 @@
 .mhandler.cmd = do_info,
 },
 
-
-#ifdef CONFIG_TRACE_SIMPLE
-#endif
 
 

@@ -419,7 +419,7 @@ int cpu_s390x_handle_mmu_fault(CPUS390XState *env, target_ulong orig_vaddr,
     return 0;
 }
 
-target_phys_addr_t cpu_get_phys_page_debug(CPUS390XState *env,
+hwaddr cpu_get_phys_page_debug(CPUS390XState *env,
                                            target_ulong vaddr)
 {
     target_ulong raddr;
@@ -474,7 +474,7 @@ static void do_svc_interrupt(CPUS390XState *env)
 {
     uint64_t mask, addr;
     LowCore *lowcore;
-    target_phys_addr_t len = TARGET_PAGE_SIZE;
+    hwaddr len = TARGET_PAGE_SIZE;
 
     lowcore = cpu_physical_memory_map(env->psa, &len, 1);
 
@@ -494,7 +494,7 @@ static void do_program_interrupt(CPUS390XState *env)
 {
     uint64_t mask, addr;
     LowCore *lowcore;
-    target_phys_addr_t len = TARGET_PAGE_SIZE;
+    hwaddr len = TARGET_PAGE_SIZE;
     int ilc = env->int_pgm_ilc;
 
     switch (ilc) {
@@ -511,7 +511,8 @@ static void do_program_interrupt(CPUS390XState *env)
         break;
     }
 
-    qemu_log("%s: code=0x%x ilc=%d\n", __func__, env->int_pgm_code, ilc);
+    qemu_log_mask(CPU_LOG_INT, "%s: code=0x%x ilc=%d\n",
+                  __func__, env->int_pgm_code, ilc);
 
     lowcore = cpu_physical_memory_map(env->psa, &len, 1);
 
@@ -537,7 +538,7 @@ static void do_ext_interrupt(CPUS390XState *env)
 {
     uint64_t mask, addr;
     LowCore *lowcore;
-    target_phys_addr_t len = TARGET_PAGE_SIZE;
+    hwaddr len = TARGET_PAGE_SIZE;
     ExtQueue *q;
 
     if (!(env->psw.mask & PSW_MASK_EXT)) {
@@ -575,8 +576,8 @@ static void do_ext_interrupt(CPUS390XState *env)
 
 void do_interrupt(CPUS390XState *env)
 {
-    qemu_log("%s: %d at pc=%" PRIx64 "\n", __func__, env->exception_index,
-             env->psw.addr);
+    qemu_log_mask(CPU_LOG_INT, "%s: %d at pc=%" PRIx64 "\n",
+                  __func__, env->exception_index, env->psw.addr);
 
     s390_add_running_cpu(env);
     /* handle external interrupts */

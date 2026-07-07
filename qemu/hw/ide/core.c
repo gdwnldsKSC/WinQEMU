@@ -336,7 +336,7 @@ static void trim_aio_cancel(BlockDriverAIOCB *acb)
     qemu_aio_release(iocb);
 }
 
-static AIOPool trim_aio_pool = {
+static const AIOCBInfo trim_aiocb_info = {
     .aiocb_size         = sizeof(TrimAIOCB),
     .cancel             = trim_aio_cancel,
 };
@@ -360,7 +360,7 @@ BlockDriverAIOCB *ide_issue_trim(BlockDriverState *bs,
     TrimAIOCB *iocb;
     int i, j, ret;
 
-    iocb = qemu_aio_get(&trim_aio_pool, bs, cb, opaque);
+    iocb = qemu_aio_get(&trim_aiocb_info, bs, cb, opaque);
     iocb->bh = qemu_bh_new(ide_trim_bh_cb, iocb);
     iocb->ret = 0;
 
@@ -556,32 +556,22 @@ void ide_dma_error(IDEState *s)
 
 static int ide_handle_rw_error(IDEState *s, int error, int op)
 {
-    int is_read = (op & BM_STATUS_RETRY_READ);
-    BlockErrorAction action = bdrv_get_on_error(s->bs, is_read);
+    bool is_read = (op & BM_STATUS_RETRY_READ) != 0;
+    BlockErrorAction action = bdrv_get_error_action(s->bs, is_read, error);
 
-    if (action == BLOCK_ERR_IGNORE) {
-        bdrv_emit_qmp_error_event(s->bs, BDRV_ACTION_IGNORE, is_read);
-        return 0;
-    }
-
-    if ((error == ENOSPC && action == BLOCK_ERR_STOP_ENOSPC)
-            || action == BLOCK_ERR_STOP_ANY) {
+    if (action == BDRV_ACTION_STOP) {
         s->bus->dma->ops->set_unit(s->bus->dma, s->unit);
         s->bus->error_status = op;
-        bdrv_emit_qmp_error_event(s->bs, BDRV_ACTION_STOP, is_read);
-        vm_stop(RUN_STATE_IO_ERROR);
-        bdrv_iostatus_set_err(s->bs, error);
-    } else {
+    } else if (action == BDRV_ACTION_REPORT) {
         if (op & BM_STATUS_DMA_RETRY) {
             dma_buf_commit(s);
             ide_dma_error(s);
         } else {
             ide_rw_error(s);
         }
-        bdrv_emit_qmp_error_event(s->bs, BDRV_ACTION_REPORT, is_read);
     }
-
-    return 1;
+    bdrv_error_action(s->bs, action, is_read, error);
+    return action != BDRV_ACTION_IGNORE;
 }
 
 void ide_dma_cb(void *opaque, int ret)
@@ -589,6 +579,7 @@ void ide_dma_cb(void *opaque, int ret)
     IDEState *s = opaque;
     int n;
     int64_t sector_num;
+    bool stay_active = false;
 
     if (ret < 0) {
         int op = BM_STATUS_DMA_RETRY;
@@ -604,6 +595,14 @@ void ide_dma_cb(void *opaque, int ret)
     }
 
     n = s->io_buffer_size >> 9;
+    if (n > s->nsector) {
+        /* The PRDs were longer than needed for this request. Shorten them so
+         * we don't get a negative remainder. The Active bit must remain set
+         * after the request completes. */
+        n = s->nsector;
+        stay_active = true;
+    }
+
     sector_num = ide_get_sector(s);
     if (n > 0) {
         dma_buf_commit(s);
@@ -626,6 +625,7 @@ void ide_dma_cb(void *opaque, int ret)
     if (s->bus->dma->ops->prepare_buf(s->bus->dma, ide_cmd_is_read(s)) == 0) {
         /* The PRDs were too short. Reset the Active bit, but don't raise an
          * interrupt. */
+        s->status = READY_STAT | SEEK_STAT;
         goto eot;
     }
 
@@ -656,6 +656,9 @@ eot:
         bdrv_acct_done(s->bs, &s->acct);
     }
     ide_set_inactive(s);
+    if (stay_active) {
+        s->bus->dma->ops->add_status(s->bus->dma, BM_STATUS_DMAING);
+    }
 }
 
 static void ide_sector_start_dma(IDEState *s, enum ide_dma_cmd dma_cmd)
@@ -2157,12 +2160,6 @@ static int ide_drive_post_load(void *opaque, int version_id)
 {
     IDEState *s = opaque;
 
-    if (version_id < 3) {
-        if (s->sense_key == UNIT_ATTENTION &&
-            s->asc == ASC_MEDIUM_MAY_HAVE_CHANGED) {
-            s->cdrom_changed = 1;
-        }
-    }
     if (s->identify_set) {
         bdrv_set_enable_write_cache(s->bs, !!(s->identify_data[85] & (1 << 5)));
     }

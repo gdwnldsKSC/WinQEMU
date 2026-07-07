@@ -14,6 +14,8 @@
 
 #if defined(__i386__)
 
+#include "compiler.h"        /* QEMU_GNUC_PREREQ */
+
 /*
  * Because of the strongly ordered x86 storage model, wmb() and rmb() are nops
  * on x86(well, a compiler barrier only).  Well, at least as long as
@@ -27,11 +29,9 @@
  * mfence on 32 bit as well, e.g. if built with -march=pentium-m.
  * However, on i386, there seem to be known bugs as recently as 4.3.
  * */
-#if defined(_MSC_VER)
-/* MSVC modification: no GCC builtins or inline asm, use the mfence
-   intrinsic for a full memory barrier */
+#ifdef _MSC_VER
 #define smp_mb() _mm_mfence()
-#elif defined(__GNUC__) && __GNUC__ >= 4 && __GNUC_MINOR__ >= 4
+#elif QEMU_GNUC_PREREQ(4, 4)
 #define smp_mb() __sync_synchronize()
 #else
 #define smp_mb() asm volatile("lock; addl $0,0(%%esp) " ::: "memory")

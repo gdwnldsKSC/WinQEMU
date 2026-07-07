@@ -26,9 +26,10 @@
  *  distribution); if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "net/tap.h"
+#include "tap.h"
 
 #include "qemu-common.h"
+#include "clients.h"            /* net_init_tap */
 #include "net.h"
 #include "sysemu.h"
 #include "qemu-error.h"
@@ -750,4 +751,14 @@ void tap_set_offload(NetClientState *nc, int csum, int tso4,
 struct vhost_net *tap_get_vhost_net(NetClientState *nc)
 {
     return NULL;
+}
+
+int tap_has_vnet_hdr_len(NetClientState *nc, int len)
+{
+    return 0;
+}
+
+void tap_set_vnet_hdr_len(NetClientState *nc, int len)
+{
+    assert(0);
 }
