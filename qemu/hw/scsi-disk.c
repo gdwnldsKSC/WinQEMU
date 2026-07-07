@@ -29,13 +29,13 @@ do { printf("scsi-disk: " fmt , ## __VA_ARGS__); } while (0)
 #endif
 
 #include "qemu-common.h"
-#include "qemu-error.h"
+#include "qemu/error-report.h"
 #include "scsi.h"
 #include "scsi-defs.h"
-#include "sysemu.h"
-#include "blockdev.h"
+#include "sysemu/sysemu.h"
+#include "sysemu/blockdev.h"
 #include "hw/block-common.h"
-#include "dma.h"
+#include "sysemu/dma.h"
 
 #ifdef __linux
 #include <scsi/sg.h>
@@ -85,9 +85,7 @@ static void scsi_free_request(SCSIRequest *req)
 {
     SCSIDiskReq *r = DO_UPCAST(SCSIDiskReq, req, req);
 
-    if (r->iov.iov_base) {
-        qemu_vfree(r->iov.iov_base);
-    }
+    qemu_vfree(r->iov.iov_base);
 }
 
 /* Helper function for command completion with sense.  */
@@ -178,6 +176,9 @@ static void scsi_aio_complete(void *opaque, int ret)
     assert(r->req.aiocb != NULL);
     r->req.aiocb = NULL;
     bdrv_acct_done(s->qdev.conf.bs, &r->acct);
+    if (r->req.io_canceled) {
+        goto done;
+    }
 
     if (ret < 0) {
         if (scsi_handle_rw_error(r, -ret)) {
@@ -223,6 +224,10 @@ static void scsi_write_do_fua(SCSIDiskReq *r)
 {
     SCSIDiskState *s = DO_UPCAST(SCSIDiskState, qdev, r->req.dev);
 
+    if (r->req.io_canceled) {
+        goto done;
+    }
+
     if (scsi_is_cmd_fua(&r->req.cmd)) {
         bdrv_acct_start(s->qdev.conf.bs, &r->acct, 0, BDRV_ACCT_FLUSH);
         r->req.aiocb = bdrv_aio_flush(s->qdev.conf.bs, scsi_aio_complete, r);
@@ -230,6 +235,8 @@ static void scsi_write_do_fua(SCSIDiskReq *r)
     }
 
     scsi_req_complete(&r->req, GOOD);
+
+done:
     if (!r->req.io_canceled) {
         scsi_req_unref(&r->req);
     }
@@ -243,6 +250,9 @@ static void scsi_dma_complete(void *opaque, int ret)
     assert(r->req.aiocb != NULL);
     r->req.aiocb = NULL;
     bdrv_acct_done(s->qdev.conf.bs, &r->acct);
+    if (r->req.io_canceled) {
+        goto done;
+    }
 
     if (ret < 0) {
         if (scsi_handle_rw_error(r, -ret)) {
@@ -274,6 +284,9 @@ static void scsi_read_complete(void * opaque, int ret)
     assert(r->req.aiocb != NULL);
     r->req.aiocb = NULL;
     bdrv_acct_done(s->qdev.conf.bs, &r->acct);
+    if (r->req.io_canceled) {
+        goto done;
+    }
 
     if (ret < 0) {
         if (scsi_handle_rw_error(r, -ret)) {
@@ -305,15 +318,14 @@ static void scsi_do_read(void *opaque, int ret)
         r->req.aiocb = NULL;
         bdrv_acct_done(s->qdev.conf.bs, &r->acct);
     }
+    if (r->req.io_canceled) {
+        goto done;
+    }
 
     if (ret < 0) {
         if (scsi_handle_rw_error(r, -ret)) {
             goto done;
         }
-    }
-
-    if (r->req.io_canceled) {
-        return;
     }
 
     /* The request is used as the AIO opaque value, so add a ref.  */
@@ -422,6 +434,9 @@ static void scsi_write_complete(void * opaque, int ret)
     if (r->req.aiocb != NULL) {
         r->req.aiocb = NULL;
         bdrv_acct_done(s->qdev.conf.bs, &r->acct);
+    }
+    if (r->req.io_canceled) {
+        goto done;
     }
 
     if (ret < 0) {
@@ -1478,13 +1493,17 @@ static void scsi_unmap_complete(void *opaque, int ret)
     uint32_t nb_sectors;
 
     r->req.aiocb = NULL;
+    if (r->req.io_canceled) {
+        goto done;
+    }
+
     if (ret < 0) {
         if (scsi_handle_rw_error(r, -ret)) {
             goto done;
         }
     }
 
-    if (data->count > 0 && !r->req.io_canceled) {
+    if (data->count > 0) {
         sector_num = ldq_be_p(&data->inbuf[0]);
         nb_sectors = ldl_be_p(&data->inbuf[8]) & 0xffffffffULL;
         if (!check_lba_range(s, sector_num, nb_sectors)) {
@@ -1501,10 +1520,9 @@ static void scsi_unmap_complete(void *opaque, int ret)
         return;
     }
 
+    scsi_req_complete(&r->req, GOOD);
+
 done:
-    if (data->count == 0) {
-        scsi_req_complete(&r->req, GOOD);
-    }
     if (!r->req.io_canceled) {
         scsi_req_unref(&r->req);
     }
@@ -1682,7 +1700,7 @@ static int32_t scsi_disk_emulate_command(SCSIRequest *req, uint8_t *buf)
         bdrv_get_geometry(s->qdev.conf.bs, &nb_sectors);
         if (!nb_sectors) {
             scsi_check_condition(r, SENSE_CODE(LUN_NOT_READY));
-            return -1;
+            return 0;
         }
         if ((req->cmd.buf[8] & 1) == 0 && req->cmd.lba) {
             goto illegal_request;
@@ -1751,7 +1769,7 @@ static int32_t scsi_disk_emulate_command(SCSIRequest *req, uint8_t *buf)
             bdrv_get_geometry(s->qdev.conf.bs, &nb_sectors);
             if (!nb_sectors) {
                 scsi_check_condition(r, SENSE_CODE(LUN_NOT_READY));
-                return -1;
+                return 0;
             }
             if ((req->cmd.buf[14] & 1) == 0 && req->cmd.lba) {
                 goto illegal_request;
@@ -2389,7 +2407,7 @@ static void scsi_hd_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd  = &vmstate_scsi_disk_state;
 }
 
-static TypeInfo scsi_hd_info = {
+static const TypeInfo scsi_hd_info = {
     .name          = "scsi-hd",
     .parent        = TYPE_SCSI_DEVICE,
     .instance_size = sizeof(SCSIDiskState),
@@ -2418,7 +2436,7 @@ static void scsi_cd_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd  = &vmstate_scsi_disk_state;
 }
 
-static TypeInfo scsi_cd_info = {
+static const TypeInfo scsi_cd_info = {
     .name          = "scsi-cd",
     .parent        = TYPE_SCSI_DEVICE,
     .instance_size = sizeof(SCSIDiskState),
@@ -2447,7 +2465,7 @@ static void scsi_block_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd  = &vmstate_scsi_disk_state;
 }
 
-static TypeInfo scsi_block_info = {
+static const TypeInfo scsi_block_info = {
     .name          = "scsi-block",
     .parent        = TYPE_SCSI_DEVICE,
     .instance_size = sizeof(SCSIDiskState),
@@ -2481,7 +2499,7 @@ static void scsi_disk_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd  = &vmstate_scsi_disk_state;
 }
 
-static TypeInfo scsi_disk_info = {
+static const TypeInfo scsi_disk_info = {
     .name          = "scsi-disk",
     .parent        = TYPE_SCSI_DEVICE,
     .instance_size = sizeof(SCSIDiskState),
@@ -2498,4 +2516,4 @@ static void scsi_disk_register_types(void)
     type_register_static(&scsi_disk_info);
 }
 
-type_init(scsi_disk_register_types);
+type_init(scsi_disk_register_types)

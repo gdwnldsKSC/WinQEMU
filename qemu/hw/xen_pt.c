@@ -54,12 +54,12 @@
 
 #include <sys/ioctl.h>
 
-#include "pci.h"
+#include "pci/pci.h"
 #include "xen.h"
 #include "xen_backend.h"
 #include "xen_pt.h"
-#include "range.h"
-#include "exec-memory.h"
+#include "qemu/range.h"
+#include "exec/address-spaces.h"
 
 #define XEN_PT_NR_IRQS (256)
 static uint8_t xen_pt_mapped_machine_irq[XEN_PT_NR_IRQS] = {0};
@@ -829,7 +829,7 @@ static void xen_pci_passthrough_class_init(ObjectClass *klass, void *data)
     dc->props = xen_pci_passthrough_properties;
 };
 
-static TypeInfo xen_pci_passthrough_info = {
+static const TypeInfo xen_pci_passthrough_info = {
     .name = "xen-pci-passthrough",
     .parent = TYPE_PCI_DEVICE,
     .instance_size = sizeof(XenPCIPassthroughState),

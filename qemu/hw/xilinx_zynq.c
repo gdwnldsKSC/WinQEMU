@@ -17,12 +17,12 @@
 
 #include "sysbus.h"
 #include "arm-misc.h"
-#include "net.h"
-#include "exec-memory.h"
-#include "sysemu.h"
+#include "net/net.h"
+#include "exec/address-spaces.h"
+#include "sysemu/sysemu.h"
 #include "boards.h"
 #include "flash.h"
-#include "blockdev.h"
+#include "sysemu/blockdev.h"
 #include "loader.h"
 #include "ssi.h"
 
@@ -46,7 +46,7 @@ static void gem_init(NICInfo *nd, uint32_t base, qemu_irq irq)
     dev = qdev_create(NULL, "cadence_gem");
     qdev_set_nic_properties(dev, nd);
     qdev_init_nofail(dev);
-    s = sysbus_from_qdev(dev);
+    s = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(s, 0, base);
     sysbus_connect_irq(s, 0, irq);
 }
@@ -57,6 +57,7 @@ static inline void zynq_init_spi_flashes(uint32_t base_addr, qemu_irq irq,
     DeviceState *dev;
     SysBusDevice *busdev;
     SSIBus *spi;
+    DeviceState *flash_dev;
     int i, j;
     int num_busses =  is_qspi ? NUM_QSPI_BUSSES : 1;
     int num_ss = is_qspi ? NUM_QSPI_FLASHES : NUM_SPI_FLASHES;
@@ -66,7 +67,7 @@ static inline void zynq_init_spi_flashes(uint32_t base_addr, qemu_irq irq,
     qdev_prop_set_uint8(dev, "num-ss-bits", num_ss);
     qdev_prop_set_uint8(dev, "num-busses", num_busses);
     qdev_init_nofail(dev);
-    busdev = sysbus_from_qdev(dev);
+    busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, base_addr);
     if (is_qspi) {
         sysbus_mmio_map(busdev, 1, 0xFC000000);
@@ -81,11 +82,11 @@ static inline void zynq_init_spi_flashes(uint32_t base_addr, qemu_irq irq,
         spi = (SSIBus *)qdev_get_child_bus(dev, bus_name);
 
         for (j = 0; j < num_ss; ++j) {
-            dev = ssi_create_slave_no_init(spi, "m25p80");
-            qdev_prop_set_string(dev, "partname", "n25q128");
-            qdev_init_nofail(dev);
+            flash_dev = ssi_create_slave_no_init(spi, "m25p80");
+            qdev_prop_set_string(flash_dev, "partname", "n25q128");
+            qdev_init_nofail(flash_dev);
 
-            cs_line = qdev_get_gpio_in(dev, 0);
+            cs_line = qdev_get_gpio_in(flash_dev, 0);
             sysbus_connect_irq(busdev, i * num_ss + j + 1, cs_line);
         }
     }
@@ -149,12 +150,12 @@ static void zynq_init(QEMUMachineInitArgs *args)
 
     dev = qdev_create(NULL, "xilinx,zynq_slcr");
     qdev_init_nofail(dev);
-    sysbus_mmio_map(sysbus_from_qdev(dev), 0, 0xF8000000);
+    sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, 0xF8000000);
 
     dev = qdev_create(NULL, "a9mpcore_priv");
     qdev_prop_set_uint32(dev, "num-cpu", 1);
     qdev_init_nofail(dev);
-    busdev = sysbus_from_qdev(dev);
+    busdev = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(busdev, 0, 0xF8F00000);
     sysbus_connect_irq(busdev, 0, cpu_irq);
 
@@ -167,7 +168,7 @@ static void zynq_init(QEMUMachineInitArgs *args)
     zynq_init_spi_flashes(0xE000D000, pic[51-IRQ_OFFSET], true);
 
     sysbus_create_simple("xlnx,ps7-usb", 0xE0002000, pic[53-IRQ_OFFSET]);
-    sysbus_create_simple("xlnx,ps7-usb", 0xE0003000, pic[75-IRQ_OFFSET]);
+    sysbus_create_simple("xlnx,ps7-usb", 0xE0003000, pic[76-IRQ_OFFSET]);
 
     sysbus_create_simple("cadence_uart", 0xE0000000, pic[59-IRQ_OFFSET]);
     sysbus_create_simple("cadence_uart", 0xE0001000, pic[82-IRQ_OFFSET]);
@@ -200,9 +201,10 @@ static QEMUMachine zynq_machine = {
     .name = "xilinx-zynq-a9",
     .desc = "Xilinx Zynq Platform Baseboard for Cortex-A9",
     .init = zynq_init,
-    .use_scsi = 1,
+    .block_default_type = IF_SCSI,
     .max_cpus = 1,
-    .no_sdcard = 1
+    .no_sdcard = 1,
+    DEFAULT_MACHINE_OPTIONS,
 };
 
 static void zynq_machine_init(void)

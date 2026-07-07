@@ -20,8 +20,8 @@
 
 #include "hw.h"
 #include "i2c.h"
-#include "qemu-timer.h"
-#include "console.h"
+#include "qemu/timer.h"
+#include "ui/console.h"
 
 typedef struct {
     I2CSlave i2c;
@@ -476,7 +476,7 @@ static int lm8323_init(I2CSlave *i2c)
 
 void lm832x_key_event(DeviceState *dev, int key, int state)
 {
-    LM823KbdState *s = FROM_I2C_SLAVE(LM823KbdState, I2C_SLAVE_FROM_QDEV(dev));
+    LM823KbdState *s = FROM_I2C_SLAVE(LM823KbdState, I2C_SLAVE(dev));
 
     if ((s->status & INT_ERROR) && (s->error & ERR_FIFOOVR))
         return;
@@ -506,7 +506,7 @@ static void lm8323_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_lm_kbd;
 }
 
-static TypeInfo lm8323_info = {
+static const TypeInfo lm8323_info = {
     .name          = "lm8323",
     .parent        = TYPE_I2C_SLAVE,
     .instance_size = sizeof(LM823KbdState),
@@ -518,4 +518,4 @@ static void lm832x_register_types(void)
     type_register_static(&lm8323_info);
 }
 
-type_init(lm832x_register_types);
+type_init(lm832x_register_types)

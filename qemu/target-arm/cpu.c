@@ -23,7 +23,7 @@
 #if !defined(CONFIG_USER_ONLY)
 #include "hw/loader.h"
 #endif
-#include "sysemu.h"
+#include "sysemu/sysemu.h"
 
 static void cp_reg_reset(gpointer key, gpointer value, gpointer opaque)
 {
@@ -64,7 +64,7 @@ static void arm_cpu_reset(CPUState *s)
     CPUARMState *env = &cpu->env;
 
     if (qemu_loglevel_mask(CPU_LOG_RESET)) {
-        qemu_log("CPU Reset (CPU %d)\n", env->cpu_index);
+        qemu_log("CPU Reset (CPU %d)\n", s->cpu_index);
         log_cpu_state(env, 0);
     }
 
@@ -200,6 +200,25 @@ void arm_cpu_realize(ARMCPU *cpu)
 }
 
 /* CPU models */
+
+static ObjectClass *arm_cpu_class_by_name(const char *cpu_model)
+{
+    ObjectClass *oc;
+    char *typename;
+
+    if (!cpu_model) {
+        return NULL;
+    }
+
+    typename = g_strdup_printf("%s-" TYPE_ARM_CPU, cpu_model);
+    oc = object_class_by_name(typename);
+    g_free(typename);
+    if (!oc || !object_class_dynamic_cast(oc, TYPE_ARM_CPU) ||
+        object_class_is_abstract(oc)) {
+        return NULL;
+    }
+    return oc;
+}
 
 static void arm926_initfn(Object *obj)
 {
@@ -766,19 +785,22 @@ static void arm_cpu_class_init(ObjectClass *oc, void *data)
 
     acc->parent_reset = cc->reset;
     cc->reset = arm_cpu_reset;
+
+    cc->class_by_name = arm_cpu_class_by_name;
 }
 
 static void cpu_register(const ARMCPUInfo *info)
 {
     TypeInfo type_info = {
-        .name = info->name,
         .parent = TYPE_ARM_CPU,
         .instance_size = sizeof(ARMCPU),
         .instance_init = info->initfn,
         .class_size = sizeof(ARMCPUClass),
     };
 
-    type_register_static(&type_info);
+    type_info.name = g_strdup_printf("%s-" TYPE_ARM_CPU, info->name);
+    type_register(&type_info);
+    g_free((void *)type_info.name);
 }
 
 static const TypeInfo arm_cpu_type_info = {

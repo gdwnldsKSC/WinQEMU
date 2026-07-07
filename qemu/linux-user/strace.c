@@ -682,7 +682,7 @@ print_timeval(abi_ulong tv_addr, int last)
         if (!tv)
             return;
         gemu_log("{" TARGET_ABI_FMT_ld "," TARGET_ABI_FMT_ld "}%s",
-            tv->tv_sec, tv->tv_usec, get_comma(last));
+            tswapal(tv->tv_sec), tswapal(tv->tv_usec), get_comma(last));
         unlock_user(tv, tv_addr, 0);
     } else
         gemu_log("NULL%s", get_comma(last));
@@ -1435,6 +1435,12 @@ if( cmd == val ) { \
     if (cmd & FUTEX_PRIVATE_FLAG) {
         gemu_log("FUTEX_PRIVATE_FLAG|");
         cmd &= ~FUTEX_PRIVATE_FLAG;
+    }
+#endif
+#ifdef FUTEX_CLOCK_REALTIME
+    if (cmd & FUTEX_CLOCK_REALTIME) {
+        gemu_log("FUTEX_CLOCK_REALTIME|");
+        cmd &= ~FUTEX_CLOCK_REALTIME;
     }
 #endif
     print_op(FUTEX_WAIT)

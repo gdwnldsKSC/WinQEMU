@@ -31,7 +31,7 @@ static void sparc_cpu_reset(CPUState *s)
     CPUSPARCState *env = &cpu->env;
 
     if (qemu_loglevel_mask(CPU_LOG_RESET)) {
-        qemu_log("CPU Reset (CPU %d)\n", env->cpu_index);
+        qemu_log("CPU Reset (CPU %d)\n", s->cpu_index);
         log_cpu_state(env, 0);
     }
 
@@ -119,7 +119,7 @@ SPARCCPU *cpu_sparc_init(const char *cpu_model)
     }
 
     if (cpu_sparc_register(env, cpu_model) < 0) {
-        object_delete(OBJECT(cpu));
+        object_unref(OBJECT(cpu));
         return NULL;
     }
     qemu_init_vcpu(env);

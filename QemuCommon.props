@@ -20,38 +20,38 @@
   <!-- All the common QEMU .c files -->
   <ItemGroup>
     <!-- qobject / json / error stuff -->
-    <ClCompile Include="$(SolutionDir)qemu\qint.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qstring.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qdict.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qlist.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qfloat.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qbool.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qjson.c" />
-    <ClCompile Include="$(SolutionDir)qemu\json-lexer.c" />
-    <ClCompile Include="$(SolutionDir)qemu\json-streamer.c" />
-    <ClCompile Include="$(SolutionDir)qemu\json-parser.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qerror.c" />
-    <ClCompile Include="$(SolutionDir)qemu\error.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qint.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qstring.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qdict.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qlist.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qfloat.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qbool.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qjson.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\json-lexer.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\json-streamer.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\json-parser.c" />
+    <ClCompile Include="$(SolutionDir)qemu\qobject\qerror.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\error.c" />
 
     <!-- osdep, threads, etc -->
-    <ClCompile Include="$(SolutionDir)qemu\osdep.c" />
-    <ClCompile Include="$(SolutionDir)qemu\oslib-win32.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qemu-thread-win32.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\osdep.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\oslib-win32.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\qemu-thread-win32.c" />
 
     <!-- block core -->
-    <ClCompile Include="$(SolutionDir)qemu\cutils.c" />
-    <ClCompile Include="$(SolutionDir)qemu\cache-utils.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\cutils.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\cache-utils.c" />
     <ClCompile Include="$(SolutionDir)qemu\qemu-malloc.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qemu-option.c" />
-    <ClCompile Include="$(SolutionDir)qemu\module.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\qemu-option.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\module.c" />
     <ClCompile Include="$(SolutionDir)qemu\async.c" />
     <ClCompile Include="$(SolutionDir)qemu\nbd.c" />
     <ClCompile Include="$(SolutionDir)qemu\block.c" />
     <ClCompile Include="$(SolutionDir)qemu\aio.c" />
-    <ClCompile Include="$(SolutionDir)qemu\aes.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qemu-config.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qemu-progress.c" />
-    <ClCompile Include="$(SolutionDir)qemu\qemu-sockets.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\aes.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\qemu-config.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\qemu-progress.c" />
+    <ClCompile Include="$(SolutionDir)qemu\util\qemu-sockets.c" />
 
     <!-- block backends -->
     <!-- <ClCompile Include="$(SolutionDir)qemu\block\raw.c" />
@@ -67,7 +67,7 @@
     
 
     <!-- common timers/version/etc -->
-    <!-- <ClCompile Include="$(SolutionDir)qemu\qemu-timer-common.c" /> -->
+    <!-- <ClCompile Include="$(SolutionDir)qemu\util\qemu-timer-common.c" /> -->
     <!-- <ClCompile Include="$(SolutionDir)qemu\version.c" /> -->
   </ItemGroup>
 

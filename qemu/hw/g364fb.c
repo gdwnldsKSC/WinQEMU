@@ -18,8 +18,8 @@
  */
 
 #include "hw.h"
-#include "console.h"
-#include "pixel_ops.h"
+#include "ui/console.h"
+#include "ui/pixel_ops.h"
 #include "trace.h"
 #include "sysbus.h"
 
@@ -597,7 +597,7 @@ static void g364fb_sysbus_class_init(ObjectClass *klass, void *data)
     dc->props = g364fb_sysbus_properties;
 }
 
-static TypeInfo g364fb_sysbus_info = {
+static const TypeInfo g364fb_sysbus_info = {
     .name          = "sysbus-g364",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(G364SysBusState),
@@ -609,4 +609,4 @@ static void g364fb_register_types(void)
     type_register_static(&g364fb_sysbus_info);
 }
 
-type_init(g364fb_register_types);
+type_init(g364fb_register_types)

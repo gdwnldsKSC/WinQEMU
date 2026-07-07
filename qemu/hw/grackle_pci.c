@@ -23,9 +23,9 @@
  * THE SOFTWARE.
  */
 
-#include "pci_host.h"
-#include "ppc_mac.h"
-#include "pci.h"
+#include "pci/pci_host.h"
+#include "ppc/mac.h"
+#include "pci/pci.h"
 
 /* debug Grackle */
 //#define DEBUG_GRACKLE
@@ -162,4 +162,4 @@ static void grackle_register_types(void)
     type_register_static(&grackle_pci_host_info);
 }
 
-type_init(grackle_register_types);
+type_init(grackle_register_types)

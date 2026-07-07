@@ -19,7 +19,6 @@ typedef struct a9mp_priv_state {
     uint32_t old_timer_status[8];
     uint32_t num_cpu;
     MemoryRegion scu_iomem;
-    MemoryRegion ptimer_iomem;
     MemoryRegion container;
     DeviceState *mptimer;
     DeviceState *gic;
@@ -113,7 +112,7 @@ static const MemoryRegionOps a9_scu_ops = {
 
 static void a9mp_priv_reset(DeviceState *dev)
 {
-    a9mp_priv_state *s = FROM_SYSBUS(a9mp_priv_state, sysbus_from_qdev(dev));
+    a9mp_priv_state *s = FROM_SYSBUS(a9mp_priv_state, SYS_BUS_DEVICE(dev));
     int i;
     s->scu_control = 0;
     for (i = 0; i < ARRAY_SIZE(s->old_timer_status); i++) {
@@ -137,7 +136,7 @@ static int a9mp_priv_init(SysBusDevice *dev)
     qdev_prop_set_uint32(s->gic, "num-cpu", s->num_cpu);
     qdev_prop_set_uint32(s->gic, "num-irq", s->num_irq);
     qdev_init_nofail(s->gic);
-    gicbusdev = sysbus_from_qdev(s->gic);
+    gicbusdev = SYS_BUS_DEVICE(s->gic);
 
     /* Pass through outbound IRQ lines from the GIC */
     sysbus_pass_irq(dev, gicbusdev);
@@ -148,7 +147,7 @@ static int a9mp_priv_init(SysBusDevice *dev)
     s->mptimer = qdev_create(NULL, "arm_mptimer");
     qdev_prop_set_uint32(s->mptimer, "num-cpu", s->num_cpu);
     qdev_init_nofail(s->mptimer);
-    busdev = sysbus_from_qdev(s->mptimer);
+    busdev = SYS_BUS_DEVICE(s->mptimer);
 
     /* Memory map (addresses are offsets from PERIPHBASE):
      *  0x0000-0x00ff -- Snoop Control Unit
@@ -227,7 +226,7 @@ static void a9mp_priv_class_init(ObjectClass *klass, void *data)
     dc->reset = a9mp_priv_reset;
 }
 
-static TypeInfo a9mp_priv_info = {
+static const TypeInfo a9mp_priv_info = {
     .name          = "a9mpcore_priv",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(a9mp_priv_state),

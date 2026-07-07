@@ -19,11 +19,11 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "hw/hw.h"
-#include "qemu-timer.h"
+#include "qemu/timer.h"
 #include "hw/usb.h"
-#include "hw/pci.h"
-#include "hw/msi.h"
-#include "hw/msix.h"
+#include "hw/pci/pci.h"
+#include "hw/pci/msi.h"
+#include "hw/pci/msix.h"
 #include "trace.h"
 
 //#define DEBUG_XHCI
@@ -1184,6 +1184,7 @@ static int xhci_ep_nuke_xfers(XHCIState *xhci, unsigned int slotid,
     XHCISlot *slot;
     XHCIEPContext *epctx;
     int i, xferi, killed = 0;
+    USBEndpoint *ep = NULL;
     assert(slotid >= 1 && slotid <= xhci->numslots);
     assert(epid >= 1 && epid <= 31);
 
@@ -1199,8 +1200,15 @@ static int xhci_ep_nuke_xfers(XHCIState *xhci, unsigned int slotid,
 
     xferi = epctx->next_xfer;
     for (i = 0; i < TD_QUEUE; i++) {
+        if (epctx->transfers[xferi].packet.ep) {
+            ep = epctx->transfers[xferi].packet.ep;
+        }
         killed += xhci_ep_nuke_one_xfer(&epctx->transfers[xferi]);
+        epctx->transfers[xferi].packet.ep = NULL;
         xferi = (xferi + 1) % TD_QUEUE;
+    }
+    if (ep) {
+        usb_device_ep_stopped(ep->dev, ep);
     }
     return killed;
 }
@@ -1970,13 +1978,18 @@ static TRBCCode xhci_address_slot(XHCIState *xhci, unsigned int slotid,
     if (bsr) {
         slot_ctx[3] = SLOT_DEFAULT << SLOT_STATE_SHIFT;
     } else {
+        USBPacket p;
         slot->devaddr = xhci->devaddr++;
         slot_ctx[3] = (SLOT_ADDRESSED << SLOT_STATE_SHIFT) | slot->devaddr;
         DPRINTF("xhci: device address is %d\n", slot->devaddr);
         usb_device_reset(dev);
-        usb_device_handle_control(dev, NULL,
+        usb_packet_setup(&p, USB_TOKEN_OUT,
+                         usb_ep_get(dev, USB_TOKEN_OUT, 0),
+                         0, false, false);
+        usb_device_handle_control(dev, &p,
                                   DeviceOutRequest | USB_REQ_SET_ADDRESS,
                                   slot->devaddr, 0, 0, NULL);
+        assert(p.status != USB_RET_ASYNC);
     }
 
     res = xhci_enable_ep(xhci, slotid, 1, octx+32, ep0_ctx);
@@ -2193,6 +2206,28 @@ static unsigned int xhci_get_slot(XHCIState *xhci, XHCIEvent *event, XHCITRB *tr
     return slotid;
 }
 
+/* cleanup slot state on usb device detach */
+static void xhci_detach_slot(XHCIState *xhci, USBPort *uport)
+{
+    int slot, ep;
+
+    for (slot = 0; slot < xhci->numslots; slot++) {
+        if (xhci->slots[slot].uport == uport) {
+            break;
+        }
+    }
+    if (slot == xhci->numslots) {
+        return;
+    }
+
+    for (ep = 0; ep < 31; ep++) {
+        if (xhci->slots[slot].eps[ep]) {
+            xhci_ep_nuke_xfers(xhci, slot+1, ep+1);
+        }
+    }
+    xhci->slots[slot].uport = NULL;
+}
+
 static TRBCCode xhci_get_port_bandwidth(XHCIState *xhci, uint64_t pctx)
 {
     dma_addr_t ctx;
@@ -2211,9 +2246,10 @@ static TRBCCode xhci_get_port_bandwidth(XHCIState *xhci, uint64_t pctx)
     /* TODO: actually implement real values here */
     bw_ctx[0] = 0;
     memset(&bw_ctx[1], 80, xhci->numports); /* 80% */
-    pci_dma_write(&xhci->pci_dev, ctx, bw_ctx, xhci->numports + 1);
+    pci_dma_write(&xhci->pci_dev, ctx, bw_ctx, sizeof(bw_ctx));
+
 #ifdef _MSC_VER
-    g_free(bw_ctx);
+	g_free(bw_ctx);
 #endif
 
     return CC_SUCCESS;
@@ -2942,6 +2978,7 @@ static void xhci_detach(USBPort *usbport)
     XHCIState *xhci = usbport->opaque;
     XHCIPort *port = xhci_lookup_port(xhci, usbport);
 
+    xhci_detach_slot(xhci, usbport);
     xhci_port_update(port, 1);
 }
 
@@ -2973,13 +3010,8 @@ static void xhci_child_detach(USBPort *uport, USBDevice *child)
 {
     USBBus *bus = usb_bus_from_device(child);
     XHCIState *xhci = container_of(bus, XHCIState, bus);
-    int i;
 
-    for (i = 0; i < xhci->numslots; i++) {
-        if (xhci->slots[i].uport == uport) {
-            xhci->slots[i].uport = NULL;
-        }
-    }
+    xhci_detach_slot(xhci, uport);
 }
 
 static USBPortOps xhci_uport_ops = {
@@ -3184,7 +3216,7 @@ static void xhci_class_init(ObjectClass *klass, void *data)
     k->no_hotplug   = 1;
 }
 
-static TypeInfo xhci_info = {
+static const TypeInfo xhci_info = {
     .name          = "nec-usb-xhci",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(XHCIState),
@@ -3196,4 +3228,4 @@ static void xhci_register_types(void)
     type_register_static(&xhci_info);
 }
 
-type_init(xhci_register_types);
+type_init(xhci_register_types)

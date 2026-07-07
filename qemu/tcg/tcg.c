@@ -37,9 +37,9 @@
 #endif
 
 #include "qemu-common.h"
-#include "cache-utils.h"
-#include "host-utils.h"
-#include "qemu-timer.h"
+#include "qemu/cache-utils.h"
+#include "qemu/host-utils.h"
+#include "qemu/timer.h"
 
 /* Note: the long term plan is to reduce the dependancies on the QEMU
    CPU definitions. Currently they are used for qemu_ld/st
@@ -800,7 +800,6 @@ static char *tcg_get_arg_str_idx(TCGContext *s, char *buf, int buf_size,
 
     assert(idx >= 0 && idx < s->nb_temps);
     ts = &s->temps[idx];
-    assert(ts);
     if (idx < s->nb_globals) {
         pstrcpy(buf, buf_size, ts->name);
     } else {
@@ -2021,10 +2020,10 @@ static int tcg_reg_alloc_call(TCGContext *s, const TCGOpDef *def,
     flags = args[nb_oargs + nb_iargs];
 
 #if defined(_MSC_VER) && TCG_TARGET_REG_BITS == 32
-    /* MSVC modification: on 32-bit x86 tcg_target_call_iarg_regs contains
-       a dummy entry only because MSVC rejects empty arrays; all call
-       arguments really go on the stack.  Counting it would pass the first
-       helper argument in EAX while the callee reads the stack. */
+    /* MSVC modification: on 32-bit x86, tcg_target_call_iarg_regs contains a
+       single dummy entry only because MSVC rejects an empty array initializer;
+       all call arguments really go on the stack.  Counting it would pass the
+       first helper argument in EAX while the callee reads the stack. */
     nb_regs = 0;
 #else
     nb_regs = ARRAY_SIZE(tcg_target_call_iarg_regs);

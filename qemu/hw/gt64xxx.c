@@ -24,10 +24,10 @@
 
 #include "hw.h"
 #include "mips.h"
-#include "pci.h"
-#include "pci_host.h"
+#include "pci/pci.h"
+#include "pci/pci_host.h"
 #include "pc.h"
-#include "exec-memory.h"
+#include "exec/address-spaces.h"
 
 //#define DEBUG
 
@@ -1192,4 +1192,4 @@ static void gt64120_pci_register_types(void)
     type_register_static(&gt64120_pci_info);
 }
 
-type_init(gt64120_pci_register_types);
+type_init(gt64120_pci_register_types)

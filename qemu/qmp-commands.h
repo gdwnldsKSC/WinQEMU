@@ -17,8 +17,8 @@
 #define QMP_COMMANDS_H
 
 #include "qapi-types.h"
-#include "qdict.h"
-#include "error.h"
+#include "qapi/qmp/qdict.h"
+#include "qapi/error.h"
 
 void qmp_add_client(const char * protocol, const char * fdname, bool has_skipauth, bool skipauth, bool has_tls, bool tls, Error **errp);
 int qmp_marshal_input_add_client(Monitor *mon, const QDict *qdict, QObject **ret);
@@ -34,6 +34,10 @@ UuidInfo * qmp_query_uuid(Error **errp);
 int qmp_marshal_input_query_uuid(Monitor *mon, const QDict *qdict, QObject **ret);
 ChardevInfoList * qmp_query_chardev(Error **errp);
 int qmp_marshal_input_query_chardev(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_ringbuf_write(const char * device, const char * data, bool has_format, DataFormat format, Error **errp);
+int qmp_marshal_input_ringbuf_write(Monitor *mon, const QDict *qdict, QObject **ret);
+char * qmp_ringbuf_read(const char * device, int64_t size, bool has_format, DataFormat format, Error **errp);
+int qmp_marshal_input_ringbuf_read(Monitor *mon, const QDict *qdict, QObject **ret);
 CommandInfoList * qmp_query_commands(Error **errp);
 int qmp_marshal_input_query_commands(Monitor *mon, const QDict *qdict, QObject **ret);
 EventInfoList * qmp_query_events(Error **errp);
@@ -98,7 +102,7 @@ char * qmp_human_monitor_command(const char * command_line, bool has_cpu_index, 
 int qmp_marshal_input_human_monitor_command(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_block_commit(const char * device, bool has_base, const char * base, const char * top, bool has_speed, int64_t speed, Error **errp);
 int qmp_marshal_input_block_commit(Monitor *mon, const QDict *qdict, QObject **ret);
-void qmp_drive_mirror(const char * device, const char * target, bool has_format, const char * format, MirrorSyncMode sync, bool has_mode, NewImageMode mode, bool has_speed, int64_t speed, bool has_on_source_error, BlockdevOnError on_source_error, bool has_on_target_error, BlockdevOnError on_target_error, Error **errp);
+void qmp_drive_mirror(const char * device, const char * target, bool has_format, const char * format, MirrorSyncMode sync, bool has_mode, NewImageMode mode, bool has_speed, int64_t speed, bool has_granularity, uint32_t granularity, bool has_buf_size, int64_t buf_size, bool has_on_source_error, BlockdevOnError on_source_error, bool has_on_target_error, BlockdevOnError on_target_error, Error **errp);
 int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_migrate_cancel(Error **errp);
 int qmp_marshal_input_migrate_cancel(Monitor *mon, const QDict *qdict, QObject **ret);
@@ -178,5 +182,9 @@ void qmp_nbd_server_add(const char * device, bool has_writable, bool writable, E
 int qmp_marshal_input_nbd_server_add(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_nbd_server_stop(Error **errp);
 int qmp_marshal_input_nbd_server_stop(Monitor *mon, const QDict *qdict, QObject **ret);
+ChardevReturn * qmp_chardev_add(const char * id, ChardevBackend * backend, Error **errp);
+int qmp_marshal_input_chardev_add(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_chardev_remove(const char * id, Error **errp);
+int qmp_marshal_input_chardev_remove(Monitor *mon, const QDict *qdict, QObject **ret);
 
 #endif

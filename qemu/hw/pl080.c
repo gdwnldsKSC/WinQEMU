@@ -386,7 +386,7 @@ static void pl080_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_pl080;
 }
 
-static TypeInfo pl080_info = {
+static const TypeInfo pl080_info = {
     .name          = "pl080",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(pl080_state),
@@ -403,7 +403,7 @@ static void pl081_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_pl080;
 }
 
-static TypeInfo pl081_info = {
+static const TypeInfo pl081_info = {
     .name          = "pl081",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(pl080_state),
@@ -418,4 +418,4 @@ static void pl080_register_types(void)
     type_register_static(&pl081_info);
 }
 
-type_init(pl080_register_types);
+type_init(pl080_register_types)

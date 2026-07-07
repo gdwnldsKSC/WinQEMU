@@ -27,11 +27,11 @@
  * AMD Publication# 19436  Rev:E  Amendment/0  Issue Date: June 2000
  */
 
-#include "pci.h"
-#include "net.h"
+#include "pci/pci.h"
+#include "net/net.h"
 #include "loader.h"
-#include "qemu-timer.h"
-#include "dma.h"
+#include "qemu/timer.h"
+#include "sysemu/dma.h"
 
 #include "pcnet.h"
 
@@ -266,7 +266,7 @@ static void pci_physical_memory_read(void *dma_opaque, hwaddr addr,
 
 static void pci_pcnet_cleanup(NetClientState *nc)
 {
-    PCNetState *d = DO_UPCAST(NICState, nc, nc)->opaque;
+    PCNetState *d = qemu_get_nic_opaque(nc);
 
     pcnet_common_cleanup(d);
 }
@@ -279,7 +279,7 @@ static void pci_pcnet_uninit(PCIDevice *dev)
     memory_region_destroy(&d->io_bar);
     qemu_del_timer(d->state.poll_timer);
     qemu_free_timer(d->state.poll_timer);
-    qemu_del_net_client(&d->state.nic->nc);
+    qemu_del_nic(d->state.nic);
 }
 
 static NetClientInfo net_pci_pcnet_info = {
@@ -361,7 +361,7 @@ static void pcnet_class_init(ObjectClass *klass, void *data)
     dc->props = pcnet_properties;
 }
 
-static TypeInfo pcnet_info = {
+static const TypeInfo pcnet_info = {
     .name          = "pcnet",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PCIPCNetState),
@@ -373,4 +373,4 @@ static void pci_pcnet_register_types(void)
     type_register_static(&pcnet_info);
 }
 
-type_init(pci_pcnet_register_types);
+type_init(pci_pcnet_register_types)

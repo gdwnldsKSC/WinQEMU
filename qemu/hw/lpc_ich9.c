@@ -1,5 +1,13 @@
 /*
+ * QEMU ICH9 Emulation
+ *
  * Copyright (c) 2006 Fabrice Bellard
+ * Copyright (c) 2009, 2010, 2011
+ *               Isaku Yamahata <yamahata at valinux co jp>
+ *               VA Linux Systems Japan K.K.
+ * Copyright (C) 2012 Jason Baron <jbaron@redhat.com>
+ *
+ * This is based on piix_pci.c, but heavily modified.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,47 +27,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-/*
- * QEMU ICH9 Emulation
- *
- *  Copyright (c) 2009, 2010, 2011
- *                Isaku Yamahata <yamahata at valinux co jp>
- *                VA Linux Systems Japan K.K.
- *  Copyright (C) 2012 Jason Baron <jbaron@redhat.com>
- *
- *  This is based on piix_pci.c, but heavily modified.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see <http://www.gnu.org/licenses/>
- */
-
 #include "qemu-common.h"
 #include "hw.h"
-#include "range.h"
+#include "qemu/range.h"
 #include "isa.h"
 #include "sysbus.h"
 #include "pc.h"
 #include "apm.h"
 #include "ioapic.h"
-#include "pci.h"
-#include "pcie_host.h"
-#include "pci_bridge.h"
+#include "pci/pci.h"
+#include "pci/pcie_host.h"
+#include "pci/pci_bridge.h"
 #include "ich9.h"
 #include "acpi.h"
 #include "acpi_ich9.h"
 #include "pam.h"
-#include "pci_internals.h"
-#include "exec-memory.h"
+#include "pci/pci_bus.h"
+#include "exec/address-spaces.h"
+#include "sysemu/sysemu.h"
 
 static int ich9_lpc_sci_irq(ICH9LPCState *lpc);
 
@@ -173,6 +158,7 @@ static void ich9_cc_write(void *opaque, hwaddr addr,
 
     ich9_cc_addr_len(&addr, &len);
     memcpy(lpc->chip_config + addr, &val, len);
+    pci_bus_fire_intx_routing_notifier(lpc->d.bus);
     ich9_cc_update(lpc);
 }
 
@@ -301,6 +287,32 @@ int ich9_lpc_map_irq(PCIDevice *pci_dev, int intx)
     return lpc->irr[PCI_SLOT(pci_dev->devfn)][intx];
 }
 
+PCIINTxRoute ich9_route_intx_pin_to_irq(void *opaque, int pirq_pin)
+{
+    ICH9LPCState *lpc = opaque;
+    PCIINTxRoute route;
+    int pic_irq;
+    int pic_dis;
+
+    assert(0 <= pirq_pin);
+    assert(pirq_pin < ICH9_LPC_NB_PIRQS);
+
+    route.mode = PCI_INTX_ENABLED;
+    ich9_lpc_pic_irq(lpc, pirq_pin, &pic_irq, &pic_dis);
+    if (!pic_dis) {
+        if (pic_irq < ICH9_LPC_PIC_NUM_PINS) {
+            route.irq = pic_irq;
+        } else {
+            route.mode = PCI_INTX_DISABLED;
+            route.irq = -1;
+        }
+    } else {
+        route.irq = ich9_pirq_to_gsi(pirq_pin);
+    }
+
+    return route;
+}
+
 static int ich9_lpc_sci_irq(ICH9LPCState *lpc)
 {
     switch (lpc->d.config[ICH9_LPC_ACPI_CTRL] &
@@ -351,7 +363,7 @@ void ich9_lpc_pm_init(PCIDevice *lpc_pci, qemu_irq cmos_s3)
     qemu_irq *sci_irq;
 
     sci_irq = qemu_allocate_irqs(ich9_set_sci, lpc, 1);
-    ich9_pm_init(&lpc->pm, sci_irq[0], cmos_s3);
+    ich9_pm_init(lpc_pci, &lpc->pm, sci_irq[0], cmos_s3);
 
     ich9_lpc_reset(&lpc->d.qdev);
 }
@@ -420,6 +432,12 @@ static void ich9_lpc_config_write(PCIDevice *d,
     if (ranges_overlap(addr, len, ICH9_LPC_RCBA, 4)) {
         ich9_lpc_rcba_update(lpc, rbca_old);
     }
+    if (ranges_overlap(addr, len, ICH9_LPC_PIRQA_ROUT, 4)) {
+        pci_bus_fire_intx_routing_notifier(lpc->d.bus);
+    }
+    if (ranges_overlap(addr, len, ICH9_LPC_PIRQE_ROUT, 4)) {
+        pci_bus_fire_intx_routing_notifier(lpc->d.bus);
+    }
 }
 
 static void ich9_lpc_reset(DeviceState *qdev)
@@ -456,6 +474,30 @@ static const MemoryRegionOps rbca_mmio_ops = {
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
+static void ich9_lpc_machine_ready(Notifier *n, void *opaque)
+{
+    ICH9LPCState *s = container_of(n, ICH9LPCState, machine_ready);
+    uint8_t *pci_conf;
+
+    pci_conf = s->d.config;
+    if (isa_is_ioport_assigned(0x3f8)) {
+        /* com1 */
+        pci_conf[0x82] |= 0x01;
+    }
+    if (isa_is_ioport_assigned(0x2f8)) {
+        /* com2 */
+        pci_conf[0x82] |= 0x02;
+    }
+    if (isa_is_ioport_assigned(0x378)) {
+        /* lpt */
+        pci_conf[0x82] |= 0x04;
+    }
+    if (isa_is_ioport_assigned(0x3f0)) {
+        /* floppy */
+        pci_conf[0x82] |= 0x08;
+    }
+}
+
 static int ich9_lpc_initfn(PCIDevice *d)
 {
     ICH9LPCState *lpc = ICH9_LPC_DEVICE(d);
@@ -472,7 +514,11 @@ static int ich9_lpc_initfn(PCIDevice *d)
     lpc->isa_bus = isa_bus;
 
     ich9_cc_init(lpc);
-    apm_init(&lpc->apm, ich9_apm_ctrl_changed, lpc);
+    apm_init(d, &lpc->apm, ich9_apm_ctrl_changed, lpc);
+
+    lpc->machine_ready.notify = ich9_lpc_machine_ready;
+    qemu_add_machine_init_done_notifier(&lpc->machine_ready);
+
     return 0;
 }
 

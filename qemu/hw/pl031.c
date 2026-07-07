@@ -12,8 +12,8 @@
  */
 
 #include "sysbus.h"
-#include "qemu-timer.h"
-#include "sysemu.h"
+#include "qemu/timer.h"
+#include "sysemu/sysemu.h"
 
 //#define DEBUG_PL031
 
@@ -250,7 +250,7 @@ static void pl031_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_pl031;
 }
 
-static TypeInfo pl031_info = {
+static const TypeInfo pl031_info = {
     .name          = "pl031",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(pl031_state),
@@ -262,4 +262,4 @@ static void pl031_register_types(void)
     type_register_static(&pl031_info);
 }
 
-type_init(pl031_register_types);
+type_init(pl031_register_types)

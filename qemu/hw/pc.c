@@ -27,8 +27,8 @@
 #include "apic.h"
 #include "fdc.h"
 #include "ide.h"
-#include "pci.h"
-#include "monitor.h"
+#include "pci/pci.h"
+#include "monitor/monitor.h"
 #include "fw_cfg.h"
 #include "hpet_emul.h"
 #include "smbios.h"
@@ -38,19 +38,19 @@
 #include "mc146818rtc.h"
 #include "i8254.h"
 #include "pcspk.h"
-#include "msi.h"
+#include "pci/msi.h"
 #include "sysbus.h"
-#include "sysemu.h"
-#include "kvm.h"
+#include "sysemu/sysemu.h"
+#include "sysemu/kvm.h"
 #include "kvm_i386.h"
 #include "xen.h"
-#include "blockdev.h"
+#include "sysemu/blockdev.h"
 #include "hw/block-common.h"
 #include "ui/qemu-spice.h"
-#include "memory.h"
-#include "exec-memory.h"
-#include "arch_init.h"
-#include "bitmap.h"
+#include "exec/memory.h"
+#include "exec/address-spaces.h"
+#include "sysemu/arch_init.h"
+#include "qemu/bitmap.h"
 
 /* debug PC/ISA interrupts */
 //#define DEBUG_IRQ
@@ -98,8 +98,14 @@ void gsi_handler(void *opaque, int n, int level)
     qemu_set_irq(s->ioapic_irq[n], level);
 }
 
-static void ioport80_write(void *opaque, uint32_t addr, uint32_t data)
+static void ioport80_write(void *opaque, hwaddr addr, uint64_t data,
+                           unsigned size)
 {
+}
+
+static uint64_t ioport80_read(void *opaque, hwaddr addr, unsigned size)
+{
+    return 0xffffffffffffffffULL;
 }
 
 /* MSDOS compatibility mode FPU exception support */
@@ -116,9 +122,15 @@ void cpu_set_ferr(CPUX86State *s)
     qemu_irq_raise(ferr_irq);
 }
 
-static void ioportF0_write(void *opaque, uint32_t addr, uint32_t data)
+static void ioportF0_write(void *opaque, hwaddr addr, uint64_t data,
+                           unsigned size)
 {
     qemu_irq_lower(ferr_irq);
+}
+
+static uint64_t ioportF0_read(void *opaque, hwaddr addr, unsigned size)
+{
+    return 0xffffffffffffffffULL;
 }
 
 /* TSC handling */
@@ -499,7 +511,7 @@ static void port92_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_port92_isa;
 }
 
-static TypeInfo port92_info = {
+static const TypeInfo port92_info = {
     .name          = "port92",
     .parent        = TYPE_ISA_DEVICE,
     .instance_size = sizeof(Port92State),
@@ -511,43 +523,15 @@ static void port92_register_types(void)
     type_register_static(&port92_info);
 }
 
-type_init(port92_register_types);
+type_init(port92_register_types)
 
 static void handle_a20_line_change(void *opaque, int irq, int level)
 {
-    CPUX86State *cpu = opaque;
+    X86CPU *cpu = opaque;
 
     /* XXX: send to all CPUs ? */
     /* XXX: add logic to handle multiple A20 line sources */
-    cpu_x86_set_a20(cpu, level);
-}
-
-/***********************************************************/
-/* Bochs BIOS debug ports */
-
-static void bochs_bios_write(void *opaque, uint32_t addr, uint32_t val)
-{
-    static const char shutdown_str[8] = "Shutdown";
-    static int shutdown_index = 0;
-
-    switch(addr) {
-    case 0x8900:
-        /* same as Bochs power off */
-        if (val == shutdown_str[shutdown_index]) {
-            shutdown_index++;
-            if (shutdown_index == 8) {
-                shutdown_index = 0;
-                qemu_system_shutdown_request();
-            }
-        } else {
-            shutdown_index = 0;
-        }
-        break;
-
-    case 0x501:
-    case 0x502:
-        exit((val << 1) | 1);
-    }
+    x86_cpu_set_a20(cpu, level);
 }
 
 int e820_add_entry(uint64_t address, uint64_t length, uint32_t type)
@@ -567,6 +551,18 @@ int e820_add_entry(uint64_t address, uint64_t length, uint32_t type)
     return index;
 }
 
+/* Calculates the limit to CPU APIC ID values
+ *
+ * This function returns the limit for the APIC ID value, so that all
+ * CPU APIC IDs are < pc_apic_id_limit().
+ *
+ * This is used for FW_CFG_MAX_CPUS. See comments on bochs_bios_init().
+ */
+static unsigned int pc_apic_id_limit(unsigned int max_cpus)
+{
+    return x86_cpu_apic_id_from_index(max_cpus - 1) + 1;
+}
+
 static void *bochs_bios_init(void)
 {
     void *fw_cfg;
@@ -574,49 +570,60 @@ static void *bochs_bios_init(void)
     size_t smbios_len;
     uint64_t *numa_fw_cfg;
     int i, j;
-
-    register_ioport_write(0x8900, 1, 1, bochs_bios_write, NULL);
-
-    register_ioport_write(0x501, 1, 1, bochs_bios_write, NULL);
-    register_ioport_write(0x501, 1, 2, bochs_bios_write, NULL);
-    register_ioport_write(0x502, 1, 2, bochs_bios_write, NULL);
+    unsigned int apic_id_limit = pc_apic_id_limit(max_cpus);
 
     fw_cfg = fw_cfg_init(BIOS_CFG_IOPORT, BIOS_CFG_IOPORT + 1, 0, 0);
-
+    /* FW_CFG_MAX_CPUS is a bit confusing/problematic on x86:
+     *
+     * SeaBIOS needs FW_CFG_MAX_CPUS for CPU hotplug, but the CPU hotplug
+     * QEMU<->SeaBIOS interface is not based on the "CPU index", but on the APIC
+     * ID of hotplugged CPUs[1]. This means that FW_CFG_MAX_CPUS is not the
+     * "maximum number of CPUs", but the "limit to the APIC ID values SeaBIOS
+     * may see".
+     *
+     * So, this means we must not use max_cpus, here, but the maximum possible
+     * APIC ID value, plus one.
+     *
+     * [1] The only kind of "CPU identifier" used between SeaBIOS and QEMU is
+     *     the APIC ID, not the "CPU index"
+     */
+    fw_cfg_add_i16(fw_cfg, FW_CFG_MAX_CPUS, (uint16_t)apic_id_limit);
     fw_cfg_add_i32(fw_cfg, FW_CFG_ID, 1);
     fw_cfg_add_i64(fw_cfg, FW_CFG_RAM_SIZE, (uint64_t)ram_size);
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_ACPI_TABLES, (uint8_t *)acpi_tables,
-                     acpi_tables_len);
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_ACPI_TABLES,
+                     acpi_tables, acpi_tables_len);
     fw_cfg_add_i32(fw_cfg, FW_CFG_IRQ0_OVERRIDE, kvm_allows_irq0_override());
 
     smbios_table = smbios_get_table(&smbios_len);
     if (smbios_table)
         fw_cfg_add_bytes(fw_cfg, FW_CFG_SMBIOS_ENTRIES,
                          smbios_table, smbios_len);
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_E820_TABLE, (uint8_t *)&e820_table,
-                     sizeof(struct e820_table));
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_E820_TABLE,
+                     &e820_table, sizeof(e820_table));
 
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_HPET, (uint8_t *)&hpet_cfg,
-                     sizeof(struct hpet_fw_config));
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_HPET, &hpet_cfg, sizeof(hpet_cfg));
     /* allocate memory for the NUMA channel: one (64bit) word for the number
      * of nodes, one word for each VCPU->node and one word for each node to
      * hold the amount of memory.
      */
-    numa_fw_cfg = g_malloc0((1 + max_cpus + nb_numa_nodes) * 8);
+    numa_fw_cfg = g_new0(uint64_t, 1 + apic_id_limit + nb_numa_nodes);
     numa_fw_cfg[0] = cpu_to_le64(nb_numa_nodes);
     for (i = 0; i < max_cpus; i++) {
+        unsigned int apic_id = x86_cpu_apic_id_from_index(i);
+        assert(apic_id < apic_id_limit);
         for (j = 0; j < nb_numa_nodes; j++) {
             if (test_bit(i, node_cpumask[j])) {
-                numa_fw_cfg[i + 1] = cpu_to_le64(j);
+                numa_fw_cfg[apic_id + 1] = cpu_to_le64(j);
                 break;
             }
         }
     }
     for (i = 0; i < nb_numa_nodes; i++) {
-        numa_fw_cfg[max_cpus + 1 + i] = cpu_to_le64(node_mem[i]);
+        numa_fw_cfg[apic_id_limit + 1 + i] = cpu_to_le64(node_mem[i]);
     }
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_NUMA, (uint8_t *)numa_fw_cfg,
-                     (1 + max_cpus + nb_numa_nodes) * 8);
+    fw_cfg_add_bytes(fw_cfg, FW_CFG_NUMA, numa_fw_cfg,
+                     (1 + apic_id_limit + nb_numa_nodes) *
+                     sizeof(*numa_fw_cfg));
 
     return fw_cfg;
 }
@@ -715,9 +722,7 @@ static void load_linux(void *fw_cfg,
 
     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_ADDR, cmdline_addr);
     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_SIZE, strlen(kernel_cmdline)+1);
-    fw_cfg_add_bytes(fw_cfg, FW_CFG_CMDLINE_DATA,
-                     (uint8_t*)strdup(kernel_cmdline),
-                     strlen(kernel_cmdline)+1);
+    fw_cfg_add_string(fw_cfg, FW_CFG_CMDLINE_DATA, kernel_cmdline);
 
     if (protocol >= 0x202) {
 	stl_p(header+0x228, cmdline_addr);
@@ -877,6 +882,29 @@ void pc_cpus_init(const char *cpu_model)
     }
 }
 
+void pc_acpi_init(const char *default_dsdt)
+{
+    char *filename = NULL, *arg = NULL;
+
+    if (acpi_tables != NULL) {
+        /* manually set via -acpitable, leave it alone */
+        return;
+    }
+
+    filename = qemu_find_file(QEMU_FILE_TYPE_BIOS, default_dsdt);
+    if (filename == NULL) {
+        fprintf(stderr, "WARNING: failed to find %s\n", default_dsdt);
+        return;
+    }
+
+    arg = g_strdup_printf("file=%s", filename);
+    if (acpi_table_add(arg) != 0) {
+        fprintf(stderr, "WARNING: failed to load %s\n", filename);
+    }
+    g_free(arg);
+    g_free(filename);
+}
+
 void *pc_memory_init(MemoryRegion *system_memory,
                     const char *kernel_filename,
                     const char *kernel_cmdline,
@@ -967,6 +995,26 @@ static void cpu_request_exit(void *opaque, int irq, int level)
     }
 }
 
+static const MemoryRegionOps ioport80_io_ops = {
+    .write = ioport80_write,
+    .read = ioport80_read,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+};
+
+static const MemoryRegionOps ioportF0_io_ops = {
+    .write = ioportF0_write,
+    .read = ioportF0_read,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {
+        .min_access_size = 1,
+        .max_access_size = 1,
+    },
+};
+
 void pc_basic_device_init(ISABus *isa_bus, qemu_irq *gsi,
                           ISADevice **rtc_state,
                           ISADevice **floppy,
@@ -981,10 +1029,14 @@ void pc_basic_device_init(ISABus *isa_bus, qemu_irq *gsi,
     qemu_irq *a20_line;
     ISADevice *i8042, *port92, *vmmouse, *pit = NULL;
     qemu_irq *cpu_exit_irq;
+    MemoryRegion *ioport80_io = g_new(MemoryRegion, 1);
+    MemoryRegion *ioportF0_io = g_new(MemoryRegion, 1);
 
-    register_ioport_write(0x80, 1, 1, ioport80_write, NULL);
+    memory_region_init_io(ioport80_io, &ioport80_io_ops, NULL, "ioport80", 1);
+    memory_region_add_subregion(isa_bus->address_space_io, 0x80, ioport80_io);
 
-    register_ioport_write(0xf0, 1, 1, ioportF0_write, NULL);
+    memory_region_init_io(ioportF0_io, &ioportF0_io_ops, NULL, "ioportF0", 1);
+    memory_region_add_subregion(isa_bus->address_space_io, 0xf0, ioportF0_io);
 
     /*
      * Check if an HPET shall be created.
@@ -997,7 +1049,7 @@ void pc_basic_device_init(ISABus *isa_bus, qemu_irq *gsi,
 
         if (hpet) {
             for (i = 0; i < GSI_NUM_PINS; i++) {
-                sysbus_connect_irq(sysbus_from_qdev(hpet), i, gsi[i]);
+                sysbus_connect_irq(SYS_BUS_DEVICE(hpet), i, gsi[i]);
             }
             pit_isa_irq = -1;
             pit_alt_irq = qdev_get_gpio_in(hpet, HPET_LEGACY_PIT_INT);
@@ -1033,7 +1085,8 @@ void pc_basic_device_init(ISABus *isa_bus, qemu_irq *gsi,
         }
     }
 
-    a20_line = qemu_allocate_irqs(handle_a20_line_change, first_cpu, 2);
+    a20_line = qemu_allocate_irqs(handle_a20_line_change,
+                                  x86_env_get_cpu(first_cpu), 2);
     i8042 = isa_create_simple(isa_bus, "i8042");
     i8042_setup_a20_line(i8042, &a20_line[0]);
     if (!no_vmport) {
@@ -1100,7 +1153,7 @@ void ioapic_init_gsi(GSIState *gsi_state, const char *parent_name)
                                   "ioapic", OBJECT(dev), NULL);
     }
     qdev_init_nofail(dev);
-    d = sysbus_from_qdev(dev);
+    d = SYS_BUS_DEVICE(dev);
     sysbus_mmio_map(d, 0, 0xfec00000);
 
     for (i = 0; i < IOAPIC_NUM_PINS; i++) {

@@ -80,7 +80,7 @@
       <PreprocessorDefinitions>_WIN32;WIN32;_DEBUG;_WINDOWS;__i386__;NEED_CPU_H;TARGET_ALPHA;CONFIG_SOFTMMU;DATA_BITS=64;TARGET_PHYS_ADDR_BITS=64;TARGET_LONG_BITS=64;WIN32_AIO;HAS_AUDIO;CONFIG_PCSPK;CONFIG_CS4231A;CONFIG_ADLIB;CONFIG_GUS;CONFIG_AC97;CONFIG_ES1370;CONFIG_YMF262;HAS_AUDIO_CHOICE;CONFIG_VNC_THREAD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-alpha;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)qemu\include;$(SolutionDir)third_party\pixman\pixman;$(SolutionDir)third_party\glib\include;$(SolutionDir)third_party\glib\include\glib-2.0;$(SolutionDir)third_party\glib\lib\glib-2.0\include;.\third_party\outside_qemu_tree_custom;.\pxwc\inc;.\third_party\SDL-1.2-main\include;$(SolutionDir)\qemu\target-alpha;.\qemu\fpu;.\qemu\tcg;.\qemu\tcg\i386;.\qemu;.\qemu\slirp;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,34 +134,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="qemu\arch_init.h" />
-    <ClInclude Include="qemu\balloon.h" />
+    <ClInclude Include="qemu\include\sysemu\arch_init.h" />
+    <ClInclude Include="qemu\include\sysemu\balloon.h" />
     <ClInclude Include="qemu\config-host.h" />
     <ClInclude Include="qemu\config.h" />
-    <ClInclude Include="qemu\cpus.h" />
+    <ClInclude Include="qemu\include\sysemu\cpus.h" />
     <ClInclude Include="qemu\fpu\softfloat-macros.h" />
     <ClInclude Include="qemu\fpu\softfloat-specialize.h" />
-    <ClInclude Include="qemu\fpu\softfloat.h" />
-    <ClInclude Include="qemu\gdbstub.h" />
+    <ClInclude Include="qemu\include\fpu\softfloat.h" />
+    <ClInclude Include="qemu\include\exec\gdbstub.h" />
     <ClInclude Include="qemu\hw\hw.h" />
     <ClInclude Include="qemu\hw\mc146818rtc.h" />
-    <ClInclude Include="qemu\hw\pci.h" />
-    <ClInclude Include="qemu\hw\pci_bridge.h" />
-    <ClInclude Include="qemu\hw\pci_host.h" />
-    <ClInclude Include="qemu\hw\pci_host_template.h" />
-    <ClInclude Include="qemu\hw\pci_ids.h" />
-    <ClInclude Include="qemu\hw\pci_internals.h" />
-    <ClInclude Include="qemu\hw\pci_regs.h" />
+    <ClInclude Include="qemu\hw\pci\pci.h" />
+    <ClInclude Include="qemu\hw\pci\pci_bridge.h" />
+    <ClInclude Include="qemu\hw\pci\pci_host.h" />
+    <ClInclude Include="qemu\hw\pci\pci_ids.h" />
+    <ClInclude Include="qemu\hw\pci\pci_regs.h" />
     <ClInclude Include="qemu\hw\vga_int.h" />
     <ClInclude Include="qemu\hw\vga_template.h" />
     <ClInclude Include="qemu\hw\vhost_net.h" />
-    <ClInclude Include="qemu\hw\vmware_vga.h" />
-    <ClInclude Include="qemu\memory.h" />
-    <ClInclude Include="qemu\monitor.h" />
-    <ClInclude Include="qemu\qemu-common.h" />
-    <ClInclude Include="qemu\rwhandler.h" />
+    <ClInclude Include="qemu\include\exec\memory.h" />
+    <ClInclude Include="qemu\include\monitor\monitor.h" />
+    <ClInclude Include="qemu\include\qemu-common.h" />
     <ClInclude Include="qemu\target-alpha\cpu.h" />
-    <ClInclude Include="qemu\target-alpha\exec.h" />
     <ClInclude Include="qemu\target-alpha\helper.h" />
     <ClInclude Include="qemu\tcg\i386\tcg-target.h" />
     <ClInclude Include="qemu\tcg\tcg-op.h" />
@@ -170,11 +165,11 @@
     <ClInclude Include="qemu\ui\curses_keys.h" />
     <ClInclude Include="qemu\ui\d3des.h" />
     <ClInclude Include="qemu\ui\keymaps.h" />
-    <ClInclude Include="qemu\ui\qemu-spice.h" />
+    <ClInclude Include="qemu\include\ui\qemu-spice.h" />
     <ClInclude Include="qemu\ui\sdl_keysym.h" />
     <ClInclude Include="qemu\ui\sdl_zoom.h" />
     <ClInclude Include="qemu\ui\sdl_zoom_template.h" />
-    <ClInclude Include="qemu\ui\spice-display.h" />
+    <ClInclude Include="qemu\include\ui\spice-display.h" />
     <ClInclude Include="qemu\ui\vnc-auth-sasl.h" />
     <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h" />
     <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h" />
@@ -202,9 +197,9 @@
     <ClCompile Include="qemu\hw\isa-bus.c" />
     <ClCompile Include="qemu\hw\isa_mmio.c" />
     <ClCompile Include="qemu\hw\mc146818rtc.c" />
-    <ClCompile Include="qemu\hw\pci.c" />
-    <ClCompile Include="qemu\hw\pci_bridge.c" />
-    <ClCompile Include="qemu\hw\pci_host.c" />
+    <ClCompile Include="qemu\hw\pci\pci.c" />
+    <ClCompile Include="qemu\hw\pci\pci_bridge.c" />
+    <ClCompile Include="qemu\hw\pci\pci_host.c" />
     <ClCompile Include="qemu\hw\pckbd.c" />
     <ClCompile Include="qemu\hw\vga-pci.c" />
     <ClCompile Include="qemu\hw\vga.c" />
@@ -213,7 +208,6 @@
     <ClCompile Include="qemu\kvm-stub.c" />
     <ClCompile Include="qemu\memory.c" />
     <ClCompile Include="qemu\monitor.c" />
-    <ClCompile Include="qemu\rwhandler.c" />
     <ClCompile Include="qemu\spice-qemu-char.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -222,7 +216,6 @@
     </ClCompile>
     <ClCompile Include="qemu\target-alpha\helper.c" />
     <ClCompile Include="qemu\target-alpha\machine.c" />
-    <ClCompile Include="qemu\target-alpha\op_helper.c" />
     <ClCompile Include="qemu\target-alpha\translate.c" />
     <ClCompile Include="qemu\tcg\i386\tcg-target.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -288,13 +281,6 @@
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zrle.c" />
     <ClCompile Include="qemu\ui\vnc-enc-zywrle-template.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="qemu\ui\vnc-jobs-async.c" />
-    <ClCompile Include="qemu\ui\vnc-jobs-sync.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>

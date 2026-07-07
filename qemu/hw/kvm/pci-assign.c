@@ -28,14 +28,14 @@
 #include <sys/stat.h>
 #include "hw/hw.h"
 #include "hw/pc.h"
-#include "qemu-error.h"
-#include "console.h"
+#include "qemu/error-report.h"
+#include "ui/console.h"
 #include "hw/loader.h"
-#include "monitor.h"
-#include "range.h"
-#include "sysemu.h"
-#include "hw/pci.h"
-#include "hw/msi.h"
+#include "monitor/monitor.h"
+#include "qemu/range.h"
+#include "sysemu/sysemu.h"
+#include "hw/pci/pci.h"
+#include "hw/pci/msi.h"
 #include "kvm_i386.h"
 
 #define MSIX_PAGE_SIZE 0x1000
@@ -46,6 +46,7 @@
 #define IORESOURCE_IRQ      0x00000400
 #define IORESOURCE_DMA      0x00000800
 #define IORESOURCE_PREFETCH 0x00002000  /* No side effects */
+#define IORESOURCE_MEM_64   0x00100000
 
 //#define DEVICE_ASSIGNMENT_DEBUG
 
@@ -442,9 +443,13 @@ static int assigned_dev_register_regions(PCIRegion *io_regions,
 
         /* handle memory io regions */
         if (cur_region->type & IORESOURCE_MEM) {
-            int t = cur_region->type & IORESOURCE_PREFETCH
-                ? PCI_BASE_ADDRESS_MEM_PREFETCH
-                : PCI_BASE_ADDRESS_SPACE_MEMORY;
+            int t = PCI_BASE_ADDRESS_SPACE_MEMORY;
+            if (cur_region->type & IORESOURCE_PREFETCH) {
+                t |= PCI_BASE_ADDRESS_MEM_PREFETCH;
+            }
+            if (cur_region->type & IORESOURCE_MEM_64) {
+                t |= PCI_BASE_ADDRESS_MEM_TYPE_64;
+            }
 
             /* map physical memory */
             pci_dev->v_addrs[i].u.r_virtbase = mmap(NULL, cur_region->size,
@@ -632,7 +637,8 @@ again:
         rp->valid = 0;
         rp->resource_fd = -1;
         size = end - start + 1;
-        flags &= IORESOURCE_IO | IORESOURCE_MEM | IORESOURCE_PREFETCH;
+        flags &= IORESOURCE_IO | IORESOURCE_MEM | IORESOURCE_PREFETCH
+                 | IORESOURCE_MEM_64;
         if (size == 0 || (flags & ~IORESOURCE_PREFETCH) == 0) {
             continue;
         }
@@ -930,8 +936,8 @@ retry:
             /* Retry with host-side MSI. There might be an IRQ conflict and
              * either the kernel or the device doesn't support sharing. */
             error_report("Host-side INTx sharing not supported, "
-                         "using MSI instead.\n"
-                         "Some devices do not to work properly in this mode.");
+                         "using MSI instead");
+            error_printf("Some devices do not work properly in this mode.\n");
             dev->features |= ASSIGNED_DEVICE_PREFER_MSI_MASK;
             goto retry;
         }
@@ -1897,10 +1903,10 @@ static void assigned_dev_load_option_rom(AssignedDevice *dev)
     memset(ptr, 0xff, st.st_size);
 
     if (!fread(ptr, 1, st.st_size, fp)) {
-        error_report("pci-assign: Cannot read from host %s\n"
-                     "\tDevice option ROM contents are probably invalid "
-                     "(check dmesg).\n\tSkip option ROM probe with rombar=0, "
-                     "or load from file with romfile=", rom_file);
+        error_report("pci-assign: Cannot read from host %s", rom_file);
+        error_printf("Device option ROM contents are probably invalid "
+                     "(check dmesg).\nSkip option ROM probe with rombar=0, "
+                     "or load from file with romfile=\n");
         memory_region_destroy(&dev->dev.rom);
         goto close_rom;
     }

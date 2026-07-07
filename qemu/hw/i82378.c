@@ -17,7 +17,7 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "pci.h"
+#include "pci/pci.h"
 #include "pc.h"
 #include "i8254.h"
 #include "pcspk.h"
@@ -262,7 +262,7 @@ static void pci_i82378_class_init(ObjectClass *klass, void *data)
     dc->props = i82378_properties;
 }
 
-static TypeInfo pci_i82378_info = {
+static const TypeInfo pci_i82378_info = {
     .name = "i82378",
     .parent = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PCIi82378State),
@@ -274,4 +274,4 @@ static void i82378_register_types(void)
     type_register_static(&pci_i82378_info);
 }
 
-type_init(i82378_register_types);
+type_init(i82378_register_types)

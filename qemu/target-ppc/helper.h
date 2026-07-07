@@ -1,4 +1,4 @@
-#include "def-helper.h"
+#include "exec/def-helper.h"
 
 DEF_HELPER_3(raise_exception_err, void, env, i32, i32)
 DEF_HELPER_2(raise_exception, void, env, i32)
@@ -25,8 +25,7 @@ DEF_HELPER_3(stmw, void, env, tl, i32)
 DEF_HELPER_4(lsw, void, env, tl, i32, i32)
 DEF_HELPER_5(lswx, void, env, tl, i32, i32, i32)
 DEF_HELPER_4(stsw, void, env, tl, i32, i32)
-DEF_HELPER_2(dcbz, void, env, tl)
-DEF_HELPER_2(dcbz_970, void, env, tl)
+DEF_HELPER_3(dcbz, void, env, tl, i32)
 DEF_HELPER_2(icbi, void, env, tl)
 DEF_HELPER_5(lscbx, tl, env, tl, i32, i32, i32)
 
@@ -405,7 +404,6 @@ DEF_HELPER_2(store_40x_dbcr0, void, env, tl)
 DEF_HELPER_2(store_40x_sler, void, env, tl)
 DEF_HELPER_2(store_booke_tcr, void, env, tl)
 DEF_HELPER_2(store_booke_tsr, void, env, tl)
-DEF_HELPER_1(load_epr, tl, env)
 DEF_HELPER_3(store_ibatl, void, env, i32, tl)
 DEF_HELPER_3(store_ibatu, void, env, i32, tl)
 DEF_HELPER_3(store_dbatl, void, env, i32, tl)
@@ -414,4 +412,4 @@ DEF_HELPER_3(store_601_batl, void, env, i32, tl)
 DEF_HELPER_3(store_601_batu, void, env, i32, tl)
 #endif
 
-#include "def-helper.h"
+#include "exec/def-helper.h"

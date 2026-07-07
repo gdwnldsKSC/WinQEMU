@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  */
 #include "hw.h"
-#include "ppc_mac.h"
-#include "pci.h"
-#include "pci_host.h"
+#include "ppc/mac.h"
+#include "pci/pci.h"
+#include "pci/pci_host.h"
 
 /* debug UniNorth */
 //#define DEBUG_UNIN
@@ -489,4 +489,4 @@ static void unin_register_types(void)
     type_register_static(&pci_unin_internal_info);
 }
 
-type_init(unin_register_types);
+type_init(unin_register_types)

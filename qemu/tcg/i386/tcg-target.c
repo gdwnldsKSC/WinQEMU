@@ -22,6 +22,13 @@
  * THE SOFTWARE.
  */
 
+#ifdef _MSC_VER
+/* The Windows SDK's rpcndr.h (reached via windows.h) does "#define small char".
+ * This file (included into tcg.c after windows.h) uses "small" as an ordinary
+ * int parameter name in tcg_out_jxx()/tcg_out_brcond*(), so drop the macro. */
+#undef small
+#endif
+
 #ifndef NDEBUG
 static const char * const tcg_target_reg_names[TCG_TARGET_NB_REGS] = {
 #if TCG_TARGET_REG_BITS == 64
@@ -79,10 +86,9 @@ static const int tcg_target_call_iarg_regs[] = {
 #ifdef _MSC_VER
     /* MSVC modification: empty arrays/initializers are not valid C here.
        This dummy entry is never a real argument register -- 32-bit x86
-       passes all call arguments on the stack, and the TLB scratch regs
-       come from the TCG_REG_L0/L1 macros (EAX/EDX) below.  It MUST NOT
-       be counted as an argument register: see the matching _MSC_VER
-       guard on the ARRAY_SIZE use in tcg_reg_alloc_call (tcg/tcg.c). */
+       passes all call arguments on the stack.  It MUST NOT be counted as an
+       argument register: see the matching _MSC_VER guard on the ARRAY_SIZE
+       use in tcg_reg_alloc_call (tcg/tcg.c). */
     TCG_REG_EAX
 #endif
 #endif
@@ -104,6 +110,18 @@ static const int tcg_target_call_oarg_regs[] = {
 #else
 # define TCG_REG_L0 TCG_REG_EAX
 # define TCG_REG_L1 TCG_REG_EDX
+#endif
+
+/* For 32-bit, we are going to attempt to determine at runtime whether cmov
+   is available.  However, the host compiler must supply <cpuid.h>, as we're
+   not going to go so far as our own inline assembly.  */
+#if TCG_TARGET_REG_BITS == 64
+# define have_cmov 1
+#elif defined(CONFIG_CPUID_H)
+#include <cpuid.h>
+static bool have_cmov;
+#else
+# define have_cmov 0
 #endif
 
 static uint8_t *tb_ret_addr;
@@ -952,7 +970,14 @@ static void tcg_out_movcond32(TCGContext *s, TCGCond cond, TCGArg dest,
                               TCGArg v1)
 {
     tcg_out_cmp(s, c1, c2, const_c2, 0);
-    tcg_out_modrm(s, OPC_CMOVCC | tcg_cond_to_jcc[cond], dest, v1);
+    if (have_cmov) {
+        tcg_out_modrm(s, OPC_CMOVCC | tcg_cond_to_jcc[cond], dest, v1);
+    } else {
+        int over = gen_new_label();
+        tcg_out_jxx(s, tcg_cond_to_jcc[tcg_invert_cond(cond)], over, 1);
+        tcg_out_mov(s, TCG_TYPE_I32, dest, v1);
+        tcg_out_label(s, over, s->code_ptr);
+    }
 }
 
 #if TCG_TARGET_REG_BITS == 64
@@ -991,7 +1016,7 @@ static void tcg_out_jmp(TCGContext *s, tcg_target_long dest)
 
 #if defined(CONFIG_SOFTMMU)
 
-#include "../../softmmu_defs.h"
+#include "exec/softmmu_defs.h"
 
 /* helper signature: helper_ld_mmu(CPUState *env, target_ulong addr,
    int mmu_idx) */
@@ -2089,7 +2114,7 @@ static const TCGTargetOpDef x86_op_defs[] = {
     { INDEX_op_st32_i64, { "ri", "r" } },
     { INDEX_op_st_i64, { "re", "r" } },
 
-    { INDEX_op_add_i64, { "r", "0", "re" } },
+    { INDEX_op_add_i64, { "r", "r", "re" } },
     { INDEX_op_mul_i64, { "r", "0", "re" } },
     { INDEX_op_div2_i64, { "a", "d", "0", "1", "r" } },
     { INDEX_op_divu2_i64, { "a", "d", "0", "1", "r" } },
@@ -2252,6 +2277,16 @@ static void tcg_target_qemu_prologue(TCGContext *s)
 
 static void tcg_target_init(TCGContext *s)
 {
+    /* For 32-bit, 99% certainty that we're running on hardware that supports
+       cmov, but we still need to check.  In case cmov is not available, we'll
+       use a small forward branch.  */
+#ifndef have_cmov
+    {
+        unsigned a, b, c, d;
+        have_cmov = (__get_cpuid(1, &a, &b, &c, &d) && (d & bit_CMOV));
+    }
+#endif
+
 #if !defined(CONFIG_USER_ONLY)
     /* fail safe */
     if ((1 << CPU_TLB_ENTRY_BITS) != sizeof(CPUTLBEntry))

@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  */
 #include "qemu-common.h"
-#include "block_int.h"
-#include "module.h"
+#include "block/block_int.h"
+#include "qemu/module.h"
 #include <zlib.h>
-#include "aes.h"
-#include "migration.h"
+#include "block/aes.h"
+#include "migration/migration.h"
 
 /**************************************************************/
 /* QEMU COW block driver with compression and encryption support */
@@ -112,7 +112,7 @@ static int qcow_open(BlockDriverState *bs, int flags)
     be64_to_cpus(&header.l1_table_offset);
 
     if (header.magic != QCOW_MAGIC) {
-        ret = -EINVAL;
+        ret = -EMEDIUMTYPE;
         goto fail;
     }
     if (header.version != QCOW_VERSION) {

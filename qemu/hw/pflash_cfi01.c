@@ -38,23 +38,23 @@
 
 #include "hw.h"
 #include "flash.h"
-#include "block.h"
-#include "qemu-timer.h"
-#include "exec-memory.h"
-#include "host-utils.h"
+#include "block/block.h"
+#include "qemu/timer.h"
+#include "exec/address-spaces.h"
+#include "qemu/host-utils.h"
 #include "sysbus.h"
 
 #define PFLASH_BUG(fmt, ...) \
 do { \
-    printf("PFLASH: Possible BUG - " fmt, ## __VA_ARGS__); \
+    fprintf(stderr, "PFLASH: Possible BUG - " fmt, ## __VA_ARGS__); \
     exit(1); \
 } while(0)
 
 /* #define PFLASH_DEBUG */
 #ifdef PFLASH_DEBUG
-#define DPRINTF(fmt, ...)                          \
-do {                                               \
-    printf("PFLASH: " fmt , ## __VA_ARGS__);       \
+#define DPRINTF(fmt, ...)                                   \
+do {                                                        \
+    fprintf(stderr, "PFLASH: " fmt , ## __VA_ARGS__);       \
 } while (0)
 #else
 #define DPRINTF(fmt, ...) do { } while (0)
@@ -319,6 +319,9 @@ static void pflash_write(pflash_t *pfl, hwaddr offset,
             DPRINTF("%s: Write to buffer\n", __func__);
             pfl->status |= 0x80; /* Ready! */
             break;
+        case 0xf0: /* Probe for AMD flash */
+            DPRINTF("%s: Probe for AMD flash\n", __func__);
+            goto reset_flash;
         case 0xff: /* Read array mode */
             DPRINTF("%s: Read array mode\n", __func__);
             goto reset_flash;
@@ -438,9 +441,9 @@ static void pflash_write(pflash_t *pfl, hwaddr offset,
     return;
 
  error_flash:
-    printf("%s: Unimplemented flash cmd sequence "
-           "(offset " TARGET_FMT_plx ", wcycle 0x%x cmd 0x%x value 0x%x)\n",
-           __func__, offset, pfl->wcycle, pfl->cmd, value);
+    qemu_log_mask(LOG_UNIMP, "%s: Unimplemented flash cmd sequence "
+                  "(offset " TARGET_FMT_plx ", wcycle 0x%x cmd 0x%x value 0x%x)"
+                  "\n", __func__, offset, pfl->wcycle, pfl->cmd, value);
 
  reset_flash:
     memory_region_rom_device_set_readable(&pfl->mem, true);
@@ -715,7 +718,7 @@ static void pflash_cfi01_register_types(void)
     type_register_static(&pflash_cfi01_info);
 }
 
-type_init(pflash_cfi01_register_types);
+type_init(pflash_cfi01_register_types)
 
 pflash_t *pflash_cfi01_register(hwaddr base,
                                 DeviceState *qdev, const char *name,
@@ -726,7 +729,7 @@ pflash_t *pflash_cfi01_register(hwaddr base,
                                 uint16_t id2, uint16_t id3, int be)
 {
     DeviceState *dev = qdev_create(NULL, "cfi.pflash01");
-    SysBusDevice *busdev = sysbus_from_qdev(dev);
+    SysBusDevice *busdev = SYS_BUS_DEVICE(dev);
     pflash_t *pfl = (pflash_t *)object_dynamic_cast(OBJECT(dev),
                                                     "cfi.pflash01");
 

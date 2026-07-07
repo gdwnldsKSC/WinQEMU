@@ -98,6 +98,7 @@ S: Maintained
 F: target-ppc/
 
 S390
+M: Richard Henderson <rth@twiddle.net>
 M: Alexander Graf <agraf@suse.de>
 S: Maintained
 F: target-s390x/
@@ -132,7 +133,7 @@ Guest CPU Cores (KVM):
 ----------------------
 
 Overall
-M: Avi Kivity <avi@redhat.com>
+M: Gleb Natapov <gleb@redhat.com>
 M: Marcelo Tosatti <mtosatti@redhat.com>
 L: kvm@vger.kernel.org
 S: Supported
@@ -150,7 +151,7 @@ S: Maintained
 F: target-s390x/kvm.c
 
 X86
-M: Avi Kivity <avi@redhat.com>
+M: Gleb Natapov <gleb@redhat.com>
 M: Marcelo Tosatti <mtosatti@redhat.com>
 L: kvm@vger.kernel.org
 S: Supported
@@ -379,7 +380,7 @@ New World
 M: Alexander Graf <agraf@suse.de>
 L: qemu-ppc@nongnu.org
 S: Maintained
-F: hw/ppc_newworld.c
+F: hw/ppc/mac_newworld.c
 F: hw/unin_pci.c
 F: hw/dec_pci.[hc]
 
@@ -387,15 +388,16 @@ Old World
 M: Alexander Graf <agraf@suse.de>
 L: qemu-ppc@nongnu.org
 S: Maintained
-F: hw/ppc_oldworld.c
+F: hw/ppc/mac_oldworld.c
 F: hw/grackle_pci.c
 
 PReP
 M: Andreas Färber <andreas.faerber@web.de>
 L: qemu-ppc@nongnu.org
 S: Odd Fixes
-F: hw/ppc_prep.c
+F: hw/ppc/prep.c
 F: hw/prep_pci.[hc]
+F: hw/pc87312.[hc]
 
 sPAPR
 M: David Gibson <david@gibson.dropbear.id.au>
@@ -490,6 +492,7 @@ F: hw/omap*
 PCI
 M: Michael S. Tsirkin <mst@redhat.com>
 S: Supported
+F: hw/pci/*
 F: hw/pci*
 F: hw/piix*
 
@@ -599,6 +602,7 @@ M: Andreas Färber <afaerber@suse.de>
 S: Supported
 F: qom/cpu.c
 F: include/qemu/cpu.h
+F: target-i386/cpu.c
 
 Device Tree
 M: Peter Crosthwaite <peter.crosthwaite@petalogix.com>

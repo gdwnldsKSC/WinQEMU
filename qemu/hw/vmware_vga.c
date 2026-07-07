@@ -23,8 +23,8 @@
  */
 #include "hw.h"
 #include "loader.h"
-#include "console.h"
-#include "pci.h"
+#include "ui/console.h"
+#include "pci/pci.h"
 
 #undef VERBOSE
 #define HW_RECT_ACCEL
@@ -296,6 +296,15 @@ static inline void vmsvga_update_rect(struct vmsvga_state_s *s,
     uint8_t *src;
     uint8_t *dst;
 
+    if (x < 0) {
+        fprintf(stderr, "%s: update x was < 0 (%d)\n", __func__, x);
+        w += x;
+        x = 0;
+    }
+    if (w < 0) {
+        fprintf(stderr, "%s: update w was < 0 (%d)\n", __func__, w);
+        w = 0;
+    }
     if (x + w > ds_get_width(s->vga.ds)) {
         fprintf(stderr, "%s: update width too large x: %d, w: %d\n",
                 __func__, x, w);
@@ -303,6 +312,15 @@ static inline void vmsvga_update_rect(struct vmsvga_state_s *s,
         w = ds_get_width(s->vga.ds) - x;
     }
 
+    if (y < 0) {
+        fprintf(stderr, "%s: update y was < 0 (%d)\n",  __func__, y);
+        h += y;
+        y = 0;
+    }
+    if (h < 0) {
+        fprintf(stderr, "%s: update h was < 0 (%d)\n",  __func__, h);
+        h = 0;
+    }
     if (y + h > ds_get_height(s->vga.ds)) {
         fprintf(stderr, "%s: update height too large y: %d, h: %d\n",
                 __func__, y, h);
@@ -820,23 +838,24 @@ static uint32_t vmsvga_value_read(void *opaque, uint32_t address)
 
     default:
         if (s->index >= SVGA_SCRATCH_BASE &&
-                s->index < SVGA_SCRATCH_BASE + s->scratch_size)
+            s->index < SVGA_SCRATCH_BASE + s->scratch_size) {
             return s->scratch[s->index - SVGA_SCRATCH_BASE];
-        printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
+        }
+        printf("%s: Bad register %02x\n", __func__, s->index);
 #else
-	default:
-		{
-			if (s->index >= SVGA_PALETTE_BASE && s->index <= SVGA_PALETTE_END)
-			{
-				return 0;
-    }
-			else
-			{
-        if (s->index >= SVGA_SCRATCH_BASE &&
-                s->index < SVGA_SCRATCH_BASE + s->scratch_size)
-            return s->scratch[s->index - SVGA_SCRATCH_BASE];
-        printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
-    }
+    default:
+    {
+		if (s->index >= SVGA_PALETTE_BASE && s->index <= SVGA_PALETTE_END) {
+			return 0;
+		}
+        else
+        {
+			if (s->index >= SVGA_SCRATCH_BASE &&
+				s->index < SVGA_SCRATCH_BASE + s->scratch_size) {
+				return s->scratch[s->index - SVGA_SCRATCH_BASE];
+			}
+			printf("%s: Bad register %02x\n", __func__, s->index);
+        }
     }
 #endif
     }
@@ -861,7 +880,8 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
         s->vga.invalidate(&s->vga);
         if (s->enable && s->config) {
             vga_dirty_log_stop(&s->vga);
-        } else {
+        }
+        else {
             vga_dirty_log_start(&s->vga);
         }
         break;
@@ -870,7 +890,8 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
         if (value <= SVGA_MAX_WIDTH) {
             s->new_width = value;
             s->invalidated = 1;
-        } else {
+        }
+        else {
             printf("%s: Bad width: %i\n", __func__, value);
         }
         break;
@@ -879,7 +900,8 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
         if (value <= SVGA_MAX_HEIGHT) {
             s->new_height = value;
             s->invalidated = 1;
-        } else {
+        }
+        else {
             printf("%s: Bad height: %i\n", __func__, value);
         }
         break;
@@ -893,12 +915,12 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
 
     case SVGA_REG_CONFIG_DONE:
         if (value) {
-            s->fifo = (uint32_t *) s->fifo_ptr;
+            s->fifo = (uint32_t*)s->fifo_ptr;
             /* Check range and alignment.  */
             if ((CMD(min) | CMD(max) | CMD(next_cmd) | CMD(stop)) & 3) {
                 break;
             }
-            if (CMD(min) < (uint8_t *) s->cmd->fifo - (uint8_t *) s->fifo) {
+            if (CMD(min) < (uint8_t*)s->cmd->fifo - (uint8_t*)s->fifo) {
                 break;
             }
             if (CMD(max) > SVGA_FIFO_SIZE) {
@@ -923,7 +945,7 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
         if (value >= GUEST_OS_BASE && value < GUEST_OS_BASE +
             ARRAY_SIZE(vmsvga_guest_id)) {
             printf("%s: guest runs %s.\n", __func__,
-                   vmsvga_guest_id[value - GUEST_OS_BASE]);
+                vmsvga_guest_id[value - GUEST_OS_BASE]);
         }
 #endif
         break;
@@ -960,30 +982,25 @@ static void vmsvga_value_write(void *opaque, uint32_t address, uint32_t value)
 
     default:
         if (s->index >= SVGA_SCRATCH_BASE &&
-                s->index < SVGA_SCRATCH_BASE + s->scratch_size) {
+            s->index < SVGA_SCRATCH_BASE + s->scratch_size) {
             s->scratch[s->index - SVGA_SCRATCH_BASE] = value;
             break;
         }
-        printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
+        printf("%s: Bad register %02x\n", __func__, s->index);
 #else
-	default:
-		{
-			if (s->index >= SVGA_PALETTE_BASE && s->index <= SVGA_PALETTE_END)
-			{
+    default:
+    {
+        if (s->index >= SVGA_PALETTE_BASE && s->index <= SVGA_PALETTE_END) {
+            break;
+        }
+        if (s->index >= SVGA_SCRATCH_BASE && s->index < SVGA_SCRATCH_BASE + s->scratch_size) {
+            s->scratch[s->index - SVGA_SCRATCH_BASE] = value;
+            break;
+        }
+        printf("%s: Bad register %02x\n", __func__, s->index);
     }
-			else
-			{
-				if (s->index >= SVGA_SCRATCH_BASE &&
-					s->index < SVGA_SCRATCH_BASE + s->scratch_size) 
-				{
-						s->scratch[s->index - SVGA_SCRATCH_BASE] = value;
-    }
-				else
-        printf("%s: Bad register %02x\n", __FUNCTION__, s->index);
-}
-}
 #endif
-}
+    }
 }
 
 static uint32_t vmsvga_bios_read(void *opaque, uint32_t address)
@@ -1091,7 +1108,7 @@ static void vmsvga_screen_dump(void *opaque, const char *filename, bool cswitch,
                                  ds_get_height(s->vga.ds),
                                  32,
                                  ds_get_linesize(s->vga.ds),
-                                 s->vga.vram_ptr);
+                                 s->vga.vram_ptr, false);
         ppm_save(filename, ds, errp);
         g_free(ds);
     }
@@ -1279,7 +1296,7 @@ static void vmsvga_class_init(ObjectClass *klass, void *data)
     dc->props = vga_vmware_properties;
 }
 
-static TypeInfo vmsvga_info = {
+static const TypeInfo vmsvga_info = {
     .name          = "vmware-svga",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(struct pci_vmsvga_state_s),
@@ -1291,4 +1308,4 @@ static void vmsvga_register_types(void)
     type_register_static(&vmsvga_info);
 }
 
-type_init(vmsvga_register_types);
+type_init(vmsvga_register_types)

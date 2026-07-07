@@ -10,10 +10,12 @@
  */
 
 #include "cpu.h"
-#include "gdbstub.h"
+#include "exec/gdbstub.h"
 #include "helper.h"
-#include "host-utils.h"
-#include "console.h"
+#include "qemu/host-utils.h"
+#ifndef CONFIG_USER_ONLY
+#include "ui/console.h"
+#endif
 
 #undef DEBUG_UC32
 
@@ -27,13 +29,16 @@ CPUUniCore32State *uc32_cpu_init(const char *cpu_model)
 {
     UniCore32CPU *cpu;
     CPUUniCore32State *env;
+    ObjectClass *oc;
     static int inited = 1;
 
-    if (object_class_by_name(cpu_model) == NULL) {
+    oc = cpu_class_by_name(TYPE_UNICORE32_CPU, cpu_model);
+    if (oc == NULL) {
         return NULL;
     }
-    cpu = UNICORE32_CPU(object_new(cpu_model));
+    cpu = UNICORE32_CPU(object_new(object_class_get_name(oc)));
     env = &cpu->env;
+    env->cpu_model_str = cpu_model;
 
     if (inited) {
         inited = 0;

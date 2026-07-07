@@ -128,6 +128,20 @@ typedef struct ChardevInfoList
     struct ChardevInfoList *next;
 } ChardevInfoList;
 
+extern const char *DataFormat_lookup[];
+typedef enum DataFormat
+{
+    DATA_FORMAT_UTF8 = 0,
+    DATA_FORMAT_BASE64 = 1,
+    DATA_FORMAT_MAX = 2,
+} DataFormat;
+
+typedef struct DataFormatList
+{
+    DataFormat value;
+    struct DataFormatList *next;
+} DataFormatList;
+
 typedef struct CommandInfo CommandInfo;
 
 typedef struct CommandInfoList
@@ -841,6 +855,66 @@ typedef enum KeyValueKind
     KEY_VALUE_KIND_MAX = 2,
 } KeyValueKind;
 
+typedef struct ChardevFile ChardevFile;
+
+typedef struct ChardevFileList
+{
+    ChardevFile *value;
+    struct ChardevFileList *next;
+} ChardevFileList;
+
+typedef struct ChardevHostdev ChardevHostdev;
+
+typedef struct ChardevHostdevList
+{
+    ChardevHostdev *value;
+    struct ChardevHostdevList *next;
+} ChardevHostdevList;
+
+typedef struct ChardevSocket ChardevSocket;
+
+typedef struct ChardevSocketList
+{
+    ChardevSocket *value;
+    struct ChardevSocketList *next;
+} ChardevSocketList;
+
+typedef struct ChardevDummy ChardevDummy;
+
+typedef struct ChardevDummyList
+{
+    ChardevDummy *value;
+    struct ChardevDummyList *next;
+} ChardevDummyList;
+
+typedef struct ChardevBackend ChardevBackend;
+
+typedef struct ChardevBackendList
+{
+    ChardevBackend *value;
+    struct ChardevBackendList *next;
+} ChardevBackendList;
+
+extern const char *ChardevBackendKind_lookup[];
+typedef enum ChardevBackendKind
+{
+    CHARDEV_BACKEND_KIND_FILE = 0,
+    CHARDEV_BACKEND_KIND_SERIAL = 1,
+    CHARDEV_BACKEND_KIND_PARALLEL = 2,
+    CHARDEV_BACKEND_KIND_SOCKET = 3,
+    CHARDEV_BACKEND_KIND_PTY = 4,
+    CHARDEV_BACKEND_KIND_NULL = 5,
+    CHARDEV_BACKEND_KIND_MAX = 6,
+} ChardevBackendKind;
+
+typedef struct ChardevReturn ChardevReturn;
+
+typedef struct ChardevReturnList
+{
+    ChardevReturn *value;
+    struct ChardevReturnList *next;
+} ChardevReturnList;
+
 void qapi_free_ErrorClassList(ErrorClassList * obj);
 
 struct NameInfo
@@ -943,6 +1017,8 @@ struct ChardevInfo
 
 void qapi_free_ChardevInfoList(ChardevInfoList * obj);
 void qapi_free_ChardevInfo(ChardevInfo * obj);
+
+void qapi_free_DataFormatList(DataFormatList * obj);
 
 struct CommandInfo
 {
@@ -1074,6 +1150,7 @@ void qapi_free_BlockDeviceIoStatusList(BlockDeviceIoStatusList * obj);
 struct BlockDirtyInfo
 {
     int64_t count;
+    int64_t granularity;
 };
 
 void qapi_free_BlockDirtyInfoList(BlockDirtyInfoList * obj);
@@ -1199,18 +1276,6 @@ void qapi_free_SpiceInfo(SpiceInfo * obj);
 struct BalloonInfo
 {
     int64_t actual;
-    bool has_mem_swapped_in;
-    int64_t mem_swapped_in;
-    bool has_mem_swapped_out;
-    int64_t mem_swapped_out;
-    bool has_major_page_faults;
-    int64_t major_page_faults;
-    bool has_minor_page_faults;
-    int64_t minor_page_faults;
-    bool has_free_mem;
-    int64_t free_mem;
-    bool has_total_mem;
-    int64_t total_mem;
 };
 
 void qapi_free_BalloonInfoList(BalloonInfoList * obj);
@@ -1439,6 +1504,8 @@ struct NetdevTapOptions
     char * ifname;
     bool has_fd;
     char * fd;
+    bool has_fds;
+    char * fds;
     bool has_script;
     char * script;
     bool has_downscript;
@@ -1453,8 +1520,12 @@ struct NetdevTapOptions
     bool vhost;
     bool has_vhostfd;
     char * vhostfd;
+    bool has_vhostfds;
+    char * vhostfds;
     bool has_vhostforce;
     bool vhostforce;
+    bool has_queues;
+    uint32_t queues;
 };
 
 void qapi_free_NetdevTapOptionsList(NetdevTapOptionsList * obj);
@@ -1673,5 +1744,72 @@ struct KeyValue
 };
 void qapi_free_KeyValueList(KeyValueList * obj);
 void qapi_free_KeyValue(KeyValue * obj);
+
+struct ChardevFile
+{
+    bool has_in;
+    char * in;
+    char * out;
+};
+
+void qapi_free_ChardevFileList(ChardevFileList * obj);
+void qapi_free_ChardevFile(ChardevFile * obj);
+
+struct ChardevHostdev
+{
+    char * device;
+};
+
+void qapi_free_ChardevHostdevList(ChardevHostdevList * obj);
+void qapi_free_ChardevHostdev(ChardevHostdev * obj);
+
+struct ChardevSocket
+{
+    SocketAddress * addr;
+    bool has_server;
+    bool server;
+    bool has_wait;
+    bool wait;
+    bool has_nodelay;
+    bool nodelay;
+    bool has_telnet;
+    bool telnet;
+};
+
+void qapi_free_ChardevSocketList(ChardevSocketList * obj);
+void qapi_free_ChardevSocket(ChardevSocket * obj);
+
+struct ChardevDummy
+{
+    char qapi_dummy_for_empty_struct;
+};
+
+void qapi_free_ChardevDummyList(ChardevDummyList * obj);
+void qapi_free_ChardevDummy(ChardevDummy * obj);
+
+struct ChardevBackend
+{
+    ChardevBackendKind kind;
+    union {
+        void *data;
+        ChardevFile * file;
+        ChardevHostdev * serial;
+        ChardevHostdev * parallel;
+        ChardevSocket * socket;
+        ChardevDummy * pty;
+        ChardevDummy * null;
+    };
+};
+void qapi_free_ChardevBackendList(ChardevBackendList * obj);
+void qapi_free_ChardevBackend(ChardevBackend * obj);
+
+struct ChardevReturn
+{
+    bool has_pty;
+    char * pty;
+};
+
+void qapi_free_ChardevReturnList(ChardevReturnList * obj);
+void qapi_free_ChardevReturn(ChardevReturn * obj);
 
 #endif

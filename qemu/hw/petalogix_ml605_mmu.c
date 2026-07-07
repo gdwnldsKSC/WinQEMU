@@ -27,15 +27,15 @@
 
 #include "sysbus.h"
 #include "hw.h"
-#include "net.h"
+#include "net/net.h"
 #include "flash.h"
-#include "sysemu.h"
+#include "sysemu/sysemu.h"
 #include "devices.h"
 #include "boards.h"
 #include "xilinx.h"
-#include "blockdev.h"
+#include "sysemu/blockdev.h"
 #include "serial.h"
-#include "exec-memory.h"
+#include "exec/address-spaces.h"
 #include "ssi.h"
 
 #include "microblaze_boot.h"
@@ -129,17 +129,19 @@ petalogix_ml605_init(QEMUMachineInitArgs *args)
     xilinx_timer_create(TIMER_BASEADDR, irq[2], 0, 100 * 1000000);
 
     /* axi ethernet and dma initialization. */
+    qemu_check_nic_model(&nd_table[0], "xlnx.axi-ethernet");
+    eth0 = qdev_create(NULL, "xlnx.axi-ethernet");
     dma = qdev_create(NULL, "xlnx.axi-dma");
 
     /* FIXME: attach to the sysbus instead */
     object_property_add_child(container_get(qdev_get_machine(), "/unattached"),
                                   "xilinx-dma", OBJECT(dma), NULL);
 
-    eth0 = xilinx_axiethernet_create(&nd_table[0], STREAM_SLAVE(dma),
-                                     0x82780000, irq[3], 0x1000, 0x1000);
+    xilinx_axiethernet_init(eth0, &nd_table[0], STREAM_SLAVE(dma),
+                                   0x82780000, irq[3], 0x1000, 0x1000);
 
-    xilinx_axiethernetdma_init(dma, STREAM_SLAVE(eth0),
-                               0x84600000, irq[1], irq[0], 100 * 1000000);
+    xilinx_axidma_init(dma, STREAM_SLAVE(eth0), 0x84600000, irq[1], irq[0],
+                       100 * 1000000);
 
     {
         SSIBus *spi;
@@ -147,7 +149,7 @@ petalogix_ml605_init(QEMUMachineInitArgs *args)
         dev = qdev_create(NULL, "xlnx.xps-spi");
         qdev_prop_set_uint8(dev, "num-ss-bits", NUM_SPI_FLASHES);
         qdev_init_nofail(dev);
-        busdev = sysbus_from_qdev(dev);
+        busdev = SYS_BUS_DEVICE(dev);
         sysbus_mmio_map(busdev, 0, 0x40a00000);
         sysbus_connect_irq(busdev, 0, irq[4]);
 
@@ -173,7 +175,8 @@ static QEMUMachine petalogix_ml605_machine = {
     .name = "petalogix-ml605",
     .desc = "PetaLogix linux refdesign for xilinx ml605 little endian",
     .init = petalogix_ml605_init,
-    .is_default = 0
+    .is_default = 0,
+    DEFAULT_MACHINE_OPTIONS,
 };
 
 static void petalogix_ml605_machine_init(void)

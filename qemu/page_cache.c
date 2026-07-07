@@ -24,7 +24,7 @@
 #include <strings.h>
 
 #include "qemu-common.h"
-#include "qemu/page_cache.h"
+#include "migration/page_cache.h"
 
 #ifdef DEBUG_CACHE
 #define DPRINTF(fmt, ...) \
@@ -152,6 +152,9 @@ void cache_insert(PageCache *cache, uint64_t addr, uint8_t *pdata)
     /* actual update of entry */
     it = cache_get_by_addr(cache, addr);
 
+    /* free old cached data if any */
+    g_free(it->it_data);
+
     if (!it->it_data) {
         cache->num_items++;
     }
@@ -208,6 +211,7 @@ int64_t cache_resize(PageCache *cache, int64_t new_num_pages)
         }
     }
 
+    g_free(cache->page_cache);
     cache->page_cache = new_cache->page_cache;
     cache->max_num_items = new_cache->max_num_items;
     cache->num_items = new_cache->num_items;

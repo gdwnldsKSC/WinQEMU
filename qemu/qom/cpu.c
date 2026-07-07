@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/gpl-2.0.html>
  */
 
-#include "qemu/cpu.h"
+#include "qom/cpu.h"
 #include "qemu-common.h"
 
 void cpu_reset(CPUState *cpu)
@@ -34,16 +34,31 @@ static void cpu_common_reset(CPUState *cpu)
 {
 }
 
-static void cpu_class_init(ObjectClass *klass, void *data)
+ObjectClass *cpu_class_by_name(const char *typename, const char *cpu_model)
 {
-    CPUClass *k = CPU_CLASS(klass);
+    CPUClass *cc = CPU_CLASS(object_class_by_name(typename));
 
-    k->reset = cpu_common_reset;
+    return cc->class_by_name(cpu_model);
 }
 
-static TypeInfo cpu_type_info = {
+static ObjectClass *cpu_common_class_by_name(const char *cpu_model)
+{
+    return NULL;
+}
+
+static void cpu_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    CPUClass *k = CPU_CLASS(klass);
+
+    k->class_by_name = cpu_common_class_by_name;
+    k->reset = cpu_common_reset;
+    dc->no_user = 1;
+}
+
+static const TypeInfo cpu_type_info = {
     .name = TYPE_CPU,
-    .parent = TYPE_OBJECT,
+    .parent = TYPE_DEVICE,
     .instance_size = sizeof(CPUState),
     .abstract = true,
     .class_size = sizeof(CPUClass),
@@ -55,4 +70,4 @@ static void cpu_register_types(void)
     type_register_static(&cpu_type_info);
 }
 
-type_init(cpu_register_types);
+type_init(cpu_register_types)

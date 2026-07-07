@@ -162,7 +162,7 @@ static void max1110_class_init(ObjectClass *klass, void *data)
     k->transfer = max111x_transfer;
 }
 
-static TypeInfo max1110_info = {
+static const TypeInfo max1110_info = {
     .name          = "max1110",
     .parent        = TYPE_SSI_SLAVE,
     .instance_size = sizeof(MAX111xState),
@@ -177,7 +177,7 @@ static void max1111_class_init(ObjectClass *klass, void *data)
     k->transfer = max111x_transfer;
 }
 
-static TypeInfo max1111_info = {
+static const TypeInfo max1111_info = {
     .name          = "max1111",
     .parent        = TYPE_SSI_SLAVE,
     .instance_size = sizeof(MAX111xState),
@@ -190,4 +190,4 @@ static void max111x_register_types(void)
     type_register_static(&max1111_info);
 }
 
-type_init(max111x_register_types);
+type_init(max111x_register_types)

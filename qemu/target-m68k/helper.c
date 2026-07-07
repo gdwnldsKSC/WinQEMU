@@ -19,16 +19,11 @@
  */
 
 #include "cpu.h"
-#include "gdbstub.h"
+#include "exec/gdbstub.h"
 
 #include "helpers.h"
 
 #define SIGNBIT (1u << 31)
-
-typedef struct M68kCPUListState {
-    fprintf_function cpu_fprintf;
-    FILE *file;
-} M68kCPUListState;
 
 /* Sort alphabetically, except for "any". */
 static gint m68k_cpu_list_compare(gconstpointer a, gconstpointer b)
@@ -39,9 +34,9 @@ static gint m68k_cpu_list_compare(gconstpointer a, gconstpointer b)
 
     name_a = object_class_get_name(class_a);
     name_b = object_class_get_name(class_b);
-    if (strcmp(name_a, "any") == 0) {
+    if (strcmp(name_a, "any-" TYPE_M68K_CPU) == 0) {
         return 1;
-    } else if (strcmp(name_b, "any") == 0) {
+    } else if (strcmp(name_b, "any-" TYPE_M68K_CPU) == 0) {
         return -1;
     } else {
         return strcasecmp(name_a, name_b);
@@ -51,15 +46,20 @@ static gint m68k_cpu_list_compare(gconstpointer a, gconstpointer b)
 static void m68k_cpu_list_entry(gpointer data, gpointer user_data)
 {
     ObjectClass *c = data;
-    M68kCPUListState *s = user_data;
+    CPUListState *s = user_data;
+    const char *typename;
+    char *name;
 
+    typename = object_class_get_name(c);
+    name = g_strndup(typename, strlen(typename) - strlen("-" TYPE_M68K_CPU));
     (*s->cpu_fprintf)(s->file, "%s\n",
-                      object_class_get_name(c));
+                      name);
+    g_free(name);
 }
 
 void m68k_cpu_list(FILE *f, fprintf_function cpu_fprintf)
 {
-    M68kCPUListState s = {
+    CPUListState s = {
         .file = f,
         .cpu_fprintf = cpu_fprintf,
     };
@@ -102,12 +102,14 @@ CPUM68KState *cpu_m68k_init(const char *cpu_model)
 {
     M68kCPU *cpu;
     CPUM68KState *env;
+    ObjectClass *oc;
     static int inited;
 
-    if (object_class_by_name(cpu_model) == NULL) {
+    oc = cpu_class_by_name(TYPE_M68K_CPU, cpu_model);
+    if (oc == NULL) {
         return NULL;
     }
-    cpu = M68K_CPU(object_new(cpu_model));
+    cpu = M68K_CPU(object_new(object_class_get_name(oc)));
     env = &cpu->env;
 
     if (!inited) {

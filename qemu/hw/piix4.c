@@ -24,7 +24,7 @@
 
 #include "hw.h"
 #include "pc.h"
-#include "pci.h"
+#include "pci/pci.h"
 #include "isa.h"
 #include "sysbus.h"
 
@@ -117,7 +117,7 @@ static void piix4_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_piix4;
 }
 
-static TypeInfo piix4_info = {
+static const TypeInfo piix4_info = {
     .name          = "PIIX4",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PIIX4State),
@@ -129,4 +129,4 @@ static void piix4_register_types(void)
     type_register_static(&piix4_info);
 }
 
-type_init(piix4_register_types);
+type_init(piix4_register_types)

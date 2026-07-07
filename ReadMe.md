@@ -189,9 +189,10 @@ Note: trace-events requires modification currently, in function
 usb_host_set_interface(  modify interface to something else, such as intrface,  
 exact modification doesn't matter. Just the first one in the function prototype  
 This is due to a windows.h/msvc define somewhere.  
-Note: qemu-monitor.hx no longer exists upstream, hmp-commands.hx replaced it.  
+
 Note: tracetool is now a python package (scripts/tracetool.py + scripts/tracetool/),  
 the old "--nop -c" style arguments were replaced by --backend/--format.  
+
 Note: qapi-commands.py needs -m (middle mode) so the qmp_marshal_input_*  
 signatures match the monitor dispatch tables (qmp-commands-old.h).  
 
@@ -201,8 +202,8 @@ run:
 ./scripts/hxtool -h < qemu-img-cmds.hx > qemu-img-cmds.h  
 ./scripts/hxtool -h < qmp-commands.hx > qmp-commands-old.h  
 ./scripts/hxtool -q < qmp-commands.hx > qmp-commands.txt  
-python3 ./scripts/tracetool.py --format=c --backend=nop < trace-events > trace.c  
-python3 ./scripts/tracetool.py --format=h --backend=nop < trace-events > trace.h  
+python3 ./scripts/tracetool.py --format=c --backend=nop < trace-events > trace/generated-tracers.c  
+python3 ./scripts/tracetool.py --format=h --backend=nop < trace-events > trace/generated-tracers.h  
 python3 ./scripts/qapi-types.py -o . < qapi-schema.json  
 python3 ./scripts/qapi-visit.py -o . < qapi-schema.json  
 python3 ./scripts/qapi-commands.py -m -o . < qapi-schema.json

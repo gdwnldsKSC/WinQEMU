@@ -73,9 +73,9 @@
 
 #define CPUArchState struct CPUPPCState
 
-#include "cpu-defs.h"
+#include "exec/cpu-defs.h"
 
-#include "softfloat.h"
+#include "fpu/softfloat.h"
 
 #define TARGET_HAS_ICE 1
 
@@ -355,7 +355,7 @@ struct ppc6xx_tlb_t {
 
 typedef struct ppcemb_tlb_t ppcemb_tlb_t;
 struct ppcemb_tlb_t {
-    hwaddr RPN;
+    uint64_t RPN;
     target_ulong EPN;
     target_ulong PID;
     target_ulong size;
@@ -1067,7 +1067,9 @@ struct CPUPPCState {
     target_ulong ivor_mask;
     target_ulong ivpr_mask;
     target_ulong hreset_vector;
-    hwaddr mpic_cpu_base;
+    hwaddr mpic_iack;
+    /* true when the external proxy facility mode is enabled */
+    bool mpic_proxy;
 #endif
 
     /* Those resources are used only during code translation */
@@ -1155,10 +1157,6 @@ int ppc_store_slb (CPUPPCState *env, target_ulong rb, target_ulong rs);
 void ppc_store_msr (CPUPPCState *env, target_ulong value);
 
 void ppc_cpu_list (FILE *f, fprintf_function cpu_fprintf);
-
-const ppc_def_t *ppc_find_by_pvr(uint32_t pvr);
-const ppc_def_t *cpu_ppc_find_by_name (const char *name);
-int cpu_ppc_register_internal (CPUPPCState *env, const ppc_def_t *def);
 
 /* Time-base and decrementer management */
 #ifndef NO_CPU_IO_DEFS
@@ -1251,7 +1249,7 @@ static inline void cpu_clone_regs(CPUPPCState *env, target_ulong newsp)
 }
 #endif
 
-#include "cpu-all.h"
+#include "exec/cpu-all.h"
 
 /*****************************************************************************/
 /* CRF definitions */
@@ -1859,10 +1857,8 @@ enum {
     PPC_CACHE          = 0x0000000200000000ULL,
     /*   icbi instruction                                                    */
     PPC_CACHE_ICBI     = 0x0000000400000000ULL,
-    /*   dcbz instruction with fixed cache line size                         */
+    /*   dcbz instruction                                                    */
     PPC_CACHE_DCBZ     = 0x0000000800000000ULL,
-    /*   dcbz instruction with tunable cache line size                       */
-    PPC_CACHE_DCBZT    = 0x0000001000000000ULL,
     /*   dcba instruction                                                    */
     PPC_CACHE_DCBA     = 0x0000002000000000ULL,
     /*   Freescale cache locking instructions                                */
@@ -1930,7 +1926,7 @@ enum {
                         | PPC_MEM_TLBIE | PPC_MEM_TLBSYNC \
                         | PPC_MEM_SYNC | PPC_MEM_EIEIO \
                         | PPC_CACHE | PPC_CACHE_ICBI \
-                        | PPC_CACHE_DCBZ | PPC_CACHE_DCBZT \
+                        | PPC_CACHE_DCBZ \
                         | PPC_CACHE_DCBA | PPC_CACHE_LOCK \
                         | PPC_EXTERN | PPC_SEGMENT | PPC_6xx_TLB \
                         | PPC_74xx_TLB | PPC_40x_TLB | PPC_SEGMENT_64B \
@@ -2224,7 +2220,7 @@ static inline bool cpu_has_work(CPUState *cpu)
     return msr_ee && (env->interrupt_request & CPU_INTERRUPT_HARD);
 }
 
-#include "exec-all.h"
+#include "exec/exec-all.h"
 
 static inline void cpu_pc_from_tb(CPUPPCState *env, TranslationBlock *tb)
 {

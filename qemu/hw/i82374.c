@@ -153,7 +153,7 @@ static void i82374_class_init(ObjectClass *klass, void *data)
     dc->props = i82374_properties;
 }
 
-static TypeInfo i82374_isa_info = {
+static const TypeInfo i82374_isa_info = {
     .name  = "i82374",
     .parent = TYPE_ISA_DEVICE,
     .instance_size  = sizeof(ISAi82374State),
@@ -165,4 +165,4 @@ static void i82374_register_types(void)
     type_register_static(&i82374_isa_info);
 }
 
-type_init(i82374_register_types);
+type_init(i82374_register_types)

@@ -28,7 +28,7 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
 #ifndef _MSC_VER
     uint8_t data[(vs->client_pf.bytes_per_pixel + 2) * 16 * 16];
 #else
-	uint8_t* data = g_malloc((vs->client_pf.bytes_per_pixel + 2) * 16 * 16);
+    uint8_t* data = g_malloc((vs->client_pf.bytes_per_pixel + 2) * 16 * 16);
 #endif
     int n_data = 0;
     int n_subtiles = 0;
@@ -208,7 +208,7 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
 	}
     }
 #ifdef _MSC_VER
-	g_free(data);
+    g_free(data);
 #endif
 }
 

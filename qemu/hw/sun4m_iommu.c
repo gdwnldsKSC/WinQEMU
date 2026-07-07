@@ -373,7 +373,7 @@ static void iommu_class_init(ObjectClass *klass, void *data)
     dc->props = iommu_properties;
 }
 
-static TypeInfo iommu_info = {
+static const TypeInfo iommu_info = {
     .name          = "iommu",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(IOMMUState),
@@ -385,4 +385,4 @@ static void iommu_register_types(void)
     type_register_static(&iommu_info);
 }
 
-type_init(iommu_register_types);
+type_init(iommu_register_types)

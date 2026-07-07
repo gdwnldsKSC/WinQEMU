@@ -14,7 +14,7 @@
  *
  */
 
-#include "qapi/qapi-dealloc-visitor.h"
+#include "qapi/dealloc-visitor.h"
 #include "qapi-types.h"
 #include "qapi-visit.h"
 
@@ -43,6 +43,12 @@ const char *RunState_lookup[] = {
     "shutdown",
     "suspended",
     "watchdog",
+    NULL,
+};
+
+const char *DataFormat_lookup[] = {
+    "utf8",
+    "base64",
     NULL,
 };
 
@@ -268,6 +274,16 @@ const char *QKeyCode_lookup[] = {
 const char *KeyValueKind_lookup[] = {
     "number",
     "qcode",
+    NULL,
+};
+
+const char *ChardevBackendKind_lookup[] = {
+    "file",
+    "serial",
+    "parallel",
+    "socket",
+    "pty",
+    "null",
     NULL,
 };
 
@@ -538,6 +554,21 @@ void qapi_free_ChardevInfo(ChardevInfo * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_ChardevInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_DataFormatList(DataFormatList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_DataFormatList(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -2218,6 +2249,186 @@ void qapi_free_KeyValue(KeyValue * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_KeyValue(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevFileList(ChardevFileList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevFileList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevFile(ChardevFile * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevFile(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevHostdevList(ChardevHostdevList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevHostdevList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevHostdev(ChardevHostdev * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevHostdev(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevSocketList(ChardevSocketList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevSocketList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevSocket(ChardevSocket * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevSocket(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevDummyList(ChardevDummyList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevDummyList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevDummy(ChardevDummy * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevDummy(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevBackendList(ChardevBackendList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevBackendList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevBackend(ChardevBackend * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevBackend(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevReturnList(ChardevReturnList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevReturnList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_ChardevReturn(ChardevReturn * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevReturn(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 

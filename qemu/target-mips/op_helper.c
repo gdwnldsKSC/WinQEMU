@@ -18,12 +18,12 @@
  */
 #include <stdlib.h>
 #include "cpu.h"
-#include "host-utils.h"
+#include "qemu/host-utils.h"
 
 #include "helper.h"
 
 #if !defined(CONFIG_USER_ONLY)
-#include "softmmu_exec.h"
+#include "exec/softmmu_exec.h"
 #endif /* !defined(CONFIG_USER_ONLY) */
 
 #ifndef CONFIG_USER_ONLY
@@ -38,22 +38,15 @@ static inline void QEMU_NORETURN do_raise_exception_err(CPUMIPSState *env,
                                                         int error_code,
                                                         uintptr_t pc)
 {
-    TranslationBlock *tb;
-#if 1
-    if (exception < 0x100)
+    if (exception < EXCP_SC) {
         qemu_log("%s: %d %d\n", __func__, exception, error_code);
-#endif
+    }
     env->exception_index = exception;
     env->error_code = error_code;
 
     if (pc) {
         /* now we have a real cpu fault */
-        tb = tb_find_pc(pc);
-        if (tb) {
-            /* the PC is inside the translated code. It means that we have
-               a virtual CPU fault */
-            cpu_restore_state(tb, env, pc);
-        }
+        cpu_restore_state(env, pc);
     }
 
     cpu_loop_exit(env);
@@ -275,14 +268,16 @@ target_ulong helper_mulshiu(CPUMIPSState *env, target_ulong arg1,
 }
 
 #ifdef TARGET_MIPS64
-void helper_dmult(CPUMIPSState *env, target_ulong arg1, target_ulong arg2)
+void helper_dmult(CPUMIPSState *env, int acc, target_ulong arg1,
+                  target_ulong arg2)
 {
-    muls64(&(env->active_tc.LO[0]), &(env->active_tc.HI[0]), arg1, arg2);
+    muls64(&(env->active_tc.LO[acc]), &(env->active_tc.HI[acc]), arg1, arg2);
 }
 
-void helper_dmultu(CPUMIPSState *env, target_ulong arg1, target_ulong arg2)
+void helper_dmultu(CPUMIPSState *env, int acc, target_ulong arg1,
+                   target_ulong arg2)
 {
-    mulu64(&(env->active_tc.LO[0]), &(env->active_tc.HI[0]), arg1, arg2);
+    mulu64(&(env->active_tc.LO[acc]), &(env->active_tc.HI[acc]), arg1, arg2);
 }
 #endif
 
@@ -579,17 +574,23 @@ static inline void mips_tc_sleep(MIPSCPU *cpu, int tc)
     }
 }
 
-/* tc should point to an int with the value of the global TC index.
-   This function will transform it into a local index within the
-   returned CPUMIPSState.
-
-   FIXME: This code assumes that all VPEs have the same number of TCs,
+/**
+ * mips_cpu_map_tc:
+ * @env: CPU from which mapping is performed.
+ * @tc: Should point to an int with the value of the global TC index.
+ *
+ * This function will transform @tc into a local index within the
+ * returned #CPUMIPSState.
+ */
+/* FIXME: This code assumes that all VPEs have the same number of TCs,
           which depends on runtime setup. Can probably be fixed by
           walking the list of CPUMIPSStates.  */
 static CPUMIPSState *mips_cpu_map_tc(CPUMIPSState *env, int *tc)
 {
-    CPUMIPSState *other;
-    int vpe_idx, nr_threads = env->nr_threads;
+    MIPSCPU *cpu;
+    CPUState *cs;
+    CPUState *other_cs;
+    int vpe_idx;
     int tc_idx = *tc;
 
     if (!(env->CP0_VPEConf0 & (1 << CP0VPEC0_MVP))) {
@@ -598,10 +599,15 @@ static CPUMIPSState *mips_cpu_map_tc(CPUMIPSState *env, int *tc)
         return env;
     }
 
-    vpe_idx = tc_idx / nr_threads;
-    *tc = tc_idx % nr_threads;
-    other = qemu_get_cpu(vpe_idx);
-    return other ? other : env;
+    cs = CPU(mips_env_get_cpu(env));
+    vpe_idx = tc_idx / cs->nr_threads;
+    *tc = tc_idx % cs->nr_threads;
+    other_cs = qemu_get_cpu(vpe_idx);
+    if (other_cs == NULL) {
+        return env;
+    }
+    cpu = MIPS_CPU(other_cs);
+    return &cpu->env;
 }
 
 /* The per VPE CP0_Status register shares some fields with the per TC
@@ -2122,16 +2128,16 @@ static void QEMU_NORETURN do_unaligned_access(CPUMIPSState *env,
 #define ALIGNED_ONLY
 
 #define SHIFT 0
-#include "softmmu_template.h"
+#include "exec/softmmu_template.h"
 
 #define SHIFT 1
-#include "softmmu_template.h"
+#include "exec/softmmu_template.h"
 
 #define SHIFT 2
-#include "softmmu_template.h"
+#include "exec/softmmu_template.h"
 
 #define SHIFT 3
-#include "softmmu_template.h"
+#include "exec/softmmu_template.h"
 
 static void do_unaligned_access(CPUMIPSState *env, target_ulong addr,
                                 int is_write, int is_user, uintptr_t retaddr)
@@ -2177,11 +2183,17 @@ static unsigned int ieee_rm[] = {
     float_round_down
 };
 
-#define RESTORE_ROUNDING_MODE \
-    set_float_rounding_mode(ieee_rm[env->active_fpu.fcr31 & 3], &env->active_fpu.fp_status)
+static inline void restore_rounding_mode(CPUMIPSState *env)
+{
+    set_float_rounding_mode(ieee_rm[env->active_fpu.fcr31 & 3],
+                            &env->active_fpu.fp_status);
+}
 
-#define RESTORE_FLUSH_MODE \
-    set_flush_to_zero((env->active_fpu.fcr31 & (1 << 24)) != 0, &env->active_fpu.fp_status);
+static inline void restore_flush_mode(CPUMIPSState *env)
+{
+    set_flush_to_zero((env->active_fpu.fcr31 & (1 << 24)) != 0,
+                      &env->active_fpu.fp_status);
+}
 
 target_ulong helper_cfc1(CPUMIPSState *env, uint32_t reg)
 {
@@ -2237,9 +2249,9 @@ void helper_ctc1(CPUMIPSState *env, target_ulong arg1, uint32_t reg)
         return;
     }
     /* set rounding mode */
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     /* set flush-to-zero mode */
-    RESTORE_FLUSH_MODE;
+    restore_flush_mode(env);
     set_float_exception_flags(0, &env->active_fpu.fp_status);
     if ((GET_FP_ENABLE(env->active_fpu.fcr31) | 0x20) & GET_FP_CAUSE(env->active_fpu.fcr31))
         do_raise_exception(env, EXCP_FPE, GETPC());
@@ -2471,7 +2483,7 @@ uint64_t helper_float_roundl_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_nearest_even, &env->active_fpu.fp_status);
     dt2 = float64_to_int64(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2486,7 +2498,7 @@ uint64_t helper_float_roundl_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_nearest_even, &env->active_fpu.fp_status);
     dt2 = float32_to_int64(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2501,7 +2513,7 @@ uint32_t helper_float_roundw_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_nearest_even, &env->active_fpu.fp_status);
     wt2 = float64_to_int32(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2516,7 +2528,7 @@ uint32_t helper_float_roundw_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_nearest_even, &env->active_fpu.fp_status);
     wt2 = float32_to_int32(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2583,7 +2595,7 @@ uint64_t helper_float_ceill_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_up, &env->active_fpu.fp_status);
     dt2 = float64_to_int64(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2598,7 +2610,7 @@ uint64_t helper_float_ceill_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_up, &env->active_fpu.fp_status);
     dt2 = float32_to_int64(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2613,7 +2625,7 @@ uint32_t helper_float_ceilw_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_up, &env->active_fpu.fp_status);
     wt2 = float64_to_int32(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2628,7 +2640,7 @@ uint32_t helper_float_ceilw_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_up, &env->active_fpu.fp_status);
     wt2 = float32_to_int32(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2643,7 +2655,7 @@ uint64_t helper_float_floorl_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_down, &env->active_fpu.fp_status);
     dt2 = float64_to_int64(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2658,7 +2670,7 @@ uint64_t helper_float_floorl_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_down, &env->active_fpu.fp_status);
     dt2 = float32_to_int64(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         dt2 = FP_TO_INT64_OVERFLOW;
@@ -2673,7 +2685,7 @@ uint32_t helper_float_floorw_d(CPUMIPSState *env, uint64_t fdt0)
 
     set_float_rounding_mode(float_round_down, &env->active_fpu.fp_status);
     wt2 = float64_to_int32(fdt0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2688,7 +2700,7 @@ uint32_t helper_float_floorw_s(CPUMIPSState *env, uint32_t fst0)
 
     set_float_rounding_mode(float_round_down, &env->active_fpu.fp_status);
     wt2 = float32_to_int32(fst0, &env->active_fpu.fp_status);
-    RESTORE_ROUNDING_MODE;
+    restore_rounding_mode(env);
     if (get_float_exception_flags(&env->active_fpu.fp_status)
         & (float_flag_invalid | float_flag_overflow)) {
         wt2 = FP_TO_INT32_OVERFLOW;
@@ -2868,14 +2880,26 @@ FLOAT_BINOP(mul)
 FLOAT_BINOP(div)
 #undef FLOAT_BINOP
 
+#define UNFUSED_FMA(prefix, a, b, c, flags)                          \
+{                                                                    \
+    a = prefix##_mul(a, b, &env->active_fpu.fp_status);              \
+    if ((flags) & float_muladd_negate_c) {                           \
+        a = prefix##_sub(a, c, &env->active_fpu.fp_status);          \
+    } else {                                                         \
+        a = prefix##_add(a, c, &env->active_fpu.fp_status);          \
+    }                                                                \
+    if ((flags) & float_muladd_negate_result) {                      \
+        a = prefix##_chs(a);                                         \
+    }                                                                \
+}
+
 /* FMA based operations */
 #define FLOAT_FMA(name, type)                                        \
 uint64_t helper_float_ ## name ## _d(CPUMIPSState *env,              \
                                      uint64_t fdt0, uint64_t fdt1,   \
                                      uint64_t fdt2)                  \
 {                                                                    \
-    fdt0 = float64_muladd(fdt0, fdt1, fdt2, type,                    \
-                         &env->active_fpu.fp_status);                \
+    UNFUSED_FMA(float64, fdt0, fdt1, fdt2, type);                    \
     update_fcr31(env, GETPC());                                      \
     return fdt0;                                                     \
 }                                                                    \
@@ -2884,8 +2908,7 @@ uint32_t helper_float_ ## name ## _s(CPUMIPSState *env,              \
                                      uint32_t fst0, uint32_t fst1,   \
                                      uint32_t fst2)                  \
 {                                                                    \
-    fst0 = float32_muladd(fst0, fst1, fst2, type,                    \
-                         &env->active_fpu.fp_status);                \
+    UNFUSED_FMA(float32, fst0, fst1, fst2, type);                    \
     update_fcr31(env, GETPC());                                      \
     return fst0;                                                     \
 }                                                                    \
@@ -2901,10 +2924,8 @@ uint64_t helper_float_ ## name ## _ps(CPUMIPSState *env,             \
     uint32_t fst2 = fdt2 & 0XFFFFFFFF;                               \
     uint32_t fsth2 = fdt2 >> 32;                                     \
                                                                      \
-    fst0 = float32_muladd(fst0, fst1, fst2, type,                    \
-                          &env->active_fpu.fp_status);               \
-    fsth0 = float32_muladd(fsth0, fsth1, fsth2, type,                \
-                           &env->active_fpu.fp_status);              \
+    UNFUSED_FMA(float32, fst0, fst1, fst2, type);                    \
+    UNFUSED_FMA(float32, fsth0, fsth1, fsth2, type);                 \
     update_fcr31(env, GETPC());                                      \
     return ((uint64_t)fsth0 << 32) | fst0;                           \
 }

@@ -274,7 +274,7 @@ static void pl190_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_pl190;
 }
 
-static TypeInfo pl190_info = {
+static const TypeInfo pl190_info = {
     .name          = "pl190",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(pl190_state),
@@ -286,4 +286,4 @@ static void pl190_register_types(void)
     type_register_static(&pl190_info);
 }
 
-type_init(pl190_register_types);
+type_init(pl190_register_types)

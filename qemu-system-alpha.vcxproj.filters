@@ -1,6 +1,90 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="qemu">
+      <UniqueIdentifier>{5B015A9A-A658-C93E-9EF3-1FBD0E83D2B9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\fpu">
+      <UniqueIdentifier>{49C671DE-6473-AFAD-ABC6-0C4FADE8505B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\fpu\inc">
+      <UniqueIdentifier>{E8FB23F4-E585-33F0-19E7-C51E470DC87D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\fpu\src">
+      <UniqueIdentifier>{76C709D1-598D-9008-F1F9-6F5D36D97D00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw">
+      <UniqueIdentifier>{E0362293-D896-B766-22DD-7F0B75CD667D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\ide">
+      <UniqueIdentifier>{E7851320-A8B5-3E15-57CE-FFEDEC25275C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\ide\src">
+      <UniqueIdentifier>{2A67B71D-51A2-2E75-FA93-97E0195E0DDC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\inc">
+      <UniqueIdentifier>{742D83CF-CC23-E9D5-41D4-4C5900129D01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\pci">
+      <UniqueIdentifier>{03BFC819-5F4C-7959-F9FE-F1D8A6AF6789}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\pci\inc">
+      <UniqueIdentifier>{3CA1FF2C-FD09-3552-125B-8E287EA6292D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\pci\src">
+      <UniqueIdentifier>{41B492AA-D09F-40C7-C088-FE453A99028B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\src">
+      <UniqueIdentifier>{13B62EBE-8FB0-014F-954E-DA400A682E7F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\inc">
+      <UniqueIdentifier>{3300D0F2-8400-449F-3B54-B0429827DF41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\src">
+      <UniqueIdentifier>{3B4323E4-5735-3895-C1E3-922A5BC93979}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\target-alpha">
+      <UniqueIdentifier>{980F3EB0-D95F-BBC1-F7C1-9626729852D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\target-alpha\inc">
+      <UniqueIdentifier>{543316F6-7E5D-59E9-ADB9-23298490FF1C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\target-alpha\src">
+      <UniqueIdentifier>{BEB5EA4A-F648-72D8-79DF-53011ABA1E8E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg">
+      <UniqueIdentifier>{EBFB7125-3B56-4011-0F61-D8219B7294F0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg\i386">
+      <UniqueIdentifier>{9D24CB5A-95B9-692A-9DB9-AF1F4CAAE214}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg\i386\inc">
+      <UniqueIdentifier>{CBCF1C5B-46D8-77BC-ECD2-526E64291A7B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg\i386\src">
+      <UniqueIdentifier>{BFD547B4-62DC-A96C-B94B-E2287B8311EF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg\inc">
+      <UniqueIdentifier>{C59E1C3D-FC0A-3F3B-9AAC-AC212D04933A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\tcg\src">
+      <UniqueIdentifier>{A71BA964-6BE8-767B-BF9A-386B5B4A132C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\ui">
+      <UniqueIdentifier>{FD301092-6DA2-D806-5ACA-2B00CC3ADC04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\ui\inc">
+      <UniqueIdentifier>{FAF250C7-4C6B-2EDA-0080-F99703F0648F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\ui\src">
+      <UniqueIdentifier>{02A10245-979C-B492-9141-22FD03B93137}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\util">
+      <UniqueIdentifier>{C2F6B4D0-8E13-4A7B-9C25-6D8E3F1A72B9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\include">
+      <UniqueIdentifier>{B7E5A3C1-4D82-4F6A-9E1B-3C7A8D2F5E60}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -54,334 +138,307 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="qemu\arch_init.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\sysemu\arch_init.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\cpus.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\sysemu\cpus.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\monitor.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\monitor\monitor.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\gdbstub.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\exec\gdbstub.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\balloon.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\sysemu\balloon.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\target-alpha\cpu.h">
-      <Filter>Source Files\target-alpha</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\target-alpha\exec.h">
-      <Filter>Source Files\target-alpha</Filter>
+      <Filter>qemu\target-alpha\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\target-alpha\helper.h">
-      <Filter>Source Files\target-alpha</Filter>
+      <Filter>qemu\target-alpha\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\rwhandler.h">
-      <Filter>Header Files\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\memory.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\exec\memory.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\config.h">
-      <Filter>Header Files\inc</Filter>
+      <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\qemu-common.h">
-      <Filter>Header Files\inc</Filter>
+    <ClInclude Include="qemu\include\qemu-common.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\config-host.h">
-      <Filter>Header Files\inc</Filter>
+      <Filter>qemu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\tcg\tcg-op.h">
-      <Filter>Source Files\tcg</Filter>
+      <Filter>qemu\tcg\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\tcg\tcg-opc.h">
-      <Filter>Source Files\tcg</Filter>
+      <Filter>qemu\tcg\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\tcg\tcg.h">
-      <Filter>Source Files\tcg</Filter>
+      <Filter>qemu\tcg\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\tcg\i386\tcg-target.h">
-      <Filter>Source Files\tcg\i386</Filter>
+      <Filter>qemu\tcg\i386\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\fpu\softfloat-macros.h">
-      <Filter>Source Files\fpu</Filter>
+      <Filter>qemu\fpu\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\fpu\softfloat-specialize.h">
-      <Filter>Source Files\fpu</Filter>
+      <Filter>qemu\fpu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\fpu\softfloat.h">
-      <Filter>Source Files\fpu</Filter>
+    <ClInclude Include="qemu\include\fpu\softfloat.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\hw.h">
-      <Filter>Header Files\hw</Filter>
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\mc146818rtc.h">
-      <Filter>Header Files\hw</Filter>
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci.h">
-      <Filter>Header Files\hw</Filter>
+    <ClInclude Include="qemu\hw\pci\pci.h">
+      <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci_bridge.h">
-      <Filter>Header Files\hw</Filter>
+    <ClInclude Include="qemu\hw\pci\pci_bridge.h">
+      <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci_host.h">
-      <Filter>Header Files\hw</Filter>
+    <ClInclude Include="qemu\hw\pci\pci_host.h">
+      <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci_host_template.h">
-      <Filter>Header Files\hw</Filter>
+    <ClInclude Include="qemu\hw\pci\pci_ids.h">
+      <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci_ids.h">
-      <Filter>Header Files\hw</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\pci_internals.h">
-      <Filter>Header Files\hw</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\pci_regs.h">
-      <Filter>Header Files\hw</Filter>
+    <ClInclude Include="qemu\hw\pci\pci_regs.h">
+      <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\vga_int.h">
-      <Filter>Header Files\hw</Filter>
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\vga_template.h">
-      <Filter>Header Files\hw</Filter>
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\vhost_net.h">
-      <Filter>Header Files\hw</Filter>
-    </ClInclude>
-    <ClInclude Include="qemu\hw\vmware_vga.h">
-      <Filter>Header Files\hw</Filter>
+      <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\curses_keys.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\d3des.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\keymaps.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\ui\qemu-spice.h">
-      <Filter>Header Files\ui</Filter>
+    <ClInclude Include="qemu\include\ui\qemu-spice.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\sdl_keysym.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\sdl_zoom.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\sdl_zoom_template.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\ui\spice-display.h">
-      <Filter>Header Files\ui</Filter>
+    <ClInclude Include="qemu\include\ui\spice-display.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc_keysym.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-auth-sasl.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-auth-vencrypt.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-enc-hextile-template.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-enc-tight.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-enc-zrle.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-enc-zywrle.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-jobs.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-palette.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\vnc-tls.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\x_keymap.h">
-      <Filter>Header Files\ui</Filter>
+      <Filter>qemu\ui\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="qemu\arch_init.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\cpus.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\monitor.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\gdbstub.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\balloon.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\target-alpha\helper.c">
-      <Filter>Source Files\target-alpha</Filter>
+      <Filter>qemu\target-alpha\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\target-alpha\machine.c">
-      <Filter>Source Files\target-alpha</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\target-alpha\op_helper.c">
-      <Filter>Source Files\target-alpha</Filter>
+      <Filter>qemu\target-alpha\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\target-alpha\translate.c">
-      <Filter>Source Files\target-alpha</Filter>
+      <Filter>qemu\target-alpha\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\vhost_net.c">
-      <Filter>Source Files\hw\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\rwhandler.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\kvm-stub.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\memory.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\i8259.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\mc146818rtc.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\vga.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\cirrus_vga.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\pckbd.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\vga-pci.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ide\core.c">
-      <Filter>Source Files\hw\IDE</Filter>
+      <Filter>qemu\hw\ide\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ide\qdev.c">
-      <Filter>Source Files\hw\IDE</Filter>
+      <Filter>qemu\hw\ide\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\vmware_vga.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ide\cmd646.c">
-      <Filter>Source Files\hw\IDE</Filter>
+      <Filter>qemu\hw\ide\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\isa-bus.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\isa_mmio.c">
-      <Filter>Source Files\hw\src</Filter>
+      <Filter>qemu\hw\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\pci.c">
-      <Filter>Source Files\hw\src</Filter>
+    <ClCompile Include="qemu\hw\pci\pci.c">
+      <Filter>qemu\hw\pci\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\pci_bridge.c">
-      <Filter>Source Files\hw\src</Filter>
+    <ClCompile Include="qemu\hw\pci\pci_bridge.c">
+      <Filter>qemu\hw\pci\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\pci_host.c">
-      <Filter>Source Files\hw\src</Filter>
+    <ClCompile Include="qemu\hw\pci\pci_host.c">
+      <Filter>qemu\hw\pci\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\spice-qemu-char.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\curses.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\d3des.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\keymaps.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\sdl.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\sdl_zoom.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\spice-core.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\spice-display.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\spice-input.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-auth-sasl.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-auth-vencrypt.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-hextile.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-tight.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zlib.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zrle-template.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zrle.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-enc-zywrle-template.c">
-      <Filter>Source Files\ui\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\ui\vnc-jobs-async.c">
-      <Filter>Source Files\ui\src</Filter>
-    </ClCompile>
-    <ClCompile Include="qemu\ui\vnc-jobs-sync.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-palette.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc-tls.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\vnc.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\ui\x_keymap.c">
-      <Filter>Source Files\ui\src</Filter>
+      <Filter>qemu\ui\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\tcg\optimize.c">
-      <Filter>Source Files\tcg</Filter>
+      <Filter>qemu\tcg\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\tcg\tcg.c">
-      <Filter>Source Files\tcg</Filter>
+      <Filter>qemu\tcg\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\tcg\i386\tcg-target.c">
-      <Filter>Source Files\tcg\i386</Filter>
+      <Filter>qemu\tcg\i386\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\vl.c">
-      <Filter>Source Files\src</Filter>
+      <Filter>qemu\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\fpu\softfloat.c">
-      <Filter>Source Files\fpu</Filter>
+      <Filter>qemu\fpu\src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

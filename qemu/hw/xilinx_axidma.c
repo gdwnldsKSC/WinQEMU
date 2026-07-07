@@ -23,10 +23,9 @@
  */
 
 #include "sysbus.h"
-#include "qemu-char.h"
-#include "qemu-timer.h"
+#include "qemu/timer.h"
 #include "ptimer.h"
-#include "qemu-log.h"
+#include "qemu/log.h"
 #include "qdev-addr.h"
 
 #include "stream.h"
@@ -445,7 +444,7 @@ static void axidma_write(void *opaque, hwaddr addr,
             break;
         default:
             D(qemu_log("%s: ch=%d addr=" TARGET_FMT_plx " v=%x\n",
-                  __func__, sid, addr * 4, value));
+                  __func__, sid, addr * 4, (unsigned)value));
             s->regs[addr] = value;
             break;
     }
@@ -504,7 +503,7 @@ static void axidma_class_init(ObjectClass *klass, void *data)
     ssc->push = axidma_push;
 }
 
-static TypeInfo axidma_info = {
+static const TypeInfo axidma_info = {
     .name          = "xlnx.axi-dma",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(struct XilinxAXIDMA),

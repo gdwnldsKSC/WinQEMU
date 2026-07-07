@@ -16,7 +16,7 @@
 #ifndef QAPI_VISIT_H
 #define QAPI_VISIT_H
 
-#include "qapi/qapi-visit-core.h"
+#include "qapi/visitor.h"
 #include "qapi-types.h"
 
 void visit_type_ErrorClass(Visitor *m, ErrorClass * obj, const char *name, Error **errp);
@@ -48,6 +48,9 @@ void visit_type_UuidInfoList(Visitor *m, UuidInfoList ** obj, const char *name, 
 
 void visit_type_ChardevInfo(Visitor *m, ChardevInfo ** obj, const char *name, Error **errp);
 void visit_type_ChardevInfoList(Visitor *m, ChardevInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_DataFormat(Visitor *m, DataFormat * obj, const char *name, Error **errp);
+void visit_type_DataFormatList(Visitor *m, DataFormatList ** obj, const char *name, Error **errp);
 
 void visit_type_CommandInfo(Visitor *m, CommandInfo ** obj, const char *name, Error **errp);
 void visit_type_CommandInfoList(Visitor *m, CommandInfoList ** obj, const char *name, Error **errp);
@@ -236,5 +239,25 @@ void visit_type_KeyValueKind(Visitor *m, KeyValueKind * obj, const char *name, E
 
 void visit_type_KeyValue(Visitor *m, KeyValue ** obj, const char *name, Error **errp);
 void visit_type_KeyValueList(Visitor *m, KeyValueList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevFile(Visitor *m, ChardevFile ** obj, const char *name, Error **errp);
+void visit_type_ChardevFileList(Visitor *m, ChardevFileList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevHostdev(Visitor *m, ChardevHostdev ** obj, const char *name, Error **errp);
+void visit_type_ChardevHostdevList(Visitor *m, ChardevHostdevList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevSocket(Visitor *m, ChardevSocket ** obj, const char *name, Error **errp);
+void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevDummy(Visitor *m, ChardevDummy ** obj, const char *name, Error **errp);
+void visit_type_ChardevDummyList(Visitor *m, ChardevDummyList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevBackendKind(Visitor *m, ChardevBackendKind * obj, const char *name, Error **errp);
+
+void visit_type_ChardevBackend(Visitor *m, ChardevBackend ** obj, const char *name, Error **errp);
+void visit_type_ChardevBackendList(Visitor *m, ChardevBackendList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevReturn(Visitor *m, ChardevReturn ** obj, const char *name, Error **errp);
+void visit_type_ChardevReturnList(Visitor *m, ChardevReturnList ** obj, const char *name, Error **errp);
 
 #endif

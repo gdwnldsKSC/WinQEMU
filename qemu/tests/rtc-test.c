@@ -115,7 +115,9 @@ static void cmos_get_date_time(struct tm *date)
     date->tm_mday = mday;
     date->tm_mon = mon - 1;
     date->tm_year = base_year + year - 1900;
+#ifndef __sun__
     date->tm_gmtoff = 0;
+#endif
 
     ts = mktime(date);
 }
@@ -200,6 +202,10 @@ static void set_year_20xx(void)
     g_assert_cmpint(cmos_read(RTC_MONTH), ==, 0x02);
     g_assert_cmpint(cmos_read(RTC_YEAR), ==, 0x11);
     g_assert_cmpint(cmos_read(RTC_CENTURY), ==, 0x20);
+
+    if (sizeof(time_t) == 4) {
+        return;
+    }
 
     /* Set a date in 2080 to ensure there is no year-2038 overflow.  */
     cmos_write(RTC_REG_A, 0x76);
@@ -381,8 +387,8 @@ int main(int argc, char **argv)
     qtest_add_func("/rtc/alarm-time", alarm_time);
     qtest_add_func("/rtc/set-year/20xx", set_year_20xx);
     qtest_add_func("/rtc/set-year/1980", set_year_1980);
-    qtest_add_func("/rtc/register_b_set_flag", register_b_set_flag);
-    qtest_add_func("/rtc/fuzz-registers", fuzz_registers);
+    qtest_add_func("/rtc/misc/register_b_set_flag", register_b_set_flag);
+    qtest_add_func("/rtc/misc/fuzz-registers", fuzz_registers);
     ret = g_test_run();
 
     if (s) {

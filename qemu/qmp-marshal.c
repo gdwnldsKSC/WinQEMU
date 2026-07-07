@@ -13,12 +13,15 @@
  *
  */
 
-#include "qemu-objects.h"
-#include "qapi/qmp-core.h"
-#include "qapi/qapi-visit-core.h"
+#include "qemu-common.h"
+#include "qemu/module.h"
+#include "qapi/qmp/qerror.h"
+#include "qapi/qmp/types.h"
+#include "qapi/qmp/dispatch.h"
+#include "qapi/visitor.h"
 #include "qapi/qmp-output-visitor.h"
 #include "qapi/qmp-input-visitor.h"
-#include "qapi/qapi-dealloc-visitor.h"
+#include "qapi/dealloc-visitor.h"
 #include "qapi-types.h"
 #include "qapi-visit.h"
 
@@ -334,6 +337,125 @@ int qmp_marshal_input_query_chardev(Monitor *mon, const QDict *qdict, QObject **
 
 out:
 
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_ringbuf_write(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+    char * data = NULL;
+    bool has_format = false;
+    DataFormat format;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_str(v, &data, "data", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_DataFormat(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_ringbuf_write(device, data, has_format, format, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_str(v, &data, "data", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_DataFormat(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+static void qmp_marshal_output_ringbuf_read(char * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_str(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_ringbuf_read(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    char * retval = NULL;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * device = NULL;
+    int64_t size;
+    bool has_format = false;
+    DataFormat format;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_int(v, &size, "size", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_DataFormat(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_ringbuf_read(device, size, has_format, format, errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_ringbuf_read(retval, ret, errp);
+    }
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &device, "device", errp);
+    visit_type_int(v, &size, "size", errp);
+    visit_start_optional(v, &has_format, "format", errp);
+    if (has_format) {
+        visit_type_DataFormat(v, &format, "format", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
 
     if (local_err) {
         qerror_report_err(local_err);
@@ -1601,6 +1723,10 @@ int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **r
     NewImageMode mode;
     bool has_speed = false;
     int64_t speed;
+    bool has_granularity = false;
+    uint32_t granularity;
+    bool has_buf_size = false;
+    int64_t buf_size;
     bool has_on_source_error = false;
     BlockdevOnError on_source_error;
     bool has_on_target_error = false;
@@ -1626,6 +1752,16 @@ int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **r
         visit_type_int(v, &speed, "speed", errp);
     }
     visit_end_optional(v, errp);
+    visit_start_optional(v, &has_granularity, "granularity", errp);
+    if (has_granularity) {
+        visit_type_uint32(v, &granularity, "granularity", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_buf_size, "buf-size", errp);
+    if (has_buf_size) {
+        visit_type_int(v, &buf_size, "buf-size", errp);
+    }
+    visit_end_optional(v, errp);
     visit_start_optional(v, &has_on_source_error, "on-source-error", errp);
     if (has_on_source_error) {
         visit_type_BlockdevOnError(v, &on_source_error, "on-source-error", errp);
@@ -1641,7 +1777,7 @@ int qmp_marshal_input_drive_mirror(Monitor *mon, const QDict *qdict, QObject **r
     if (error_is_set(errp)) {
         goto out;
     }
-    qmp_drive_mirror(device, target, has_format, format, sync, has_mode, mode, has_speed, speed, has_on_source_error, on_source_error, has_on_target_error, on_target_error, errp);
+    qmp_drive_mirror(device, target, has_format, format, sync, has_mode, mode, has_speed, speed, has_granularity, granularity, has_buf_size, buf_size, has_on_source_error, on_source_error, has_on_target_error, on_target_error, errp);
 
 out:
     md = qapi_dealloc_visitor_new();
@@ -1662,6 +1798,16 @@ out:
     visit_start_optional(v, &has_speed, "speed", errp);
     if (has_speed) {
         visit_type_int(v, &speed, "speed", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_granularity, "granularity", errp);
+    if (has_granularity) {
+        visit_type_uint32(v, &granularity, "granularity", errp);
+    }
+    visit_end_optional(v, errp);
+    visit_start_optional(v, &has_buf_size, "buf-size", errp);
+    if (has_buf_size) {
+        visit_type_int(v, &buf_size, "buf-size", errp);
     }
     visit_end_optional(v, errp);
     visit_start_optional(v, &has_on_source_error, "on-source-error", errp);
@@ -3361,6 +3507,98 @@ int qmp_marshal_input_nbd_server_stop(Monitor *mon, const QDict *qdict, QObject 
 
 out:
 
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+static void qmp_marshal_output_chardev_add(ChardevReturn * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_ChardevReturn(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_ChardevReturn(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_chardev_add(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    ChardevReturn * retval = NULL;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * id = NULL;
+    ChardevBackend * backend = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &id, "id", errp);
+    visit_type_ChardevBackend(v, &backend, "backend", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_chardev_add(id, backend, errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_chardev_add(retval, ret, errp);
+    }
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &id, "id", errp);
+    visit_type_ChardevBackend(v, &backend, "backend", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+int qmp_marshal_input_chardev_remove(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    char * id = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_str(v, &id, "id", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_chardev_remove(id, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_str(v, &id, "id", errp);
+    qapi_dealloc_visitor_cleanup(md);
 
     if (local_err) {
         qerror_report_err(local_err);

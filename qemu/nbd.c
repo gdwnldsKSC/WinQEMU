@@ -16,10 +16,10 @@
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "nbd.h"
-#include "block.h"
+#include "block/nbd.h"
+#include "block/block.h"
 
-#include "qemu-coroutine.h"
+#include "block/coroutine.h"
 
 #include <errno.h>
 #include <string.h>
@@ -36,8 +36,8 @@
 #include <linux/fs.h>
 #endif
 
-#include "qemu_socket.h"
-#include "qemu-queue.h"
+#include "qemu/sockets.h"
+#include "qemu/queue.h"
 
 //#define DEBUG_NBD
 
@@ -393,7 +393,7 @@ static int nbd_send_negotiate(NBDClient *client)
         [28 .. 151]   reserved     (0)
      */
 
-    socket_set_block(csock);
+    qemu_set_block(csock);
     rc = -EINVAL;
 
     TRACE("Beginning negotiation.");
@@ -436,7 +436,7 @@ static int nbd_send_negotiate(NBDClient *client)
     TRACE("Negotiation succeeded.");
     rc = 0;
 fail:
-    socket_set_nonblock(csock);
+    qemu_set_nonblock(csock);
     return rc;
 }
 
@@ -450,7 +450,7 @@ int nbd_receive_negotiate(int csock, const char *name, uint32_t *flags,
 
     TRACE("Receiving negotiation.");
 
-    socket_set_block(csock);
+    qemu_set_block(csock);
     rc = -EINVAL;
 
     if (read_sync(csock, buf, 8) != 8) {
@@ -565,7 +565,7 @@ int nbd_receive_negotiate(int csock, const char *name, uint32_t *flags,
     rc = 0;
 
 fail:
-    socket_set_nonblock(csock);
+    qemu_set_nonblock(csock);
     return rc;
 }
 

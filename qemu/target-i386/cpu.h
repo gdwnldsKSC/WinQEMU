@@ -44,9 +44,9 @@
 
 #define CPUArchState struct CPUX86State
 
-#include "cpu-defs.h"
+#include "exec/cpu-defs.h"
 
-#include "softfloat.h"
+#include "fpu/softfloat.h"
 
 #define R_EAX 0
 #define R_ECX 1
@@ -231,6 +231,12 @@
 #define DR7_TYPE_SHIFT  16
 #define DR7_LEN_SHIFT   18
 #define DR7_FIXED_1     0x00000400
+#define DR7_LOCAL_BP_MASK    0x55
+#define DR7_MAX_BP           4
+#define DR7_TYPE_BP_INST     0x0
+#define DR7_TYPE_DATA_WR     0x1
+#define DR7_TYPE_IO_RW       0x2
+#define DR7_TYPE_DATA_RW     0x3
 
 #define PG_PRESENT_BIT	0
 #define PG_RW_BIT	1
@@ -295,6 +301,7 @@
 #define MSR_IA32_APICBASE_BSP           (1<<8)
 #define MSR_IA32_APICBASE_ENABLE        (1<<11)
 #define MSR_IA32_APICBASE_BASE          (0xfffff<<12)
+#define MSR_TSC_ADJUST                  0x0000003b
 #define MSR_IA32_TSCDEADLINE            0x6e0
 
 #define MSR_MTRRcap			0xfe
@@ -359,6 +366,21 @@
 #define MSR_TSC_AUX                     0xc0000103
 
 #define MSR_VM_HSAVE_PA                 0xc0010117
+
+/* CPUID feature words */
+typedef enum FeatureWord {
+    FEAT_1_EDX,         /* CPUID[1].EDX */
+    FEAT_1_ECX,         /* CPUID[1].ECX */
+    FEAT_7_0_EBX,       /* CPUID[EAX=7,ECX=0].EBX */
+    FEAT_8000_0001_EDX, /* CPUID[8000_0001].EDX */
+    FEAT_8000_0001_ECX, /* CPUID[8000_0001].ECX */
+    FEAT_C000_0001_EDX, /* CPUID[C000_0001].EDX */
+    FEAT_KVM,           /* CPUID[4000_0001].EAX (KVM_CPUID_FEATURES) */
+    FEAT_SVM,           /* CPUID[8000_000A].EDX */
+    FEATURE_WORDS,
+} FeatureWord;
+
+typedef uint32_t FeatureWordArray[FEATURE_WORDS];
 
 /* cpuid_features bits */
 #define CPUID_FP87 (1 << 0)
@@ -510,17 +532,19 @@
 #define CPUID_7_0_EBX_ADX      (1 << 19)
 #define CPUID_7_0_EBX_SMAP     (1 << 20)
 
+#define CPUID_VENDOR_SZ      12
+
 #define CPUID_VENDOR_INTEL_1 0x756e6547 /* "Genu" */
 #define CPUID_VENDOR_INTEL_2 0x49656e69 /* "ineI" */
 #define CPUID_VENDOR_INTEL_3 0x6c65746e /* "ntel" */
+#define CPUID_VENDOR_INTEL "GenuineIntel"
 
 #define CPUID_VENDOR_AMD_1   0x68747541 /* "Auth" */
 #define CPUID_VENDOR_AMD_2   0x69746e65 /* "enti" */
 #define CPUID_VENDOR_AMD_3   0x444d4163 /* "cAMD" */
+#define CPUID_VENDOR_AMD   "AuthenticAMD"
 
-#define CPUID_VENDOR_VIA_1   0x746e6543 /* "Cent" */
-#define CPUID_VENDOR_VIA_2   0x48727561 /* "aurH" */
-#define CPUID_VENDOR_VIA_3   0x736c7561 /* "auls" */
+#define CPUID_VENDOR_VIA   "CentaurHauls"
 
 #define CPUID_MWAIT_IBE     (1 << 1) /* Interrupts can exit capability */
 #define CPUID_MWAIT_EMX     (1 << 0) /* enumeration supported */
@@ -776,6 +800,7 @@ typedef struct CPUX86State {
     uint64_t pv_eoi_en_msr;
 
     uint64_t tsc;
+    uint64_t tsc_adjust;
     uint64_t tsc_deadline;
 
     uint64_t mcg_status;
@@ -814,7 +839,6 @@ typedef struct CPUX86State {
     uint32_t cpuid_ext2_features;
     uint32_t cpuid_ext3_features;
     uint32_t cpuid_apic_id;
-    int cpuid_vendor_override;
     /* Store the results of Centaur's CPUID instructions */
     uint32_t cpuid_xlevel2;
     uint32_t cpuid_ext4_features;
@@ -991,11 +1015,22 @@ void host_cpuid(uint32_t function, uint32_t count,
 int cpu_x86_handle_mmu_fault(CPUX86State *env, target_ulong addr,
                              int is_write, int mmu_idx);
 #define cpu_handle_mmu_fault cpu_x86_handle_mmu_fault
-void cpu_x86_set_a20(CPUX86State *env, int a20_state);
+void x86_cpu_set_a20(X86CPU *cpu, int a20_state);
 
-static inline int hw_breakpoint_enabled(unsigned long dr7, int index)
+static inline bool hw_local_breakpoint_enabled(unsigned long dr7, int index)
 {
-    return (dr7 >> (index * 2)) & 3;
+    return (dr7 >> (index * 2)) & 1;
+}
+
+static inline bool hw_global_breakpoint_enabled(unsigned long dr7, int index)
+{
+    return (dr7 >> (index * 2)) & 2;
+
+}
+static inline bool hw_breakpoint_enabled(unsigned long dr7, int index)
+{
+    return hw_global_breakpoint_enabled(dr7, index) ||
+           hw_local_breakpoint_enabled(dr7, index);
 }
 
 static inline int hw_breakpoint_type(unsigned long dr7, int index)
@@ -1011,7 +1046,7 @@ static inline int hw_breakpoint_len(unsigned long dr7, int index)
 
 void hw_breakpoint_insert(CPUX86State *env, int index);
 void hw_breakpoint_remove(CPUX86State *env, int index);
-int check_hw_breakpoints(CPUX86State *env, int force_dr6_update);
+bool check_hw_breakpoints(CPUX86State *env, bool force_dr6_update);
 void breakpoint_handler(CPUX86State *env);
 
 /* will be suppressed */
@@ -1119,7 +1154,7 @@ static inline void cpu_clone_regs(CPUX86State *env, target_ulong newsp)
 }
 #endif
 
-#include "cpu-all.h"
+#include "exec/cpu-all.h"
 #include "svm.h"
 
 #if !defined(CONFIG_USER_ONLY)
@@ -1139,7 +1174,7 @@ static inline bool cpu_has_work(CPUState *cpu)
                                       CPU_INTERRUPT_MCE));
 }
 
-#include "exec-all.h"
+#include "exec/exec-all.h"
 
 static inline void cpu_pc_from_tb(CPUX86State *env, TranslationBlock *tb)
 {
@@ -1218,6 +1253,12 @@ void do_smm_enter(CPUX86State *env1);
 
 void cpu_report_tpr_access(CPUX86State *env, TPRAccess access);
 
-void enable_kvm_pv_eoi(void);
+void disable_kvm_pv_eoi(void);
+
+/* Return name of 32-bit register, from a R_* constant */
+const char *get_register_name_32(unsigned int reg);
+
+uint32_t x86_cpu_apic_id_from_index(unsigned int cpu_index);
+void enable_compat_apic_id_mode(void);
 
 #endif /* CPU_I386_H */

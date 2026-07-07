@@ -116,6 +116,20 @@
 
 
 {
+.name       = "ringbuf-write",
+.args_type  = "device:s,data:s,format:s?",
+.mhandler.cmd_new = qmp_marshal_input_ringbuf_write,
+},
+
+
+{
+.name       = "ringbuf-read",
+.args_type  = "device:s,size:i,format:s?",
+.mhandler.cmd_new = qmp_marshal_input_ringbuf_read,
+},
+
+
+{
 .name       = "xen-save-devices-state",
 .args_type  = "filename:F",
 .mhandler.cmd_new = qmp_marshal_input_xen_save_devices_state,
@@ -266,7 +280,8 @@
 {
 .name       = "drive-mirror",
 .args_type  = "sync:s,device:B,target:s,speed:i?,mode:s?,format:s?,"
-"on-source-error:s?,on-target-error:s?",
+"on-source-error:s?,on-target-error:s?,"
+"granularity:i?,buf-size:i?",
 .mhandler.cmd_new = qmp_marshal_input_drive_mirror,
 },
 
@@ -589,3 +604,18 @@
 .args_type  = "",
 .mhandler.cmd_new = qmp_marshal_input_query_target,
 },
+
+{
+.name       = "chardev-add",
+.args_type  = "id:s,backend:q",
+.mhandler.cmd_new = qmp_marshal_input_chardev_add,
+},
+
+
+{
+.name       = "chardev-remove",
+.args_type  = "id:s",
+.mhandler.cmd_new = qmp_marshal_input_chardev_remove,
+},
+
+

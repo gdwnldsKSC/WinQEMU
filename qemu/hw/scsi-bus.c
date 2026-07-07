@@ -1,11 +1,11 @@
 #include "hw.h"
-#include "qemu-error.h"
+#include "qemu/error-report.h"
 #include "scsi.h"
 #include "scsi-defs.h"
 #include "qdev.h"
-#include "blockdev.h"
+#include "sysemu/blockdev.h"
 #include "trace.h"
-#include "dma.h"
+#include "sysemu/dma.h"
 
 static char *scsibus_get_dev_path(DeviceState *dev);
 static char *scsibus_get_fw_dev_path(DeviceState *dev);
@@ -282,7 +282,7 @@ static const struct SCSIReqOps reqops_invalid_opcode = {
 
 static int32_t scsi_unit_attention(SCSIRequest *req, uint8_t *buf)
 {
-    if (req->dev && req->dev->unit_attention.key == UNIT_ATTENTION) {
+    if (req->dev->unit_attention.key == UNIT_ATTENTION) {
         scsi_req_build_sense(req, req->dev->unit_attention);
     } else if (req->bus->unit_attention.key == UNIT_ATTENTION) {
         scsi_req_build_sense(req, req->bus->unit_attention);
@@ -1508,6 +1508,10 @@ void scsi_req_unref(SCSIRequest *req)
    will start the next chunk or complete the command.  */
 void scsi_req_continue(SCSIRequest *req)
 {
+    if (req->io_canceled) {
+        trace_scsi_req_continue_canceled(req->dev->id, req->lun, req->tag);
+        return;
+    }
     trace_scsi_req_continue(req->dev->id, req->lun, req->tag);
     if (req->cmd.mode == SCSI_XFER_TO_DEV) {
         req->ops->write_data(req);
@@ -1863,7 +1867,7 @@ static void scsi_device_class_init(ObjectClass *klass, void *data)
     k->props    = scsi_props;
 }
 
-static TypeInfo scsi_device_type_info = {
+static const TypeInfo scsi_device_type_info = {
     .name = TYPE_SCSI_DEVICE,
     .parent = TYPE_DEVICE,
     .instance_size = sizeof(SCSIDevice),
@@ -1878,4 +1882,4 @@ static void scsi_register_types(void)
     type_register_static(&scsi_device_type_info);
 }
 
-type_init(scsi_register_types);
+type_init(scsi_register_types)

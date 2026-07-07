@@ -13,6 +13,7 @@
  *
  */
 
+#include "qemu-common.h"
 #include "qapi-visit.h"
 
 void visit_type_ErrorClassList(Visitor *m, ErrorClassList ** obj, const char *name, Error **errp)
@@ -469,6 +470,33 @@ void visit_type_ChardevInfoList(Visitor *m, ChardevInfoList ** obj, const char *
         }
         error_propagate(errp, err);
     }
+}
+
+void visit_type_DataFormatList(Visitor *m, DataFormatList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                DataFormatList *native_i = (DataFormatList *)i;
+                visit_type_DataFormat(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_DataFormat(Visitor *m, DataFormat * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, DataFormat_lookup, "DataFormat", name, errp);
 }
 
 void visit_type_CommandInfo(Visitor *m, CommandInfo ** obj, const char *name, Error **errp)
@@ -989,6 +1017,7 @@ void visit_type_BlockDirtyInfo(Visitor *m, BlockDirtyInfo ** obj, const char *na
         if (!err) {
             if (!obj || *obj) {
                 visit_type_int(m, obj ? &(*obj)->count : NULL, "count", &err);
+                visit_type_int(m, obj ? &(*obj)->granularity : NULL, "granularity", &err);
             
                 error_propagate(errp, err);
                 err = NULL;
@@ -1460,36 +1489,6 @@ void visit_type_BalloonInfo(Visitor *m, BalloonInfo ** obj, const char *name, Er
         if (!err) {
             if (!obj || *obj) {
                 visit_type_int(m, obj ? &(*obj)->actual : NULL, "actual", &err);
-                visit_start_optional(m, obj ? &(*obj)->has_mem_swapped_in : NULL, "mem_swapped_in", &err);
-                if (obj && (*obj)->has_mem_swapped_in) {
-                    visit_type_int(m, obj ? &(*obj)->mem_swapped_in : NULL, "mem_swapped_in", &err);
-                }
-                visit_end_optional(m, &err);
-                visit_start_optional(m, obj ? &(*obj)->has_mem_swapped_out : NULL, "mem_swapped_out", &err);
-                if (obj && (*obj)->has_mem_swapped_out) {
-                    visit_type_int(m, obj ? &(*obj)->mem_swapped_out : NULL, "mem_swapped_out", &err);
-                }
-                visit_end_optional(m, &err);
-                visit_start_optional(m, obj ? &(*obj)->has_major_page_faults : NULL, "major_page_faults", &err);
-                if (obj && (*obj)->has_major_page_faults) {
-                    visit_type_int(m, obj ? &(*obj)->major_page_faults : NULL, "major_page_faults", &err);
-                }
-                visit_end_optional(m, &err);
-                visit_start_optional(m, obj ? &(*obj)->has_minor_page_faults : NULL, "minor_page_faults", &err);
-                if (obj && (*obj)->has_minor_page_faults) {
-                    visit_type_int(m, obj ? &(*obj)->minor_page_faults : NULL, "minor_page_faults", &err);
-                }
-                visit_end_optional(m, &err);
-                visit_start_optional(m, obj ? &(*obj)->has_free_mem : NULL, "free_mem", &err);
-                if (obj && (*obj)->has_free_mem) {
-                    visit_type_int(m, obj ? &(*obj)->free_mem : NULL, "free_mem", &err);
-                }
-                visit_end_optional(m, &err);
-                visit_start_optional(m, obj ? &(*obj)->has_total_mem : NULL, "total_mem", &err);
-                if (obj && (*obj)->has_total_mem) {
-                    visit_type_int(m, obj ? &(*obj)->total_mem : NULL, "total_mem", &err);
-                }
-                visit_end_optional(m, &err);
             
                 error_propagate(errp, err);
                 err = NULL;
@@ -2454,6 +2453,11 @@ void visit_type_NetdevTapOptions(Visitor *m, NetdevTapOptions ** obj, const char
                     visit_type_str(m, obj ? &(*obj)->fd : NULL, "fd", &err);
                 }
                 visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_fds : NULL, "fds", &err);
+                if (obj && (*obj)->has_fds) {
+                    visit_type_str(m, obj ? &(*obj)->fds : NULL, "fds", &err);
+                }
+                visit_end_optional(m, &err);
                 visit_start_optional(m, obj ? &(*obj)->has_script : NULL, "script", &err);
                 if (obj && (*obj)->has_script) {
                     visit_type_str(m, obj ? &(*obj)->script : NULL, "script", &err);
@@ -2489,9 +2493,19 @@ void visit_type_NetdevTapOptions(Visitor *m, NetdevTapOptions ** obj, const char
                     visit_type_str(m, obj ? &(*obj)->vhostfd : NULL, "vhostfd", &err);
                 }
                 visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_vhostfds : NULL, "vhostfds", &err);
+                if (obj && (*obj)->has_vhostfds) {
+                    visit_type_str(m, obj ? &(*obj)->vhostfds : NULL, "vhostfds", &err);
+                }
+                visit_end_optional(m, &err);
                 visit_start_optional(m, obj ? &(*obj)->has_vhostforce : NULL, "vhostforce", &err);
                 if (obj && (*obj)->has_vhostforce) {
                     visit_type_bool(m, obj ? &(*obj)->vhostforce : NULL, "vhostforce", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_queues : NULL, "queues", &err);
+                if (obj && (*obj)->has_queues) {
+                    visit_type_uint32(m, obj ? &(*obj)->queues : NULL, "queues", &err);
                 }
                 visit_end_optional(m, &err);
             
@@ -3498,6 +3512,309 @@ void visit_type_KeyValueList(Visitor *m, KeyValueList ** obj, const char *name, 
             for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
                 KeyValueList *native_i = (KeyValueList *)i;
                 visit_type_KeyValue(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevFile(Visitor *m, ChardevFile ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevFile", name, sizeof(ChardevFile), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_in : NULL, "in", &err);
+                if (obj && (*obj)->has_in) {
+                    visit_type_str(m, obj ? &(*obj)->in : NULL, "in", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_type_str(m, obj ? &(*obj)->out : NULL, "out", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevFileList(Visitor *m, ChardevFileList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevFileList *native_i = (ChardevFileList *)i;
+                visit_type_ChardevFile(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevHostdev(Visitor *m, ChardevHostdev ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevHostdev", name, sizeof(ChardevHostdev), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->device : NULL, "device", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevHostdevList(Visitor *m, ChardevHostdevList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevHostdevList *native_i = (ChardevHostdevList *)i;
+                visit_type_ChardevHostdev(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSocket(Visitor *m, ChardevSocket ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevSocket", name, sizeof(ChardevSocket), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_SocketAddress(m, obj ? &(*obj)->addr : NULL, "addr", &err);
+                visit_start_optional(m, obj ? &(*obj)->has_server : NULL, "server", &err);
+                if (obj && (*obj)->has_server) {
+                    visit_type_bool(m, obj ? &(*obj)->server : NULL, "server", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_wait : NULL, "wait", &err);
+                if (obj && (*obj)->has_wait) {
+                    visit_type_bool(m, obj ? &(*obj)->wait : NULL, "wait", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_nodelay : NULL, "nodelay", &err);
+                if (obj && (*obj)->has_nodelay) {
+                    visit_type_bool(m, obj ? &(*obj)->nodelay : NULL, "nodelay", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_telnet : NULL, "telnet", &err);
+                if (obj && (*obj)->has_telnet) {
+                    visit_type_bool(m, obj ? &(*obj)->telnet : NULL, "telnet", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevSocketList *native_i = (ChardevSocketList *)i;
+                visit_type_ChardevSocket(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevDummy(Visitor *m, ChardevDummy ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevDummy", name, sizeof(ChardevDummy), &err);
+        if (!err) {
+            if (!obj || *obj) {
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevDummyList(Visitor *m, ChardevDummyList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevDummyList *native_i = (ChardevDummyList *)i;
+                visit_type_ChardevDummy(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevBackendKind(Visitor *m, ChardevBackendKind * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, ChardevBackendKind_lookup, "ChardevBackendKind", name, errp);
+}
+
+void visit_type_ChardevBackend(Visitor *m, ChardevBackend ** obj, const char *name, Error **errp)
+{
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_struct(m, (void **)obj, "ChardevBackend", name, sizeof(ChardevBackend), &err);
+        if (!err) {
+            if (obj && *obj) {
+                visit_type_ChardevBackendKind(m, &(*obj)->kind, "type", &err);
+                if (!err) {
+                    switch ((*obj)->kind) {
+                    case CHARDEV_BACKEND_KIND_FILE:
+                        visit_type_ChardevFile(m, &(*obj)->file, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_SERIAL:
+                        visit_type_ChardevHostdev(m, &(*obj)->serial, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_PARALLEL:
+                        visit_type_ChardevHostdev(m, &(*obj)->parallel, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_SOCKET:
+                        visit_type_ChardevSocket(m, &(*obj)->socket, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_PTY:
+                        visit_type_ChardevDummy(m, &(*obj)->pty, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_NULL:
+                        visit_type_ChardevDummy(m, &(*obj)->null, "data", &err);
+                        break;
+                    default:
+                        abort();
+                    }
+                }
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevBackendList(Visitor *m, ChardevBackendList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevBackendList *native_i = (ChardevBackendList *)i;
+                visit_type_ChardevBackend(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevReturn(Visitor *m, ChardevReturn ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevReturn", name, sizeof(ChardevReturn), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_pty : NULL, "pty", &err);
+                if (obj && (*obj)->has_pty) {
+                    visit_type_str(m, obj ? &(*obj)->pty : NULL, "pty", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevReturnList(Visitor *m, ChardevReturnList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevReturnList *native_i = (ChardevReturnList *)i;
+                visit_type_ChardevReturn(m, &native_i->value, NULL, &err);
             }
             error_propagate(errp, err);
             err = NULL;

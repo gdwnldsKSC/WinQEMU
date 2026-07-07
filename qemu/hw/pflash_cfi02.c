@@ -37,17 +37,17 @@
 
 #include "hw.h"
 #include "flash.h"
-#include "qemu-timer.h"
-#include "block.h"
-#include "exec-memory.h"
-#include "host-utils.h"
+#include "qemu/timer.h"
+#include "block/block.h"
+#include "exec/address-spaces.h"
+#include "qemu/host-utils.h"
 #include "sysbus.h"
 
 //#define PFLASH_DEBUG
 #ifdef PFLASH_DEBUG
-#define DPRINTF(fmt, ...)                          \
-do {                                               \
-    printf("PFLASH: " fmt , ## __VA_ARGS__);       \
+#define DPRINTF(fmt, ...)                                  \
+do {                                                       \
+    fprintf(stderr "PFLASH: " fmt , ## __VA_ARGS__);       \
 } while (0)
 #else
 #define DPRINTF(fmt, ...) do { } while (0)
@@ -157,6 +157,7 @@ static uint32_t pflash_read (pflash_t *pfl, hwaddr offset,
         DPRINTF("%s: unknown command state: %x\n", __func__, pfl->cmd);
         pfl->wcycle = 0;
         pfl->cmd = 0;
+        /* fall through to the read code */
     case 0x80:
         /* We accept reads during second unlock sequence... */
     case 0x00:
@@ -747,7 +748,7 @@ static void pflash_cfi02_register_types(void)
     type_register_static(&pflash_cfi02_info);
 }
 
-type_init(pflash_cfi02_register_types);
+type_init(pflash_cfi02_register_types)
 
 pflash_t *pflash_cfi02_register(hwaddr base,
                                 DeviceState *qdev, const char *name,
@@ -760,7 +761,7 @@ pflash_t *pflash_cfi02_register(hwaddr base,
                                 int be)
 {
     DeviceState *dev = qdev_create(NULL, "cfi.pflash02");
-    SysBusDevice *busdev = sysbus_from_qdev(dev);
+    SysBusDevice *busdev = SYS_BUS_DEVICE(dev);
     pflash_t *pfl = (pflash_t *)object_dynamic_cast(OBJECT(dev),
                                                     "cfi.pflash02");
 

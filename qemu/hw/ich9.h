@@ -2,22 +2,23 @@
 #define HW_ICH9_H
 
 #include "hw.h"
-#include "range.h"
+#include "qemu/range.h"
 #include "isa.h"
 #include "sysbus.h"
 #include "pc.h"
 #include "apm.h"
 #include "ioapic.h"
-#include "pci.h"
-#include "pcie_host.h"
-#include "pci_bridge.h"
+#include "pci/pci.h"
+#include "pci/pcie_host.h"
+#include "pci/pci_bridge.h"
 #include "acpi.h"
 #include "acpi_ich9.h"
 #include "pam.h"
-#include "pci_internals.h"
+#include "pci/pci_bus.h"
 
 void ich9_lpc_set_irq(void *opaque, int irq_num, int level);
 int ich9_lpc_map_irq(PCIDevice *pci_dev, int intx);
+PCIINTxRoute ich9_route_intx_pin_to_irq(void *opaque, int pirq_pin);
 void ich9_lpc_pm_init(PCIDevice *pci_lpc, qemu_irq cmos_s3);
 PCIBus *ich9_d2pbr_init(PCIBus *bus, int devfn, int sec_bus);
 i2c_bus *ich9_smb_init(PCIBus *bus, int devfn, uint32_t smb_io_base);
@@ -51,6 +52,7 @@ typedef struct ICH9LPCState {
     /* isa bus */
     ISABus *isa_bus;
     MemoryRegion rbca_mem;
+    Notifier machine_ready;
 
     qemu_irq *pic;
     qemu_irq *ioapic;

@@ -451,6 +451,24 @@
 #endif
 
 {
+.name       = "ringbuf_write",
+.args_type  = "device:s,data:s",
+.params     = "device data",
+.help       = "Write to a ring buffer character device",
+.mhandler.cmd = hmp_ringbuf_write,
+},
+
+
+{
+.name       = "ringbuf_read",
+.args_type  = "device:s,size:i",
+.params     = "device size",
+.help       = "Read from a ring buffer character device",
+.mhandler.cmd = hmp_ringbuf_read,
+},
+
+
+{
 .name       = "migrate",
 .args_type  = "detach:-d,blk:-b,inc:-i,uri:s",
 .params     = "[-d] [-b] [-i] uri",
@@ -848,12 +866,14 @@
 },
 
 
+
 {
 .name       = "info",
 .args_type  = "item:s?",
 .params     = "[subcommand]",
 .help       = "show various information about the system state",
-.mhandler.cmd = do_info,
+.mhandler.cmd = do_info_help,
+.sub_table = info_cmds,
 },
 
 

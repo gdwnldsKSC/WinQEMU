@@ -13,9 +13,9 @@
 #include <assert.h>
 
 #include "hw.h"
-#include "pci.h"
+#include "pci/pci.h"
 #include "scsi.h"
-#include "dma.h"
+#include "sysemu/dma.h"
 
 //#define DEBUG_LSI
 //#define DEBUG_LSI_REG
@@ -1690,12 +1690,7 @@ static void lsi_reg_writeb(LSIState *s, int offset, uint8_t val)
         }
         if (val & LSI_SCNTL1_RST) {
             if (!(s->sstat0 & LSI_SSTAT0_RST)) {
-                BusChild *kid;
-
-                QTAILQ_FOREACH(kid, &s->bus.qbus.children, sibling) {
-                    DeviceState *dev = kid->child;
-                    device_reset(dev);
-                }
+                qbus_reset_all(&s->bus.qbus);
                 s->sstat0 |= LSI_SSTAT0_RST;
                 lsi_script_scsi_interrupt(s, LSI_SIST0_RST, 0);
             }
@@ -2146,7 +2141,7 @@ static void lsi_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_lsi_scsi;
 }
 
-static TypeInfo lsi_info = {
+static const TypeInfo lsi_info = {
     .name          = "lsi53c895a",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(LSIState),
@@ -2158,4 +2153,4 @@ static void lsi53c895a_register_types(void)
     type_register_static(&lsi_info);
 }
 
-type_init(lsi53c895a_register_types);
+type_init(lsi53c895a_register_types)

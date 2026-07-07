@@ -123,7 +123,7 @@ static void smbus_eeprom_class_initfn(ObjectClass *klass, void *data)
     dc->props = smbus_eeprom_properties;
 }
 
-static TypeInfo smbus_eeprom_info = {
+static const TypeInfo smbus_eeprom_info = {
     .name          = "smbus-eeprom",
     .parent        = TYPE_SMBUS_DEVICE,
     .instance_size = sizeof(SMBusEEPROMDevice),
@@ -135,7 +135,7 @@ static void smbus_eeprom_register_types(void)
     type_register_static(&smbus_eeprom_info);
 }
 
-type_init(smbus_eeprom_register_types);
+type_init(smbus_eeprom_register_types)
 
 void smbus_eeprom_init(i2c_bus *smbus, int nb_eeprom,
                        const uint8_t *eeprom_spd, int eeprom_spd_size)

@@ -3,6 +3,15 @@
 
 #include <inttypes.h>
 
+#ifdef _MSC_VER
+/* The Windows SDK (combaseapi.h, reached via windows.h) does
+ *   #define interface __STRUCT__   (i.e. "struct")
+ * for COM.  QEMU uses "interface" as an ordinary union-member name below (and
+ * as "d->u.interface.*" in desc.c), so drop the SDK macro here.  combaseapi.h
+ * is include-guarded, so it will not be re-defined after this point. */
+#undef interface
+#endif
+
 /* binary representation */
 typedef struct USBDescriptor {
     uint8_t                   bLength;

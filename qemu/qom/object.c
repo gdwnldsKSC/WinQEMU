@@ -10,19 +10,20 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include "qemu/object.h"
+#include "qom/object.h"
 #include "qemu-common.h"
-#include "qapi/qapi-visit-core.h"
+#include "qapi/visitor.h"
 #include "qapi/string-input-visitor.h"
 #include "qapi/string-output-visitor.h"
+#include "qapi/qmp/qerror.h"
 
 /* TODO: replace QObject with a simpler visitor to avoid a dependency
  * of the QOM core on QObject?  */
-#include "qemu/qom-qobject.h"
-#include "qobject.h"
-#include "qbool.h"
-#include "qint.h"
-#include "qstring.h"
+#include "qom/qom-qobject.h"
+#include "qapi/qmp/qobject.h"
+#include "qapi/qmp/qbool.h"
+#include "qapi/qmp/qint.h"
+#include "qapi/qmp/qstring.h"
 
 #define MAX_INTERFACES 32
 
@@ -360,12 +361,14 @@ static void object_property_del_child(Object *obj, Object *child, Error **errp)
 
 void object_unparent(Object *obj)
 {
+    object_ref(obj);
     if (obj->parent) {
         object_property_del_child(obj->parent, obj, NULL);
     }
     if (obj->class->unparent) {
         (obj->class->unparent)(obj);
     }
+    object_unref(obj);
 }
 
 static void object_deinit(Object *obj, TypeImpl *type)
@@ -412,13 +415,6 @@ Object *object_new(const char *typename)
     TypeImpl *ti = type_get_by_name(typename);
 
     return object_new_with_type(ti);
-}
-
-void object_delete(Object *obj)
-{
-    object_unparent(obj);
-    g_assert(obj->ref == 1);
-    object_unref(obj);
 }
 
 Object *object_dynamic_cast(Object *obj, const char *typename)
@@ -498,6 +494,11 @@ const char *object_get_typename(Object *obj)
 ObjectClass *object_get_class(Object *obj)
 {
     return obj->class;
+}
+
+bool object_class_is_abstract(ObjectClass *klass)
+{
+    return klass->type->abstract;
 }
 
 const char *object_class_get_name(ObjectClass *klass)
@@ -1016,7 +1017,7 @@ gchar *object_get_canonical_path(Object *obj)
     return newpath;
 }
 
-Object *object_resolve_path_component(Object *parent, gchar *part)
+Object *object_resolve_path_component(Object *parent, const gchar *part)
 {
     ObjectProperty *prop = object_property_find(parent, part, NULL);
     if (prop == NULL) {
@@ -1274,4 +1275,4 @@ static void register_types(void)
     type_register_internal(&object_info);
 }
 
-type_init(register_types);
+type_init(register_types)

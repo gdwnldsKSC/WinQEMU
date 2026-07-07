@@ -13,7 +13,7 @@
 
 #include "hw/virtio.h"
 #include "hw/pc.h"
-#include "qemu_socket.h"
+#include "qemu/sockets.h"
 #include "hw/virtio-pci.h"
 #include "virtio-9p.h"
 #include "fsdev/qemu-fsdev.h"
@@ -85,11 +85,7 @@ VirtIODevice *virtio_9p_init(DeviceState *dev, V9fsConf *conf)
     }
 
     s->ctx.export_flags = fse->export_flags;
-    if (fse->path) {
-        s->ctx.fs_root = g_strdup(fse->path);
-    } else {
-        s->ctx.fs_root = NULL;
-    }
+    s->ctx.fs_root = g_strdup(fse->path);
     s->ctx.exops.get_st_gen = NULL;
     len = strlen(conf->tag);
     if (len > MAX_TAG_LEN - 1) {
@@ -98,7 +94,7 @@ VirtIODevice *virtio_9p_init(DeviceState *dev, V9fsConf *conf)
         exit(1);
     }
 
-    s->tag = strdup(conf->tag);
+    s->tag = g_strdup(conf->tag);
     s->ctx.uid = -1;
 
     s->ops = fse->ops;
@@ -170,14 +166,14 @@ static void virtio_9p_class_init(ObjectClass *klass, void *data)
 
     k->init = virtio_9p_init_pci;
     k->vendor_id = PCI_VENDOR_ID_REDHAT_QUMRANET;
-    k->device_id = 0x1009;
+    k->device_id = PCI_DEVICE_ID_VIRTIO_9P;
     k->revision = VIRTIO_PCI_ABI_VERSION;
     k->class_id = 0x2;
     dc->props = virtio_9p_properties;
     dc->reset = virtio_pci_reset;
 }
 
-static TypeInfo virtio_9p_info = {
+static const TypeInfo virtio_9p_info = {
     .name          = "virtio-9p-pci",
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(VirtIOPCIProxy),

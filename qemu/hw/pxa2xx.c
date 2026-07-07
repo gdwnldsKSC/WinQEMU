@@ -9,12 +9,12 @@
 
 #include "sysbus.h"
 #include "pxa.h"
-#include "sysemu.h"
+#include "sysemu/sysemu.h"
 #include "serial.h"
 #include "i2c.h"
 #include "ssi.h"
-#include "qemu-char.h"
-#include "blockdev.h"
+#include "char/char.h"
+#include "sysemu/blockdev.h"
 
 static struct {
     hwaddr io_base;
@@ -343,23 +343,23 @@ static int pxa2xx_cpccnt_read(CPUARMState *env, const ARMCPRegInfo *ri,
 }
 
 static const ARMCPRegInfo pxa_cp_reginfo[] = {
-    /* cp14 crn==1: perf registers */
-    { .name = "CPPMNC", .cp = 14, .crn = 1, .crm = 0, .opc1 = 0, .opc2 = 0,
+    /* cp14 crm==1: perf registers */
+    { .name = "CPPMNC", .cp = 14, .crn = 0, .crm = 1, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW,
       .readfn = pxa2xx_cppmnc_read, .writefn = pxa2xx_cppmnc_write },
     { .name = "CPCCNT", .cp = 14, .crn = 1, .crm = 1, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW,
       .readfn = pxa2xx_cpccnt_read, .writefn = arm_cp_write_ignore },
-    { .name = "CPINTEN", .cp = 14, .crn = 1, .crm = 4, .opc1 = 0, .opc2 = 0,
+    { .name = "CPINTEN", .cp = 14, .crn = 4, .crm = 1, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    { .name = "CPFLAG", .cp = 14, .crn = 1, .crm = 5, .opc1 = 0, .opc2 = 0,
+    { .name = "CPFLAG", .cp = 14, .crn = 5, .crm = 1, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    { .name = "CPEVTSEL", .cp = 14, .crn = 1, .crm = 8, .opc1 = 0, .opc2 = 0,
+    { .name = "CPEVTSEL", .cp = 14, .crn = 8, .crm = 1, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    /* cp14 crn==2: performance count registers */
-    { .name = "CPPMN0", .cp = 14, .crn = 2, .crm = 0, .opc1 = 0, .opc2 = 0,
+    /* cp14 crm==2: performance count registers */
+    { .name = "CPPMN0", .cp = 14, .crn = 0, .crm = 2, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
-    { .name = "CPPMN1", .cp = 14, .crn = 2, .crm = 1, .opc1 = 0, .opc2 = 0,
+    { .name = "CPPMN1", .cp = 14, .crn = 1, .crm = 2, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
     { .name = "CPPMN2", .cp = 14, .crn = 2, .crm = 2, .opc1 = 0, .opc2 = 0,
       .access = PL1_RW, .type = ARM_CP_CONST, .resetvalue = 0 },
@@ -1194,7 +1194,7 @@ static void pxa2xx_rtc_sysbus_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_pxa2xx_rtc_regs;
 }
 
-static TypeInfo pxa2xx_rtc_sysbus_info = {
+static const TypeInfo pxa2xx_rtc_sysbus_info = {
     .name          = "pxa2xx_rtc",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(PXA2xxRTCState),
@@ -1442,7 +1442,7 @@ static void pxa2xx_i2c_slave_class_init(ObjectClass *klass, void *data)
     k->send = pxa2xx_i2c_tx;
 }
 
-static TypeInfo pxa2xx_i2c_slave_info = {
+static const TypeInfo pxa2xx_i2c_slave_info = {
     .name          = "pxa2xx-i2c-slave",
     .parent        = TYPE_I2C_SLAVE,
     .instance_size = sizeof(PXA2xxI2CSlaveState),
@@ -1456,7 +1456,7 @@ PXA2xxI2CState *pxa2xx_i2c_init(hwaddr base,
     SysBusDevice *i2c_dev;
     PXA2xxI2CState *s;
 
-    i2c_dev = sysbus_from_qdev(qdev_create(NULL, "pxa2xx_i2c"));
+    i2c_dev = SYS_BUS_DEVICE(qdev_create(NULL, "pxa2xx_i2c"));
     qdev_prop_set_uint32(&i2c_dev->qdev, "size", region_size + 1);
     qdev_prop_set_uint32(&i2c_dev->qdev, "offset", base & region_size);
 
@@ -1468,7 +1468,7 @@ PXA2xxI2CState *pxa2xx_i2c_init(hwaddr base,
     s = FROM_SYSBUS(PXA2xxI2CState, i2c_dev);
     /* FIXME: Should the slave device really be on a separate bus?  */
     dev = i2c_create_slave(i2c_init_bus(NULL, "dummy"), "pxa2xx-i2c-slave", 0);
-    s->slave = FROM_I2C_SLAVE(PXA2xxI2CSlaveState, I2C_SLAVE_FROM_QDEV(dev));
+    s->slave = FROM_I2C_SLAVE(PXA2xxI2CSlaveState, I2C_SLAVE(dev));
     s->slave->host = s;
 
     return s;
@@ -1510,7 +1510,7 @@ static void pxa2xx_i2c_class_init(ObjectClass *klass, void *data)
     dc->props = pxa2xx_i2c_properties;
 }
 
-static TypeInfo pxa2xx_i2c_info = {
+static const TypeInfo pxa2xx_i2c_info = {
     .name          = "pxa2xx_i2c",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(PXA2xxI2CState),
@@ -2045,7 +2045,7 @@ PXA2xxState *pxa270_init(MemoryRegion *address_space,
                     qdev_get_gpio_in(s->pic, PXA27X_PIC_OST_4_11),
                     NULL);
 
-    s->gpio = pxa2xx_gpio_init(0x40e00000, &s->cpu->env, s->pic, 121);
+    s->gpio = pxa2xx_gpio_init(0x40e00000, s->cpu, s->pic, 121);
 
     dinfo = drive_get(IF_SD, 0, 0);
     if (!dinfo) {
@@ -2176,7 +2176,7 @@ PXA2xxState *pxa255_init(MemoryRegion *address_space, unsigned int sdram_size)
                     qdev_get_gpio_in(s->pic, PXA2XX_PIC_OST_0 + 3),
                     NULL);
 
-    s->gpio = pxa2xx_gpio_init(0x40e00000, &s->cpu->env, s->pic, 85);
+    s->gpio = pxa2xx_gpio_init(0x40e00000, s->cpu, s->pic, 85);
 
     dinfo = drive_get(IF_SD, 0, 0);
     if (!dinfo) {
@@ -2273,7 +2273,7 @@ static void pxa2xx_ssp_class_init(ObjectClass *klass, void *data)
     sdc->init = pxa2xx_ssp_init;
 }
 
-static TypeInfo pxa2xx_ssp_info = {
+static const TypeInfo pxa2xx_ssp_info = {
     .name          = "pxa2xx-ssp",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(PXA2xxSSPState),

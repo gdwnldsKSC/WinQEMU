@@ -21,7 +21,7 @@
 #include "qemu-common.h"
 #include "hw/usb.h"
 #include "hw/usb/desc.h"
-#include "net.h"
+#include "bt/bt.h"
 #include "hw/bt.h"
 
 struct USBBtState {
@@ -555,7 +555,7 @@ static void usb_bt_class_initfn(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_usb_bt;
 }
 
-static TypeInfo bt_info = {
+static const TypeInfo bt_info = {
     .name          = "usb-bt-dongle",
     .parent        = TYPE_USB_DEVICE,
     .instance_size = sizeof(struct USBBtState),
@@ -567,4 +567,4 @@ static void usb_bt_register_types(void)
     type_register_static(&bt_info);
 }
 
-type_init(usb_bt_register_types);
+type_init(usb_bt_register_types)

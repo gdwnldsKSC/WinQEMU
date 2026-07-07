@@ -537,13 +537,15 @@ STEXI
 @end table
 ETEXI
 
+STEXI
+USB options:
+@table @option
+ETEXI
+
 DEF("usb", 0, QEMU_OPTION_usb,
     "-usb            enable the USB driver (will be the default soon)\n",
     QEMU_ARCH_ALL)
 STEXI
-USB options:
-@table @option
-
 @item -usb
 @findex -usb
 Enable the USB driver (will be the default soon)
@@ -610,9 +612,15 @@ possible drivers and properties, use @code{-device help} and
 @code{-device @var{driver},help}.
 ETEXI
 
+STEXI
+@end table
+ETEXI
 DEFHEADING()
 
 DEFHEADING(File system options:)
+STEXI
+@table @option
+ETEXI
 
 DEF("fsdev", HAS_ARG, QEMU_OPTION_fsdev,
     "-fsdev fsdriver,id=id[,path=path,][security_model={mapped-xattr|mapped-file|passthrough|none}]\n"
@@ -676,9 +684,15 @@ Specifies the tag name to be used by the guest to mount this export point
 
 ETEXI
 
+STEXI
+@end table
+ETEXI
 DEFHEADING()
 
 DEFHEADING(Virtual File system pass-through options:)
+STEXI
+@table @option
+ETEXI
 
 DEF("virtfs", HAS_ARG, QEMU_OPTION_virtfs,
     "-virtfs local,path=path,mount_tag=tag,security_model=[mapped-xattr|mapped-file|passthrough|none]\n"
@@ -769,11 +783,9 @@ ETEXI
 STEXI
 @end table
 ETEXI
-
 DEFHEADING()
 
 DEFHEADING(Display options:)
-
 STEXI
 @table @option
 ETEXI
@@ -1096,6 +1108,14 @@ client is specified by the @var{display}. For reverse network
 connections (@var{host}:@var{d},@code{reverse}), the @var{d} argument
 is a TCP port number, not a display number.
 
+@item websocket
+
+Opens an additional TCP listening port dedicated to VNC Websocket connections.
+By defintion the Websocket port is 5700+@var{display}. If @var{host} is
+specified connections will only be allowed from this host.
+As an alternative the Websocket port could be specified by using
+@code{websocket}=@var{port}.
+
 @item password
 
 Require that password based authentication is used for client connections.
@@ -1207,7 +1227,6 @@ ETEXI
 STEXI
 @end table
 ETEXI
-
 ARCHHEADING(, QEMU_ARCH_I386)
 
 ARCHHEADING(i386 target only:, QEMU_ARCH_I386)
@@ -1293,10 +1312,10 @@ Specify SMBIOS type 0 fields
 Specify SMBIOS type 1 fields
 ETEXI
 
-DEFHEADING()
 STEXI
 @end table
 ETEXI
+DEFHEADING()
 
 DEFHEADING(Network options:)
 STEXI
@@ -1330,8 +1349,8 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
     "-net tap[,vlan=n][,name=str],ifname=name\n"
     "                connect the host TAP network interface to VLAN 'n'\n"
 #else
-    "-net tap[,vlan=n][,name=str][,fd=h][,ifname=name][,script=file][,downscript=dfile][,helper=helper][,sndbuf=nbytes][,vnet_hdr=on|off][,vhost=on|off][,vhostfd=h][,vhostforce=on|off]\n"
-    "                connect the host TAP network interface to VLAN 'n' \n"
+    "-net tap[,vlan=n][,name=str][,fd=h][,fds=x:y:...:z][,ifname=name][,script=file][,downscript=dfile][,helper=helper][,sndbuf=nbytes][,vnet_hdr=on|off][,vhost=on|off][,vhostfd=h][,vhostfds=x:y:...:z][,vhostforce=on|off][,queues=n]\n"
+    "                connect the host TAP network interface to VLAN 'n'\n"
     "                use network scripts 'file' (default=" DEFAULT_NETWORK_SCRIPT ")\n"
     "                to configure it and 'dfile' (default=" DEFAULT_NETWORK_DOWN_SCRIPT ")\n"
     "                to deconfigure it\n"
@@ -1339,6 +1358,7 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
     "                use network helper 'helper' (default=" DEFAULT_BRIDGE_HELPER ") to\n"
     "                configure it\n"
     "                use 'fd=h' to connect to an already opened TAP interface\n"
+    "                use 'fds=x:y:...:z' to connect to already opened multiqueue capable TAP interfaces\n"
     "                use 'sndbuf=nbytes' to limit the size of the send buffer (the\n"
     "                default is disabled 'sndbuf=0' to enable flow control set 'sndbuf=1048576')\n"
     "                use vnet_hdr=off to avoid enabling the IFF_VNET_HDR tap flag\n"
@@ -1347,6 +1367,8 @@ DEF("net", HAS_ARG, QEMU_OPTION_net,
     "                    (only has effect for virtio guests which use MSIX)\n"
     "                use vhostforce=on to force vhost on for non-MSIX virtio guests\n"
     "                use 'vhostfd=h' to connect to an already opened vhost net device\n"
+    "                use 'vhostfds=x:y:...:z to connect to multiple already opened vhost net devices\n"
+    "                use 'queues=n' to specify the number of queues to be created for multiqueue TAP\n"
     "-net bridge[,vlan=n][,name=str][,br=bridge][,helper=helper]\n"
     "                connects a host TAP network interface to a host bridge device 'br'\n"
     "                (default=" DEFAULT_BRIDGE_INTERFACE ") using the program 'helper'\n"
@@ -1710,13 +1732,19 @@ libpcap, so it can be analyzed with tools such as tcpdump or Wireshark.
 Indicate that no network devices should be configured. It is used to
 override the default configuration (@option{-net nic -net user}) which
 is activated if no @option{-net} options are provided.
-
-@end table
 ETEXI
 
+STEXI
+@end table
+ETEXI
 DEFHEADING()
 
 DEFHEADING(Character device options:)
+STEXI
+
+The general form of a character device option is:
+@table @option
+ETEXI
 
 DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
     "-chardev null,id=id[,mux=on|off]\n"
@@ -1728,6 +1756,7 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
     "-chardev msmouse,id=id[,mux=on|off]\n"
     "-chardev vc,id=id[[,width=width][,height=height]][[,cols=cols][,rows=rows]]\n"
     "         [,mux=on|off]\n"
+    "-chardev ringbuf,id=id[,size=size]\n"
     "-chardev file,id=id,path=path[,mux=on|off]\n"
     "-chardev pipe,id=id,path=path[,mux=on|off]\n"
 #ifdef _WIN32
@@ -1742,22 +1771,21 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 #endif
 #if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) \
         || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+    "-chardev serial,id=id,path=path[,mux=on|off]\n"
     "-chardev tty,id=id,path=path[,mux=on|off]\n"
 #endif
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
+    "-chardev parallel,id=id,path=path[,mux=on|off]\n"
     "-chardev parport,id=id,path=path[,mux=on|off]\n"
 #endif
 #if defined(CONFIG_SPICE)
     "-chardev spicevmc,id=id,name=name[,debug=debug]\n"
+    "-chardev spiceport,id=id,name=name[,debug=debug]\n"
 #endif
     , QEMU_ARCH_ALL
 )
 
 STEXI
-
-The general form of a character device option is:
-@table @option
-
 @item -chardev @var{backend} ,id=@var{id} [,mux=on|off] [,@var{options}]
 @findex -chardev
 Backend is one of:
@@ -1766,6 +1794,7 @@ Backend is one of:
 @option{udp},
 @option{msmouse},
 @option{vc},
+@option{ringbuf},
 @option{file},
 @option{pipe},
 @option{console},
@@ -1774,8 +1803,10 @@ Backend is one of:
 @option{stdio},
 @option{braille},
 @option{tty},
+@option{parallel},
 @option{parport},
 @option{spicevmc}.
+@option{spiceport}.
 The specific backend will determine the applicable options.
 
 All devices must have an id, which can be any string up to 127 characters long.
@@ -1872,6 +1903,11 @@ the console, in pixels.
 @option{cols} and @option{rows} specify that the console be sized to fit a text
 console with the given dimensions.
 
+@item -chardev ringbuf ,id=@var{id} [,size=@var{size}]
+
+Create a ring buffer with fixed size @option{size}.
+@var{size} must be a power of two, and defaults to @code{64K}).
+
 @item -chardev file ,id=@var{id} ,path=@var{path}
 
 Log all traffic received from the guest to a file.
@@ -1908,8 +1944,8 @@ take any options.
 
 Send traffic from the guest to a serial device on the host.
 
-@option{serial} is
-only available on Windows hosts.
+On Unix hosts serial will actually accept any tty device,
+not only serial lines.
 
 @option{path} specifies the name of the serial device to open.
 
@@ -1935,16 +1971,15 @@ Connect to a local BrlAPI server. @option{braille} does not take any options.
 
 @item -chardev tty ,id=@var{id} ,path=@var{path}
 
-Connect to a local tty device.
-
 @option{tty} is only available on Linux, Sun, FreeBSD, NetBSD, OpenBSD and
-DragonFlyBSD hosts.
+DragonFlyBSD hosts.  It is an alias for @option{serial}.
 
 @option{path} specifies the path to the tty. @option{path} is required.
 
+@item -chardev parallel ,id=@var{id} ,path=@var{path}
 @item -chardev parport ,id=@var{id} ,path=@var{path}
 
-@option{parport} is only available on Linux, FreeBSD and DragonFlyBSD hosts.
+@option{parallel} is only available on Linux, FreeBSD and DragonFlyBSD hosts.
 
 Connect to a local parallel port.
 
@@ -1961,13 +1996,25 @@ required.
 
 Connect to a spice virtual machine channel, such as vdiport.
 
-@end table
+@item -chardev spiceport ,id=@var{id} ,debug=@var{debug}, name=@var{name}
+
+@option{spiceport} is only available when spice support is built in.
+
+@option{debug} debug level for spicevmc
+
+@option{name} name of spice port to connect to
+
+Connect to a spice port, allowing a Spice client to handle the traffic
+identified by a name (preferably a fqdn).
 ETEXI
 
+STEXI
+@end table
+ETEXI
 DEFHEADING()
 
-STEXI
 DEFHEADING(Device URL Syntax:)
+STEXI
 
 In addition to using normal file images for the emulated storage devices,
 QEMU can also use networked resources such as iSCSI devices. These are
@@ -2083,10 +2130,16 @@ qemu-system-x86_84 --drive file=gluster://192.0.2.1/testvol/a.img
 @end example
 
 See also @url{http://www.gluster.org}.
+ETEXI
+
+STEXI
 @end table
 ETEXI
 
 DEFHEADING(Bluetooth(R) options:)
+STEXI
+@table @option
+ETEXI
 
 DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
     "-bt hci,null    dumb bluetooth HCI - doesn't respond to commands\n" \
@@ -2100,8 +2153,6 @@ DEF("bt", HAS_ARG, QEMU_OPTION_bt, \
     "                emulate a bluetooth device 'dev' in scatternet 'n'\n",
     QEMU_ARCH_ALL)
 STEXI
-@table @option
-
 @item -bt hci[...]
 @findex -bt
 Defines the function of the corresponding Bluetooth HCI.  -bt options
@@ -2153,9 +2204,11 @@ currently:
 @item keyboard
 Virtual wireless keyboard implementing the HIDP bluetooth profile.
 @end table
-@end table
 ETEXI
 
+STEXI
+@end table
+ETEXI
 DEFHEADING()
 
 DEFHEADING(Linux/Multiboot boot specific:)
@@ -2212,11 +2265,9 @@ ETEXI
 STEXI
 @end table
 ETEXI
-
 DEFHEADING()
 
 DEFHEADING(Debug/Expert options:)
-
 STEXI
 @table @option
 ETEXI

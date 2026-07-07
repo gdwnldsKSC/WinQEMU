@@ -248,7 +248,7 @@ static void mst_fpga_class_init(ObjectClass *klass, void *data)
     dc->vmsd = &vmstate_mst_fpga_regs;
 }
 
-static TypeInfo mst_fpga_info = {
+static const TypeInfo mst_fpga_info = {
     .name          = "mainstone-fpga",
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(mst_irq_state),
@@ -260,4 +260,4 @@ static void mst_fpga_register_types(void)
     type_register_static(&mst_fpga_info);
 }
 
-type_init(mst_fpga_register_types);
+type_init(mst_fpga_register_types)

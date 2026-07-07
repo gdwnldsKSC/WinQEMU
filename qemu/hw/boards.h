@@ -3,7 +3,11 @@
 #ifndef HW_BOARDS_H
 #define HW_BOARDS_H
 
+#include "sysemu/blockdev.h"
 #include "qdev.h"
+
+#define DEFAULT_MACHINE_OPTIONS \
+    .boot_order = "cad"
 
 typedef struct QEMUMachineInitArgs {
     ram_addr_t ram_size;
@@ -24,16 +28,18 @@ typedef struct QEMUMachine {
     const char *desc;
     QEMUMachineInitFunc *init;
     QEMUMachineResetFunc *reset;
-    int use_scsi;
+    BlockInterfaceType block_default_type;
     int max_cpus;
     unsigned int no_serial:1,
         no_parallel:1,
         use_virtcon:1,
+        use_sclp:1,
         no_floppy:1,
         no_cdrom:1,
         no_sdcard:1;
     int is_default;
     const char *default_machine_opts;
+    const char *boot_order;
     GlobalProperty *compat_props;
     struct QEMUMachine *next;
     const char *hw_version;

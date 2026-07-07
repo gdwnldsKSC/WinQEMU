@@ -318,7 +318,7 @@ static void smbus_device_class_init(ObjectClass *klass, void *data)
     sc->send = smbus_i2c_send;
 }
 
-static TypeInfo smbus_device_type_info = {
+static const TypeInfo smbus_device_type_info = {
     .name = TYPE_SMBUS_DEVICE,
     .parent = TYPE_I2C_SLAVE,
     .instance_size = sizeof(SMBusDevice),
@@ -332,4 +332,4 @@ static void smbus_device_register_types(void)
     type_register_static(&smbus_device_type_info);
 }
 
-type_init(smbus_device_register_types);
+type_init(smbus_device_register_types)

@@ -23,7 +23,7 @@
  */
 
 #include "qemu-common.h"
-#include "block_int.h"
+#include "block/block_int.h"
 #include "block/qcow2.h"
 
 typedef struct QEMU_PACKED QCowSnapshotHeader {
@@ -180,10 +180,13 @@ static int qcow2_write_snapshots(BlockDriverState *bs)
 
     /* Allocate space for the new snapshot list */
     snapshots_offset = qcow2_alloc_clusters(bs, snapshots_size);
-    bdrv_flush(bs->file);
     offset = snapshots_offset;
     if (offset < 0) {
         return offset;
+    }
+    ret = bdrv_flush(bs);
+    if (ret < 0) {
+        return ret;
     }
 
     /* Write all snapshots to the new list */

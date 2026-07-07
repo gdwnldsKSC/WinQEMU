@@ -99,7 +99,7 @@ static void serial_isa_class_initfn(ObjectClass *klass, void *data)
     dc->props = serial_isa_properties;
 }
 
-static TypeInfo serial_isa_info = {
+static const TypeInfo serial_isa_info = {
     .name          = "isa-serial",
     .parent        = TYPE_ISA_DEVICE,
     .instance_size = sizeof(ISASerialState),
@@ -111,7 +111,7 @@ static void serial_register_types(void)
     type_register_static(&serial_isa_info);
 }
 
-type_init(serial_register_types);
+type_init(serial_register_types)
 
 bool serial_isa_init(ISABus *bus, int index, CharDriverState *chr)
 {

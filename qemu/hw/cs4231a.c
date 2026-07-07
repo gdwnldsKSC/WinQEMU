@@ -26,7 +26,7 @@
 #include "audio/audio.h"
 #include "isa.h"
 #include "qdev.h"
-#include "qemu-timer.h"
+#include "qemu/timer.h"
 
 /*
   Missing features:
@@ -682,7 +682,7 @@ static void cs4231a_class_initfn (ObjectClass *klass, void *data)
     dc->props = cs4231a_properties;
 }
 
-static TypeInfo cs4231a_info = {
+static const TypeInfo cs4231a_info = {
     .name          = "cs4231a",
     .parent        = TYPE_ISA_DEVICE,
     .instance_size = sizeof (CSState),
@@ -694,4 +694,4 @@ static void cs4231a_register_types (void)
     type_register_static (&cs4231a_info);
 }
 
-type_init(cs4231a_register_types);
+type_init (cs4231a_register_types)

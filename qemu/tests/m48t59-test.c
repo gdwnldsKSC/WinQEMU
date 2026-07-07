@@ -142,7 +142,9 @@ static void cmos_get_date_time(struct tm *date)
     date->tm_mday = mday;
     date->tm_mon = mon - 1;
     date->tm_year = base_year + year - 1900;
+#ifndef __sun__
     date->tm_gmtoff = 0;
+#endif
 
     ts = mktime(date);
 }
@@ -232,6 +234,11 @@ static void fuzz_registers(void)
 
         reg = (uint8_t)g_test_rand_int_range(0, 16);
         val = (uint8_t)g_test_rand_int_range(0, 256);
+
+        if (reg == 7) {
+            /* watchdog setup register, may trigger system reset, skip */
+            continue;
+        }
 
         cmos_write(reg, val);
         cmos_read(reg);

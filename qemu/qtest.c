@@ -11,20 +11,20 @@
  *
  */
 
-#include "qtest.h"
+#include "sysemu/qtest.h"
 #include "hw/qdev.h"
-#include "qemu-char.h"
-#include "ioport.h"
-#include "memory.h"
+#include "char/char.h"
+#include "exec/ioport.h"
+#include "exec/memory.h"
 #include "hw/irq.h"
-#include "sysemu.h"
-#include "cpus.h"
+#include "sysemu/sysemu.h"
+#include "sysemu/cpus.h"
 
 #define MAX_IRQ 256
 
 const char *qtest_chrdev;
 const char *qtest_log;
-int qtest_allowed = 0;
+bool qtest_allowed;
 
 static DeviceState *irq_intercept_dev;
 static FILE *qtest_log_fp;
@@ -282,8 +282,8 @@ static void qtest_process_command(CharDriverState *chr, gchar **words)
         uint8_t *data;
 
         g_assert(words[1] && words[2]);
-        addr = strtoul(words[1], NULL, 0);
-        len = strtoul(words[2], NULL, 0);
+        addr = strtoull(words[1], NULL, 0);
+        len = strtoull(words[2], NULL, 0);
 
         data = g_malloc(len);
         cpu_physical_memory_read(addr, data, len);
@@ -302,8 +302,8 @@ static void qtest_process_command(CharDriverState *chr, gchar **words)
         size_t data_len;
 
         g_assert(words[1] && words[2] && words[3]);
-        addr = strtoul(words[1], NULL, 0);
-        len = strtoul(words[2], NULL, 0);
+        addr = strtoull(words[1], NULL, 0);
+        len = strtoull(words[2], NULL, 0);
 
         data_len = strlen(words[3]);
         if (data_len < 3) {

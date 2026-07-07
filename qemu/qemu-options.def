@@ -131,6 +131,7 @@ DEF("balloon", HAS_ARG, QEMU_OPTION_balloon,
 "                enable virtio balloon device (default)\n", QEMU_ARCH_ALL)
 
 
+
 DEF("usb", 0, QEMU_OPTION_usb,
 "-usb            enable the USB driver (will be the default soon)\n",
 QEMU_ARCH_ALL)
@@ -183,11 +184,9 @@ DEF("uuid", HAS_ARG, QEMU_OPTION_uuid,
 "-uuid %08x-%04x-%04x-%04x-%012x\n"
 "                specify machine UUID\n", QEMU_ARCH_ALL)
 
-
 DEFHEADING()
 
 DEFHEADING(Display options:)
-
 
 DEF("display", HAS_ARG, QEMU_OPTION_display,
 "-display sdl[,frame=on|off][,alt_grab=on|off][,ctrl_grab=on|off]\n"
@@ -261,7 +260,6 @@ QEMU_ARCH_PPC | QEMU_ARCH_SPARC)
 
 DEF("vnc", HAS_ARG, QEMU_OPTION_vnc ,
 "-vnc display    start a VNC server on display\n", QEMU_ARCH_ALL)
-
 
 ARCHHEADING(, QEMU_ARCH_I386)
 
@@ -483,11 +481,13 @@ DEF("chardev", HAS_ARG, QEMU_OPTION_chardev,
 
 DEFHEADING()
 
+DEFHEADING(Device URL Syntax:)
 DEF("iscsi", HAS_ARG, QEMU_OPTION_iscsi,
 "-iscsi [user=user][,password=password]\n"
 "       [,header-digest=CRC32C|CR32C-NONE|NONE-CRC32C|NONE\n"
 "       [,initiator-name=iqn]\n"
 "                iSCSI session parameters\n", QEMU_ARCH_ALL)
+
 
 DEFHEADING(Bluetooth(R) options:)
 
@@ -519,11 +519,9 @@ DEF("initrd", HAS_ARG, QEMU_OPTION_initrd, \
 DEF("dtb", HAS_ARG, QEMU_OPTION_dtb, \
 "-dtb    file    use 'file' as device tree image\n", QEMU_ARCH_ALL)
 
-
 DEFHEADING()
 
 DEFHEADING(Debug/Expert options:)
-
 
 DEF("serial", HAS_ARG, QEMU_OPTION_serial, \
 "-serial dev     redirect the serial port to char device 'dev'\n",
