@@ -440,6 +440,12 @@ void qemu_flush_queued_packets(NetClientState *nc)
 {
     nc->receive_disabled = 0;
 
+    if (nc->peer && nc->peer->info->type == NET_CLIENT_OPTIONS_KIND_HUBPORT) {
+        if (net_hub_flush(nc->peer)) {
+            qemu_notify_event();
+        }
+        return;
+    }
     if (qemu_net_queue_flush(nc->send_queue)) {
         /* We emptied the queue successfully, signal to the IO thread to repoll
          * the file descriptor (for tap, for example).
@@ -491,7 +497,7 @@ ssize_t qemu_send_packet_raw(NetClientState *nc, const uint8_t *buf, int size)
 static ssize_t nc_sendv_compat(NetClientState *nc, const struct iovec *iov,
                                int iovcnt)
 {
-    uint8_t buffer[4096];
+    uint8_t buffer[NET_BUFSIZE];
     size_t offset;
 
     offset = iov_to_buf(iov, iovcnt, 0, buffer, sizeof(buffer));

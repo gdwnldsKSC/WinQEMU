@@ -22,22 +22,22 @@
  * THE SOFTWARE.
  */
 #include "hw/hw.h"
-#include "hw/nvram.h"
-#include "hw/pc.h"
-#include "hw/serial.h"
-#include "hw/fdc.h"
+#include "hw/timer/m48t59.h"
+#include "hw/i386/pc.h"
+#include "hw/char/serial.h"
+#include "hw/block/fdc.h"
 #include "net/net.h"
 #include "sysemu/sysemu.h"
-#include "hw/isa.h"
+#include "hw/isa/isa.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_host.h"
-#include "hw/ppc.h"
+#include "hw/ppc/ppc.h"
 #include "hw/boards.h"
 #include "qemu/log.h"
 #include "hw/ide.h"
 #include "hw/loader.h"
-#include "hw/mc146818rtc.h"
-#include "hw/pc87312.h"
+#include "hw/timer/mc146818rtc.h"
+#include "hw/isa/pc87312.h"
 #include "sysemu/blockdev.h"
 #include "sysemu/arch_init.h"
 #include "exec/address-spaces.h"
@@ -567,7 +567,6 @@ static void ppc_prep_init(QEMUMachineInitArgs *args)
 
     dev = qdev_create(NULL, "raven-pcihost");
     pcihost = PCI_HOST_BRIDGE(dev);
-    pcihost->address_space = get_system_memory();
     object_property_add_child(qdev_get_machine(), "raven", OBJECT(dev), NULL);
     qdev_init_nofail(dev);
     pci_bus = (PCIBus *)qdev_get_child_bus(dev, "pci.0");

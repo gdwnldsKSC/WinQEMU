@@ -346,6 +346,94 @@ void visit_type_ImageInfoList(Visitor *m, ImageInfoList ** obj, const char *name
     }
 }
 
+void visit_type_ImageCheck(Visitor *m, ImageCheck ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ImageCheck", name, sizeof(ImageCheck), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->filename : NULL, "filename", &err);
+                visit_type_str(m, obj ? &(*obj)->format : NULL, "format", &err);
+                visit_type_int(m, obj ? &(*obj)->check_errors : NULL, "check-errors", &err);
+                visit_start_optional(m, obj ? &(*obj)->has_image_end_offset : NULL, "image-end-offset", &err);
+                if (obj && (*obj)->has_image_end_offset) {
+                    visit_type_int(m, obj ? &(*obj)->image_end_offset : NULL, "image-end-offset", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_corruptions : NULL, "corruptions", &err);
+                if (obj && (*obj)->has_corruptions) {
+                    visit_type_int(m, obj ? &(*obj)->corruptions : NULL, "corruptions", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_leaks : NULL, "leaks", &err);
+                if (obj && (*obj)->has_leaks) {
+                    visit_type_int(m, obj ? &(*obj)->leaks : NULL, "leaks", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_corruptions_fixed : NULL, "corruptions-fixed", &err);
+                if (obj && (*obj)->has_corruptions_fixed) {
+                    visit_type_int(m, obj ? &(*obj)->corruptions_fixed : NULL, "corruptions-fixed", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_leaks_fixed : NULL, "leaks-fixed", &err);
+                if (obj && (*obj)->has_leaks_fixed) {
+                    visit_type_int(m, obj ? &(*obj)->leaks_fixed : NULL, "leaks-fixed", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_total_clusters : NULL, "total-clusters", &err);
+                if (obj && (*obj)->has_total_clusters) {
+                    visit_type_int(m, obj ? &(*obj)->total_clusters : NULL, "total-clusters", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_allocated_clusters : NULL, "allocated-clusters", &err);
+                if (obj && (*obj)->has_allocated_clusters) {
+                    visit_type_int(m, obj ? &(*obj)->allocated_clusters : NULL, "allocated-clusters", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_fragmented_clusters : NULL, "fragmented-clusters", &err);
+                if (obj && (*obj)->has_fragmented_clusters) {
+                    visit_type_int(m, obj ? &(*obj)->fragmented_clusters : NULL, "fragmented-clusters", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_compressed_clusters : NULL, "compressed-clusters", &err);
+                if (obj && (*obj)->has_compressed_clusters) {
+                    visit_type_int(m, obj ? &(*obj)->compressed_clusters : NULL, "compressed-clusters", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ImageCheckList(Visitor *m, ImageCheckList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ImageCheckList *native_i = (ImageCheckList *)i;
+                visit_type_ImageCheck(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
 void visit_type_StatusInfo(Visitor *m, StatusInfo ** obj, const char *name, Error **errp)
 {
     if (!error_is_set(errp)) {
@@ -592,6 +680,7 @@ void visit_type_MigrationStats(Visitor *m, MigrationStats ** obj, const char *na
                 visit_type_int(m, obj ? &(*obj)->remaining : NULL, "remaining", &err);
                 visit_type_int(m, obj ? &(*obj)->total : NULL, "total", &err);
                 visit_type_int(m, obj ? &(*obj)->duplicate : NULL, "duplicate", &err);
+                visit_type_int(m, obj ? &(*obj)->skipped : NULL, "skipped", &err);
                 visit_type_int(m, obj ? &(*obj)->normal : NULL, "normal", &err);
                 visit_type_int(m, obj ? &(*obj)->normal_bytes : NULL, "normal-bytes", &err);
                 visit_type_int(m, obj ? &(*obj)->dirty_pages_rate : NULL, "dirty-pages-rate", &err);
@@ -3166,6 +3255,7 @@ void visit_type_MachineInfo(Visitor *m, MachineInfo ** obj, const char *name, Er
                     visit_type_bool(m, obj ? &(*obj)->is_default : NULL, "is-default", &err);
                 }
                 visit_end_optional(m, &err);
+                visit_type_int(m, obj ? &(*obj)->cpu_max : NULL, "cpu-max", &err);
             
                 error_propagate(errp, err);
                 err = NULL;
@@ -3671,6 +3761,325 @@ void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const ch
     }
 }
 
+void visit_type_ChardevDgram(Visitor *m, ChardevDgram ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevDgram", name, sizeof(ChardevDgram), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_SocketAddress(m, obj ? &(*obj)->remote : NULL, "remote", &err);
+                visit_start_optional(m, obj ? &(*obj)->has_local : NULL, "local", &err);
+                if (obj && (*obj)->has_local) {
+                    visit_type_SocketAddress(m, obj ? &(*obj)->local : NULL, "local", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevDgramList(Visitor *m, ChardevDgramList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevDgramList *native_i = (ChardevDgramList *)i;
+                visit_type_ChardevDgram(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevMux(Visitor *m, ChardevMux ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevMux", name, sizeof(ChardevMux), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->chardev : NULL, "chardev", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevMuxList(Visitor *m, ChardevMuxList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevMuxList *native_i = (ChardevMuxList *)i;
+                visit_type_ChardevMux(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevStdio(Visitor *m, ChardevStdio ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevStdio", name, sizeof(ChardevStdio), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_signal : NULL, "signal", &err);
+                if (obj && (*obj)->has_signal) {
+                    visit_type_bool(m, obj ? &(*obj)->signal : NULL, "signal", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevStdioList(Visitor *m, ChardevStdioList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevStdioList *native_i = (ChardevStdioList *)i;
+                visit_type_ChardevStdio(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSpiceChannel(Visitor *m, ChardevSpiceChannel ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevSpiceChannel", name, sizeof(ChardevSpiceChannel), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->type : NULL, "type", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSpiceChannelList(Visitor *m, ChardevSpiceChannelList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevSpiceChannelList *native_i = (ChardevSpiceChannelList *)i;
+                visit_type_ChardevSpiceChannel(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSpicePort(Visitor *m, ChardevSpicePort ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevSpicePort", name, sizeof(ChardevSpicePort), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->fqdn : NULL, "fqdn", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevSpicePortList(Visitor *m, ChardevSpicePortList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevSpicePortList *native_i = (ChardevSpicePortList *)i;
+                visit_type_ChardevSpicePort(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevVC(Visitor *m, ChardevVC ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevVC", name, sizeof(ChardevVC), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_width : NULL, "width", &err);
+                if (obj && (*obj)->has_width) {
+                    visit_type_int(m, obj ? &(*obj)->width : NULL, "width", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_height : NULL, "height", &err);
+                if (obj && (*obj)->has_height) {
+                    visit_type_int(m, obj ? &(*obj)->height : NULL, "height", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_cols : NULL, "cols", &err);
+                if (obj && (*obj)->has_cols) {
+                    visit_type_int(m, obj ? &(*obj)->cols : NULL, "cols", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_rows : NULL, "rows", &err);
+                if (obj && (*obj)->has_rows) {
+                    visit_type_int(m, obj ? &(*obj)->rows : NULL, "rows", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevVCList(Visitor *m, ChardevVCList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevVCList *native_i = (ChardevVCList *)i;
+                visit_type_ChardevVC(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevRingbuf(Visitor *m, ChardevRingbuf ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "ChardevRingbuf", name, sizeof(ChardevRingbuf), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_size : NULL, "size", &err);
+                if (obj && (*obj)->has_size) {
+                    visit_type_int(m, obj ? &(*obj)->size : NULL, "size", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_ChardevRingbufList(Visitor *m, ChardevRingbufList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                ChardevRingbufList *native_i = (ChardevRingbufList *)i;
+                visit_type_ChardevRingbuf(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
 void visit_type_ChardevDummy(Visitor *m, ChardevDummy ** obj, const char *name, Error **errp)
 {
     if (!error_is_set(errp)) {
@@ -3736,14 +4145,47 @@ void visit_type_ChardevBackend(Visitor *m, ChardevBackend ** obj, const char *na
                     case CHARDEV_BACKEND_KIND_PARALLEL:
                         visit_type_ChardevHostdev(m, &(*obj)->parallel, "data", &err);
                         break;
+                    case CHARDEV_BACKEND_KIND_PIPE:
+                        visit_type_ChardevHostdev(m, &(*obj)->pipe, "data", &err);
+                        break;
                     case CHARDEV_BACKEND_KIND_SOCKET:
                         visit_type_ChardevSocket(m, &(*obj)->socket, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_DGRAM:
+                        visit_type_ChardevDgram(m, &(*obj)->dgram, "data", &err);
                         break;
                     case CHARDEV_BACKEND_KIND_PTY:
                         visit_type_ChardevDummy(m, &(*obj)->pty, "data", &err);
                         break;
                     case CHARDEV_BACKEND_KIND_NULL:
                         visit_type_ChardevDummy(m, &(*obj)->null, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_MUX:
+                        visit_type_ChardevMux(m, &(*obj)->mux, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_MSMOUSE:
+                        visit_type_ChardevDummy(m, &(*obj)->msmouse, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_BRAILLE:
+                        visit_type_ChardevDummy(m, &(*obj)->braille, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_STDIO:
+                        visit_type_ChardevStdio(m, &(*obj)->stdio, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_CONSOLE:
+                        visit_type_ChardevDummy(m, &(*obj)->console, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_SPICEVMC:
+                        visit_type_ChardevSpiceChannel(m, &(*obj)->spicevmc, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_SPICEPORT:
+                        visit_type_ChardevSpicePort(m, &(*obj)->spiceport, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_VC:
+                        visit_type_ChardevVC(m, &(*obj)->vc, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_MEMORY:
+                        visit_type_ChardevRingbuf(m, &(*obj)->memory, "data", &err);
                         break;
                     default:
                         abort();
@@ -3815,6 +4257,293 @@ void visit_type_ChardevReturnList(Visitor *m, ChardevReturnList ** obj, const ch
             for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
                 ChardevReturnList *native_i = (ChardevReturnList *)i;
                 visit_type_ChardevReturn(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TpmModelList(Visitor *m, TpmModelList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                TpmModelList *native_i = (TpmModelList *)i;
+                visit_type_TpmModel(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TpmModel(Visitor *m, TpmModel * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, TpmModel_lookup, "TpmModel", name, errp);
+}
+
+void visit_type_TpmTypeList(Visitor *m, TpmTypeList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                TpmTypeList *native_i = (TpmTypeList *)i;
+                visit_type_TpmType(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TpmType(Visitor *m, TpmType * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, TpmType_lookup, "TpmType", name, errp);
+}
+
+void visit_type_TPMPassthroughOptions(Visitor *m, TPMPassthroughOptions ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "TPMPassthroughOptions", name, sizeof(TPMPassthroughOptions), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_path : NULL, "path", &err);
+                if (obj && (*obj)->has_path) {
+                    visit_type_str(m, obj ? &(*obj)->path : NULL, "path", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_cancel_path : NULL, "cancel-path", &err);
+                if (obj && (*obj)->has_cancel_path) {
+                    visit_type_str(m, obj ? &(*obj)->cancel_path : NULL, "cancel-path", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TPMPassthroughOptionsList(Visitor *m, TPMPassthroughOptionsList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                TPMPassthroughOptionsList *native_i = (TPMPassthroughOptionsList *)i;
+                visit_type_TPMPassthroughOptions(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TpmTypeOptionsKind(Visitor *m, TpmTypeOptionsKind * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, TpmTypeOptionsKind_lookup, "TpmTypeOptionsKind", name, errp);
+}
+
+void visit_type_TpmTypeOptions(Visitor *m, TpmTypeOptions ** obj, const char *name, Error **errp)
+{
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_struct(m, (void **)obj, "TpmTypeOptions", name, sizeof(TpmTypeOptions), &err);
+        if (!err) {
+            if (obj && *obj) {
+                visit_type_TpmTypeOptionsKind(m, &(*obj)->kind, "type", &err);
+                if (!err) {
+                    switch ((*obj)->kind) {
+                    case TPM_TYPE_OPTIONS_KIND_PASSTHROUGH:
+                        visit_type_TPMPassthroughOptions(m, &(*obj)->passthrough, "data", &err);
+                        break;
+                    default:
+                        abort();
+                    }
+                }
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TpmTypeOptionsList(Visitor *m, TpmTypeOptionsList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                TpmTypeOptionsList *native_i = (TpmTypeOptionsList *)i;
+                visit_type_TpmTypeOptions(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TPMInfo(Visitor *m, TPMInfo ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "TPMInfo", name, sizeof(TPMInfo), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->id : NULL, "id", &err);
+                visit_type_TpmModel(m, obj ? &(*obj)->model : NULL, "model", &err);
+                visit_type_TpmTypeOptions(m, obj ? &(*obj)->options : NULL, "options", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_TPMInfoList(Visitor *m, TPMInfoList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                TPMInfoList *native_i = (TPMInfoList *)i;
+                visit_type_TPMInfo(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_AcpiTableOptions(Visitor *m, AcpiTableOptions ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "AcpiTableOptions", name, sizeof(AcpiTableOptions), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_start_optional(m, obj ? &(*obj)->has_sig : NULL, "sig", &err);
+                if (obj && (*obj)->has_sig) {
+                    visit_type_str(m, obj ? &(*obj)->sig : NULL, "sig", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_rev : NULL, "rev", &err);
+                if (obj && (*obj)->has_rev) {
+                    visit_type_uint8(m, obj ? &(*obj)->rev : NULL, "rev", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_oem_id : NULL, "oem_id", &err);
+                if (obj && (*obj)->has_oem_id) {
+                    visit_type_str(m, obj ? &(*obj)->oem_id : NULL, "oem_id", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_oem_table_id : NULL, "oem_table_id", &err);
+                if (obj && (*obj)->has_oem_table_id) {
+                    visit_type_str(m, obj ? &(*obj)->oem_table_id : NULL, "oem_table_id", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_oem_rev : NULL, "oem_rev", &err);
+                if (obj && (*obj)->has_oem_rev) {
+                    visit_type_uint32(m, obj ? &(*obj)->oem_rev : NULL, "oem_rev", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_asl_compiler_id : NULL, "asl_compiler_id", &err);
+                if (obj && (*obj)->has_asl_compiler_id) {
+                    visit_type_str(m, obj ? &(*obj)->asl_compiler_id : NULL, "asl_compiler_id", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_asl_compiler_rev : NULL, "asl_compiler_rev", &err);
+                if (obj && (*obj)->has_asl_compiler_rev) {
+                    visit_type_uint32(m, obj ? &(*obj)->asl_compiler_rev : NULL, "asl_compiler_rev", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_file : NULL, "file", &err);
+                if (obj && (*obj)->has_file) {
+                    visit_type_str(m, obj ? &(*obj)->file : NULL, "file", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_start_optional(m, obj ? &(*obj)->has_data : NULL, "data", &err);
+                if (obj && (*obj)->has_data) {
+                    visit_type_str(m, obj ? &(*obj)->data : NULL, "data", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_AcpiTableOptionsList(Visitor *m, AcpiTableOptionsList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                AcpiTableOptionsList *native_i = (AcpiTableOptionsList *)i;
+                visit_type_AcpiTableOptions(m, &native_i->value, NULL, &err);
             }
             error_propagate(errp, err);
             err = NULL;

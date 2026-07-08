@@ -162,7 +162,7 @@
 .name       = "log",
 .args_type  = "items:s",
 .params     = "item1[,...]",
-.help       = "activate logging of the specified items to '/tmp/qemu.log'",
+.help       = "activate logging of the specified items",
 .mhandler.cmd = do_log,
 },
 
@@ -667,7 +667,7 @@
 {
 .name       = "netdev_add",
 .args_type  = "netdev:O",
-.params     = "[user|tap|socket],id=str[,prop=value][,...]",
+.params     = "[user|tap|socket|hubport],id=str[,prop=value][,...]",
 .help       = "add host network device",
 .mhandler.cmd = hmp_netdev_add,
 },
@@ -865,6 +865,23 @@
 .mhandler.cmd = hmp_expire_password,
 },
 
+
+{
+.name       = "chardev-add",
+.args_type  = "args:s",
+.params     = "args",
+.help       = "add chardev",
+.mhandler.cmd = hmp_chardev_add,
+},
+
+
+{
+.name       = "chardev-remove",
+.args_type  = "id:s",
+.params     = "id",
+.help       = "remove chardev",
+.mhandler.cmd = hmp_chardev_remove,
+},
 
 
 {

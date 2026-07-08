@@ -186,5 +186,11 @@ ChardevReturn * qmp_chardev_add(const char * id, ChardevBackend * backend, Error
 int qmp_marshal_input_chardev_add(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_chardev_remove(const char * id, Error **errp);
 int qmp_marshal_input_chardev_remove(Monitor *mon, const QDict *qdict, QObject **ret);
+TpmModelList * qmp_query_tpm_models(Error **errp);
+int qmp_marshal_input_query_tpm_models(Monitor *mon, const QDict *qdict, QObject **ret);
+TpmTypeList * qmp_query_tpm_types(Error **errp);
+int qmp_marshal_input_query_tpm_types(Monitor *mon, const QDict *qdict, QObject **ret);
+TPMInfoList * qmp_query_tpm(Error **errp);
+int qmp_marshal_input_query_tpm(Monitor *mon, const QDict *qdict, QObject **ret);
 
 #endif

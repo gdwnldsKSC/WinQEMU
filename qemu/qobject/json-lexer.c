@@ -79,15 +79,15 @@ enum json_lexer_state {
 #define FILL_32(a, v)   FILL_16(a, v), FILL_16((a)+16, v)
 #define FILL_64(a, v)   FILL_32(a, v), FILL_32((a)+32, v)
 #define FILL_128(a, v)  FILL_64(a, v), FILL_64((a)+64, v)
-#define TERMINAL(state)     FILL_128(0, (state))                    /* [0x00 ... 0x7F] */
-#define DIGITS(v)           FILL_8('0', (v)), FILL_2('8', (v))      /* ['0' ... '9']   */
-#define DIGITS_1_9(v)       FILL_8('1', (v)), ['9'] = (v)           /* ['1' ... '9']   */
-#define HEX_LOWER(v)        FILL_4('a', (v)), FILL_2('e', (v))      /* ['a' ... 'f']   */
-#define HEX_UPPER(v)        FILL_4('A', (v)), FILL_2('E', (v))      /* ['A' ... 'F']   */
-#define LOWER_ALPHA(v)      FILL_16('a', (v)), FILL_8('q', (v)), FILL_2('y', (v))  /* ['a' ... 'z'] */
+#define TERMINAL(state)     FILL_128(0, (state))
+#define DIGITS(v)           FILL_8('0', (v)), FILL_2('8', (v))
+#define DIGITS_1_9(v)       FILL_8('1', (v)), ['9'] = (v)
+#define HEX_LOWER(v)        FILL_4('a', (v)), FILL_2('e', (v))
+#define HEX_UPPER(v)        FILL_4('A', (v)), FILL_2('E', (v))
+#define LOWER_ALPHA(v)      FILL_16('a', (v)), FILL_8('q', (v)), FILL_2('y', (v))
 #define STRING_BODY_LO(v)   FILL_128(1, (v)), FILL_32(0x81, (v)), FILL_16(0xA1, (v)), \
-                            FILL_8(0xB1, (v)), FILL_4(0xB9, (v)), FILL_2(0xBD, (v)), [0xBF] = (v)  /* [0x01 ... 0xBF] */
-#define STRING_BODY_HI(v)   FILL_32(0xC2, (v)), FILL_16(0xE2, (v)), FILL_2(0xF2, (v)), [0xF4] = (v)  /* [0xC2 ... 0xF4] */
+                            FILL_8(0xB1, (v)), FILL_4(0xB9, (v)), FILL_2(0xBD, (v)), [0xBF] = (v)
+#define STRING_BODY_HI(v)   FILL_32(0xC2, (v)), FILL_16(0xE2, (v)), FILL_2(0xF2, (v)), [0xF4] = (v)
 #endif
 
 /* Return whether TERMINAL is a terminal state and the transition to it

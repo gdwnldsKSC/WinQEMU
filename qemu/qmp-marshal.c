@@ -3608,3 +3608,132 @@ out:
     return 0;
 }
 
+static void qmp_marshal_output_query_tpm_models(TpmModelList * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_TpmModelList(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_TpmModelList(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_query_tpm_models(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    TpmModelList * retval = NULL;
+    (void)args;
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_query_tpm_models(errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_query_tpm_models(retval, ret, errp);
+    }
+
+out:
+
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+static void qmp_marshal_output_query_tpm_types(TpmTypeList * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_TpmTypeList(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_TpmTypeList(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_query_tpm_types(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    TpmTypeList * retval = NULL;
+    (void)args;
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_query_tpm_types(errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_query_tpm_types(retval, ret, errp);
+    }
+
+out:
+
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+static void qmp_marshal_output_query_tpm(TPMInfoList * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_TPMInfoList(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_TPMInfoList(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_query_tpm(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    TPMInfoList * retval = NULL;
+    (void)args;
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_query_tpm(errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_query_tpm(retval, ret, errp);
+    }
+
+out:
+
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+

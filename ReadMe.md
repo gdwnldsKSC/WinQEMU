@@ -204,6 +204,8 @@ run:
 ./scripts/hxtool -q < qmp-commands.hx > qmp-commands.txt  
 python3 ./scripts/tracetool.py --format=c --backend=nop < trace-events > trace/generated-tracers.c  
 python3 ./scripts/tracetool.py --format=h --backend=nop < trace-events > trace/generated-tracers.h  
+python3 ./scripts/tracetool.py --format=events-h --backend=events < trace-events > trace/generated-events.h  
+python3 ./scripts/tracetool.py --format=events-c --backend=events < trace-events > trace/generated-events.c  
 python3 ./scripts/qapi-types.py -o . < qapi-schema.json  
 python3 ./scripts/qapi-visit.py -o . < qapi-schema.json  
 python3 ./scripts/qapi-commands.py -m -o . < qapi-schema.json

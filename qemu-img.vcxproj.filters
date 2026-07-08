@@ -66,6 +66,12 @@
     <ClCompile Include="qemu\util\aes.c">
       <Filter>qemu\util\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\util\hexdump.c">
+      <Filter>qemu\util\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\util\unicode.c">
+      <Filter>qemu\util\src</Filter>
+    </ClCompile>
     <ClCompile Include="qemu\async.c">
       <Filter>qemu\src</Filter>
     </ClCompile>

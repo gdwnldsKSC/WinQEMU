@@ -4,11 +4,6 @@
 #include "qemu-common.h"
 
 #ifdef NEED_CPU_H
-/* MSVC port modification: the port defines NEED_CPU_H project-wide rather
- * than per-object like upstream's makefiles, so this header can be reached
- * (via qemu-log.h → disas.h) before cpu.h has provided CPUArchState,
- * target_ulong and hwaddr.  cpu.h is include-guarded and its subtree never
- * includes disas.h, so pulling it in here is safe and order-independent. */
 #include "cpu.h"
 /* Disassemble this for me please... (debugging). */
 void disas(FILE *out, void *code, unsigned long size);

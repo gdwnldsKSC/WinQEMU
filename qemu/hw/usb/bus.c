@@ -172,12 +172,12 @@ const USBDesc *usb_device_get_usb_desc(USBDevice *dev)
     return klass->usb_desc;
 }
 
-void usb_device_set_interface(USBDevice *dev, int intrface,
+void usb_device_set_interface(USBDevice *dev, int interface,
                               int alt_old, int alt_new)
 {
     USBDeviceClass *klass = USB_DEVICE_GET_CLASS(dev);
     if (klass->set_interface) {
-        klass->set_interface(dev, intrface, alt_old, alt_new);
+        klass->set_interface(dev, interface, alt_old, alt_new);
     }
 }
 
@@ -341,8 +341,10 @@ void usb_port_location(USBPort *downstream, USBPort *upstream, int portnr)
     if (upstream) {
         snprintf(downstream->path, sizeof(downstream->path), "%s.%d",
                  upstream->path, portnr);
+        downstream->hubcount = upstream->hubcount + 1;
     } else {
         snprintf(downstream->path, sizeof(downstream->path), "%d", portnr);
+        downstream->hubcount = 0;
     }
 }
 

@@ -23,13 +23,12 @@
 
 #include <hw/hw.h>
 #include <hw/pci/msi.h>
-#include <hw/pc.h>
+#include <hw/i386/pc.h>
 #include <hw/pci/pci.h>
 #include <hw/sysbus.h>
 
 #include "monitor/monitor.h"
 #include "sysemu/dma.h"
-#include "exec/cpu-common.h"
 #include "internal.h"
 #include <hw/ide/pci.h>
 #include <hw/ide/ahci.h>

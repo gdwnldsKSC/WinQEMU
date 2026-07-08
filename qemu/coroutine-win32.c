@@ -33,13 +33,8 @@ typedef struct
     CoroutineAction action;
 } CoroutineWin32;
 
-#ifndef _MSC_VER
 static __thread CoroutineWin32 leader;
 static __thread Coroutine *current;
-#else
-static __declspec(thread) CoroutineWin32 leader;
-static __declspec(thread) Coroutine* current;
-#endif
 
 CoroutineAction qemu_coroutine_switch(Coroutine *from_, Coroutine *to_,
                                       CoroutineAction action)

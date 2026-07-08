@@ -42,9 +42,9 @@
 
 #include "sysemu/sysemu.h"
 #ifndef CONFIG_USER_ONLY
-#include "hw/xen.h"
+#include "hw/xen/xen.h"
 #include "hw/sysbus.h"
-#include "hw/apic_internal.h"
+#include "hw/i386/apic_internal.h"
 #endif
 
 static void x86_cpu_vendor_words2str(char *dst, uint32_t vendor1,
@@ -387,12 +387,17 @@ typedef struct x86_def_t {
           CPUID_PSE36 (needed for Solaris) */
           /* missing:
           CPUID_VME, CPUID_DTS, CPUID_SS, CPUID_HT, CPUID_TM, CPUID_PBE */
-#define TCG_EXT_FEATURES (CPUID_EXT_SSE3 | CPUID_EXT_MONITOR | \
-          CPUID_EXT_SSSE3 | CPUID_EXT_CX16 | CPUID_EXT_POPCNT | \
-          CPUID_EXT_HYPERVISOR)
+#define TCG_EXT_FEATURES (CPUID_EXT_SSE3 | CPUID_EXT_PCLMULQDQ | \
+          CPUID_EXT_MONITOR | CPUID_EXT_SSSE3 | CPUID_EXT_CX16 | \
+          CPUID_EXT_SSE41 | CPUID_EXT_SSE42 | CPUID_EXT_POPCNT | \
+          CPUID_EXT_MOVBE | CPUID_EXT_AES | CPUID_EXT_HYPERVISOR)
           /* missing:
-          CPUID_EXT_DTES64, CPUID_EXT_DSCPL, CPUID_EXT_VMX, CPUID_EXT_EST,
-          CPUID_EXT_TM2, CPUID_EXT_XTPR, CPUID_EXT_PDCM, CPUID_EXT_XSAVE */
+          CPUID_EXT_DTES64, CPUID_EXT_DSCPL, CPUID_EXT_VMX, CPUID_EXT_SMX,
+          CPUID_EXT_EST, CPUID_EXT_TM2, CPUID_EXT_CID, CPUID_EXT_FMA,
+          CPUID_EXT_XTPR, CPUID_EXT_PDCM, CPUID_EXT_PCID, CPUID_EXT_DCA,
+          CPUID_EXT_X2APIC, CPUID_EXT_TSC_DEADLINE_TIMER, CPUID_EXT_XSAVE,
+          CPUID_EXT_OSXSAVE, CPUID_EXT_AVX, CPUID_EXT_F16C,
+          CPUID_EXT_RDRAND */
 #define TCG_EXT2_FEATURES ((TCG_FEATURES & CPUID_EXT2_AMD_ALIASES) | \
           CPUID_EXT2_NX | CPUID_EXT2_MMXEXT | CPUID_EXT2_RDTSCP | \
           CPUID_EXT2_3DNOW | CPUID_EXT2_3DNOWEXT)
@@ -401,7 +406,12 @@ typedef struct x86_def_t {
 #define TCG_EXT3_FEATURES (CPUID_EXT3_LAHF_LM | CPUID_EXT3_SVM | \
           CPUID_EXT3_CR8LEG | CPUID_EXT3_ABM | CPUID_EXT3_SSE4A)
 #define TCG_SVM_FEATURES 0
-#define TCG_7_0_EBX_FEATURES (CPUID_7_0_EBX_SMEP | CPUID_7_0_EBX_SMAP)
+#define TCG_7_0_EBX_FEATURES (CPUID_7_0_EBX_SMEP | CPUID_7_0_EBX_SMAP \
+          CPUID_7_0_EBX_BMI1 | CPUID_7_0_EBX_BMI2 | CPUID_7_0_EBX_ADX)
+          /* missing:
+          CPUID_7_0_EBX_FSGSBASE, CPUID_7_0_EBX_HLE, CPUID_7_0_EBX_AVX2,
+          CPUID_7_0_EBX_ERMS, CPUID_7_0_EBX_INVPCID, CPUID_7_0_EBX_RTM,
+          CPUID_7_0_EBX_RDSEED */
 
 /* built-in CPU model definitions
  */
@@ -677,7 +687,7 @@ static x86_def_t builtin_x86_defs[] = {
              CPUID_DE | CPUID_FP87,
         .ext_features = CPUID_EXT_AES | CPUID_EXT_POPCNT | CPUID_EXT_SSE42 |
              CPUID_EXT_SSE41 | CPUID_EXT_CX16 | CPUID_EXT_SSSE3 |
-             CPUID_EXT_SSE3,
+             CPUID_EXT_PCLMULQDQ | CPUID_EXT_SSE3,
         .ext2_features = CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX,
         .ext3_features = CPUID_EXT3_LAHF_LM,
         .xlevel = 0x8000000A,
@@ -1453,18 +1463,19 @@ void x86_cpu_list(FILE *f, fprintf_function cpu_fprintf)
         snprintf(buf, sizeof(buf), "%s", def->name);
         (*cpu_fprintf)(f, "x86 %16s  %-48s\n", buf, def->model_id);
     }
-    if (kvm_enabled()) {
-        (*cpu_fprintf)(f, "x86 %16s\n", "[host]");
-    }
+#ifdef CONFIG_KVM
+    (*cpu_fprintf)(f, "x86 %16s  %-48s\n", "host",
+                   "KVM processor with all supported host features "
+                   "(only available in KVM mode)");
+#endif
+
     (*cpu_fprintf)(f, "\nRecognized CPUID flags:\n");
-    listflags(buf, sizeof(buf), (uint32_t)~0, feature_name, 1);
-    (*cpu_fprintf)(f, "  %s\n", buf);
-    listflags(buf, sizeof(buf), (uint32_t)~0, ext_feature_name, 1);
-    (*cpu_fprintf)(f, "  %s\n", buf);
-    listflags(buf, sizeof(buf), (uint32_t)~0, ext2_feature_name, 1);
-    (*cpu_fprintf)(f, "  %s\n", buf);
-    listflags(buf, sizeof(buf), (uint32_t)~0, ext3_feature_name, 1);
-    (*cpu_fprintf)(f, "  %s\n", buf);
+    for (i = 0; i < ARRAY_SIZE(feature_word_info); i++) {
+        FeatureWordInfo *fw = &feature_word_info[i];
+
+        listflags(buf, sizeof(buf), (uint32_t)~0, fw->feat_names, 1);
+        (*cpu_fprintf)(f, "  %s\n", buf);
+    }
 }
 
 CpuDefinitionInfoList *arch_query_cpu_definitions(Error **errp)
@@ -1516,15 +1527,49 @@ static void filter_features_for_kvm(X86CPU *cpu)
 }
 #endif
 
-int cpu_x86_register(X86CPU *cpu, const char *cpu_model)
+static void cpu_x86_register(X86CPU *cpu, const char *name, Error **errp)
 {
     CPUX86State *env = &cpu->env;
     x86_def_t def1, *def = &def1;
-    Error *error = NULL;
-    char *name, *features;
-    gchar **model_pieces;
 
     memset(def, 0, sizeof(*def));
+
+    if (cpu_x86_find_by_name(def, name) < 0) {
+        error_setg(errp, "Unable to find CPU definition: %s", name);
+        return;
+    }
+
+    if (kvm_enabled()) {
+        def->kvm_features |= kvm_default_features;
+    }
+    def->ext_features |= CPUID_EXT_HYPERVISOR;
+
+    object_property_set_str(OBJECT(cpu), def->vendor, "vendor", errp);
+    object_property_set_int(OBJECT(cpu), def->level, "level", errp);
+    object_property_set_int(OBJECT(cpu), def->family, "family", errp);
+    object_property_set_int(OBJECT(cpu), def->model, "model", errp);
+    object_property_set_int(OBJECT(cpu), def->stepping, "stepping", errp);
+    env->cpuid_features = def->features;
+    env->cpuid_ext_features = def->ext_features;
+    env->cpuid_ext2_features = def->ext2_features;
+    env->cpuid_ext3_features = def->ext3_features;
+    object_property_set_int(OBJECT(cpu), def->xlevel, "xlevel", errp);
+    env->cpuid_kvm_features = def->kvm_features;
+    env->cpuid_svm_features = def->svm_features;
+    env->cpuid_ext4_features = def->ext4_features;
+    env->cpuid_7_0_ebx_features = def->cpuid_7_0_ebx_features;
+    env->cpuid_xlevel2 = def->xlevel2;
+
+    object_property_set_str(OBJECT(cpu), def->model_id, "model-id", errp);
+}
+
+X86CPU *cpu_x86_create(const char *cpu_model, Error **errp)
+{
+    X86CPU *cpu = NULL;
+    CPUX86State *env;
+    gchar **model_pieces;
+    char *name, *features;
+    Error *error = NULL;
 
     model_pieces = g_strsplit(cpu_model, ",", 2);
     if (!model_pieces[0]) {
@@ -1534,46 +1579,48 @@ int cpu_x86_register(X86CPU *cpu, const char *cpu_model)
     name = model_pieces[0];
     features = model_pieces[1];
 
-    if (cpu_x86_find_by_name(def, name) < 0) {
-        error_setg(&error, "Unable to find CPU definition: %s", name);
-        goto out;
-    }
+    cpu = X86_CPU(object_new(TYPE_X86_CPU));
+    env = &cpu->env;
+    env->cpu_model_str = cpu_model;
 
-    if (kvm_enabled()) {
-        def->kvm_features |= kvm_default_features;
-    }
-    def->ext_features |= CPUID_EXT_HYPERVISOR;
-
-    object_property_set_str(OBJECT(cpu), def->vendor, "vendor", &error);
-    object_property_set_int(OBJECT(cpu), def->level, "level", &error);
-    object_property_set_int(OBJECT(cpu), def->family, "family", &error);
-    object_property_set_int(OBJECT(cpu), def->model, "model", &error);
-    object_property_set_int(OBJECT(cpu), def->stepping, "stepping", &error);
-    env->cpuid_features = def->features;
-    env->cpuid_ext_features = def->ext_features;
-    env->cpuid_ext2_features = def->ext2_features;
-    env->cpuid_ext3_features = def->ext3_features;
-    object_property_set_int(OBJECT(cpu), def->xlevel, "xlevel", &error);
-    env->cpuid_kvm_features = def->kvm_features;
-    env->cpuid_svm_features = def->svm_features;
-    env->cpuid_ext4_features = def->ext4_features;
-    env->cpuid_7_0_ebx_features = def->cpuid_7_0_ebx_features;
-    env->cpuid_xlevel2 = def->xlevel2;
-
-    object_property_set_str(OBJECT(cpu), def->model_id, "model-id", &error);
+    cpu_x86_register(cpu, name, &error);
     if (error) {
         goto out;
     }
 
     cpu_x86_parse_featurestr(cpu, features, &error);
+    if (error) {
+        goto out;
+    }
+
 out:
+    error_propagate(errp, error);
     g_strfreev(model_pieces);
+    return cpu;
+}
+
+X86CPU *cpu_x86_init(const char *cpu_model)
+{
+    Error *error = NULL;
+    X86CPU *cpu;
+
+    cpu = cpu_x86_create(cpu_model, &error);
+    if (error) {
+        goto out;
+    }
+
+    object_property_set_bool(OBJECT(cpu), true, "realized", &error);
+
+out:
     if (error) {
         fprintf(stderr, "%s\n", error_get_pretty(error));
         error_free(error);
-        return -1;
+        if (cpu != NULL) {
+            object_unref(OBJECT(cpu));
+            cpu = NULL;
+        }
     }
-    return 0;
+    return cpu;
 }
 
 #if !defined(CONFIG_USER_ONLY)
@@ -1834,12 +1881,13 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
         if (env->cpuid_ext2_features & CPUID_EXT2_LM) {
             /* 64 bit processor */
 /* XXX: The physical address space is limited to 42 bits in exec.c. */
-            *eax = 0x00003028;	/* 48 bits virtual, 40 bits physical */
+            *eax = 0x00003028; /* 48 bits virtual, 40 bits physical */
         } else {
-            if (env->cpuid_features & CPUID_PSE36)
+            if (env->cpuid_features & CPUID_PSE36) {
                 *eax = 0x00000024; /* 36 bits physical */
-            else
+            } else {
                 *eax = 0x00000020; /* 32 bits physical */
+            }
         }
         *ebx = 0;
         *ecx = 0;
@@ -1980,7 +2028,7 @@ static void x86_cpu_reset(CPUState *s)
         apic_designate_bsp(env->apic_state);
     }
 
-    env->halted = !cpu_is_bsp(cpu);
+    s->halted = !cpu_is_bsp(cpu);
 #endif
 }
 
@@ -2014,12 +2062,9 @@ static void mce_init(X86CPU *cpu)
     }
 }
 
-#define MSI_ADDR_BASE 0xfee00000
-
 #ifndef CONFIG_USER_ONLY
-static void x86_cpu_apic_init(X86CPU *cpu, Error **errp)
+static void x86_cpu_apic_create(X86CPU *cpu, Error **errp)
 {
-    static int apic_mapped;
     CPUX86State *env = &cpu->env;
     APICCommonState *apic;
     const char *apic_type = "apic";
@@ -2042,6 +2087,16 @@ static void x86_cpu_apic_init(X86CPU *cpu, Error **errp)
     /* TODO: convert to link<> */
     apic = APIC_COMMON(env->apic_state);
     apic->cpu = cpu;
+}
+
+static void x86_cpu_apic_realize(X86CPU *cpu, Error **errp)
+{
+    CPUX86State *env = &cpu->env;
+    static int apic_mapped;
+
+    if (env->apic_state == NULL) {
+        return;
+    }
 
     if (qdev_init(env->apic_state)) {
         error_setg(errp, "APIC device '%s' could not be initialized",
@@ -2054,16 +2109,23 @@ static void x86_cpu_apic_init(X86CPU *cpu, Error **errp)
         /* NOTE: the APIC is directly connected to the CPU - it is not
            on the global memory bus. */
         /* XXX: what if the base changes? */
-        sysbus_mmio_map(SYS_BUS_DEVICE(env->apic_state), 0, MSI_ADDR_BASE);
+        sysbus_mmio_map_overlap(SYS_BUS_DEVICE(env->apic_state), 0,
+                                APIC_DEFAULT_ADDRESS, 0x1000);
         apic_mapped = 1;
     }
 }
+#else
+static void x86_cpu_apic_realize(X86CPU *cpu, Error **errp)
+{
+}
 #endif
 
-void x86_cpu_realize(Object *obj, Error **errp)
+static void x86_cpu_realizefn(DeviceState *dev, Error **errp)
 {
-    X86CPU *cpu = X86_CPU(obj);
+    X86CPU *cpu = X86_CPU(dev);
+    X86CPUClass *xcc = X86_CPU_GET_CLASS(dev);
     CPUX86State *env = &cpu->env;
+    Error *local_err = NULL;
 
     if (env->cpuid_7_0_ebx_features && env->cpuid_level < 7) {
         env->cpuid_level = 7;
@@ -2093,8 +2155,9 @@ void x86_cpu_realize(Object *obj, Error **errp)
     } else {
         if (check_cpuid && kvm_check_features_against_host(cpu)
             && enforce_cpuid) {
-            error_setg(errp, "Host's CPU doesn't support requested features");
-            return;
+            error_setg(&local_err,
+                       "Host's CPU doesn't support requested features");
+            goto out;
         }
 #ifdef CONFIG_KVM
         filter_features_for_kvm(cpu);
@@ -2105,16 +2168,28 @@ void x86_cpu_realize(Object *obj, Error **errp)
     qemu_register_reset(x86_cpu_machine_reset_cb, cpu);
 
     if (cpu->env.cpuid_features & CPUID_APIC || smp_cpus > 1) {
-        x86_cpu_apic_init(cpu, errp);
-        if (error_is_set(errp)) {
-            return;
+        x86_cpu_apic_create(cpu, &local_err);
+        if (local_err != NULL) {
+            goto out;
         }
     }
 #endif
 
     mce_init(cpu);
     qemu_init_vcpu(&cpu->env);
+
+    x86_cpu_apic_realize(cpu, &local_err);
+    if (local_err != NULL) {
+        goto out;
+    }
     cpu_reset(CPU(cpu));
+
+    xcc->parent_realize(dev, &local_err);
+out:
+    if (local_err != NULL) {
+        error_propagate(errp, local_err);
+        return;
+    }
 }
 
 /* Enables contiguous-apic-ID mode, for compatibility */
@@ -2157,6 +2232,7 @@ static void x86_cpu_initfn(Object *obj)
     CPUX86State *env = &cpu->env;
     static int inited;
 
+    cs->env_ptr = env;
     cpu_exec_init(env);
 
     object_property_add(obj, "family", "int",
@@ -2200,9 +2276,16 @@ static void x86_cpu_common_class_init(ObjectClass *oc, void *data)
 {
     X86CPUClass *xcc = X86_CPU_CLASS(oc);
     CPUClass *cc = CPU_CLASS(oc);
+    DeviceClass *dc = DEVICE_CLASS(oc);
+
+    xcc->parent_realize = dc->realize;
+    dc->realize = x86_cpu_realizefn;
 
     xcc->parent_reset = cc->reset;
     cc->reset = x86_cpu_reset;
+
+    cc->do_interrupt = x86_cpu_do_interrupt;
+    cpu_class_set_vmsd(cc, &vmstate_x86_cpu);
 }
 
 static const TypeInfo x86_cpu_type_info = {

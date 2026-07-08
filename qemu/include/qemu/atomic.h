@@ -13,16 +13,9 @@
 #endif
 
 #if defined(_MSC_VER)
-
-/* MSVC modification: MSVC has neither GCC inline asm nor the __sync_*
- * builtins.  Use CRT intrinsics.  This branch must precede the __i386__ one
- * because the port defines __i386__ for the system emulator but NOT for the
- * qemu-img/qemu-nbd tool projects, which would otherwise fall through to the
- * generic __sync_synchronize() path and fail to link. */
 #define smp_wmb()   _ReadWriteBarrier()
 #define smp_rmb()   _ReadWriteBarrier()
 #define smp_mb()    _mm_mfence()
-
 #elif defined(__i386__)
 
 #include "qemu/compiler.h"        /* QEMU_GNUC_PREREQ */
@@ -35,6 +28,7 @@
  */
 #define smp_wmb()   barrier()
 #define smp_rmb()   barrier()
+
 /*
  * We use GCC builtin if it's available, as that can use
  * mfence on 32 bit as well, e.g. if built with -march=pentium-m.

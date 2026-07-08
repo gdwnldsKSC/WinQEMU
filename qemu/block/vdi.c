@@ -60,12 +60,6 @@
 /* TODO: move uuid emulation to some central place in QEMU. */
 #include "sysemu/sysemu.h"     /* UUID_FMT */
 #ifdef _MSC_VER
-/* The Windows SDK's rpcdce.h (pulled in via windows.h) does
- *   typedef GUID UUID;
- *   #define uuid_t UUID
- * which turns the array typedef below into a redefinition of the GUID-based
- * UUID and breaks every uuid_t use in this file.  Drop the SDK macro so
- * QEMU's own uuid_t (a 16-byte array) is used instead. */
 #undef uuid_t
 #endif
 typedef unsigned char uuid_t[16];
@@ -373,7 +367,7 @@ static int vdi_probe(const uint8_t *buf, int buf_size, const char *filename)
     return result;
 }
 
-static int vdi_open(BlockDriverState *bs, int flags)
+static int vdi_open(BlockDriverState *bs, QDict *options, int flags)
 {
     BDRVVdiState *s = bs->opaque;
     VdiHeader header;

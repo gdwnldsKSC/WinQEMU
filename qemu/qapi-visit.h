@@ -40,6 +40,9 @@ void visit_type_SnapshotInfoList(Visitor *m, SnapshotInfoList ** obj, const char
 void visit_type_ImageInfo(Visitor *m, ImageInfo ** obj, const char *name, Error **errp);
 void visit_type_ImageInfoList(Visitor *m, ImageInfoList ** obj, const char *name, Error **errp);
 
+void visit_type_ImageCheck(Visitor *m, ImageCheck ** obj, const char *name, Error **errp);
+void visit_type_ImageCheckList(Visitor *m, ImageCheckList ** obj, const char *name, Error **errp);
+
 void visit_type_StatusInfo(Visitor *m, StatusInfo ** obj, const char *name, Error **errp);
 void visit_type_StatusInfoList(Visitor *m, StatusInfoList ** obj, const char *name, Error **errp);
 
@@ -249,6 +252,27 @@ void visit_type_ChardevHostdevList(Visitor *m, ChardevHostdevList ** obj, const 
 void visit_type_ChardevSocket(Visitor *m, ChardevSocket ** obj, const char *name, Error **errp);
 void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const char *name, Error **errp);
 
+void visit_type_ChardevDgram(Visitor *m, ChardevDgram ** obj, const char *name, Error **errp);
+void visit_type_ChardevDgramList(Visitor *m, ChardevDgramList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevMux(Visitor *m, ChardevMux ** obj, const char *name, Error **errp);
+void visit_type_ChardevMuxList(Visitor *m, ChardevMuxList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevStdio(Visitor *m, ChardevStdio ** obj, const char *name, Error **errp);
+void visit_type_ChardevStdioList(Visitor *m, ChardevStdioList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevSpiceChannel(Visitor *m, ChardevSpiceChannel ** obj, const char *name, Error **errp);
+void visit_type_ChardevSpiceChannelList(Visitor *m, ChardevSpiceChannelList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevSpicePort(Visitor *m, ChardevSpicePort ** obj, const char *name, Error **errp);
+void visit_type_ChardevSpicePortList(Visitor *m, ChardevSpicePortList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevVC(Visitor *m, ChardevVC ** obj, const char *name, Error **errp);
+void visit_type_ChardevVCList(Visitor *m, ChardevVCList ** obj, const char *name, Error **errp);
+
+void visit_type_ChardevRingbuf(Visitor *m, ChardevRingbuf ** obj, const char *name, Error **errp);
+void visit_type_ChardevRingbufList(Visitor *m, ChardevRingbufList ** obj, const char *name, Error **errp);
+
 void visit_type_ChardevDummy(Visitor *m, ChardevDummy ** obj, const char *name, Error **errp);
 void visit_type_ChardevDummyList(Visitor *m, ChardevDummyList ** obj, const char *name, Error **errp);
 
@@ -259,5 +283,25 @@ void visit_type_ChardevBackendList(Visitor *m, ChardevBackendList ** obj, const 
 
 void visit_type_ChardevReturn(Visitor *m, ChardevReturn ** obj, const char *name, Error **errp);
 void visit_type_ChardevReturnList(Visitor *m, ChardevReturnList ** obj, const char *name, Error **errp);
+
+void visit_type_TpmModel(Visitor *m, TpmModel * obj, const char *name, Error **errp);
+void visit_type_TpmModelList(Visitor *m, TpmModelList ** obj, const char *name, Error **errp);
+
+void visit_type_TpmType(Visitor *m, TpmType * obj, const char *name, Error **errp);
+void visit_type_TpmTypeList(Visitor *m, TpmTypeList ** obj, const char *name, Error **errp);
+
+void visit_type_TPMPassthroughOptions(Visitor *m, TPMPassthroughOptions ** obj, const char *name, Error **errp);
+void visit_type_TPMPassthroughOptionsList(Visitor *m, TPMPassthroughOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_TpmTypeOptionsKind(Visitor *m, TpmTypeOptionsKind * obj, const char *name, Error **errp);
+
+void visit_type_TpmTypeOptions(Visitor *m, TpmTypeOptions ** obj, const char *name, Error **errp);
+void visit_type_TpmTypeOptionsList(Visitor *m, TpmTypeOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_TPMInfo(Visitor *m, TPMInfo ** obj, const char *name, Error **errp);
+void visit_type_TPMInfoList(Visitor *m, TPMInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_AcpiTableOptions(Visitor *m, AcpiTableOptions ** obj, const char *name, Error **errp);
+void visit_type_AcpiTableOptionsList(Visitor *m, AcpiTableOptionsList ** obj, const char *name, Error **errp);
 
 #endif

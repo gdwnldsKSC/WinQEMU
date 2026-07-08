@@ -172,6 +172,8 @@
     <ClCompile Include="qemu\block\win32-aio.c" />
     <ClCompile Include="qemu\coroutine-win32.c" />
     <ClCompile Include="qemu\util\cutils.c" />
+    <ClCompile Include="qemu\util\hexdump.c" />
+    <ClCompile Include="qemu\util\unicode.c" />
     <ClCompile Include="qemu\util\error.c" />
     <ClCompile Include="qemu\util\event_notifier-win32.c" />
     <ClCompile Include="qemu\iohandler.c" />

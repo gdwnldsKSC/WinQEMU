@@ -1,6 +1,45 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="qemu\hw\display">
+      <UniqueIdentifier>{07CD2A7D-D399-85C4-2AFF-E67A772A5663}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\display\inc">
+      <UniqueIdentifier>{5CD019D9-435D-166D-B275-4FA852B196B3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\display\src">
+      <UniqueIdentifier>{CADEA1BF-D51F-22AD-C036-71952F58BFBA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\input">
+      <UniqueIdentifier>{8EBF124B-F519-A419-6B1F-AC7EF76CD36C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\input\src">
+      <UniqueIdentifier>{36E405CB-F105-D86F-2F8A-77CC5065B53C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\intc">
+      <UniqueIdentifier>{28A98BAB-56C6-8CC0-3DE6-CDCC48F3C75D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\intc\src">
+      <UniqueIdentifier>{C265D602-DD5F-08C2-5BFB-5AEDD789B682}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\isa">
+      <UniqueIdentifier>{56EF6881-AFDA-3230-EA89-C7366AABBAB8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\isa\src">
+      <UniqueIdentifier>{A6EA71DD-7827-EFCD-2667-AB2FE60EA3BB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\net">
+      <UniqueIdentifier>{393314D4-E347-8A02-2280-033E025791A2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\net\src">
+      <UniqueIdentifier>{30C6353D-5F18-0B9C-6F53-51D4C0A45B72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\timer">
+      <UniqueIdentifier>{3F67F71A-6C8E-254B-F469-159D2A845EBB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="qemu\hw\timer\src">
+      <UniqueIdentifier>{E4356268-7AEF-CAD5-46D3-CA957DBBA883}</UniqueIdentifier>
+    </Filter>
     <Filter Include="qemu">
       <UniqueIdentifier>{5B015A9A-A658-C93E-9EF3-1FBD0E83D2B9}</UniqueIdentifier>
     </Filter>
@@ -192,34 +231,34 @@
     <ClInclude Include="qemu\include\fpu\softfloat.h">
       <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\hw.h">
+    <ClInclude Include="qemu\include\hw\hw.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\mc146818rtc.h">
+    <ClInclude Include="qemu\include\hw\timer\mc146818rtc.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\hw\pci\pci.h">
       <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci\pci_bridge.h">
+    <ClInclude Include="qemu\include\hw\pci\pci_bridge.h">
       <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci\pci_host.h">
+    <ClInclude Include="qemu\include\hw\pci\pci_host.h">
       <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci\pci_ids.h">
+    <ClInclude Include="qemu\include\hw\pci\pci_ids.h">
       <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\pci\pci_regs.h">
+    <ClInclude Include="qemu\include\hw\pci\pci_regs.h">
       <Filter>qemu\hw\pci\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\vga_int.h">
-      <Filter>qemu\hw\inc</Filter>
+    <ClInclude Include="qemu\hw\display\vga_int.h">
+      <Filter>qemu\hw\display\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\vga_template.h">
-      <Filter>qemu\hw\inc</Filter>
+    <ClInclude Include="qemu\hw\display\vga_template.h">
+      <Filter>qemu\hw\display\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\hw\vhost_net.h">
+    <ClInclude Include="qemu\include\net\vhost_net.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
     <ClInclude Include="qemu\ui\curses_keys.h">
@@ -308,8 +347,8 @@
     <ClCompile Include="qemu\target-alpha\translate.c">
       <Filter>qemu\target-alpha\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\vhost_net.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\net\vhost_net.c">
+      <Filter>qemu\hw\net\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\kvm-stub.c">
       <Filter>qemu\src</Filter>
@@ -317,23 +356,23 @@
     <ClCompile Include="qemu\memory.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\i8259.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\intc\i8259.c">
+      <Filter>qemu\hw\intc\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\mc146818rtc.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\timer\mc146818rtc.c">
+      <Filter>qemu\hw\timer\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\vga.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\display\vga.c">
+      <Filter>qemu\hw\display\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\cirrus_vga.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\display\cirrus_vga.c">
+      <Filter>qemu\hw\display\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\pckbd.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\input\pckbd.c">
+      <Filter>qemu\hw\input\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\vga-pci.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\display\vga-pci.c">
+      <Filter>qemu\hw\display\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ide\core.c">
       <Filter>qemu\hw\ide\src</Filter>
@@ -341,17 +380,17 @@
     <ClCompile Include="qemu\hw\ide\qdev.c">
       <Filter>qemu\hw\ide\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\vmware_vga.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\display\vmware_vga.c">
+      <Filter>qemu\hw\display\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\ide\cmd646.c">
       <Filter>qemu\hw\ide\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\isa-bus.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\isa\isa-bus.c">
+      <Filter>qemu\hw\isa\src</Filter>
     </ClCompile>
-    <ClCompile Include="qemu\hw\isa_mmio.c">
-      <Filter>qemu\hw\src</Filter>
+    <ClCompile Include="qemu\hw\isa\isa_mmio.c">
+      <Filter>qemu\hw\isa\src</Filter>
     </ClCompile>
     <ClCompile Include="qemu\hw\pci\pci.c">
       <Filter>qemu\hw\pci\src</Filter>

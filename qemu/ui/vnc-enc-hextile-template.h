@@ -207,9 +207,6 @@ static void CONCAT(send_hextile_tile_, NAME)(VncState *vs,
 	    row += vnc_server_fb_stride(vd);
 	}
     }
-#ifdef _MSC_VER
-    g_free(data);
-#endif
 }
 
 #undef NAME

@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <io.h>
 
 /* GCC builtin replacement: full memory barrier */
 void __sync_synchronize(void)
@@ -15,6 +16,36 @@ void __sync_synchronize(void)
 int __sync_fetch_and_add(int* ptr, int value)
 {
     return InterlockedExchangeAdd((volatile LONG*)ptr, (LONG)value);
+}
+
+/* GCC builtin replacement: atomic compare-and-swap, return old value */
+int __sync_val_compare_and_swap(int* ptr, int oldval, int newval)
+{
+    return InterlockedCompareExchange((volatile LONG*)ptr, (LONG)newval, (LONG)oldval);
+}
+
+/* POSIX writev replacement for MSVC (sequential _write per iovec element) */
+struct msvc_iovec {
+    void*  iov_base;
+    size_t iov_len;
+};
+int writev(int fd, const struct msvc_iovec* iov, int iovcnt)
+{
+    int i, ret, total = 0;
+    for (i = 0; i < iovcnt; i++) {
+        if (iov[i].iov_len == 0) {
+            continue;
+        }
+        ret = _write(fd, iov[i].iov_base, (unsigned int)iov[i].iov_len);
+        if (ret < 0) {
+            return -1;
+        }
+        total += ret;
+        if ((size_t)ret < iov[i].iov_len) {
+            break;
+        }
+    }
+    return total;
 }
 
 /* GNU asprintf replacement for MSVC */

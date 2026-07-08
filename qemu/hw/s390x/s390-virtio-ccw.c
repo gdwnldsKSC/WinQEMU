@@ -12,7 +12,7 @@
 #include "hw/boards.h"
 #include "exec/address-spaces.h"
 #include "s390-virtio.h"
-#include "sclp.h"
+#include "hw/s390x/sclp.h"
 #include "ioinst.h"
 #include "css.h"
 #include "virtio-ccw.h"
@@ -76,7 +76,7 @@ static void ccw_init(QEMUMachineInitArgs *args)
     }
     my_ram_size = my_ram_size >> (20 + shift) << (20 + shift);
 
-    /* lets propagate the changed ram size into the global variable. */
+    /* let's propagate the changed ram size into the global variable. */
     ram_size = my_ram_size;
 
     /* get a BUS */

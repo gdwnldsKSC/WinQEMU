@@ -40,7 +40,7 @@
 #include "hw/usb/desc.h"
 #include "monitor/monitor.h"
 
-#include "hw/ccid.h"
+#include "ccid.h"
 
 #define DPRINTF(s, lvl, fmt, ...) \
 do { \
@@ -839,7 +839,7 @@ static void ccid_on_slot_change(USBCCIDState *s, bool full)
         s->bmSlotICCState |= SLOT_0_CHANGED_MASK;
     }
     s->notify_slot_change = true;
-    usb_wakeup(s->intr);
+    usb_wakeup(s->intr, 0);
 }
 
 static void ccid_write_data_block_error(

@@ -63,6 +63,14 @@
 # undef setjmp
 # define setjmp(env) _setjmp(env, NULL)
 #endif
+/* QEMU uses sigsetjmp()/siglongjmp() as the portable way to specify
+ * "longjmp and don't touch the signal masks". Since we know that the
+ * savemask parameter will always be zero we can safely define these
+ * in terms of setjmp/longjmp on Win32.
+ */
+#define sigjmp_buf jmp_buf
+#define sigsetjmp(env, savemask) setjmp(env)
+#define siglongjmp(env, val) longjmp(env, val)
 
 #ifdef _MSC_VER
 /* MSVC has no ffs(); implement it with the _BitScanForward intrinsic.

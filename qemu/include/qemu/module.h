@@ -15,26 +15,14 @@
 #define QEMU_MODULE_H
 
 #ifndef _MSC_VER
-
 /* This should not be used directly.  Use block_init etc. instead.  */
 #define module_init(function, type)                                         \
 static void __attribute__((constructor)) do_qemu_init_ ## function(void) {  \
     register_module_init(function, type);                                   \
 }
-
-#else  /* _MSC_VER */
-
-/* MSVC: use .CRT$XCU constructors.
- *
- * The expansion is ordered so the macro ends with the function *definition*
- * (a closing '}'), exactly like the GCC __attribute__((constructor)) branch
- * above.  That makes it self-terminating: callers write `type_init(foo)` with
- * no trailing ';' (as upstream does) and it compiles.  A trailing ';', if one
- * is present, is just a harmless empty declaration at file scope. */
+#else
 typedef void(__cdecl* qemu_constructor_t)(void);
-
 #pragma section(".CRT$XCU", read)
-
 #define module_init(function, type)                                         \
     static void __cdecl do_qemu_init_##function(void);                      \
     __declspec(allocate(".CRT$XCU"))                                        \
@@ -44,8 +32,7 @@ typedef void(__cdecl* qemu_constructor_t)(void);
     {                                                                       \
         register_module_init(function, type);                               \
     }
-
-#endif /* _MSC_VER */
+#endif
 
 typedef enum {
     MODULE_INIT_BLOCK,

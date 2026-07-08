@@ -14,7 +14,6 @@
 #include "hw/hw.h"
 #include "hw/pci/msi.h"
 #include "cpu.h"
-#include "exec/gdbstub.h"
 #include "sysemu/kvm.h"
 
 KVMState *kvm_state;
@@ -42,11 +41,11 @@ void kvm_cpu_synchronize_state(CPUArchState *env)
 {
 }
 
-void kvm_cpu_synchronize_post_reset(CPUArchState *env)
+void kvm_cpu_synchronize_post_reset(CPUState *cpu)
 {
 }
 
-void kvm_cpu_synchronize_post_init(CPUArchState *env)
+void kvm_cpu_synchronize_post_init(CPUState *cpu)
 {
 }
 
@@ -102,16 +101,6 @@ int kvm_set_signal_mask(CPUArchState *env, const sigset_t *sigset)
 }
 #endif
 
-int kvm_set_ioeventfd_pio_word(int fd, uint16_t addr, uint16_t val, bool assign)
-{
-    return -ENOSYS;
-}
-
-int kvm_set_ioeventfd_mmio(int fd, uint32_t adr, uint32_t val, bool assign, uint32_t len)
-{
-    return -ENOSYS;
-}
-
 int kvm_on_sigbus_vcpu(CPUState *cpu, int code, void *addr)
 {
     return 1;
@@ -147,32 +136,21 @@ int kvm_irqchip_remove_irqfd_notifier(KVMState *s, EventNotifier *n, int virq)
 }
 
 #ifdef _MSC_VER
-/* MSVC modification: MSVC does not eliminate dead branches guarded by
-   kvm_enabled()/kvm_irqchip_in_kernel(), so the KVM-only symbols those
-   branches reference must still resolve at link time.  Provide stubs. */
-#include "hw/isa.h"
-
 uint32_t kvm_arch_get_supported_cpuid(KVMState *env, uint32_t function,
                                       uint32_t index, int reg)
 {
     return 0;
 }
-
 qemu_irq *kvm_i8259_init(ISABus *bus)
 {
     return NULL;
 }
-
-/* hw/kvm/ioapic.c (not built in this port); referenced from the
-   kvm_irqchip_in_kernel() branches of pc_piix.c/pc_q35.c pc_init. */
 void kvm_pc_setup_irq_routing(bool pci_enabled)
 {
 }
-
 void kvm_pc_gsi_handler(void *opaque, int n, int level)
 {
 }
-
 void *kvm_vmalloc(ram_addr_t size)
 {
     return NULL;

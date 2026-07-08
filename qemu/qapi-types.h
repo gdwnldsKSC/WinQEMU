@@ -104,6 +104,14 @@ typedef struct ImageInfoList
     struct ImageInfoList *next;
 } ImageInfoList;
 
+typedef struct ImageCheck ImageCheck;
+
+typedef struct ImageCheckList
+{
+    ImageCheck *value;
+    struct ImageCheckList *next;
+} ImageCheckList;
+
 typedef struct StatusInfo StatusInfo;
 
 typedef struct StatusInfoList
@@ -676,20 +684,21 @@ typedef enum TargetType
     TARGET_TYPE_MIPS64 = 9,
     TARGET_TYPE_MIPSEL = 10,
     TARGET_TYPE_MIPS = 11,
-    TARGET_TYPE_OR32 = 12,
-    TARGET_TYPE_PPC64 = 13,
-    TARGET_TYPE_PPCEMB = 14,
-    TARGET_TYPE_PPC = 15,
-    TARGET_TYPE_S390X = 16,
-    TARGET_TYPE_SH4EB = 17,
-    TARGET_TYPE_SH4 = 18,
-    TARGET_TYPE_SPARC64 = 19,
-    TARGET_TYPE_SPARC = 20,
-    TARGET_TYPE_UNICORE32 = 21,
-    TARGET_TYPE_X86_64 = 22,
-    TARGET_TYPE_XTENSAEB = 23,
-    TARGET_TYPE_XTENSA = 24,
-    TARGET_TYPE_MAX = 25,
+    TARGET_TYPE_MOXIE = 12,
+    TARGET_TYPE_OR32 = 13,
+    TARGET_TYPE_PPC64 = 14,
+    TARGET_TYPE_PPCEMB = 15,
+    TARGET_TYPE_PPC = 16,
+    TARGET_TYPE_S390X = 17,
+    TARGET_TYPE_SH4EB = 18,
+    TARGET_TYPE_SH4 = 19,
+    TARGET_TYPE_SPARC64 = 20,
+    TARGET_TYPE_SPARC = 21,
+    TARGET_TYPE_UNICORE32 = 22,
+    TARGET_TYPE_X86_64 = 23,
+    TARGET_TYPE_XTENSAEB = 24,
+    TARGET_TYPE_XTENSA = 25,
+    TARGET_TYPE_MAX = 26,
 } TargetType;
 
 typedef struct TargetTypeList
@@ -879,6 +888,62 @@ typedef struct ChardevSocketList
     struct ChardevSocketList *next;
 } ChardevSocketList;
 
+typedef struct ChardevDgram ChardevDgram;
+
+typedef struct ChardevDgramList
+{
+    ChardevDgram *value;
+    struct ChardevDgramList *next;
+} ChardevDgramList;
+
+typedef struct ChardevMux ChardevMux;
+
+typedef struct ChardevMuxList
+{
+    ChardevMux *value;
+    struct ChardevMuxList *next;
+} ChardevMuxList;
+
+typedef struct ChardevStdio ChardevStdio;
+
+typedef struct ChardevStdioList
+{
+    ChardevStdio *value;
+    struct ChardevStdioList *next;
+} ChardevStdioList;
+
+typedef struct ChardevSpiceChannel ChardevSpiceChannel;
+
+typedef struct ChardevSpiceChannelList
+{
+    ChardevSpiceChannel *value;
+    struct ChardevSpiceChannelList *next;
+} ChardevSpiceChannelList;
+
+typedef struct ChardevSpicePort ChardevSpicePort;
+
+typedef struct ChardevSpicePortList
+{
+    ChardevSpicePort *value;
+    struct ChardevSpicePortList *next;
+} ChardevSpicePortList;
+
+typedef struct ChardevVC ChardevVC;
+
+typedef struct ChardevVCList
+{
+    ChardevVC *value;
+    struct ChardevVCList *next;
+} ChardevVCList;
+
+typedef struct ChardevRingbuf ChardevRingbuf;
+
+typedef struct ChardevRingbufList
+{
+    ChardevRingbuf *value;
+    struct ChardevRingbufList *next;
+} ChardevRingbufList;
+
 typedef struct ChardevDummy ChardevDummy;
 
 typedef struct ChardevDummyList
@@ -901,10 +966,21 @@ typedef enum ChardevBackendKind
     CHARDEV_BACKEND_KIND_FILE = 0,
     CHARDEV_BACKEND_KIND_SERIAL = 1,
     CHARDEV_BACKEND_KIND_PARALLEL = 2,
-    CHARDEV_BACKEND_KIND_SOCKET = 3,
-    CHARDEV_BACKEND_KIND_PTY = 4,
-    CHARDEV_BACKEND_KIND_NULL = 5,
-    CHARDEV_BACKEND_KIND_MAX = 6,
+    CHARDEV_BACKEND_KIND_PIPE = 3,
+    CHARDEV_BACKEND_KIND_SOCKET = 4,
+    CHARDEV_BACKEND_KIND_DGRAM = 5,
+    CHARDEV_BACKEND_KIND_PTY = 6,
+    CHARDEV_BACKEND_KIND_NULL = 7,
+    CHARDEV_BACKEND_KIND_MUX = 8,
+    CHARDEV_BACKEND_KIND_MSMOUSE = 9,
+    CHARDEV_BACKEND_KIND_BRAILLE = 10,
+    CHARDEV_BACKEND_KIND_STDIO = 11,
+    CHARDEV_BACKEND_KIND_CONSOLE = 12,
+    CHARDEV_BACKEND_KIND_SPICEVMC = 13,
+    CHARDEV_BACKEND_KIND_SPICEPORT = 14,
+    CHARDEV_BACKEND_KIND_VC = 15,
+    CHARDEV_BACKEND_KIND_MEMORY = 16,
+    CHARDEV_BACKEND_KIND_MAX = 17,
 } ChardevBackendKind;
 
 typedef struct ChardevReturn ChardevReturn;
@@ -914,6 +990,71 @@ typedef struct ChardevReturnList
     ChardevReturn *value;
     struct ChardevReturnList *next;
 } ChardevReturnList;
+
+extern const char *TpmModel_lookup[];
+typedef enum TpmModel
+{
+    TPM_MODEL_TPM_TIS = 0,
+    TPM_MODEL_MAX = 1,
+} TpmModel;
+
+typedef struct TpmModelList
+{
+    TpmModel value;
+    struct TpmModelList *next;
+} TpmModelList;
+
+extern const char *TpmType_lookup[];
+typedef enum TpmType
+{
+    TPM_TYPE_PASSTHROUGH = 0,
+    TPM_TYPE_MAX = 1,
+} TpmType;
+
+typedef struct TpmTypeList
+{
+    TpmType value;
+    struct TpmTypeList *next;
+} TpmTypeList;
+
+typedef struct TPMPassthroughOptions TPMPassthroughOptions;
+
+typedef struct TPMPassthroughOptionsList
+{
+    TPMPassthroughOptions *value;
+    struct TPMPassthroughOptionsList *next;
+} TPMPassthroughOptionsList;
+
+typedef struct TpmTypeOptions TpmTypeOptions;
+
+typedef struct TpmTypeOptionsList
+{
+    TpmTypeOptions *value;
+    struct TpmTypeOptionsList *next;
+} TpmTypeOptionsList;
+
+extern const char *TpmTypeOptionsKind_lookup[];
+typedef enum TpmTypeOptionsKind
+{
+    TPM_TYPE_OPTIONS_KIND_PASSTHROUGH = 0,
+    TPM_TYPE_OPTIONS_KIND_MAX = 1,
+} TpmTypeOptionsKind;
+
+typedef struct TPMInfo TPMInfo;
+
+typedef struct TPMInfoList
+{
+    TPMInfo *value;
+    struct TPMInfoList *next;
+} TPMInfoList;
+
+typedef struct AcpiTableOptions AcpiTableOptions;
+
+typedef struct AcpiTableOptionsList
+{
+    AcpiTableOptions *value;
+    struct AcpiTableOptionsList *next;
+} AcpiTableOptionsList;
 
 void qapi_free_ErrorClassList(ErrorClassList * obj);
 
@@ -991,6 +1132,34 @@ struct ImageInfo
 void qapi_free_ImageInfoList(ImageInfoList * obj);
 void qapi_free_ImageInfo(ImageInfo * obj);
 
+struct ImageCheck
+{
+    char * filename;
+    char * format;
+    int64_t check_errors;
+    bool has_image_end_offset;
+    int64_t image_end_offset;
+    bool has_corruptions;
+    int64_t corruptions;
+    bool has_leaks;
+    int64_t leaks;
+    bool has_corruptions_fixed;
+    int64_t corruptions_fixed;
+    bool has_leaks_fixed;
+    int64_t leaks_fixed;
+    bool has_total_clusters;
+    int64_t total_clusters;
+    bool has_allocated_clusters;
+    int64_t allocated_clusters;
+    bool has_fragmented_clusters;
+    int64_t fragmented_clusters;
+    bool has_compressed_clusters;
+    int64_t compressed_clusters;
+};
+
+void qapi_free_ImageCheckList(ImageCheckList * obj);
+void qapi_free_ImageCheck(ImageCheck * obj);
+
 struct StatusInfo
 {
     bool running;
@@ -1042,6 +1211,7 @@ struct MigrationStats
     int64_t remaining;
     int64_t total;
     int64_t duplicate;
+    int64_t skipped;
     int64_t normal;
     int64_t normal_bytes;
     int64_t dirty_pages_rate;
@@ -1680,6 +1850,7 @@ struct MachineInfo
     char * alias;
     bool has_is_default;
     bool is_default;
+    int64_t cpu_max;
 };
 
 void qapi_free_MachineInfoList(MachineInfoList * obj);
@@ -1779,6 +1950,73 @@ struct ChardevSocket
 void qapi_free_ChardevSocketList(ChardevSocketList * obj);
 void qapi_free_ChardevSocket(ChardevSocket * obj);
 
+struct ChardevDgram
+{
+    SocketAddress * remote;
+    bool has_local;
+    SocketAddress * local;
+};
+
+void qapi_free_ChardevDgramList(ChardevDgramList * obj);
+void qapi_free_ChardevDgram(ChardevDgram * obj);
+
+struct ChardevMux
+{
+    char * chardev;
+};
+
+void qapi_free_ChardevMuxList(ChardevMuxList * obj);
+void qapi_free_ChardevMux(ChardevMux * obj);
+
+struct ChardevStdio
+{
+    bool has_signal;
+    bool signal;
+};
+
+void qapi_free_ChardevStdioList(ChardevStdioList * obj);
+void qapi_free_ChardevStdio(ChardevStdio * obj);
+
+struct ChardevSpiceChannel
+{
+    char * type;
+};
+
+void qapi_free_ChardevSpiceChannelList(ChardevSpiceChannelList * obj);
+void qapi_free_ChardevSpiceChannel(ChardevSpiceChannel * obj);
+
+struct ChardevSpicePort
+{
+    char * fqdn;
+};
+
+void qapi_free_ChardevSpicePortList(ChardevSpicePortList * obj);
+void qapi_free_ChardevSpicePort(ChardevSpicePort * obj);
+
+struct ChardevVC
+{
+    bool has_width;
+    int64_t width;
+    bool has_height;
+    int64_t height;
+    bool has_cols;
+    int64_t cols;
+    bool has_rows;
+    int64_t rows;
+};
+
+void qapi_free_ChardevVCList(ChardevVCList * obj);
+void qapi_free_ChardevVC(ChardevVC * obj);
+
+struct ChardevRingbuf
+{
+    bool has_size;
+    int64_t size;
+};
+
+void qapi_free_ChardevRingbufList(ChardevRingbufList * obj);
+void qapi_free_ChardevRingbuf(ChardevRingbuf * obj);
+
 struct ChardevDummy
 {
     char qapi_dummy_for_empty_struct;
@@ -1795,9 +2033,20 @@ struct ChardevBackend
         ChardevFile * file;
         ChardevHostdev * serial;
         ChardevHostdev * parallel;
+        ChardevHostdev * pipe;
         ChardevSocket * socket;
+        ChardevDgram * dgram;
         ChardevDummy * pty;
         ChardevDummy * null;
+        ChardevMux * mux;
+        ChardevDummy * msmouse;
+        ChardevDummy * braille;
+        ChardevStdio * stdio;
+        ChardevDummy * console;
+        ChardevSpiceChannel * spicevmc;
+        ChardevSpicePort * spiceport;
+        ChardevVC * vc;
+        ChardevRingbuf * memory;
     };
 };
 void qapi_free_ChardevBackendList(ChardevBackendList * obj);
@@ -1811,5 +2060,66 @@ struct ChardevReturn
 
 void qapi_free_ChardevReturnList(ChardevReturnList * obj);
 void qapi_free_ChardevReturn(ChardevReturn * obj);
+
+void qapi_free_TpmModelList(TpmModelList * obj);
+
+void qapi_free_TpmTypeList(TpmTypeList * obj);
+
+struct TPMPassthroughOptions
+{
+    bool has_path;
+    char * path;
+    bool has_cancel_path;
+    char * cancel_path;
+};
+
+void qapi_free_TPMPassthroughOptionsList(TPMPassthroughOptionsList * obj);
+void qapi_free_TPMPassthroughOptions(TPMPassthroughOptions * obj);
+
+struct TpmTypeOptions
+{
+    TpmTypeOptionsKind kind;
+    union {
+        void *data;
+        TPMPassthroughOptions * passthrough;
+    };
+};
+void qapi_free_TpmTypeOptionsList(TpmTypeOptionsList * obj);
+void qapi_free_TpmTypeOptions(TpmTypeOptions * obj);
+
+struct TPMInfo
+{
+    char * id;
+    TpmModel model;
+    TpmTypeOptions * options;
+};
+
+void qapi_free_TPMInfoList(TPMInfoList * obj);
+void qapi_free_TPMInfo(TPMInfo * obj);
+
+struct AcpiTableOptions
+{
+    bool has_sig;
+    char * sig;
+    bool has_rev;
+    uint8_t rev;
+    bool has_oem_id;
+    char * oem_id;
+    bool has_oem_table_id;
+    char * oem_table_id;
+    bool has_oem_rev;
+    uint32_t oem_rev;
+    bool has_asl_compiler_id;
+    char * asl_compiler_id;
+    bool has_asl_compiler_rev;
+    uint32_t asl_compiler_rev;
+    bool has_file;
+    char * file;
+    bool has_data;
+    char * data;
+};
+
+void qapi_free_AcpiTableOptionsList(AcpiTableOptionsList * obj);
+void qapi_free_AcpiTableOptions(AcpiTableOptions * obj);
 
 #endif

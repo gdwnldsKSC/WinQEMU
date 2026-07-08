@@ -35,20 +35,20 @@
 #include "qemu/bitmap.h"
 #include "sysemu/arch_init.h"
 #include "audio/audio.h"
-#include "hw/pc.h"
+#include "hw/i386/pc.h"
 #include "hw/pci/pci.h"
-#include "hw/audiodev.h"
+#include "hw/audio/audio.h"
 #include "sysemu/kvm.h"
 #include "migration/migration.h"
-#include "exec/gdbstub.h"
-#include "hw/smbios.h"
+#include "hw/i386/smbios.h"
 #include "exec/address-spaces.h"
-#include "hw/pcspk.h"
+#include "hw/audio/pcspk.h"
 #include "migration/page_cache.h"
 #include "qemu/config-file.h"
 #include "qmp-commands.h"
 #include "trace.h"
 #include "exec/cpu-all.h"
+#include "hw/acpi/acpi.h"
 
 #ifdef DEBUG_ARCH_INIT
 #define DPRINTF(fmt, ...) \
@@ -85,6 +85,8 @@ int graphic_depth = 15;
 #define QEMU_ARCH QEMU_ARCH_MICROBLAZE
 #elif defined(TARGET_MIPS)
 #define QEMU_ARCH QEMU_ARCH_MIPS
+#elif defined(TARGET_MOXIE)
+#define QEMU_ARCH QEMU_ARCH_MOXIE
 #elif defined(TARGET_OPENRISC)
 #define QEMU_ARCH QEMU_ARCH_OPENRISC
 #elif defined(TARGET_PPC)
@@ -114,26 +116,6 @@ const uint32_t arch_type = QEMU_ARCH;
 #define RAM_SAVE_FLAG_CONTINUE 0x20
 #define RAM_SAVE_FLAG_XBZRLE   0x40
 
-#ifdef __ALTIVEC__
-#include <altivec.h>
-#define VECTYPE        vector unsigned char
-#define SPLAT(p)       vec_splat(vec_ld(0, p), 0)
-#define ALL_EQ(v1, v2) vec_all_eq(v1, v2)
-/* altivec.h may redefine the bool macro as vector type.
- * Reset it to POSIX semantics. */
-#undef bool
-#define bool _Bool
-#elif defined __SSE2__
-#include <emmintrin.h>
-#define VECTYPE        __m128i
-#define SPLAT(p)       _mm_set1_epi8(*(p))
-#define ALL_EQ(v1, v2) (_mm_movemask_epi8(_mm_cmpeq_epi8(v1, v2)) == 0xFFFF)
-#else
-#define VECTYPE        unsigned long
-#define SPLAT(p)       (*(p) * (~0UL / 255))
-#define ALL_EQ(v1, v2) ((v1) == (v2))
-#endif
-
 
 static struct defconfig_file {
     const char *filename;
@@ -160,23 +142,14 @@ int qemu_read_default_config_files(bool userconfig)
             return ret;
         }
     }
-    
+
     return 0;
 }
 
-static int is_dup_page(uint8_t *page)
+static inline bool is_zero_page(uint8_t *p)
 {
-    VECTYPE *p = (VECTYPE *)page;
-    VECTYPE val = SPLAT(page);
-    int i;
-
-    for (i = 0; i < TARGET_PAGE_SIZE / sizeof(VECTYPE); i++) {
-        if (!ALL_EQ(val, p[i])) {
-            return 0;
-        }
-    }
-
-    return 1;
+    return buffer_find_nonzero_offset(p, TARGET_PAGE_SIZE) ==
+        TARGET_PAGE_SIZE;
 }
 
 /* struct contains XBZRLE cache and a static page
@@ -210,6 +183,7 @@ int64_t xbzrle_cache_resize(int64_t new_size)
 /* accounting for migration statistics */
 typedef struct AccountingInfo {
     uint64_t dup_pages;
+    uint64_t skipped_pages;
     uint64_t norm_pages;
     uint64_t iterations;
     uint64_t xbzrle_bytes;
@@ -233,6 +207,16 @@ uint64_t dup_mig_bytes_transferred(void)
 uint64_t dup_mig_pages_transferred(void)
 {
     return acct_info.dup_pages;
+}
+
+uint64_t skipped_mig_bytes_transferred(void)
+{
+    return acct_info.skipped_pages * TARGET_PAGE_SIZE;
+}
+
+uint64_t skipped_mig_pages_transferred(void)
+{
+    return acct_info.skipped_pages;
 }
 
 uint64_t norm_mig_bytes_transferred(void)
@@ -293,8 +277,7 @@ static int save_xbzrle_page(QEMUFile *f, uint8_t *current_data,
 
     if (!cache_is_cached(XBZRLE.cache, current_addr)) {
         if (!last_stage) {
-            cache_insert(XBZRLE.cache, current_addr,
-                         g_memdup(current_data, TARGET_PAGE_SIZE));
+            cache_insert(XBZRLE.cache, current_addr, current_data);
         }
         acct_info.xbzrle_cache_miss++;
         return -1;
@@ -347,6 +330,7 @@ static ram_addr_t last_offset;
 static unsigned long *migration_bitmap;
 static uint64_t migration_dirty_pages;
 static uint32_t last_version;
+static bool ram_bulk_stage;
 
 static inline
 ram_addr_t migration_bitmap_find_and_reset_dirty(MemoryRegion *mr,
@@ -356,7 +340,13 @@ ram_addr_t migration_bitmap_find_and_reset_dirty(MemoryRegion *mr,
     unsigned long nr = base + (start >> TARGET_PAGE_BITS);
     unsigned long size = base + (int128_get64(mr->size) >> TARGET_PAGE_BITS);
 
-    unsigned long next = find_next_bit(migration_bitmap, size, nr);
+    unsigned long next;
+
+    if (ram_bulk_stage && nr > base) {
+        next = nr + 1;
+    } else {
+        next = find_next_bit(migration_bitmap, size, nr);
+    }
 
     if (next < size) {
         clear_bit(next, migration_bitmap);
@@ -378,6 +368,8 @@ static inline bool migration_bitmap_set_dirty(MemoryRegion *mr,
     }
     return ret;
 }
+
+/* Needs iothread lock! */
 
 static void migration_bitmap_sync(void)
 {
@@ -414,6 +406,7 @@ static void migration_bitmap_sync(void)
     if (end_time > start_time + 1000) {
         s->dirty_pages_rate = num_dirty_pages_period * 1000
             / (end_time - start_time);
+        s->dirty_bytes_rate = s->dirty_pages_rate * TARGET_PAGE_SIZE;
         start_time = end_time;
         num_dirty_pages_period = 0;
     }
@@ -451,6 +444,7 @@ static int ram_save_block(QEMUFile *f, bool last_stage)
             if (!block) {
                 block = QTAILQ_FIRST(&ram_list.blocks);
                 complete_round = true;
+                ram_bulk_stage = false;
             }
         } else {
             uint8_t *p;
@@ -461,13 +455,18 @@ static int ram_save_block(QEMUFile *f, bool last_stage)
 
             /* In doubt sent page as normal */
             bytes_sent = -1;
-            if (is_dup_page(p)) {
+            if (is_zero_page(p)) {
                 acct_info.dup_pages++;
-                bytes_sent = save_block_hdr(f, block, offset, cont,
-                                            RAM_SAVE_FLAG_COMPRESS);
-                qemu_put_byte(f, *p);
-                bytes_sent += 1;
-            } else if (migrate_use_xbzrle()) {
+                if (!ram_bulk_stage) {
+                    bytes_sent = save_block_hdr(f, block, offset, cont,
+                                                RAM_SAVE_FLAG_COMPRESS);
+                    qemu_put_byte(f, 0);
+                    bytes_sent++;
+                } else {
+                    acct_info.skipped_pages++;
+                    bytes_sent = 0;
+                }
+            } else if (!ram_bulk_stage && migrate_use_xbzrle()) {
                 current_addr = block->offset + offset;
                 bytes_sent = save_xbzrle_page(f, p, current_addr, block,
                                               offset, cont, last_stage);
@@ -479,7 +478,7 @@ static int ram_save_block(QEMUFile *f, bool last_stage)
             /* XBZRLE overflow or normal page */
             if (bytes_sent == -1) {
                 bytes_sent = save_block_hdr(f, block, offset, cont, RAM_SAVE_FLAG_PAGE);
-                qemu_put_buffer(f, p, TARGET_PAGE_SIZE);
+                qemu_put_buffer_async(f, p, TARGET_PAGE_SIZE);
                 bytes_sent += TARGET_PAGE_SIZE;
                 acct_info.norm_pages++;
             }
@@ -554,6 +553,7 @@ static void reset_ram_globals(void)
     last_sent_block = NULL;
     last_offset = 0;
     last_version = ram_list.version;
+    ram_bulk_stage = true;
 }
 
 #define MAX_WAIT 50 /* ms, half buffered_file limit */
@@ -566,10 +566,6 @@ static int ram_save_setup(QEMUFile *f, void *opaque)
     migration_bitmap = bitmap_new(ram_pages);
     bitmap_set(migration_bitmap, 0, ram_pages);
     migration_dirty_pages = ram_pages;
-
-    qemu_mutex_lock_ramlist();
-    bytes_transferred = 0;
-    reset_ram_globals();
 
     if (migrate_use_xbzrle()) {
         XBZRLE.cache = cache_init(migrate_xbzrle_cache_size() /
@@ -584,8 +580,14 @@ static int ram_save_setup(QEMUFile *f, void *opaque)
         acct_clear();
     }
 
+    qemu_mutex_lock_iothread();
+    qemu_mutex_lock_ramlist();
+    bytes_transferred = 0;
+    reset_ram_globals();
+
     memory_global_dirty_log_start();
     migration_bitmap_sync();
+    qemu_mutex_unlock_iothread();
 
     qemu_put_be64(f, ram_bytes_total() | RAM_SAVE_FLAG_MEM_SIZE);
 
@@ -689,7 +691,9 @@ static uint64_t ram_save_pending(QEMUFile *f, void *opaque, uint64_t max_size)
     remaining_size = ram_save_remaining() * TARGET_PAGE_SIZE;
 
     if (remaining_size < max_size) {
+        qemu_mutex_lock_iothread();
         migration_bitmap_sync();
+        qemu_mutex_unlock_iothread();
         remaining_size = ram_save_remaining() * TARGET_PAGE_SIZE;
     }
     return remaining_size;
@@ -1099,11 +1103,16 @@ int qemu_uuid_parse(const char *str, uint8_t *uuid)
     return 0;
 }
 
-void do_acpitable_option(const char *optarg)
+void do_acpitable_option(const QemuOpts *opts)
 {
 #ifdef TARGET_I386
-    if (acpi_table_add(optarg) < 0) {
-        fprintf(stderr, "Wrong acpi table provided\n");
+    Error *err = NULL;
+
+    acpi_table_add(opts, &err);
+    if (err) {
+        fprintf(stderr, "Wrong acpi table provided: %s\n",
+                error_get_pretty(err));
+        error_free(err);
         exit(1);
     }
 #endif
