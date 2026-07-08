@@ -552,6 +552,12 @@
     <ClCompile Include="qemu\util\cutils.c">
       <Filter>qemu\util\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\util\crc32c.c">
+      <Filter>qemu\util\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\misc\pvpanic.c">
+      <Filter>qemu\hw\misc\src</Filter>
+    </ClCompile>
     <ClCompile Include="qemu\device_tree.c">
       <Filter>qemu\src</Filter>
     </ClCompile>
@@ -2382,6 +2388,15 @@
     <ClCompile Include="qemu\backends\rng-egd.c">
       <Filter>qemu\backends\src</Filter>
     </ClCompile>
+    <ClCompile Include="qemu\block\vhdx.c">
+      <Filter>qemu\block\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\cpu\a15mpcore.c">
+      <Filter>qemu\hw\cpu\src</Filter>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\cpu\icc_bus.c">
+      <Filter>qemu\hw\cpu\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="float80-port.h">
@@ -2411,8 +2426,8 @@
     <ClInclude Include="qemu\config-host.h">
       <Filter>qemu\inc</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\config.h">
-      <Filter>qemu\inc</Filter>
+    <ClInclude Include="qemu\include\config.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\include\ui\console.h">
       <Filter>qemu\include</Filter>
@@ -2870,8 +2885,8 @@
     <ClInclude Include="qemu\include\hw\elf_ops.h">
       <Filter>qemu\hw\inc</Filter>
     </ClInclude>
-    <ClInclude Include="config-target.h">
-      <Filter>qemu\inc</Filter>
+    <ClInclude Include="qemu\include\config-target.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\include\qapi\qmp\qlist.h">
       <Filter>qemu\include</Filter>
@@ -3304,6 +3319,9 @@
     </ClInclude>
     <ClInclude Include="qemu\include\sysemu\memory_mapping.h">
       <Filter>qemu\include</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\block\vhdx.h">
+      <Filter>qemu\block\inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

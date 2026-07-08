@@ -393,7 +393,6 @@
 },
 
 
-#ifdef HAS_AUDIO
 {
 .name       = "wavcapture",
 .args_type  = "path:F,freq:i?,bits:i?,nchannels:i?",
@@ -401,9 +400,7 @@
 .help       = "capture audio to a wave file (default frequency=44100 bits=16 channels=2)",
 .mhandler.cmd = do_wav_capture,
 },
-#endif
 
-#ifdef HAS_AUDIO
 {
 .name       = "stopcapture",
 .args_type  = "n:i",
@@ -411,7 +408,6 @@
 .help       = "stop capture",
 .mhandler.cmd = do_stop_capture,
 },
-#endif
 
 {
 .name       = "memsave",

@@ -252,8 +252,8 @@ void visit_type_ChardevHostdevList(Visitor *m, ChardevHostdevList ** obj, const 
 void visit_type_ChardevSocket(Visitor *m, ChardevSocket ** obj, const char *name, Error **errp);
 void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const char *name, Error **errp);
 
-void visit_type_ChardevDgram(Visitor *m, ChardevDgram ** obj, const char *name, Error **errp);
-void visit_type_ChardevDgramList(Visitor *m, ChardevDgramList ** obj, const char *name, Error **errp);
+void visit_type_ChardevUdp(Visitor *m, ChardevUdp ** obj, const char *name, Error **errp);
+void visit_type_ChardevUdpList(Visitor *m, ChardevUdpList ** obj, const char *name, Error **errp);
 
 void visit_type_ChardevMux(Visitor *m, ChardevMux ** obj, const char *name, Error **errp);
 void visit_type_ChardevMuxList(Visitor *m, ChardevMuxList ** obj, const char *name, Error **errp);
@@ -303,5 +303,20 @@ void visit_type_TPMInfoList(Visitor *m, TPMInfoList ** obj, const char *name, Er
 
 void visit_type_AcpiTableOptions(Visitor *m, AcpiTableOptions ** obj, const char *name, Error **errp);
 void visit_type_AcpiTableOptionsList(Visitor *m, AcpiTableOptionsList ** obj, const char *name, Error **errp);
+
+void visit_type_CommandLineParameterType(Visitor *m, CommandLineParameterType * obj, const char *name, Error **errp);
+void visit_type_CommandLineParameterTypeList(Visitor *m, CommandLineParameterTypeList ** obj, const char *name, Error **errp);
+
+void visit_type_CommandLineParameterInfo(Visitor *m, CommandLineParameterInfo ** obj, const char *name, Error **errp);
+void visit_type_CommandLineParameterInfoList(Visitor *m, CommandLineParameterInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_CommandLineOptionInfo(Visitor *m, CommandLineOptionInfo ** obj, const char *name, Error **errp);
+void visit_type_CommandLineOptionInfoList(Visitor *m, CommandLineOptionInfoList ** obj, const char *name, Error **errp);
+
+void visit_type_X86CPURegister32(Visitor *m, X86CPURegister32 * obj, const char *name, Error **errp);
+void visit_type_X86CPURegister32List(Visitor *m, X86CPURegister32List ** obj, const char *name, Error **errp);
+
+void visit_type_X86CPUFeatureWordInfo(Visitor *m, X86CPUFeatureWordInfo ** obj, const char *name, Error **errp);
+void visit_type_X86CPUFeatureWordInfoList(Visitor *m, X86CPUFeatureWordInfoList ** obj, const char *name, Error **errp);
 
 #endif

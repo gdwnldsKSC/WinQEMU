@@ -437,17 +437,22 @@ bool cpu_is_stopped(CPUState *cpu)
     return !runstate_is_running() || cpu->stopped;
 }
 
-static void do_vm_stop(RunState state)
+static int do_vm_stop(RunState state)
 {
+    int ret = 0;
+
     if (runstate_is_running()) {
         cpu_disable_ticks();
         pause_all_vcpus();
         runstate_set(state);
         vm_state_notify(0, state);
-        bdrv_drain_all();
-        bdrv_flush_all();
         monitor_protocol_event(QEVENT_STOP, NULL);
     }
+
+    bdrv_drain_all();
+    ret = bdrv_flush_all();
+
+    return ret;
 }
 
 static bool cpu_can_run(CPUState *cpu)
@@ -812,6 +817,12 @@ static void *qemu_dummy_cpu_thread_fn(void *arg)
 
 static void tcg_exec_all(void);
 
+static void tcg_signal_cpu_creation(CPUState *cpu, void *data)
+{
+    cpu->thread_id = qemu_get_thread_id();
+    cpu->created = true;
+}
+
 static void *qemu_tcg_cpu_thread_fn(void *arg)
 {
     CPUState *cpu = arg;
@@ -820,13 +831,8 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
     qemu_tcg_init_cpu_signals();
     qemu_thread_get_self(cpu->thread);
 
-    /* signal CPU creation */
     qemu_mutex_lock(&qemu_global_mutex);
-    for (env = first_cpu; env != NULL; env = env->next_cpu) {
-        cpu = ENV_GET_CPU(env);
-        cpu->thread_id = qemu_get_thread_id();
-        cpu->created = true;
-    }
+    qemu_for_each_cpu(tcg_signal_cpu_creation, NULL);
     qemu_cond_signal(&qemu_cpu_cond);
 
     /* wait for initial kick-off after machine start */
@@ -973,9 +979,10 @@ void pause_all_vcpus(void)
     if (qemu_in_vcpu_thread()) {
         cpu_stop_current();
         if (!kvm_enabled()) {
+            penv = first_cpu;
             while (penv) {
                 CPUState *pcpu = ENV_GET_CPU(penv);
-                pcpu->stop = 0;
+                pcpu->stop = false;
                 pcpu->stopped = true;
                 penv = penv->next_cpu;
             }
@@ -993,6 +1000,13 @@ void pause_all_vcpus(void)
     }
 }
 
+void cpu_resume(CPUState *cpu)
+{
+    cpu->stop = false;
+    cpu->stopped = false;
+    qemu_cpu_kick(cpu);
+}
+
 void resume_all_vcpus(void)
 {
     CPUArchState *penv = first_cpu;
@@ -1000,9 +1014,7 @@ void resume_all_vcpus(void)
     qemu_clock_enable(vm_clock, true);
     while (penv) {
         CPUState *pcpu = ENV_GET_CPU(penv);
-        pcpu->stop = false;
-        pcpu->stopped = false;
-        qemu_cpu_kick(pcpu);
+        cpu_resume(pcpu);
         penv = penv->next_cpu;
     }
 }
@@ -1086,7 +1098,7 @@ void cpu_stop_current(void)
     }
 }
 
-void vm_stop(RunState state)
+int vm_stop(RunState state)
 {
     if (qemu_in_vcpu_thread()) {
         qemu_system_vmstop_request(state);
@@ -1095,19 +1107,23 @@ void vm_stop(RunState state)
          * vm_stop() has been requested.
          */
         cpu_stop_current();
-        return;
+        return 0;
     }
-    do_vm_stop(state);
+
+    return do_vm_stop(state);
 }
 
 /* does a state transition even if the VM is already stopped,
    current state is forgotten forever */
-void vm_stop_force_state(RunState state)
+int vm_stop_force_state(RunState state)
 {
     if (runstate_is_running()) {
-        vm_stop(state);
+        return vm_stop(state);
     } else {
         runstate_set(state);
+        /* Make sure to return an error if the flush in a previous vm_stop()
+         * failed. */
+        return bdrv_flush_all();
     }
 }
 

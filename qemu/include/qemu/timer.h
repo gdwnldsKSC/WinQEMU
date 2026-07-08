@@ -5,16 +5,9 @@
 #include "qemu/main-loop.h"
 #include "qemu/notify.h"
 
-#ifdef __FreeBSD__
-#include <sys/param.h>
-#endif
-
 #ifdef _MSC_VER
 #include <intrin.h>
 #pragma intrinsic(__rdtsc)
-#include <WinSock2.h>
-#include <mmiscapi2.h>
-#include <windows.h>
 #endif
 
 /* timers */

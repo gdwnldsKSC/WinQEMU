@@ -43,6 +43,7 @@ const char *RunState_lookup[] = {
     "shutdown",
     "suspended",
     "watchdog",
+    "guest-panicked",
     NULL,
 };
 
@@ -284,7 +285,7 @@ const char *ChardevBackendKind_lookup[] = {
     "parallel",
     "pipe",
     "socket",
-    "dgram",
+    "udp",
     "pty",
     "null",
     "mux",
@@ -295,6 +296,7 @@ const char *ChardevBackendKind_lookup[] = {
     "spicevmc",
     "spiceport",
     "vc",
+    "ringbuf",
     "memory",
     NULL,
 };
@@ -311,6 +313,26 @@ const char *TpmType_lookup[] = {
 
 const char *TpmTypeOptionsKind_lookup[] = {
     "passthrough",
+    NULL,
+};
+
+const char *CommandLineParameterType_lookup[] = {
+    "string",
+    "boolean",
+    "number",
+    "size",
+    NULL,
+};
+
+const char *X86CPURegister32_lookup[] = {
+    "EAX",
+    "EBX",
+    "ECX",
+    "EDX",
+    "ESP",
+    "EBP",
+    "ESI",
+    "EDI",
     NULL,
 };
 
@@ -2399,7 +2421,7 @@ void qapi_free_ChardevSocket(ChardevSocket * obj)
     qapi_dealloc_visitor_cleanup(md);
 }
 
-void qapi_free_ChardevDgramList(ChardevDgramList * obj)
+void qapi_free_ChardevUdpList(ChardevUdpList * obj)
 {
     QapiDeallocVisitor *md;
     Visitor *v;
@@ -2410,11 +2432,11 @@ void qapi_free_ChardevDgramList(ChardevDgramList * obj)
 
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
-    visit_type_ChardevDgramList(v, &obj, NULL, NULL);
+    visit_type_ChardevUdpList(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
-void qapi_free_ChardevDgram(ChardevDgram * obj)
+void qapi_free_ChardevUdp(ChardevUdp * obj)
 {
     QapiDeallocVisitor *md;
     Visitor *v;
@@ -2425,7 +2447,7 @@ void qapi_free_ChardevDgram(ChardevDgram * obj)
 
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
-    visit_type_ChardevDgram(v, &obj, NULL, NULL);
+    visit_type_ChardevUdp(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 
@@ -2846,6 +2868,126 @@ void qapi_free_AcpiTableOptions(AcpiTableOptions * obj)
     md = qapi_dealloc_visitor_new();
     v = qapi_dealloc_get_visitor(md);
     visit_type_AcpiTableOptions(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_CommandLineParameterTypeList(CommandLineParameterTypeList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineParameterTypeList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_CommandLineParameterInfoList(CommandLineParameterInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineParameterInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_CommandLineParameterInfo(CommandLineParameterInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineParameterInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_CommandLineOptionInfoList(CommandLineOptionInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineOptionInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_CommandLineOptionInfo(CommandLineOptionInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineOptionInfo(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_X86CPURegister32List(X86CPURegister32List * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_X86CPURegister32List(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_X86CPUFeatureWordInfoList(X86CPUFeatureWordInfoList * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_X86CPUFeatureWordInfoList(v, &obj, NULL, NULL);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+void qapi_free_X86CPUFeatureWordInfo(X86CPUFeatureWordInfo * obj)
+{
+    QapiDeallocVisitor *md;
+    Visitor *v;
+
+    if (!obj) {
+        return;
+    }
+
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_X86CPUFeatureWordInfo(v, &obj, NULL, NULL);
     qapi_dealloc_visitor_cleanup(md);
 }
 

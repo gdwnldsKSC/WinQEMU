@@ -433,6 +433,7 @@ struct IDEDMAOps {
     DMAIntFunc *set_unit;
     DMAIntFunc *add_status;
     DMAFunc *set_inactive;
+    DMAFunc *async_cmd_done;
     DMARestartFunc *restart_cb;
     DMAFunc *reset;
 };
@@ -450,6 +451,7 @@ struct IDEBus {
     IDEDevice *slave;
     IDEState ifs[2];
     int bus_id;
+    int max_units;
     IDEDMA *dma;
     uint8_t unit;
     uint8_t cmd;
@@ -574,7 +576,7 @@ void ide_atapi_cmd(IDEState *s);
 void ide_atapi_cmd_reply_end(IDEState *s);
 
 /* hw/ide/qdev.c */
-void ide_bus_new(IDEBus *idebus, DeviceState *dev, int bus_id);
+void ide_bus_new(IDEBus *idebus, DeviceState *dev, int bus_id, int max_units);
 IDEDevice *ide_create_drive(IDEBus *bus, int unit, DriveInfo *drive);
 
 #endif /* HW_IDE_INTERNAL_H */

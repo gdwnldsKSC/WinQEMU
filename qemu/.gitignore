@@ -3,12 +3,9 @@ config-all-devices.*
 config-all-disas.*
 config-host.*
 config-target.*
-trace/generated-tracers.h
-trace/generated-tracers.c
+!include/config-target.h
 trace/generated-tracers-dtrace.h
 trace/generated-tracers.dtrace
-trace/generated-events.h
-trace/generated-events.c
 libcacard/trace/generated-tracers.c
 *-timestamp
 *-softmmu
@@ -100,6 +97,8 @@ pc-bios/optionrom/kvmvapic.asm
 pc-bios/optionrom/kvmvapic.bin
 pc-bios/optionrom/kvmvapic.raw
 pc-bios/optionrom/kvmvapic.img
+pc-bios/s390-ccw/s390-ccw.elf
+pc-bios/s390-ccw/s390-ccw.img
 .stgit-*
 cscope.*
 tags

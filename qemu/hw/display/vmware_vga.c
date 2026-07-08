@@ -779,13 +779,14 @@ static uint32_t vmsvga_value_read(void *opaque, uint32_t address)
     case SVGA_REG_BYTES_PER_LINE:
         if (s->new_width) {
             ret = (s->new_depth * s->new_width) / 8;
-        } else {
+        }
+        else {
             ret = surface_stride(surface);
         }
         break;
 
     case SVGA_REG_FB_START: {
-        struct pci_vmsvga_state_s *pci_vmsvga
+        struct pci_vmsvga_state_s* pci_vmsvga
             = container_of(s, struct pci_vmsvga_state_s, chip);
         ret = pci_get_bar_addr(&pci_vmsvga->card, 1);
         break;
@@ -814,14 +815,14 @@ static uint32_t vmsvga_value_read(void *opaque, uint32_t address)
 #ifdef HW_MOUSE_ACCEL
         if (dpy_cursor_define_supported(s->vga.con)) {
             caps |= SVGA_CAP_CURSOR | SVGA_CAP_CURSOR_BYPASS_2 |
-                    SVGA_CAP_CURSOR_BYPASS;
+                SVGA_CAP_CURSOR_BYPASS;
         }
 #endif
         ret = caps;
         break;
 
     case SVGA_REG_MEM_START: {
-        struct pci_vmsvga_state_s *pci_vmsvga
+        struct pci_vmsvga_state_s* pci_vmsvga
             = container_of(s, struct pci_vmsvga_state_s, chip);
         ret = pci_get_bar_addr(&pci_vmsvga->card, 2);
         break;
@@ -1200,13 +1201,13 @@ static const GraphicHwOps vmsvga_ops = {
     .text_update = vmsvga_text_update,
 };
 
-static void vmsvga_init(struct vmsvga_state_s *s,
+static void vmsvga_init(DeviceState *dev, struct vmsvga_state_s *s,
                         MemoryRegion *address_space, MemoryRegion *io)
 {
     s->scratch_size = SVGA_SCRATCH_SIZE;
     s->scratch = g_malloc(s->scratch_size * 4);
 
-    s->vga.con = graphic_console_init(&vmsvga_ops, s);
+    s->vga.con = graphic_console_init(dev, &vmsvga_ops, s);
 
     s->fifo_size = SVGA_FIFO_SIZE;
     memory_region_init_ram(&s->fifo_ram, "vmsvga.fifo", s->fifo_size);
@@ -1273,7 +1274,8 @@ static int pci_vmsvga_initfn(PCIDevice *dev)
     memory_region_set_flush_coalesced(&s->io_bar);
     pci_register_bar(&s->card, 0, PCI_BASE_ADDRESS_SPACE_IO, &s->io_bar);
 
-    vmsvga_init(&s->chip, pci_address_space(dev), pci_address_space_io(dev));
+    vmsvga_init(DEVICE(dev), &s->chip,
+                pci_address_space(dev), pci_address_space_io(dev));
 
     pci_register_bar(&s->card, 1, PCI_BASE_ADDRESS_MEM_PREFETCH,
                      &s->chip.vga.vram);

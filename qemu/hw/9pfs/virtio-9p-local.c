@@ -284,7 +284,7 @@ static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
     if ((fs_ctx->export_flags & V9FS_SM_MAPPED) ||
         (fs_ctx->export_flags & V9FS_SM_MAPPED_FILE)) {
         int fd;
-        fd = open(rpath(fs_ctx, path, buffer), O_RDONLY);
+        fd = open(rpath(fs_ctx, path, buffer), O_RDONLY | O_NOFOLLOW);
         if (fd == -1) {
             return -1;
         }
@@ -878,7 +878,7 @@ static int local_remove(FsContext *ctx, const char *path)
          * Now remove the name from parent directory
          * .virtfs_metadata directory
          */
-        err = remove(local_mapped_attr_path(ctx, path, buffer));;
+        err = remove(local_mapped_attr_path(ctx, path, buffer));
         if (err < 0 && errno != ENOENT) {
             /*
              * We didn't had the .virtfs_metadata file. May be file created

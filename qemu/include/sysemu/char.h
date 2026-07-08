@@ -70,13 +70,14 @@ struct CharDriverState {
     void (*chr_set_echo)(struct CharDriverState *chr, bool echo);
     void (*chr_set_fe_open)(struct CharDriverState *chr, int fe_open);
     void *opaque;
-    int idle_tag;
     char *label;
     char *filename;
     int be_open;
     int fe_open;
     int explicit_fe_open;
+    int explicit_be_open;
     int avail_connections;
+    int is_mux;
     QemuOpts *opts;
     QTAILQ_ENTRY(CharDriverState) next;
 };

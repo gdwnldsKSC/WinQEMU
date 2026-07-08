@@ -4,7 +4,6 @@
 #include "qemu-common.h"
 
 #ifdef NEED_CPU_H
-#include "cpu.h"
 /* Disassemble this for me please... (debugging). */
 void disas(FILE *out, void *code, unsigned long size);
 void target_disas(FILE *out, CPUArchState *env, target_ulong code,

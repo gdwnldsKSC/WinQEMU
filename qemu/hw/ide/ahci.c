@@ -1104,9 +1104,14 @@ static int ahci_dma_add_status(IDEDMA *dma, int status)
 
 static int ahci_dma_set_inactive(IDEDMA *dma)
 {
+    return 0;
+}
+
+static int ahci_async_cmd_done(IDEDMA *dma)
+{
     AHCIDevice *ad = DO_UPCAST(AHCIDevice, dma, dma);
 
-    DPRINTF(ad->port_no, "dma done\n");
+    DPRINTF(ad->port_no, "async cmd done\n");
 
     /* update d2h status */
     ahci_write_fis_d2h(ad, NULL);
@@ -1141,6 +1146,7 @@ static const IDEDMAOps ahci_dma_ops = {
     .set_unit = ahci_dma_set_unit,
     .add_status = ahci_dma_add_status,
     .set_inactive = ahci_dma_set_inactive,
+    .async_cmd_done = ahci_async_cmd_done,
     .restart_cb = ahci_dma_restart_cb,
     .reset = ahci_dma_reset,
 };
@@ -1163,7 +1169,7 @@ void ahci_init(AHCIState *s, DeviceState *qdev, DMAContext *dma, int ports)
     for (i = 0; i < s->ports; i++) {
         AHCIDevice *ad = &s->dev[i];
 
-        ide_bus_new(&ad->port, qdev, i);
+        ide_bus_new(&ad->port, qdev, i, 1);
         ide_init2(&ad->port, irqs[i]);
 
         ad->hba = s;

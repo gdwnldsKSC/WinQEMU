@@ -12,6 +12,7 @@
 #include "sysemu/cpus.h"
 #include "sysemu/kvm.h"
 #include "hw/i386/apic_internal.h"
+#include "hw/sysbus.h"
 
 #define VAPIC_IO_PORT           0x7e
 
@@ -686,8 +687,14 @@ static void vapic_write(void *opaque, hwaddr addr, uint64_t data,
     }
 }
 
+static uint64_t vapic_read(void *opaque, hwaddr addr, unsigned size)
+{
+    return 0xffffffff;
+}
+
 static const MemoryRegionOps vapic_ops = {
     .write = vapic_write,
+    .read = vapic_read,
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 

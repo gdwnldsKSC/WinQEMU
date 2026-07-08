@@ -118,13 +118,22 @@ static int nbd_parse_uri(const char *filename, QDict *options)
         }
         qdict_put(options, "path", qstring_from_str(qp->p[0].value));
     } else {
+        QString *host;
         /* nbd[+tcp]://host[:port]/export */
         if (!uri->server) {
             ret = -EINVAL;
             goto out;
         }
 
-        qdict_put(options, "host", qstring_from_str(uri->server));
+        /* strip braces from literal IPv6 address */
+        if (uri->server[0] == '[') {
+            host = qstring_from_substr(uri->server, 1,
+                                       strlen(uri->server) - 2);
+        } else {
+            host = qstring_from_str(uri->server);
+        }
+
+        qdict_put(options, "host", host);
         if (uri->port) {
             char* port_str = g_strdup_printf("%d", uri->port);
             qdict_put(options, "port", qstring_from_str(port_str));
@@ -334,13 +343,23 @@ static int nbd_co_send_request(BDRVNBDState *s, struct nbd_request *request,
     s->send_coroutine = qemu_coroutine_self();
     qemu_aio_set_fd_handler(s->sock, nbd_reply_ready, nbd_restart_write,
                             nbd_have_request, s);
-    rc = nbd_send_request(s->sock, request);
-    if (rc >= 0 && qiov) {
-        ret = qemu_co_sendv(s->sock, qiov->iov, qiov->niov,
-                            offset, request->len);
-        if (ret != request->len) {
-            return -EIO;
+    if (qiov) {
+        if (!s->is_unix) {
+            socket_set_cork(s->sock, 1);
         }
+        rc = nbd_send_request(s->sock, request);
+        if (rc >= 0) {
+            ret = qemu_co_sendv(s->sock, qiov->iov, qiov->niov,
+                                offset, request->len);
+            if (ret != request->len) {
+                rc = -EIO;
+            }
+        }
+        if (!s->is_unix) {
+            socket_set_cork(s->sock, 0);
+        }
+    } else {
+        rc = nbd_send_request(s->sock, request);
     }
     qemu_aio_set_fd_handler(s->sock, nbd_reply_ready, NULL,
                             nbd_have_request, s);
@@ -396,6 +415,9 @@ static int nbd_establish_connection(BlockDriverState *bs)
         sock = unix_socket_outgoing(qemu_opt_get(s->socket_opts, "path"));
     } else {
         sock = tcp_socket_outgoing_opts(s->socket_opts);
+        if (sock >= 0) {
+            socket_set_nodelay(sock);
+        }
     }
 
     /* Failed to establish connection */
@@ -441,8 +463,7 @@ static void nbd_teardown_connection(BlockDriverState *bs)
     closesocket(s->sock);
 }
 
-static int nbd_open(BlockDriverState *bs, const char* filename,
-                    QDict *options, int flags)
+static int nbd_open(BlockDriverState *bs, QDict *options, int flags)
 {
     BDRVNBDState *s = bs->opaque;
     int result;
@@ -597,7 +618,7 @@ static int nbd_co_discard(BlockDriverState *bs, int64_t sector_num,
         return 0;
     }
     request.type = NBD_CMD_TRIM;
-    request.from = sector_num * 512;;
+    request.from = sector_num * 512;
     request.len = nb_sectors * 512;
 
     nbd_coroutine_start(s, &request);

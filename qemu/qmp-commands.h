@@ -76,6 +76,8 @@ void qmp_system_powerdown(Error **errp);
 int qmp_marshal_input_system_powerdown(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_cpu(int64_t index, Error **errp);
 int qmp_marshal_input_cpu(Monitor *mon, const QDict *qdict, QObject **ret);
+void qmp_cpu_add(int64_t id, Error **errp);
+int qmp_marshal_input_cpu_add(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_memsave(int64_t val, int64_t size, const char * filename, bool has_cpu_index, int64_t cpu_index, Error **errp);
 int qmp_marshal_input_memsave(Monitor *mon, const QDict *qdict, QObject **ret);
 void qmp_pmemsave(int64_t val, int64_t size, const char * filename, Error **errp);
@@ -192,5 +194,7 @@ TpmTypeList * qmp_query_tpm_types(Error **errp);
 int qmp_marshal_input_query_tpm_types(Monitor *mon, const QDict *qdict, QObject **ret);
 TPMInfoList * qmp_query_tpm(Error **errp);
 int qmp_marshal_input_query_tpm(Monitor *mon, const QDict *qdict, QObject **ret);
+CommandLineOptionInfoList * qmp_query_command_line_options(bool has_option, const char * option, Error **errp);
+int qmp_marshal_input_query_command_line_options(Monitor *mon, const QDict *qdict, QObject **ret);
 
 #endif

@@ -3761,11 +3761,11 @@ void visit_type_ChardevSocketList(Visitor *m, ChardevSocketList ** obj, const ch
     }
 }
 
-void visit_type_ChardevDgram(Visitor *m, ChardevDgram ** obj, const char *name, Error **errp)
+void visit_type_ChardevUdp(Visitor *m, ChardevUdp ** obj, const char *name, Error **errp)
 {
     if (!error_is_set(errp)) {
         Error *err = NULL;
-        visit_start_struct(m, (void **)obj, "ChardevDgram", name, sizeof(ChardevDgram), &err);
+        visit_start_struct(m, (void **)obj, "ChardevUdp", name, sizeof(ChardevUdp), &err);
         if (!err) {
             if (!obj || *obj) {
                 visit_type_SocketAddress(m, obj ? &(*obj)->remote : NULL, "remote", &err);
@@ -3785,7 +3785,7 @@ void visit_type_ChardevDgram(Visitor *m, ChardevDgram ** obj, const char *name, 
     }
 }
 
-void visit_type_ChardevDgramList(Visitor *m, ChardevDgramList ** obj, const char *name, Error **errp)
+void visit_type_ChardevUdpList(Visitor *m, ChardevUdpList ** obj, const char *name, Error **errp)
 {
     GenericList *i, **prev = (GenericList **)obj;
     Error *err = NULL;
@@ -3794,8 +3794,8 @@ void visit_type_ChardevDgramList(Visitor *m, ChardevDgramList ** obj, const char
         visit_start_list(m, name, &err);
         if (!err) {
             for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
-                ChardevDgramList *native_i = (ChardevDgramList *)i;
-                visit_type_ChardevDgram(m, &native_i->value, NULL, &err);
+                ChardevUdpList *native_i = (ChardevUdpList *)i;
+                visit_type_ChardevUdp(m, &native_i->value, NULL, &err);
             }
             error_propagate(errp, err);
             err = NULL;
@@ -4151,8 +4151,8 @@ void visit_type_ChardevBackend(Visitor *m, ChardevBackend ** obj, const char *na
                     case CHARDEV_BACKEND_KIND_SOCKET:
                         visit_type_ChardevSocket(m, &(*obj)->socket, "data", &err);
                         break;
-                    case CHARDEV_BACKEND_KIND_DGRAM:
-                        visit_type_ChardevDgram(m, &(*obj)->dgram, "data", &err);
+                    case CHARDEV_BACKEND_KIND_UDP:
+                        visit_type_ChardevUdp(m, &(*obj)->udp, "data", &err);
                         break;
                     case CHARDEV_BACKEND_KIND_PTY:
                         visit_type_ChardevDummy(m, &(*obj)->pty, "data", &err);
@@ -4183,6 +4183,9 @@ void visit_type_ChardevBackend(Visitor *m, ChardevBackend ** obj, const char *na
                         break;
                     case CHARDEV_BACKEND_KIND_VC:
                         visit_type_ChardevVC(m, &(*obj)->vc, "data", &err);
+                        break;
+                    case CHARDEV_BACKEND_KIND_RINGBUF:
+                        visit_type_ChardevRingbuf(m, &(*obj)->ringbuf, "data", &err);
                         break;
                     case CHARDEV_BACKEND_KIND_MEMORY:
                         visit_type_ChardevRingbuf(m, &(*obj)->memory, "data", &err);
@@ -4544,6 +4547,197 @@ void visit_type_AcpiTableOptionsList(Visitor *m, AcpiTableOptionsList ** obj, co
             for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
                 AcpiTableOptionsList *native_i = (AcpiTableOptionsList *)i;
                 visit_type_AcpiTableOptions(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_CommandLineParameterTypeList(Visitor *m, CommandLineParameterTypeList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                CommandLineParameterTypeList *native_i = (CommandLineParameterTypeList *)i;
+                visit_type_CommandLineParameterType(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_CommandLineParameterType(Visitor *m, CommandLineParameterType * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, CommandLineParameterType_lookup, "CommandLineParameterType", name, errp);
+}
+
+void visit_type_CommandLineParameterInfo(Visitor *m, CommandLineParameterInfo ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "CommandLineParameterInfo", name, sizeof(CommandLineParameterInfo), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->name : NULL, "name", &err);
+                visit_type_CommandLineParameterType(m, obj ? &(*obj)->type : NULL, "type", &err);
+                visit_start_optional(m, obj ? &(*obj)->has_help : NULL, "help", &err);
+                if (obj && (*obj)->has_help) {
+                    visit_type_str(m, obj ? &(*obj)->help : NULL, "help", &err);
+                }
+                visit_end_optional(m, &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_CommandLineParameterInfoList(Visitor *m, CommandLineParameterInfoList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                CommandLineParameterInfoList *native_i = (CommandLineParameterInfoList *)i;
+                visit_type_CommandLineParameterInfo(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_CommandLineOptionInfo(Visitor *m, CommandLineOptionInfo ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "CommandLineOptionInfo", name, sizeof(CommandLineOptionInfo), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_str(m, obj ? &(*obj)->option : NULL, "option", &err);
+                visit_type_CommandLineParameterInfoList(m, obj ? &(*obj)->parameters : NULL, "parameters", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_CommandLineOptionInfoList(Visitor *m, CommandLineOptionInfoList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                CommandLineOptionInfoList *native_i = (CommandLineOptionInfoList *)i;
+                visit_type_CommandLineOptionInfo(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_X86CPURegister32List(Visitor *m, X86CPURegister32List ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                X86CPURegister32List *native_i = (X86CPURegister32List *)i;
+                visit_type_X86CPURegister32(m, &native_i->value, NULL, &err);
+            }
+            error_propagate(errp, err);
+            err = NULL;
+
+            /* Always call end_list if start_list succeeded.  */
+            visit_end_list(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_X86CPURegister32(Visitor *m, X86CPURegister32 * obj, const char *name, Error **errp)
+{
+    visit_type_enum(m, (int *)obj, X86CPURegister32_lookup, "X86CPURegister32", name, errp);
+}
+
+void visit_type_X86CPUFeatureWordInfo(Visitor *m, X86CPUFeatureWordInfo ** obj, const char *name, Error **errp)
+{
+    if (!error_is_set(errp)) {
+        Error *err = NULL;
+        visit_start_struct(m, (void **)obj, "X86CPUFeatureWordInfo", name, sizeof(X86CPUFeatureWordInfo), &err);
+        if (!err) {
+            if (!obj || *obj) {
+                visit_type_int(m, obj ? &(*obj)->cpuid_input_eax : NULL, "cpuid-input-eax", &err);
+                visit_start_optional(m, obj ? &(*obj)->has_cpuid_input_ecx : NULL, "cpuid-input-ecx", &err);
+                if (obj && (*obj)->has_cpuid_input_ecx) {
+                    visit_type_int(m, obj ? &(*obj)->cpuid_input_ecx : NULL, "cpuid-input-ecx", &err);
+                }
+                visit_end_optional(m, &err);
+                visit_type_X86CPURegister32(m, obj ? &(*obj)->cpuid_register : NULL, "cpuid-register", &err);
+                visit_type_int(m, obj ? &(*obj)->features : NULL, "features", &err);
+            
+                error_propagate(errp, err);
+                err = NULL;
+            }
+            /* Always call end_struct if start_struct succeeded.  */
+            visit_end_struct(m, &err);
+        }
+        error_propagate(errp, err);
+    }
+}
+
+void visit_type_X86CPUFeatureWordInfoList(Visitor *m, X86CPUFeatureWordInfoList ** obj, const char *name, Error **errp)
+{
+    GenericList *i, **prev = (GenericList **)obj;
+    Error *err = NULL;
+
+    if (!error_is_set(errp)) {
+        visit_start_list(m, name, &err);
+        if (!err) {
+            for (; (i = visit_next_list(m, prev, &err)) != NULL; prev = &i) {
+                X86CPUFeatureWordInfoList *native_i = (X86CPUFeatureWordInfoList *)i;
+                visit_type_X86CPUFeatureWordInfo(m, &native_i->value, NULL, &err);
             }
             error_propagate(errp, err);
             err = NULL;

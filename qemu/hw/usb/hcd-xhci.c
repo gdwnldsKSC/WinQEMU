@@ -326,7 +326,6 @@ typedef enum EPType {
 } EPType;
 
 typedef struct XHCIRing {
-    dma_addr_t base;
     dma_addr_t dequeue;
     bool ccs;
 } XHCIRing;
@@ -950,7 +949,6 @@ static void xhci_event(XHCIState *xhci, XHCIEvent *event, int v)
 static void xhci_ring_init(XHCIState *xhci, XHCIRing *ring,
                            dma_addr_t base)
 {
-    ring->base = base;
     ring->dequeue = base;
     ring->ccs = 1;
 }
@@ -1404,7 +1402,6 @@ static TRBCCode xhci_reset_ep(XHCIState *xhci, unsigned int slotid,
 {
     XHCISlot *slot;
     XHCIEPContext *epctx;
-    USBDevice *dev;
 
     trace_usb_xhci_ep_reset(slotid, epid);
     assert(slotid >= 1 && slotid <= xhci->numslots);
@@ -1440,8 +1437,8 @@ static TRBCCode xhci_reset_ep(XHCIState *xhci, unsigned int slotid,
         ep |= 0x80;
     }
 
-    dev = xhci->slots[slotid-1].uport->dev;
-    if (!dev) {
+    if (!xhci->slots[slotid-1].uport ||
+        !xhci->slots[slotid-1].uport->dev) {
         return CC_USB_TRANSACTION_ERROR;
     }
 
@@ -1716,12 +1713,18 @@ static int xhci_complete_packet(XHCITransfer *xfer)
     trace_usb_xhci_xfer_error(xfer, xfer->packet.status);
     switch (xfer->packet.status) {
     case USB_RET_NODEV:
+    case USB_RET_IOERROR:
         xfer->status = CC_USB_TRANSACTION_ERROR;
         xhci_xfer_report(xfer);
         xhci_stall_ep(xfer);
         break;
     case USB_RET_STALL:
         xfer->status = CC_STALL_ERROR;
+        xhci_xfer_report(xfer);
+        xhci_stall_ep(xfer);
+        break;
+    case USB_RET_BABBLE:
+        xfer->status = CC_BABBLE_DETECTED;
         xhci_xfer_report(xfer);
         xhci_stall_ep(xfer);
         break;
@@ -1955,7 +1958,7 @@ static void xhci_kick_ep(XHCIState *xhci, unsigned int slotid,
         streamid = 0;
         xhci_set_ep_state(xhci, epctx, NULL, EP_RUNNING);
     }
-    assert(ring->base != 0);
+    assert(ring->dequeue != 0);
 
     while (1) {
         XHCITransfer *xfer = &epctx->transfers[epctx->next_xfer];

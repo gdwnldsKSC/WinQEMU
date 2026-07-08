@@ -1025,7 +1025,7 @@ set_ims(E1000State *s, int index, uint32_t val)
 
 #ifndef _MSC_VER
 #define getreg(x)	[x] = mac_readreg
-static uint32_t(*macreg_readops[])(E1000State*, int) = {
+static uint32_t (*macreg_readops[])(E1000State *, int) = {
     getreg(PBA),	getreg(RCTL),	getreg(TDH),	getreg(TXDCTL),
     getreg(WUFC),	getreg(TDT),	getreg(CTRL),	getreg(LEDCTL),
     getreg(MANC),	getreg(MDIC),	getreg(SWSM),	getreg(STATUS),
@@ -1034,13 +1034,13 @@ static uint32_t(*macreg_readops[])(E1000State*, int) = {
     getreg(TDBAL),	getreg(TDBAH),	getreg(RDBAH),	getreg(RDBAL),
     getreg(TDLEN),	getreg(RDLEN),
 
-    [TOTH] = mac_read_clr8,[TORH] = mac_read_clr8,[GPRC] = mac_read_clr4,
-    [GPTC] = mac_read_clr4,[TPR] = mac_read_clr4,[TPT] = mac_read_clr4,
-    [ICR] = mac_icr_read,[EECD] = get_eecd,[EERD] = flash_eerd_read,
+    [TOTH] = mac_read_clr8,	[TORH] = mac_read_clr8,	[GPRC] = mac_read_clr4,
+    [GPTC] = mac_read_clr4,	[TPR] = mac_read_clr4,	[TPT] = mac_read_clr4,
+    [ICR] = mac_icr_read,	[EECD] = get_eecd,	[EERD] = flash_eerd_read,
     [CRCERRS ... MPC] = &mac_readreg,
-    [RA ... RA + 31] = &mac_readreg,
-    [MTA ... MTA + 127] = &mac_readreg,
-    [VFTA ... VFTA + 127] = &mac_readreg,
+    [RA ... RA+31] = &mac_readreg,
+    [MTA ... MTA+127] = &mac_readreg,
+    [VFTA ... VFTA+127] = &mac_readreg,
 };
 #else
 
@@ -1052,18 +1052,18 @@ enum { NREADOPS = ARRAY_SIZE(macreg_readops) };
 
 #ifndef _MSC_VER
 #define putreg(x)	[x] = mac_writereg
-static void (*macreg_writeops[])(E1000State*, int, uint32_t) = {
+static void (*macreg_writeops[])(E1000State *, int, uint32_t) = {
     putreg(PBA),	putreg(EERD),	putreg(SWSM),	putreg(WUFC),
     putreg(TDBAL),	putreg(TDBAH),	putreg(TXDCTL),	putreg(RDBAH),
     putreg(RDBAL),	putreg(LEDCTL), putreg(VET),
-    [TDLEN] = set_dlen,[RDLEN] = set_dlen,[TCTL] = set_tctl,
-    [TDT] = set_tctl,[MDIC] = set_mdic,[ICS] = set_ics,
-    [TDH] = set_16bit,[RDH] = set_16bit,[RDT] = set_rdt,
-    [IMC] = set_imc,[IMS] = set_ims,[ICR] = set_icr,
-    [EECD] = set_eecd,[RCTL] = set_rx_control,[CTRL] = set_ctrl,
-    [RA ... RA + 31] = &mac_writereg,
-    [MTA ... MTA + 127] = &mac_writereg,
-    [VFTA ... VFTA + 127] = &mac_writereg,
+    [TDLEN] = set_dlen,	[RDLEN] = set_dlen,	[TCTL] = set_tctl,
+    [TDT] = set_tctl,	[MDIC] = set_mdic,	[ICS] = set_ics,
+    [TDH] = set_16bit,	[RDH] = set_16bit,	[RDT] = set_rdt,
+    [IMC] = set_imc,	[IMS] = set_ims,	[ICR] = set_icr,
+    [EECD] = set_eecd,	[RCTL] = set_rx_control, [CTRL] = set_ctrl,
+    [RA ... RA+31] = &mac_writereg,
+    [MTA ... MTA+127] = &mac_writereg,
+    [VFTA ... VFTA+127] = &mac_writereg,
 };
 #else
 static void (*macreg_writeops[VFTA + 128])(E1000State*, int, uint32_t) = { NULL };

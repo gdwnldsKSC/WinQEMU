@@ -24,34 +24,9 @@ void qmp_dump_guest_memory(bool paging, const char *file, bool has_begin,
     error_set(errp, QERR_UNSUPPORTED);
 }
 
-int cpu_write_elf64_note(write_core_dump_function f,
-                                       CPUArchState *env, int cpuid,
-                                       void *opaque)
-{
-    return -1;
-}
-
-int cpu_write_elf32_note(write_core_dump_function f,
-                                       CPUArchState *env, int cpuid,
-                                       void *opaque)
-{
-    return -1;
-}
-
-int cpu_write_elf64_qemunote(write_core_dump_function f,
-                                           CPUArchState *env,
-                                           void *opaque)
-{
-    return -1;
-}
-
-int cpu_write_elf32_qemunote(write_core_dump_function f,
-                                           CPUArchState *env,
-                                           void *opaque)
-{
-    return -1;
-}
-
+/* i386 provides the real cpu_get_dump_info()/cpu_get_note_size() via
+   target-i386/arch_dump.c; only stub them for targets without arch_dump.c. */
+#ifndef TARGET_I386
 int cpu_get_dump_info(ArchDumpInfo *info)
 {
     return -1;
@@ -61,4 +36,5 @@ ssize_t cpu_get_note_size(int class, int machine, int nr_cpus)
 {
     return -1;
 }
+#endif
 

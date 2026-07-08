@@ -95,6 +95,13 @@
 
 
 {
+.name       = "cpu-add",
+.args_type  = "id:i",
+.mhandler.cmd_new = qmp_marshal_input_cpu_add,
+},
+
+
+{
 .name       = "memsave",
 .args_type  = "val:l,size:i,filename:s,cpu:i?",
 .mhandler.cmd_new = qmp_marshal_input_memsave,
@@ -500,6 +507,13 @@
 .name       = "query-uuid",
 .args_type  = "",
 .mhandler.cmd_new = qmp_marshal_input_query_uuid,
+},
+
+
+{
+.name       = "query-command-line-options",
+.args_type  = "option:s?",
+.mhandler.cmd_new = qmp_marshal_input_query_command_line_options,
 },
 
 

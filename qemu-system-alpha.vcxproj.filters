@@ -201,8 +201,11 @@
     <ClInclude Include="qemu\include\exec\memory.h">
       <Filter>qemu\include</Filter>
     </ClInclude>
-    <ClInclude Include="qemu\config.h">
-      <Filter>qemu\inc</Filter>
+    <ClInclude Include="qemu\include\config.h">
+      <Filter>qemu\include</Filter>
+    </ClInclude>
+    <ClInclude Include="qemu\include\config-target.h">
+      <Filter>qemu\include</Filter>
     </ClInclude>
     <ClInclude Include="qemu\include\qemu-common.h">
       <Filter>qemu\include</Filter>

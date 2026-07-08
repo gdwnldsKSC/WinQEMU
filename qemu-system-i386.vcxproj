@@ -291,6 +291,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="qemu\block\vhdx.c" />
+    <ClCompile Include="qemu\hw\cpu\a15mpcore.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="qemu\hw\cpu\icc_bus.c" />
     <ClCompile Include="qemu\util\acl.c" />
     <ClCompile Include="qemu\aio-win32.c" />
     <ClCompile Include="qemu\arch_init.c" />
@@ -946,10 +951,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\target-i386\arch_dump.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-alpha|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1155,6 +1156,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="qemu\util\cutils.c" />
+    <ClCompile Include="qemu\util\crc32c.c" />
+    <ClCompile Include="qemu\hw\misc\pvpanic.c" />
     <ClCompile Include="qemu\util\hexdump.c" />
     <ClCompile Include="qemu\util\unicode.c" />
     <ClCompile Include="qemu\device_tree.c">
@@ -2281,8 +2284,9 @@
     <ClCompile Include="third_party\outside_qemu_tree_custom\getopt.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="config-target.h" />
+    <ClInclude Include="qemu\include\config-target.h" />
     <ClInclude Include="float80-port.h" />
+    <ClInclude Include="qemu\block\vhdx.h" />
     <ClInclude Include="qemu\include\qemu\acl.h" />
     <ClInclude Include="qemu\include\sysemu\arch_init.h" />
     <ClInclude Include="qemu\audio\audio_win_int.h" />
@@ -2476,7 +2480,7 @@
     <ClInclude Include="qemu\include\qemu\bswap.h" />
     <ClInclude Include="qemu\include\qemu\cache-utils.h" />
     <ClInclude Include="qemu\config-host.h" />
-    <ClInclude Include="qemu\config.h" />
+    <ClInclude Include="qemu\include\config.h" />
     <ClInclude Include="qemu\include\ui\console.h" />
     <ClInclude Include="qemu\include\exec\cpu-all.h" />
     <ClInclude Include="qemu\include\exec\cpu-defs.h" />

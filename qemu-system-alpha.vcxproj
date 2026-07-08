@@ -137,7 +137,8 @@
     <ClInclude Include="qemu\include\sysemu\arch_init.h" />
     <ClInclude Include="qemu\include\sysemu\balloon.h" />
     <ClInclude Include="qemu\config-host.h" />
-    <ClInclude Include="qemu\config.h" />
+    <ClInclude Include="qemu\include\config.h" />
+    <ClInclude Include="qemu\include\config-target.h" />
     <ClInclude Include="qemu\include\sysemu\cpus.h" />
     <ClInclude Include="qemu\fpu\softfloat-macros.h" />
     <ClInclude Include="qemu\fpu\softfloat-specialize.h" />

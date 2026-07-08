@@ -99,7 +99,7 @@ size_t iov_size(const struct iovec *iov, const unsigned int iov_cnt)
 static ssize_t
 do_send_recv(int sockfd, struct iovec *iov, unsigned iov_cnt, bool do_send)
 {
-#if defined CONFIG_IOVEC && defined CONFIG_POSIX
+#ifdef CONFIG_POSIX
     ssize_t ret;
     struct msghdr msg;
     memset(&msg, 0, sizeof(msg));
@@ -202,6 +202,12 @@ ssize_t iov_send_recv(int sockfd, struct iovec *iov, unsigned iov_cnt,
             return -1;
         }
 
+        if (ret == 0 && !do_send) {
+            /* recv returns 0 when the peer has performed an orderly
+             * shutdown. */
+            break;
+        }
+
         /* Prepare for the next iteration */
         offset += ret;
         total += ret;
@@ -225,7 +231,7 @@ void iov_hexdump(const struct iovec *iov, const unsigned int iov_cnt,
     size = size > limit ? limit : size;
     buf = g_malloc(size);
     iov_to_buf(iov, iov_cnt, 0, buf, size);
-    hexdump(buf, fp, prefix, size);
+    qemu_hexdump(buf, fp, prefix, size);
     g_free(buf);
 }
 

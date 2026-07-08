@@ -28,6 +28,10 @@
 #include "hw/qdev.h"
 #include "qemu/queue.h"
 
+#ifdef _MSC_VER
+#undef interface
+#endif
+
 /* Constants related to the USB / PCI interaction */
 #define USB_SBRN    0x60 /* Serial Bus Release Number Register */
 #define USB_RELEASE_1  0x10 /* USB 1.0 */
@@ -298,7 +302,7 @@ typedef struct USBDeviceClass {
      */
     void (*handle_data)(USBDevice *dev, USBPacket *p);
 
-    void (*set_interface)(USBDevice *dev, int intrface,
+    void (*set_interface)(USBDevice *dev, int interface,
                           int alt_old, int alt_new);
 
     /*
@@ -544,7 +548,7 @@ void usb_device_handle_control(USBDevice *dev, USBPacket *p, int request,
 
 void usb_device_handle_data(USBDevice *dev, USBPacket *p);
 
-void usb_device_set_interface(USBDevice *dev, int intrface,
+void usb_device_set_interface(USBDevice *dev, int interface,
                               int alt_old, int alt_new);
 
 void usb_device_flush_ep_queue(USBDevice *dev, USBEndpoint *ep);

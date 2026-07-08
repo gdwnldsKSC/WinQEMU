@@ -1180,6 +1180,40 @@ out:
     return 0;
 }
 
+int qmp_marshal_input_cpu_add(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    int64_t id;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_type_int(v, &id, "id", errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    qmp_cpu_add(id, errp);
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_int(v, &id, "id", errp);
+    qapi_dealloc_visitor_cleanup(md);
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
 int qmp_marshal_input_memsave(Monitor *mon, const QDict *qdict, QObject **ret)
 {
     Error *local_err = NULL;
@@ -3728,6 +3762,70 @@ int qmp_marshal_input_query_tpm(Monitor *mon, const QDict *qdict, QObject **ret)
 
 out:
 
+
+    if (local_err) {
+        qerror_report_err(local_err);
+        error_free(local_err);
+        return -1;
+    }
+    return 0;
+}
+
+static void qmp_marshal_output_query_command_line_options(CommandLineOptionInfoList * ret_in, QObject **ret_out, Error **errp)
+{
+    QapiDeallocVisitor *md = qapi_dealloc_visitor_new();
+    QmpOutputVisitor *mo = qmp_output_visitor_new();
+    Visitor *v;
+
+    v = qmp_output_get_visitor(mo);
+    visit_type_CommandLineOptionInfoList(v, &ret_in, "unused", errp);
+    if (!error_is_set(errp)) {
+        *ret_out = qmp_output_get_qobject(mo);
+    }
+    qmp_output_visitor_cleanup(mo);
+    v = qapi_dealloc_get_visitor(md);
+    visit_type_CommandLineOptionInfoList(v, &ret_in, "unused", errp);
+    qapi_dealloc_visitor_cleanup(md);
+}
+
+int qmp_marshal_input_query_command_line_options(Monitor *mon, const QDict *qdict, QObject **ret)
+{
+    Error *local_err = NULL;
+    Error **errp = &local_err;
+    QDict *args = (QDict *)qdict;
+    CommandLineOptionInfoList * retval = NULL;
+    QmpInputVisitor *mi;
+    QapiDeallocVisitor *md;
+    Visitor *v;
+    bool has_option = false;
+    char * option = NULL;
+
+    mi = qmp_input_visitor_new_strict(QOBJECT(args));
+    v = qmp_input_get_visitor(mi);
+    visit_start_optional(v, &has_option, "option", errp);
+    if (has_option) {
+        visit_type_str(v, &option, "option", errp);
+    }
+    visit_end_optional(v, errp);
+    qmp_input_visitor_cleanup(mi);
+
+    if (error_is_set(errp)) {
+        goto out;
+    }
+    retval = qmp_query_command_line_options(has_option, option, errp);
+    if (!error_is_set(errp)) {
+        qmp_marshal_output_query_command_line_options(retval, ret, errp);
+    }
+
+out:
+    md = qapi_dealloc_visitor_new();
+    v = qapi_dealloc_get_visitor(md);
+    visit_start_optional(v, &has_option, "option", errp);
+    if (has_option) {
+        visit_type_str(v, &option, "option", errp);
+    }
+    visit_end_optional(v, errp);
+    qapi_dealloc_visitor_cleanup(md);
 
     if (local_err) {
         qerror_report_err(local_err);

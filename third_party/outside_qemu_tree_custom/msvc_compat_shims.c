@@ -29,6 +29,7 @@ struct msvc_iovec {
     void*  iov_base;
     size_t iov_len;
 };
+/*
 int writev(int fd, const struct msvc_iovec* iov, int iovcnt)
 {
     int i, ret, total = 0;
@@ -47,6 +48,7 @@ int writev(int fd, const struct msvc_iovec* iov, int iovcnt)
     }
     return total;
 }
+*/
 
 /* GNU asprintf replacement for MSVC */
 int asprintf(char** strp, const char* fmt, ...)

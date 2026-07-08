@@ -387,6 +387,7 @@ static void init_qxl_ram(PCIQXLDevice *d)
     d->ram->int_pending = cpu_to_le32(0);
     d->ram->int_mask    = cpu_to_le32(0);
     d->ram->update_surface = 0;
+    d->ram->monitors_config = 0;
     SPICE_RING_INIT(&d->ram->cmd_ring);
     SPICE_RING_INIT(&d->ram->cursor_ring);
     SPICE_RING_INIT(&d->ram->release_ring);
@@ -1077,6 +1078,9 @@ static void qxl_enter_vga_mode(PCIQXLDevice *d)
         return;
     }
     trace_qxl_enter_vga_mode(d->id);
+#if SPICE_SERVER_VERSION >= 0x000c03 /* release 0.12.3 */
+    spice_qxl_driver_unload(&d->ssd.qxl);
+#endif
     qemu_spice_create_host_primary(&d->ssd);
     d->mode = QXL_MODE_VGA;
     vga_dirty_log_start(&d->vga);
@@ -2058,7 +2062,6 @@ static int qxl_init_primary(PCIDevice *dev)
     PCIQXLDevice *qxl = DO_UPCAST(PCIQXLDevice, pci, dev);
     VGACommonState *vga = &qxl->vga;
     PortioList *qxl_vga_port_list = g_new(PortioList, 1);
-    DisplayState *ds;
     int rc;
 
     qxl->id = 0;
@@ -2069,7 +2072,7 @@ static int qxl_init_primary(PCIDevice *dev)
     portio_list_init(qxl_vga_port_list, qxl_vga_portio_list, vga, "vga");
     portio_list_add(qxl_vga_port_list, pci_address_space_io(dev), 0x3b0);
 
-    vga->con = graphic_console_init(&qxl_ops, qxl);
+    vga->con = graphic_console_init(DEVICE(dev), &qxl_ops, qxl);
     qemu_spice_display_init_common(&qxl->ssd);
 
     rc = qxl_init_common(qxl);
@@ -2079,8 +2082,7 @@ static int qxl_init_primary(PCIDevice *dev)
 
     qxl->ssd.dcl.ops = &display_listener_ops;
     qxl->ssd.dcl.con = vga->con;
-    ds = qemu_console_displaystate(vga->con);
-    register_displaychangelistener(ds, &qxl->ssd.dcl);
+    register_displaychangelistener(&qxl->ssd.dcl);
     return rc;
 }
 
@@ -2094,7 +2096,7 @@ static int qxl_init_secondary(PCIDevice *dev)
     memory_region_init_ram(&qxl->vga.vram, "qxl.vgavram", qxl->vga.vram_size);
     vmstate_register_ram(&qxl->vga.vram, &qxl->pci.qdev);
     qxl->vga.vram_ptr = memory_region_get_ram_ptr(&qxl->vga.vram);
-    qxl->vga.con = graphic_console_init(&qxl_ops, qxl);
+    qxl->vga.con = graphic_console_init(DEVICE(dev), &qxl_ops, qxl);
 
     return qxl_init_common(qxl);
 }

@@ -571,6 +571,12 @@ DEF("S", 0, QEMU_OPTION_S, \
 "-S              freeze CPU at startup (use 'c' to start execution)\n",
 QEMU_ARCH_ALL)
 
+DEF("realtime", HAS_ARG, QEMU_OPTION_realtime,
+"-realtime [mlock=on|off]\n"
+"                run qemu with realtime features\n"
+"                mlock=on|off controls mlock support (default: on)\n",
+QEMU_ARCH_ALL)
+
 DEF("gdb", HAS_ARG, QEMU_OPTION_gdb, \
 "-gdb dev        wait for gdb connection on 'dev'\n", QEMU_ARCH_ALL)
 

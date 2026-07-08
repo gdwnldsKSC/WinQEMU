@@ -23,6 +23,7 @@
 #include "hw/virtio/virtio-blk.h"
 #include "virtio-blk.h"
 #include "block/aio.h"
+#include "hw/virtio/virtio-bus.h"
 
 enum {
     SEG_MAX = 126,                  /* maximum number of I/O segments */
@@ -417,6 +418,14 @@ bool virtio_blk_data_plane_create(VirtIODevice *vdev, VirtIOBlkConf *blk,
         return false;
     }
 
+    /* If dataplane is (re-)enabled while the guest is running there could be
+     * block jobs that can conflict.
+     */
+    if (bdrv_in_use(blk->conf.bs)) {
+        error_report("cannot start dataplane thread while device is in use");
+        return false;
+    }
+
     fd = raw_get_aio_fd(blk->conf.bs);
     if (fd < 0) {
         error_report("drive is incompatible with x-data-plane, "
@@ -455,6 +464,8 @@ void virtio_blk_data_plane_destroy(VirtIOBlockDataPlane *s)
 
 void virtio_blk_data_plane_start(VirtIOBlockDataPlane *s)
 {
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(s->vdev)));
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(qbus);
     VirtQueue *vq;
     int i;
 
@@ -470,8 +481,7 @@ void virtio_blk_data_plane_start(VirtIOBlockDataPlane *s)
     s->ctx = aio_context_new();
 
     /* Set up guest notifier (irq) */
-    if (s->vdev->binding->set_guest_notifiers(s->vdev->binding_opaque, 1,
-                                              true) != 0) {
+    if (k->set_guest_notifiers(qbus->parent, 1, true) != 0) {
         fprintf(stderr, "virtio-blk failed to set guest notifier, "
                 "ensure -enable-kvm is set\n");
         exit(1);
@@ -479,8 +489,7 @@ void virtio_blk_data_plane_start(VirtIOBlockDataPlane *s)
     s->guest_notifier = virtio_queue_get_guest_notifier(vq);
 
     /* Set up virtqueue notify */
-    if (s->vdev->binding->set_host_notifier(s->vdev->binding_opaque,
-                                            0, true) != 0) {
+    if (k->set_host_notifier(qbus->parent, 0, true) != 0) {
         fprintf(stderr, "virtio-blk failed to set host notifier\n");
         exit(1);
     }
@@ -508,6 +517,8 @@ void virtio_blk_data_plane_start(VirtIOBlockDataPlane *s)
 
 void virtio_blk_data_plane_stop(VirtIOBlockDataPlane *s)
 {
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(s->vdev)));
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(qbus);
     if (!s->started || s->stopping) {
         return;
     }
@@ -527,14 +538,14 @@ void virtio_blk_data_plane_stop(VirtIOBlockDataPlane *s)
     ioq_cleanup(&s->ioqueue);
 
     aio_set_event_notifier(s->ctx, &s->host_notifier, NULL, NULL);
-    s->vdev->binding->set_host_notifier(s->vdev->binding_opaque, 0, false);
+    k->set_host_notifier(qbus->parent, 0, false);
 
     aio_context_unref(s->ctx);
 
     /* Clean up guest notifier (irq) */
-    s->vdev->binding->set_guest_notifiers(s->vdev->binding_opaque, 1, false);
+    k->set_guest_notifiers(qbus->parent, 1, false);
 
-    vring_teardown(&s->vring);
+    vring_teardown(&s->vring, s->vdev, 0);
     s->started = false;
     s->stopping = false;
 }

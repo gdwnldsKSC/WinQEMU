@@ -79,7 +79,8 @@ typedef enum RunState
     RUN_STATE_SHUTDOWN = 11,
     RUN_STATE_SUSPENDED = 12,
     RUN_STATE_WATCHDOG = 13,
-    RUN_STATE_MAX = 14,
+    RUN_STATE_GUEST_PANICKED = 14,
+    RUN_STATE_MAX = 15,
 } RunState;
 
 typedef struct RunStateList
@@ -888,13 +889,13 @@ typedef struct ChardevSocketList
     struct ChardevSocketList *next;
 } ChardevSocketList;
 
-typedef struct ChardevDgram ChardevDgram;
+typedef struct ChardevUdp ChardevUdp;
 
-typedef struct ChardevDgramList
+typedef struct ChardevUdpList
 {
-    ChardevDgram *value;
-    struct ChardevDgramList *next;
-} ChardevDgramList;
+    ChardevUdp *value;
+    struct ChardevUdpList *next;
+} ChardevUdpList;
 
 typedef struct ChardevMux ChardevMux;
 
@@ -968,7 +969,7 @@ typedef enum ChardevBackendKind
     CHARDEV_BACKEND_KIND_PARALLEL = 2,
     CHARDEV_BACKEND_KIND_PIPE = 3,
     CHARDEV_BACKEND_KIND_SOCKET = 4,
-    CHARDEV_BACKEND_KIND_DGRAM = 5,
+    CHARDEV_BACKEND_KIND_UDP = 5,
     CHARDEV_BACKEND_KIND_PTY = 6,
     CHARDEV_BACKEND_KIND_NULL = 7,
     CHARDEV_BACKEND_KIND_MUX = 8,
@@ -979,8 +980,9 @@ typedef enum ChardevBackendKind
     CHARDEV_BACKEND_KIND_SPICEVMC = 13,
     CHARDEV_BACKEND_KIND_SPICEPORT = 14,
     CHARDEV_BACKEND_KIND_VC = 15,
-    CHARDEV_BACKEND_KIND_MEMORY = 16,
-    CHARDEV_BACKEND_KIND_MAX = 17,
+    CHARDEV_BACKEND_KIND_RINGBUF = 16,
+    CHARDEV_BACKEND_KIND_MEMORY = 17,
+    CHARDEV_BACKEND_KIND_MAX = 18,
 } ChardevBackendKind;
 
 typedef struct ChardevReturn ChardevReturn;
@@ -1055,6 +1057,66 @@ typedef struct AcpiTableOptionsList
     AcpiTableOptions *value;
     struct AcpiTableOptionsList *next;
 } AcpiTableOptionsList;
+
+extern const char *CommandLineParameterType_lookup[];
+typedef enum CommandLineParameterType
+{
+    COMMAND_LINE_PARAMETER_TYPE_STRING = 0,
+    COMMAND_LINE_PARAMETER_TYPE_BOOLEAN = 1,
+    COMMAND_LINE_PARAMETER_TYPE_NUMBER = 2,
+    COMMAND_LINE_PARAMETER_TYPE_SIZE = 3,
+    COMMAND_LINE_PARAMETER_TYPE_MAX = 4,
+} CommandLineParameterType;
+
+typedef struct CommandLineParameterTypeList
+{
+    CommandLineParameterType value;
+    struct CommandLineParameterTypeList *next;
+} CommandLineParameterTypeList;
+
+typedef struct CommandLineParameterInfo CommandLineParameterInfo;
+
+typedef struct CommandLineParameterInfoList
+{
+    CommandLineParameterInfo *value;
+    struct CommandLineParameterInfoList *next;
+} CommandLineParameterInfoList;
+
+typedef struct CommandLineOptionInfo CommandLineOptionInfo;
+
+typedef struct CommandLineOptionInfoList
+{
+    CommandLineOptionInfo *value;
+    struct CommandLineOptionInfoList *next;
+} CommandLineOptionInfoList;
+
+extern const char *X86CPURegister32_lookup[];
+typedef enum X86CPURegister32
+{
+    X86_C_P_U_REGISTER32_EAX = 0,
+    X86_C_P_U_REGISTER32_EBX = 1,
+    X86_C_P_U_REGISTER32_ECX = 2,
+    X86_C_P_U_REGISTER32_EDX = 3,
+    X86_C_P_U_REGISTER32_ESP = 4,
+    X86_C_P_U_REGISTER32_EBP = 5,
+    X86_C_P_U_REGISTER32_ESI = 6,
+    X86_C_P_U_REGISTER32_EDI = 7,
+    X86_C_P_U_REGISTER32_MAX = 8,
+} X86CPURegister32;
+
+typedef struct X86CPURegister32List
+{
+    X86CPURegister32 value;
+    struct X86CPURegister32List *next;
+} X86CPURegister32List;
+
+typedef struct X86CPUFeatureWordInfo X86CPUFeatureWordInfo;
+
+typedef struct X86CPUFeatureWordInfoList
+{
+    X86CPUFeatureWordInfo *value;
+    struct X86CPUFeatureWordInfoList *next;
+} X86CPUFeatureWordInfoList;
 
 void qapi_free_ErrorClassList(ErrorClassList * obj);
 
@@ -1950,15 +2012,15 @@ struct ChardevSocket
 void qapi_free_ChardevSocketList(ChardevSocketList * obj);
 void qapi_free_ChardevSocket(ChardevSocket * obj);
 
-struct ChardevDgram
+struct ChardevUdp
 {
     SocketAddress * remote;
     bool has_local;
     SocketAddress * local;
 };
 
-void qapi_free_ChardevDgramList(ChardevDgramList * obj);
-void qapi_free_ChardevDgram(ChardevDgram * obj);
+void qapi_free_ChardevUdpList(ChardevUdpList * obj);
+void qapi_free_ChardevUdp(ChardevUdp * obj);
 
 struct ChardevMux
 {
@@ -2035,7 +2097,7 @@ struct ChardevBackend
         ChardevHostdev * parallel;
         ChardevHostdev * pipe;
         ChardevSocket * socket;
-        ChardevDgram * dgram;
+        ChardevUdp * udp;
         ChardevDummy * pty;
         ChardevDummy * null;
         ChardevMux * mux;
@@ -2046,6 +2108,7 @@ struct ChardevBackend
         ChardevSpiceChannel * spicevmc;
         ChardevSpicePort * spiceport;
         ChardevVC * vc;
+        ChardevRingbuf * ringbuf;
         ChardevRingbuf * memory;
     };
 };
@@ -2121,5 +2184,41 @@ struct AcpiTableOptions
 
 void qapi_free_AcpiTableOptionsList(AcpiTableOptionsList * obj);
 void qapi_free_AcpiTableOptions(AcpiTableOptions * obj);
+
+void qapi_free_CommandLineParameterTypeList(CommandLineParameterTypeList * obj);
+
+struct CommandLineParameterInfo
+{
+    char * name;
+    CommandLineParameterType type;
+    bool has_help;
+    char * help;
+};
+
+void qapi_free_CommandLineParameterInfoList(CommandLineParameterInfoList * obj);
+void qapi_free_CommandLineParameterInfo(CommandLineParameterInfo * obj);
+
+struct CommandLineOptionInfo
+{
+    char * option;
+    CommandLineParameterInfoList * parameters;
+};
+
+void qapi_free_CommandLineOptionInfoList(CommandLineOptionInfoList * obj);
+void qapi_free_CommandLineOptionInfo(CommandLineOptionInfo * obj);
+
+void qapi_free_X86CPURegister32List(X86CPURegister32List * obj);
+
+struct X86CPUFeatureWordInfo
+{
+    int64_t cpuid_input_eax;
+    bool has_cpuid_input_ecx;
+    int64_t cpuid_input_ecx;
+    X86CPURegister32 cpuid_register;
+    int64_t features;
+};
+
+void qapi_free_X86CPUFeatureWordInfoList(X86CPUFeatureWordInfoList * obj);
+void qapi_free_X86CPUFeatureWordInfo(X86CPUFeatureWordInfo * obj);
 
 #endif
